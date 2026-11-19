@@ -550,7 +550,7 @@ A field's width caps its box, never its name and help: a lone field's name and h
 ## 50. Waterfall
 
 - **Used for:** the steps of a job or the jobs of a run on one time axis: where each started, how long it ran, how long it waited, the forecast for its end and "now" on a live run.
-- **Looks:** one row per step: a glyph, the name, a muted second line and the detail in words, and a bar on a shared axis. A wait is a lighter hatched segment before the bar. The forecast is a bracket with end caps after the bar. The critical path has a thicker outline and the words "critical path". "now" is a dashed line. A row that opens is a button. At phone width the label stacks above the bar. A table under "Show as table" says every row in words.
+- **Looks:** one row per step: a glyph, the name, a muted second line and the detail in words, and a bar on a shared axis. A wait is a lighter hatched segment before the bar. The forecast is a bracket with end caps after the bar. The critical path has a thicker outline and the words "critical path". "now" is a dashed line. A row that opens is a button. At phone width the label stacks above the bar. A table under "Show as table" says every row in words; a page that already has a table of the same jobs passes its id (`altTable`), and the waterfall then folds no table of its own and points to that one (aria-describedby).
 - **Source:** `packages/ui/src/components/Waterfall.tsx` (`Waterfall`), `packages/ui/src/components/VizAlt.tsx`, `packages/ui/src/components.css`
 - **Rules:** UX-41, UX-17, UX-18, UX-11, UX-49, UX-57, UX-58.
 - **Guard:** `packages/ui/src/components/Viz.test.tsx`.
@@ -558,7 +558,7 @@ A field's width caps its box, never its name and help: a lone field's name and h
 ## 51. Job graph
 
 - **Used for:** the jobs of a run and what each needs.
-- **Looks:** the stages as columns, a job one stage after the last job it needs, with connectors between them; the critical path has thicker outlines. A loop in the needs never breaks it: the edge that closes it is dropped. At phone width the stages are a vertical list and each job says "after: a, b". A job that opens is a button. A table under "Show as table" lists stage and needs.
+- **Looks:** the stages as columns, a job one stage after the last job it needs, with connectors between them; the critical path has thicker outlines. A loop in the needs never breaks it: the edge that closes it is dropped. At phone width the stages are a vertical list and each job says "after: a, b". A job that opens is a button. A table under "Show as table" lists stage and needs; a page that already has a table of the same jobs passes its id (`altTable`), and the graph then folds no table of its own and points to that one (aria-describedby).
 - **Source:** `packages/ui/src/components/JobGraph.tsx` (`JobGraph`, `layoutGraph`), `packages/ui/src/components.css`
 - **Rules:** UX-41, UX-17, UX-18, UX-49, UX-57, UX-58.
 - **Guard:** `packages/ui/src/components/Viz.test.tsx`.

@@ -1563,6 +1563,8 @@ legend > .ds-field__changed {
 .ds-details summary {
   cursor: pointer;
   min-block-size: var(--ds-target-min);
+  /* The label sits in the middle of the touch target, not at its top over an empty band. */
+  align-content: center;
 }
 
 /* component 24: time axis list */

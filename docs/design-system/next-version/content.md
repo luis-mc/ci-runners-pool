@@ -1042,7 +1042,11 @@ The words of the new Jobs section (web-console 4.6, proposed). A wait names what
 | Open the commit, Open the pull request | Secondary buttons on the job page. |
 | Open the whole run | Button to the run page. |
 | Project and code, Run and attempts, Steps, Runner, Times, Forecast, History of this job | Pane titles of the job page. |
-| Job graph, Timeline | Pane titles of the run page. |
+| Job graph, Timeline, Jobs | Pane titles of the run page. |
+| Job, Stage, Needs, Status, Runner, Waited, Ran, Forecast, Critical path | Column heads of the Jobs table of the run page: every job once, one line a row. Needs says "nothing" for a job that needs none; Critical path says "critical path" or "no"; a job with no runner says "not placed yet"; a time not known says "not yet". |
+| Every job of the run once, with the critical path marked. | Hint of the Jobs pane. |
+| The table under Jobs says the same in words. | Last sentence of the hints of the Job graph and the Timeline: the text alternative of both (UX-41). |
+| This run has 1 job; the job has steps. | Lead of the run page for a run of one job; "This run has {n} jobs; each job has steps." for more. |
 | persistent, state kept between jobs / ephemeral, fresh for every job | Runner type (UX-61). |
 | warm, the caches were ready / cold, the caches were rebuilt | Cache state of a job. |
 | Run time and wait per day, Jobs per day, Forecast against actual, Busiest hours | Chart pane titles. |
@@ -1061,7 +1065,7 @@ The words of the new Jobs section (web-console 4.6, proposed). A wait names what
 | Jobs done, Jobs queued | Column: "7 of 9". |
 | Total time, Time so far, Ends | Columns of a done run, of a running run, and the end forecast of a running run (one number: "in about 7 min"). |
 | Slowest job, Running now | Columns: the job that took longest, the job that runs now. |
-| Commit, Event | Columns of a run: the 7-character commit ("a1b2c3d"), and what started it ("push", "PR #52", "schedule"). The Run page keeps one line, Commit and event. |
+| Commit, Event | Columns of a run: the 7-character commit ("a1b2c3d"), and what started it ("push", "PR #52", "schedule"). The Run page keeps one line, Commit and event: the commit and the event word ("a1b2c3d, push"), never the pull request number, which is the fact Pull request. The Worktree fact is left out when it equals the branch. |
 | Result | Column of a run: success, failure, timed out, cancelled, running or waiting. |
 | (task RES15) | After the branch, when the branch starts with a task id. A worktree shows as "(worktree {name})" only when the job reported it, otherwise "not reported". |
 | Task, Worktree | Facts of the Job and Run pages. "none in the branch name" and "not reported" are their empty words. |
