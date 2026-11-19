@@ -32,6 +32,7 @@ const CHECKS: { id: Measure; states: ScreenState[] }[] = [
   { id: 'navBox', states: ['data'] },
   { id: 'tableHead', states: ['data'] },
   { id: 'paneButtons', states: ['data'] },
+  { id: 'titleOverlap', states: ['data'] },
   { id: 'hintKeys', states: ['data'] },
 ];
 
