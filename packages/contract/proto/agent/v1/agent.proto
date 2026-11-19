@@ -1122,7 +1122,7 @@ message EnsureImageAnswer {
   int64 size_bytes = 5;
   int64 retry_after_ms = 6;
   // Where to push after a local build, set with NOT_FOUND:
-  // crsp/_incoming/<machine id>/... and the target it is promoted to.
+  // crsp/incoming/<machine id>/... and the target it is promoted to.
   string staging_name = 7;
   string target_name = 8;
   // host:port of the registry on the controller's HTTPS listener.
@@ -1138,7 +1138,7 @@ message RegistryTokenRequest {
     ACTION_PUSH = 2;
   }
   Action action = 2;
-  // Repository names. A push names only crsp/_incoming/<own machine id>/...
+  // Repository names. A push names only crsp/incoming/<own machine id>/...
   repeated string names = 3;
 }
 

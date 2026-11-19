@@ -76,7 +76,7 @@ func found() *agentv1.EnsureImageAnswer {
 func notFound(staging bool) *agentv1.EnsureImageAnswer {
 	a := &agentv1.EnsureImageAnswer{Outcome: agentv1.EnsureImageAnswer_OUTCOME_NOT_FOUND, RegistryHost: "ctl.lan:8443"}
 	if staging {
-		a.StagingName, a.TargetName = "crsp/_incoming/m1/node-web", "crsp/std/node-web"
+		a.StagingName, a.TargetName = "crsp/incoming/m1/node-web", "crsp/std/node-web"
 	}
 	return a
 }
@@ -259,7 +259,7 @@ func TestEnsureNotFoundBuildsThenPushesInBackground(t *testing.T) {
 	close(gate)
 	er.b.pushWG.Wait()
 	calls := er.f.text()
-	if !strings.Contains(calls, "push ctl.lan:8443/crsp/_incoming/m1/node-web:"+key) {
+	if !strings.Contains(calls, "push ctl.lan:8443/crsp/incoming/m1/node-web:"+key) {
 		t.Fatalf("calls:\n%s", calls)
 	}
 	if strings.Contains(calls, "SECRET-REG-TOKEN-1") {

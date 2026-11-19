@@ -62,7 +62,7 @@ flowchart TD
   ask -- not found, staging name --> build[Local build, IMG1 streaming build]
   build --> use
   build --> ptok[RegistryToken, push scope, own staging only]
-  ptok --> push[Push to crsp/_incoming/machine/...]
+  ptok --> push[Push to crsp/incoming/machine/...]
   push --> report[PushReport pushed]
   report --> check{Controller checks digest, labels, key, tag is new}
   check -- refused --> refused[State refused, stays in staging until the cleanup]
@@ -98,7 +98,7 @@ Every group names the task that owns it. "Must" is binding.
 
 **R5.3** — Every request to `/v2/` carries a registry token (R5.10); anonymous reads are refused.
 
-**R5.4** — Names: standard images are `crsp/std/<profile>`, custom images `crsp/custom/<owner>-<repo>/<profile>` (lower case), staging `crsp/_incoming/<machine id>/<target without crsp/>` (`registry.StdName`, `CustomName`, `IncomingName`). The tag of an image is its key (R5.21).
+**R5.4** — Names: standard images are `crsp/std/<profile>`, custom images `crsp/custom/<owner>-<repo>/<profile>` (lower case), staging `crsp/incoming/<machine id>/<target without crsp/>` (`registry.StdName`, `CustomName`, `IncomingName`). The tag of an image is its key (R5.21).
 
 **R5.5** — A pushed image is not offered to any machine until the controller promotes it. On a `PushReport` with state pushed, the controller checks that the manifest in staging has the digest the agent reported, that the labels of R5.7 are present and agree with the key input, that `ComputeKey(key input)` equals the key, and that the tag does not exist under the target name. Then it promotes by a manifest copy (no data moves) and records the image. A failed check marks it `refused` with the reason.
 
@@ -112,7 +112,7 @@ Every group names the task that owns it. "Must" is binding.
 
 **R5.10** — Tokens are issued by the controller over the agent link (`RegistryTokenRequest`), last 10 minutes, and name their scopes. The token reaches the engine once on standard input or in a temporary `DOCKER_CONFIG` folder that is deleted after the call; it is never logged, stored, or given to a job.
 
-**R5.11** — Scopes: every machine may pull `crsp/std/*` and `crsp/custom/*`; a machine may push only to `crsp/_incoming/<its own id>/*`. People get no token.
+**R5.11** — Scopes: every machine may pull `crsp/std/*` and `crsp/custom/*`; a machine may push only to `crsp/incoming/<its own id>/*`. People get no token.
 
 **R5.12** — The agent installs the controller CA for the engine as a host step (`/etc/docker/certs.d/<host:port>/ca.crt`, `/etc/containers/certs.d/<host:port>/ca.crt` for Podman, the Docker Desktop setting on Windows) through the `regcreds` CA mechanism.
 
@@ -384,7 +384,7 @@ Rows for R5.13 to R5.20 (agent ensure-image), R5.21 and R5.22 (key), R5.59 to R5
 | ID | Question | Chosen | Date |
 |---|---|---|---|
 | D1 | Where the registry runs | Embedded in the controller, Distribution v3, `/v2/` on its HTTPS listener, private LAN rule | 2026-11-19 |
-| D2 | Who pushes where | A machine pushes only to `crsp/_incoming/<machine id>/`; the controller promotes by manifest copy; tags immutable | 2026-11-19 |
+| D2 | Who pushes where | A machine pushes only to `crsp/incoming/<machine id>/`; the controller promotes by manifest copy; tags immutable | 2026-11-19 |
 | D3 | Auth | Controller-issued tokens over the agent link, 10 min, pull std and custom, push own staging only | 2026-11-19 |
 | D4 | Standard images | The first machine builds and pushes; no import from CI | 2026-11-19 |
 | D5 | Budgets | 40 GB standard, 30 GB custom, never above half the free disk; folder `<data_dir>/registry`, editable | 2026-11-19 |

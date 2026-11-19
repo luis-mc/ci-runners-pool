@@ -21,7 +21,7 @@ type State string
 
 // The states.
 const (
-	// StateStaged is pushed to crsp/_incoming and not checked yet. No other
+	// StateStaged is pushed to crsp/incoming and not checked yet. No other
 	// machine is offered it.
 	StateStaged State = "staged"
 	// StateRefused failed the promotion check; it stays in staging until the
