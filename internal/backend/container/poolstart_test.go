@@ -480,3 +480,27 @@ func TestCleanUpRemovesTheLogin(t *testing.T) {
 		t.Errorf("retry: %v %v", err, db.calls)
 	}
 }
+
+// OPS37: CRSP_VM_IMAGE_MIRROR crosses into the job process; unset adds nothing.
+func TestPlanPoolPassesTheVMImageMirrorToTheJob(t *testing.T) {
+	r := backend.RunnerSpec{Name: "j1", Image: backend.ImageRef{ID: "crsp-pool:k"}}
+	plan, err := PlanPool(Config{VMImageMirror: "https://mirror.corp/vm"}, r, "o", "p", KVMFacts{})
+	if err != nil || plan.RunnerEnv["CRSP_VM_IMAGE_MIRROR"] != "https://mirror.corp/vm" {
+		t.Fatalf("%v %v", plan.RunnerEnv, err)
+	}
+	plan, err = PlanPool(Config{}, r, "o", "p", KVMFacts{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := plan.RunnerEnv["CRSP_VM_IMAGE_MIRROR"]; ok {
+		t.Errorf("default adds a variable: %v", plan.RunnerEnv)
+	}
+}
+
+func TestStartExportsTheMirrorFromTheDepsAddresses(t *testing.T) {
+	r := newRig(t, func(c *Config) { c.VMImageMirror = "https://mirror.corp/vm" })
+	if _, err := r.startSpec(r.spec("j1", "app", r.image())); err != nil {
+		t.Fatal(err)
+	}
+	has(t, startCall(r.f), "-e CRSP_VM_IMAGE_MIRROR=https://mirror.corp/vm")
+}

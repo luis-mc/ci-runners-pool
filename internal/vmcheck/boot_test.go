@@ -13,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/luis-mc/ci-runners-shared-pool/internal/addresses"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/vmcheck"
 )
 
@@ -242,5 +243,29 @@ func TestBootDigestMismatchIsAFailNotAStart(t *testing.T) {
 	out, err := vmcheck.Boot(context.Background(), cat, bootSpec(t), vm.deps(net, true), time.Now)
 	if err != nil || out.Pass || !strings.Contains(out.Detail, "published digest") || vm.started != nil {
 		t.Fatalf("%+v %v %v", out, err, vm.started)
+	}
+}
+
+func TestMirroredCatalogueMovesEveryDownloadAndDefaultIsUnchanged(t *testing.T) { // OPS37
+	cat, _ := testCatalogue(t, sum256(imgBody))
+	if same := cat.Mirrored(addresses.Set{}); !reflect.DeepEqual(same, cat) {
+		t.Fatalf("no mirror changed the catalogue: %+v", same)
+	}
+	m := cat.Mirrored(addresses.Set{VMImageMirror: "https://mirror.test/vm"})
+	if m["t-1"].BaseURL != "https://mirror.test/vm/t-1/" || m["t-1"].ChecksumURL != "https://mirror.test/vm/t-1/SUMS" {
+		t.Fatalf("%+v", m["t-1"])
+	}
+	if cat["t-1"].BaseURL != "https://m/" {
+		t.Fatal("the source catalogue was changed")
+	}
+	net := &fakeNet{files: map[string]string{
+		"https://mirror.test/vm/t-1/SUMS":      sum256(imgBody) + "  t-1.qcow2\n",
+		"https://mirror.test/vm/t-1/t-1.qcow2": imgBody,
+	}}
+	if _, _, _, err := vmcheck.Download(context.Background(), net, "t-1", m["t-1"], t.TempDir()); err != nil {
+		t.Fatal(err)
+	}
+	if len(net.gets) != 1 || net.gets[0] != "https://mirror.test/vm/t-1/t-1.qcow2" {
+		t.Fatalf("downloaded from %v", net.gets)
 	}
 }
