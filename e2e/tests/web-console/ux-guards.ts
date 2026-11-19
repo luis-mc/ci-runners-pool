@@ -186,12 +186,14 @@ export function stressData(mock: Mock): Mock {
   mock.on(
     'GET',
     '/api/v1/runners/:id',
-    (_c, p) => STRESS_RUNNERS.find((r) => r.id === p.id) ?? STRESS_RUNNERS[0],
+    (_c: unknown, p: Record<string, string>) =>
+      STRESS_RUNNERS.find((r) => r.id === p.id) ?? STRESS_RUNNERS[0],
   );
   mock.on(
     'GET',
     '/api/v1/machines/:id',
-    (_c, p) => STRESS_MACHINES.find((m) => m.id === p.id) ?? STRESS_MACHINES[0],
+    (_c: unknown, p: Record<string, string>) =>
+      STRESS_MACHINES.find((m) => m.id === p.id) ?? STRESS_MACHINES[0],
   );
   mock.on('GET', '/api/v1/overview', {
     machines: STRESS_MACHINES,
@@ -501,7 +503,7 @@ export async function stickyWalk(page: Page): Promise<string[]> {
     has: document.querySelector('.ds-action-bar') !== null,
   }));
   if (!info.has || info.max < 40) return out;
-  for (const frac of [0, 0.5, 1]) {
+  for (const frac of [0, 0.5, 0.97, 1]) {
     const bars = await page.evaluate((f) => {
       window.scrollTo(
         0,
@@ -522,9 +524,19 @@ export async function stickyWalk(page: Page): Promise<string[]> {
           window: window.innerHeight,
           page: document.documentElement.scrollHeight,
           sticky: bar.getAttribute('data-sticky'),
+          hints: Array.from(document.querySelectorAll('.ds-keyhints'))
+            .map((h) => h.getBoundingClientRect())
+            .filter((h) => h.height > 0 && h.top < window.innerHeight)
+            .map((h) => h.top),
         };
       });
     }, frac);
+    for (const b of bars)
+      for (const hintTop of b.hints)
+        if (b.height > 0 && b.bottom > hintTop + 1)
+          out.push(
+            `${b.name} overlaps the key-hint bar by ${Math.round(b.bottom - hintTop)} px at ${Math.round(frac * 100)}% of the page`,
+          );
     for (const b of bars)
       if (b.height > 0 && b.sticky !== 'false' && (b.top < -1 || b.bottom > b.window + 1))
         out.push(
@@ -543,26 +555,40 @@ export async function stickyWalk(page: Page): Promise<string[]> {
     const hit: string[] = [];
     for (let n = walk.nextNode(); n; n = walk.nextNode()) {
       const el = n.parentElement;
-      if (
-        !el ||
-        !(n.textContent ?? '').trim() ||
-        el.closest('.ds-action-bar, .ds-keyhints, .ds-visually-hidden')
-      )
+      if (!el || !(n.textContent ?? '').trim()) continue;
+      if (el.closest('.ds-action-bar, .ds-keyhints, .ds-visually-hidden, .ds-short, svg'))
         continue;
-      const box = el.getBoundingClientRect();
-      if (box.width === 0 || getComputedStyle(el).visibility === 'hidden') continue;
+      if (!el.checkVisibility({ contentVisibilityAuto: true, visibilityProperty: true }))
+        continue;
+      const head = el.closest('thead');
+      if (head && head.getBoundingClientRect().width <= 2) continue; // folded away at phone width
       const rg = document.createRange();
       rg.selectNodeContents(n);
-      for (const r of rg.getClientRects())
+      for (const raw of Array.from(rg.getClientRects())) {
+        let { left, right, top, bottom } = raw;
+        for (let x: Element | null = el; x && x !== document.body; x = x.parentElement) {
+          const st = getComputedStyle(x);
+          if (st.overflowX === 'visible' && st.overflowY === 'visible') continue;
+          const b = x.getBoundingClientRect();
+          if (st.overflowX !== 'visible') {
+            left = Math.max(left, b.left);
+            right = Math.min(right, b.right);
+          }
+          if (st.overflowY !== 'visible') {
+            top = Math.max(top, b.top);
+            bottom = Math.min(bottom, b.bottom);
+          }
+        }
+        if (right - left <= 2 || bottom - top <= 2) continue;
         for (const b of bars)
           if (
-            r.width > 2 &&
-            r.bottom > b.top + 3 &&
-            r.top < b.bottom - 3 &&
-            r.right > b.left &&
-            r.left < b.right
+            bottom > b.top + 3 &&
+            top < b.bottom - 3 &&
+            right > b.left &&
+            left < b.right
           )
             hit.push((n.textContent ?? '').trim().slice(0, 30));
+      }
     }
     return hit.slice(0, 3);
   });
@@ -572,12 +598,34 @@ export async function stickyWalk(page: Page): Promise<string[]> {
   return out;
 }
 
+/**
+ * RES21 B02: the Save bar of an edit screen only exists after a change. Changes the first editable control of the
+ * page (a text field, else a switch or box) and walks the bar. Returns no lines when the page has nothing to edit.
+ */
+export async function stickyWalkAfterChange(page: Page): Promise<string[]> {
+  const text = page
+    .locator(
+      'main input:not([type]), main input[type=text], main input[type=number], main textarea',
+    )
+    .and(page.locator(':enabled:visible'))
+    .first();
+  const box = page.locator('main input[type=checkbox]:enabled:visible').first();
+  if (await text.count()) {
+    if ((await text.getAttribute('type')) === 'number') await text.fill('7');
+    else await text.fill(`${await text.inputValue()}x`);
+  } else if (await box.count()) await box.click({ force: true });
+  else return [];
+  await page.waitForTimeout(80);
+  return stickyWalk(page);
+}
+
 /** `stickyWalk` on the route at each width and mode, prefixed with where. */
 export async function stickyEverywhere(
   page: Page,
   route: Pick<ConsoleRoute, 'pattern' | 'url' | 'signedOut'>,
   state: ScreenState = 'data',
   widths: readonly { width: number; height: number }[] = TEXT_WIDTHS,
+  walk: (page: Page) => Promise<string[]> = stickyWalk,
 ): Promise<string[]> {
   const out: string[] = [];
   for (const mode of MODES) {
@@ -585,7 +633,7 @@ export async function stickyEverywhere(
     for (const w of widths) {
       await page.setViewportSize(w);
       await page.waitForTimeout(30);
-      for (const line of await stickyWalk(page))
+      for (const line of await walk(page))
         out.push(`${route.pattern} ${state} ${mode} ${w.width}px: ${line}`);
     }
     await page.unrouteAll({ behavior: 'ignoreErrors' });

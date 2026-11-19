@@ -45,7 +45,7 @@ const TEXT_BOXES = String.raw`${VISIBLE}
     if (!t.trim()) continue;
     const el = n.parentElement;
     if (!el || el.closest('script, style, noscript, option, svg') || !visible(el) || hiddenText(el) || floating(el)) continue;
-    if (getComputedStyle(el).opacity === '0') continue;
+    if (getComputedStyle(el).opacity === '0' || (el.checkVisibility && !el.checkVisibility({ contentVisibilityAuto: true }))) continue; // a closed details keeps its text out of sight
     const rg = document.createRange();
     rg.selectNodeContents(n);
     for (const r of rg.getClientRects()) {
@@ -170,6 +170,21 @@ export const TEXT_MEASURES = {
       if (!sameLine || gap > 1.2 || gap < -1) continue;
       if (/[A-Za-z0-9]$/.test(a.raw) && /^[A-Za-z0-9]/.test(b.raw) && !getComputedStyle(a.el).display.startsWith('flex'))
         bad.push('"' + a.raw.slice(-14) + '" touches "' + b.raw.slice(0, 14) + '" (gap ' + gap.toFixed(1) + ' px)');
+    }
+    return bad;`,
+  /** UX-72, UX-6: a short value (12 characters or fewer) is never cut; a long one in a table cell that is cut can be read whole (a title, or the row's detail). The middle-cut ShortText is not judged. */
+  cutText: String.raw`${VISIBLE}
+    const bad = [];
+    for (const e of document.querySelectorAll('main *')) {
+      if (!visible(e) || e.closest('.ds-short, .ds-cut__head, .ds-visually-hidden, thead, svg')) continue;
+      const s = getComputedStyle(e);
+      if (s.textOverflow !== 'ellipsis' || e.clientWidth <= 2 || e.scrollWidth <= e.clientWidth + 1) continue;
+      const text = (e.textContent || '').trim().replace(/\s+/g, ' ');
+      if (text.length <= 12) { bad.push('the short value "' + text + '" is cut (' + e.scrollWidth + ' px in ' + e.clientWidth + ' px)'); continue; }
+      const row = e.closest('tr');
+      if (!row) continue; // a long label outside a table is not judged here
+      const readable = e.closest('[title]') || (row && (row.querySelector('[aria-expanded]') || (row.nextElementSibling && row.nextElementSibling.classList.contains('ds-table__expanded'))));
+      if (!readable) bad.push('"' + text.slice(0, 30) + '" is cut and cannot be read whole');
     }
     return bad;`,
   /** UX-72: at desktop width every row of one table has one height. */

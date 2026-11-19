@@ -12,6 +12,7 @@ import {
   openRoute,
   stickyEverywhere,
   stickyWalk,
+  stickyWalkAfterChange,
   TEXT_WIDTHS,
   type Measure,
   type ScreenState,
@@ -47,6 +48,7 @@ const TEXT_CHECKS: Measure[] = [
   'textOverText',
   'textOverBorder',
   'wordsGlued',
+  'cutText',
   'rowHeights',
   'rowActionWords',
 ];
@@ -109,6 +111,17 @@ for (const route of routes) {
       expect(await stickyEverywhere(page, route, state)).toEqual([]);
     });
   }
+}
+
+// RES21 B02: an edit screen shows its Save bar only after a change; the bar must be in the window then too.
+for (const route of routes) {
+  test(`ux stickyWalk after a change: ${route.pattern}`, async ({ page }) => {
+    const why = fixmeFor('stickyEdit', route.pattern, 'stress');
+    test.fixme(why !== undefined, why ?? '');
+    expect(
+      await stickyEverywhere(page, route, 'stress', TEXT_WIDTHS, stickyWalkAfterChange),
+    ).toEqual([]);
+  });
 }
 
 // N5 (RES21): a frame with no key-hint bar (the setup page) has no `--ds-keyhints-height`; the bar still sticks.

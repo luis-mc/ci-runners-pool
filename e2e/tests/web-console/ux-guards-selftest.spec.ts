@@ -1,7 +1,7 @@
 // LOOK35: the guards guard themselves. Each new measure of ux-guards.ts runs on a small page that breaks its rule (it
 // must report) and on one that keeps it (it must report nothing), so a measure that goes blind turns this red.
 import { expect, test, type Page } from '@playwright/test';
-import { measure, stickyWalk, type Measure } from './ux-guards';
+import { measure, stickyWalk, stickyWalkAfterChange, type Measure } from './ux-guards';
 
 const BASE = `<style>
   body { margin: 0; font: 16px/20px sans-serif; }
@@ -71,6 +71,18 @@ const CASES: {
     needle: 'touches',
     bad: '<p>See <a href="#x">Shared</a><b>Pool</b> now</p>',
     good: '<p>See <a href="#x">Shared</a> <b>Pool</b> now</p>',
+  },
+  {
+    measure: 'cutText',
+    needle: 'short value "Wednesday" is cut',
+    bad: '<span style="display:inline-block;width:30px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Wednesday</span>',
+    good: '<span style="display:inline-block;width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Wednesday</span>',
+  },
+  {
+    measure: 'cutText',
+    needle: 'cannot be read whole',
+    bad: '<table><tbody><tr><td style="max-width:60px"><span style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">.github/workflows/ci.yml:12 needs</span></td></tr></tbody></table>',
+    good: '<table><tbody><tr><td style="max-width:60px"><span title=".github/workflows/ci.yml:12 needs" style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">.github/workflows/ci.yml:12 needs</span></td></tr></tbody></table>',
   },
   {
     measure: 'rowHeights',
@@ -160,4 +172,32 @@ test('stickyWalk has nothing to say about a page that does not scroll', async ({
     `<!doctype html><body>${BAR}<main>Short</main><div class="ds-action-bar loose">Save</div></body>`,
   );
   expect(await stickyWalk(page)).toEqual([]);
+});
+
+test('stickyWalk reports a bar that overlaps the key-hint bar (B19)', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 800, height: 400 });
+  await page.setContent(
+    `<!doctype html><body>${BAR}<style>.ds-keyhints { position: fixed; left: 0; right: 0; bottom: 0; height: 44px; background: #eee; } .ds-action-bar { inset-block-end: 20px; }</style><main><div class="tall">Page</div></main><div class="ds-action-bar" aria-label="Save bar">Save</div><div class="ds-keyhints">j / k Move</div></body>`,
+  );
+  expect((await stickyWalk(page)).join('\n')).toContain('overlaps the key-hint bar');
+});
+
+test('stickyWalk accepts a bar that sits above the key-hint bar', async ({ page }) => {
+  await page.setViewportSize({ width: 800, height: 400 });
+  await page.setContent(
+    `<!doctype html><body>${BAR}<style>.ds-keyhints { position: fixed; left: 0; right: 0; bottom: 0; height: 44px; background: #eee; } .ds-action-bar { inset-block-end: 44px; }</style><main><div class="tall">Page</div></main><div class="ds-action-bar" aria-label="Save bar">Save</div><div class="ds-keyhints">j / k Move</div></body>`,
+  );
+  expect(await stickyWalk(page)).toEqual([]);
+});
+
+test('stickyWalkAfterChange changes a field and walks the bar that appears', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 800, height: 400 });
+  await page.setContent(
+    `<!doctype html><body>${BAR}<main><input aria-label="Name" value="a" oninput="document.getElementById('b').hidden=false"><div class="tall">Page</div><div id="b" hidden class="ds-action-bar loose" aria-label="Save bar">Save</div></main></body>`,
+  );
+  expect((await stickyWalkAfterChange(page)).join('\n')).toContain('Save bar');
 });
