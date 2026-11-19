@@ -92,6 +92,14 @@ type Config struct {
 	// RegistryRequest tells the registry which key, arch and job an image is
 	// for; nil asks with the backend's own key.
 	RegistryRequest func(spec backend.ImageSpec) RegistryRequest
+	// ControllerCA gives the PEM of the controller's CA certificate for a
+	// registry host:port; the engine is made to trust it before the first pull
+	// or push there (registry R5.12). FetchControllerCA is the usual source.
+	// Nil leaves the engine's trust as it is.
+	ControllerCA func(ctx context.Context, registryHost string) ([]byte, error)
+	// HostOS and HomeDir place the engine CA folder; empty is the running
+	// system and the home of the user (tests set them).
+	HostOS, HomeDir string
 	// Now is the clock of the wait and the progress lines; nil is time.Now.
 	Now func() time.Time
 	// Builds keeps each image build as a record and reports its progress
@@ -115,8 +123,9 @@ type Backend struct {
 	draining  map[string]bool   // pool name -> a swap waits for idle
 	dbRunners map[string]string // runner ref -> runner id, for runners that got a database
 	owners    runners.MemoryRoleOwners
-	cpus      *CPUAllocator  // nil when the config has no CPU budget
-	pushWG    sync.WaitGroup // background pushes to staging (registry R5.16)
+	cpus      *CPUAllocator   // nil when the config has no CPU budget
+	pushWG    sync.WaitGroup  // background pushes to staging (registry R5.16)
+	caDone    map[string]bool // registry hosts whose engine CA is installed (registry R5.12)
 	// buildGate lets one image build run at a time on this machine (decision D20).
 	buildGate *builds.Gate
 }

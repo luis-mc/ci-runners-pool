@@ -77,11 +77,11 @@ func TestCleanupFailureReturnsToReadWrite(t *testing.T) {
 func TestCleanupRemovesOldStagedAndRefused(t *testing.T) {
 	e := newEnv(t)
 	e.repo.add(registry.Image{ID: "s_old", State: registry.StateStaged, PushedAt: t0.Add(-25 * time.Hour), Manifest: "sha256:s1"})
-	e.repo.staged["s_old"] = "crsp/_incoming/m1/a"
+	e.repo.staged["s_old"] = "crsp/incoming/m1/a"
 	e.repo.add(registry.Image{ID: "r_old", State: registry.StateRefused, PushedAt: day(-3), Manifest: "sha256:r1"})
-	e.repo.staged["r_old"] = "crsp/_incoming/m2/b"
+	e.repo.staged["r_old"] = "crsp/incoming/m2/b"
 	e.repo.add(registry.Image{ID: "s_new", State: registry.StateStaged, PushedAt: t0.Add(-2 * time.Hour)})
-	e.repo.staged["s_new"] = "crsp/_incoming/m1/c"
+	e.repo.staged["s_new"] = "crsp/incoming/m1/c"
 	_, err := e.svc.Cleanup(context.Background(), TriggerNow)
 	must(t, err)
 	if e.repo.images["s_old"].State != registry.StateDeleted || e.repo.images["r_old"].State != registry.StateDeleted {
@@ -90,7 +90,7 @@ func TestCleanupRemovesOldStagedAndRefused(t *testing.T) {
 	if e.repo.images["s_new"].State != registry.StateStaged {
 		t.Fatal("a staged image under a day old was removed")
 	}
-	if len(e.reg.deleted) != 2 || e.reg.deleted[0] != "crsp/_incoming/m1/a@sha256:s1" && e.reg.deleted[1] != "crsp/_incoming/m1/a@sha256:s1" {
+	if len(e.reg.deleted) != 2 || e.reg.deleted[0] != "crsp/incoming/m1/a@sha256:s1" && e.reg.deleted[1] != "crsp/incoming/m1/a@sha256:s1" {
 		t.Fatalf("manifests deleted: %v", e.reg.deleted)
 	}
 }

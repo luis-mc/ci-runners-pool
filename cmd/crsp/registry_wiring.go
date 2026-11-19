@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
+	"crypto/rand"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net"
 	"path/filepath"
@@ -16,6 +18,7 @@ import (
 	"github.com/luis-mc/ci-runners-shared-pool/internal/profiles"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/registry"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/registry/builds"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/registry/core"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/registry/keys"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/registry/mirror"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/registry/records"
@@ -24,17 +27,26 @@ import (
 	"github.com/luis-mc/ci-runners-shared-pool/internal/registry/scan"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/registry/sink"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/runnercache"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/secrets"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/stackscan"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/store"
 )
 
-// The join of the registry wave (REG11). The registry core (REG1: Distribution
-// under /v2/, the token issuer, the promoter) is built on its own branch and
-// reaches the controller through openRegistryCore. While that is nil there is
-// no registry: agents are told so at the handshake, the registry routes answer
-// 501 as before, and the controller runs as it did. What does not need the core
-// is wired at once: the build records (IMG1), the image profiles (IMG3) and
-// the key choice over the stack scan (IMG2 into REG3).
+// The join of the registry wave (REG11) and the registry core (REG12). The
+// core (REG1: Distribution under /v2/, the token issuer, the promoter, the
+// disk gate, the event log) is opened by openRegistryCore. Without it (the
+// listen address is not a private LAN one, R5.2, or it did not start) there is
+// no registry: agents are told so, the registry routes answer 501, and the
+// controller runs as it did. What does not need the core is wired at once: the
+// build records (IMG1), the image profiles (IMG3) and the key choice over the
+// stack scan (IMG2 into REG3).
+
+// registryTokenKey is the secret-store entry of the key that signs registry
+// tokens (registry R5.10).
+const registryTokenKey secrets.Key = "crsp/registry/token-key"
+
+// leasePrune is how often the token leases that ended are deleted.
+const leasePrune = 5 * time.Minute
 
 // registryCore is what REG1 hands the controller.
 type registryCore struct {
@@ -46,30 +58,103 @@ type registryCore struct {
 	Promoter registry.Promoter
 	// Layers lists the layers of a manifest in the storage (records R5.31).
 	Layers records.LayerSource
-	// Referrers stores the SBOM and the scan report as OCI referrers (REG8).
+	// Referrers stores the SBOM and the scan report as OCI referrers (REG8);
+	// nil leaves the scan without referrers.
 	Referrers scan.Referrers
 	// AddPromotedHook registers a hook the Promoter calls after each promotion.
 	AddPromotedHook func(registry.PromotedHook)
 	// MirrorGuard puts the token check in front of the pull-through mirror (R5.3).
 	MirrorGuard mirror.Guard
+	// close stops the registry and its background work; nil in a test.
+	close func()
 }
 
 // registryCoreDeps is what the controller gives the core to open.
 type registryCoreDeps struct {
-	DB      *store.Store
-	Images  registry.ImageStore
-	DataDir string
-	Host    string
-	Logger  *slog.Logger
+	DB         *store.Store
+	Images     registry.ImageStore
+	Secrets    secrets.Store
+	DataDir    string
+	ListenAddr string
+	Host       string
+	Logger     *slog.Logger
 }
 
-// openRegistryCore opens the registry core. REG1 sets it; nil means this build
-// has no registry core.
-var openRegistryCore func(ctx context.Context, d registryCoreDeps) (*registryCore, error)
+// openRegistryCore opens the registry core; nil means this build has none. It
+// is a variable so a test can stand in for the core.
+var openRegistryCore = openCore
 
 // registryAvailable says whether a registry core can be opened; the agent
 // handshake offers protocol version 3 (the registry path) only then.
 func registryAvailable() bool { return openRegistryCore != nil }
+
+// tokenKey reads the key that signs registry tokens, making it on the first start.
+func tokenKey(ctx context.Context, sec secrets.Store) ([]byte, error) {
+	k, err := sec.Get(ctx, registryTokenKey)
+	if err == nil && len(k) >= 32 {
+		return k, nil
+	}
+	if err != nil && !errors.Is(err, secrets.ErrNotFound) {
+		return nil, err
+	}
+	k = make([]byte, 32)
+	if _, err := rand.Read(k); err != nil {
+		return nil, err
+	}
+	return k, sec.Put(ctx, registryTokenKey, k)
+}
+
+// openCore builds REG1's core: the token issuer with its disk gate, the
+// Distribution registry on the private listener address, the promoter, the
+// event log and the pruning of ended token leases. It returns nil without an
+// error when the listen address is not a private LAN one (R5.2): the controller
+// then runs with no registry and agents build locally.
+func openCore(ctx context.Context, d registryCoreDeps) (*registryCore, error) {
+	logger := d.Logger
+	if err := core.CheckListen(d.ListenAddr); err != nil {
+		logger.Info("the image registry is not served", "addr", d.ListenAddr, "why", err.Error())
+		return nil, nil
+	}
+	folder := filepath.Join(d.DataDir, "registry")
+	if st, err := d.DB.RegistryRetention().Settings(ctx); err == nil && st.Folder != "" {
+		folder = st.Folder
+	}
+	key, err := tokenKey(ctx, d.Secrets)
+	if err != nil {
+		return nil, fmt.Errorf("the token key: %w", err)
+	}
+	ledger := d.DB.RegistryCore()
+	issuer := &core.Issuer{Secret: key, Leases: ledger, Gate: &core.DiskGate{Folder: folder}}
+	reg, err := core.New(ctx, core.Options{Dir: folder, ListenAddr: d.ListenAddr, Tokens: issuer, Logger: d.Logger})
+	if err != nil {
+		return nil, err
+	}
+	promoter := &core.Promoter{Registry: reg, Ledger: ledger, Log: logger}
+	runCtx, stop := context.WithCancel(ctx)
+	go core.LogEvents(runCtx, reg.Events(), logger)
+	pruned := make(chan struct{})
+	go func() {
+		defer close(pruned)
+		t := time.NewTicker(leasePrune)
+		defer t.Stop()
+		for {
+			select {
+			case <-runCtx.Done():
+				return
+			case now := <-t.C:
+				if _, err := ledger.PruneLeases(runCtx, now); err != nil && runCtx.Err() == nil {
+					logger.Warn("registry: could not prune the token leases", "err", err)
+				}
+			}
+		}
+	}()
+	logger.Info("image registry ready", "addr", d.Host)
+	return &registryCore{
+		Registry: reg, Tokens: issuer, Promoter: promoter, Layers: reg,
+		AddPromotedHook: promoter.OnPromoted, MirrorGuard: issuer.MirrorGuard,
+		close: func() { stop(); <-pruned; _ = reg.Close() },
+	}, nil
+}
 
 // registryWiring is what the join built; the controller keeps it for the
 // routes it mounts and for shutdown.
@@ -149,7 +234,9 @@ func wireRegistry(ctx context.Context, d controllerDeps, c *controller, gh *gith
 		},
 	})
 	images := records.NewImageStore(rs)
-	opened, err := openRegistryCore(ctx, registryCoreDeps{DB: db, Images: images, DataDir: d.Cfg.DataDir, Host: host, Logger: logger})
+	opened, err := openRegistryCore(ctx, registryCoreDeps{
+		DB: db, Images: images, Secrets: d.Secrets, DataDir: d.Cfg.DataDir, ListenAddr: d.Cfg.ListenAddr, Host: host, Logger: logger,
+	})
 	if err != nil {
 		// The controller runs without the registry; agents build locally.
 		logger.Warn("the image registry did not start", "err", err)
@@ -160,6 +247,9 @@ func wireRegistry(ctx context.Context, d controllerDeps, c *controller, gh *gith
 	}
 	core = opened
 	w.Core = core
+	if core.close != nil {
+		c.closers = append(c.closers, core.close)
+	}
 
 	audits := audit.New(db)
 	pointers := &keys.Pointers{Lineage: db.RegistryKeys(), Images: images}

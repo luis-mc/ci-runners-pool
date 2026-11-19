@@ -7496,7 +7496,7 @@ type EnsureImageAnswer struct {
 	SizeBytes      int64  `protobuf:"varint,5,opt,name=size_bytes,json=sizeBytes,proto3" json:"size_bytes,omitempty"`
 	RetryAfterMs   int64  `protobuf:"varint,6,opt,name=retry_after_ms,json=retryAfterMs,proto3" json:"retry_after_ms,omitempty"`
 	// Where to push after a local build, set with NOT_FOUND:
-	// crsp/_incoming/<machine id>/... and the target it is promoted to.
+	// crsp/incoming/<machine id>/... and the target it is promoted to.
 	StagingName string `protobuf:"bytes,7,opt,name=staging_name,json=stagingName,proto3" json:"staging_name,omitempty"`
 	TargetName  string `protobuf:"bytes,8,opt,name=target_name,json=targetName,proto3" json:"target_name,omitempty"`
 	// host:port of the registry on the controller's HTTPS listener.
@@ -7603,7 +7603,7 @@ type RegistryTokenRequest struct {
 	state     protoimpl.MessageState      `protogen:"open.v1"`
 	RequestId string                      `protobuf:"bytes,1,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
 	Action    RegistryTokenRequest_Action `protobuf:"varint,2,opt,name=action,proto3,enum=agent.v1.RegistryTokenRequest_Action" json:"action,omitempty"`
-	// Repository names. A push names only crsp/_incoming/<own machine id>/...
+	// Repository names. A push names only crsp/incoming/<own machine id>/...
 	Names         []string `protobuf:"bytes,3,rep,name=names,proto3" json:"names,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

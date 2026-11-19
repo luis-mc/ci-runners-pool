@@ -215,8 +215,8 @@ const (
 	// NamePrefix is the root of every repository name.
 	NamePrefix = "crsp/"
 	// IncomingPrefix is the staging root: a machine pushes only below
-	// crsp/_incoming/<its machine id>/.
-	IncomingPrefix = "crsp/_incoming/"
+	// crsp/incoming/<its machine id>/.
+	IncomingPrefix = "crsp/incoming/"
 )
 
 // StdName is the repository of the standard image of a profile:
@@ -230,8 +230,8 @@ func CustomName(owner, repo, profile string) string {
 }
 
 // IncomingName is where machine pushes the image it built before promotion:
-// crsp/_incoming/<machine id>/<target name without the crsp/ prefix>, for
-// example crsp/_incoming/m_7f3a/std/node-web.
+// crsp/incoming/<machine id>/<target name without the crsp/ prefix>, for
+// example crsp/incoming/m_7f3a/std/node-web.
 func IncomingName(machineID, target string) string {
 	return IncomingPrefix + machineID + "/" + strings.TrimPrefix(target, NamePrefix)
 }

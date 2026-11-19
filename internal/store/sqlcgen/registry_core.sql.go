@@ -21,6 +21,18 @@ func (q *Queries) DeleteEndedRegistryTokenLeases(ctx context.Context, expiresAt 
 	return result.RowsAffected()
 }
 
+const deleteRegistryTokenLease = `-- name: DeleteRegistryTokenLease :execrows
+DELETE FROM registry_token_leases WHERE jti = ?
+`
+
+func (q *Queries) DeleteRegistryTokenLease(ctx context.Context, jti string) (int64, error) {
+	result, err := q.exec(ctx, q.deleteRegistryTokenLeaseStmt, deleteRegistryTokenLease, jti)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
 const getRegistryTag = `-- name: GetRegistryTag :one
 SELECT name, tag, image_id, manifest_digest, created_at FROM registry_image_tags WHERE name = ? AND tag = ?
 `
@@ -39,6 +51,22 @@ func (q *Queries) GetRegistryTag(ctx context.Context, arg GetRegistryTagParams) 
 		&i.ImageID,
 		&i.ManifestDigest,
 		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const getRegistryTokenLease = `-- name: GetRegistryTokenLease :one
+SELECT jti, machine_id, names, expires_at FROM registry_token_leases WHERE jti = ?
+`
+
+func (q *Queries) GetRegistryTokenLease(ctx context.Context, jti string) (RegistryTokenLease, error) {
+	row := q.queryRow(ctx, q.getRegistryTokenLeaseStmt, getRegistryTokenLease, jti)
+	var i RegistryTokenLease
+	err := row.Scan(
+		&i.Jti,
+		&i.MachineID,
+		&i.Names,
+		&i.ExpiresAt,
 	)
 	return i, err
 }
@@ -173,18 +201,26 @@ func (q *Queries) ListLiveRegistryTokenLeases(ctx context.Context, expiresAt str
 }
 
 const promoteRegistryImage = `-- name: PromoteRegistryImage :execrows
-UPDATE registry_images SET state = ?, promoted_at = ?, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+UPDATE registry_images SET state = ?, promoted_at = ?, base_name = ?, size_bytes = ?, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
 WHERE id = ? AND state = 'staged'
 `
 
 type PromoteRegistryImageParams struct {
 	State      string
 	PromotedAt string
+	BaseName   string
+	SizeBytes  int64
 	ID         string
 }
 
 func (q *Queries) PromoteRegistryImage(ctx context.Context, arg PromoteRegistryImageParams) (int64, error) {
-	result, err := q.exec(ctx, q.promoteRegistryImageStmt, promoteRegistryImage, arg.State, arg.PromotedAt, arg.ID)
+	result, err := q.exec(ctx, q.promoteRegistryImageStmt, promoteRegistryImage,
+		arg.State,
+		arg.PromotedAt,
+		arg.BaseName,
+		arg.SizeBytes,
+		arg.ID,
+	)
 	if err != nil {
 		return 0, err
 	}

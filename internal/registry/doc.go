@@ -4,7 +4,7 @@
 // The registry is embedded in the controller with the Distribution v3 library
 // and served on the controller's HTTPS listener under /v2/. It is never public:
 // the listener follows the private LAN address rule of lancache. Machines
-// push only to crsp/_incoming/<machine id>/...; the controller checks digest,
+// push only to crsp/incoming/<machine id>/...; the controller checks digest,
 // labels, key and that the tag is new, then promotes by a manifest copy to
 // crsp/std/<profile> or crsp/custom/<owner>-<repo>/<profile>. Tags are
 // immutable. Tokens are issued by the controller over the agent link for 10

@@ -327,7 +327,7 @@ func TestRecordPull(t *testing.T) { // R5.30
 func TestRecordPush(t *testing.T) {
 	e := newEnv(t)
 	base := registry.PushRecord{PushID: "u1", State: "pushing", Seconds: 1, At: t0,
-		Staged: registry.Staged{MachineID: "m1", Name: "crsp/_incoming/m1/std/base", Target: "crsp/std/base", Key: "aaaaaaaaaaaa", Manifest: "sha256:" + strings.Repeat("a", 64)}}
+		Staged: registry.Staged{MachineID: "m1", Name: "crsp/incoming/m1/std/base", Target: "crsp/std/base", Key: "aaaaaaaaaaaa", Manifest: "sha256:" + strings.Repeat("a", 64)}}
 	if err := e.svc.RecordPush(e.ctx, base); err != nil {
 		t.Fatal(err)
 	}

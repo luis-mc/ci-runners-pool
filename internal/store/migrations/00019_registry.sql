@@ -16,7 +16,7 @@ CREATE TABLE registry_images (
     state             TEXT NOT NULL DEFAULT 'staged'
                       CHECK (state IN ('staged', 'refused', 'current', 'variant', 'superseded', 'deleted')),
     manifest_digest   TEXT NOT NULL,
-    staged_name       TEXT NOT NULL DEFAULT '',               -- crsp/_incoming/<machine>/...
+    staged_name       TEXT NOT NULL DEFAULT '',               -- crsp/incoming/<machine>/...
     stack_hash        TEXT NOT NULL,
     base_name         TEXT NOT NULL DEFAULT '',
     base_digest       TEXT NOT NULL,

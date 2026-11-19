@@ -8,7 +8,7 @@ INSERT INTO registry_images (
 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 -- name: PromoteRegistryImage :execrows
-UPDATE registry_images SET state = ?, promoted_at = ?, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+UPDATE registry_images SET state = ?, promoted_at = ?, base_name = ?, size_bytes = ?, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
 WHERE id = ? AND state = 'staged';
 
 -- name: RefuseRegistryImage :execrows
@@ -29,3 +29,9 @@ SELECT * FROM registry_token_leases WHERE expires_at > ? ORDER BY expires_at;
 
 -- name: DeleteEndedRegistryTokenLeases :execrows
 DELETE FROM registry_token_leases WHERE expires_at <= ?;
+
+-- name: GetRegistryTokenLease :one
+SELECT * FROM registry_token_leases WHERE jti = ?;
+
+-- name: DeleteRegistryTokenLease :execrows
+DELETE FROM registry_token_leases WHERE jti = ?;

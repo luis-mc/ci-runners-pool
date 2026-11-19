@@ -18,7 +18,7 @@ import (
 	"time"
 )
 
-// Pin is one platform entry of scripts/delivery/tools.json: the same file CI
+// Pin is one platform entry of the CI tool pin list: the same file CI
 // uses (DL-94), so a tool is pinned once.
 type Pin struct {
 	URL    string `json:"url"`
@@ -29,7 +29,7 @@ type Pin struct {
 }
 
 // LoadPin reads the pin of tool for platform (linux_x64, linux_arm64) from the
-// bytes of tools.json.
+// bytes of the pin list.
 func LoadPin(toolsJSON []byte, tool, platform string) (version string, p Pin, err error) {
 	var all map[string]struct {
 		Version   string         `json:"version"`

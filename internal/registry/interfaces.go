@@ -82,10 +82,10 @@ type Store interface {
 
 // ---------------------------------------------------------------- core (REG1)
 
-// Staged is a push to crsp/_incoming that the agent reported (PushReport).
+// Staged is a push to crsp/incoming that the agent reported (PushReport).
 type Staged struct {
 	MachineID string
-	Name      string // the incoming name, crsp/_incoming/<machine>/...
+	Name      string // the incoming name, crsp/incoming/<machine>/...
 	Target    string // crsp/std/<profile> or crsp/custom/<owner>-<repo>/<profile>
 	Key       Key
 	Manifest  string // the digest the agent says it pushed
@@ -112,7 +112,7 @@ type PromotedHook func(ctx context.Context, img Image) error
 
 // TokenIssuer issues and checks registry tokens (REG1, R5.10, R5.11). A machine may
 // pull crsp/std/* and crsp/custom/* and push only to
-// crsp/_incoming/<its own id>/*. People never get a token.
+// crsp/incoming/<its own id>/*. People never get a token.
 type TokenIssuer interface {
 	Issue(ctx context.Context, machineID string, want []Scope) (Token, error)
 	// Verify returns the machine id and granted scopes of a token, or an error
