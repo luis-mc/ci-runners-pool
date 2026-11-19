@@ -74,6 +74,7 @@ export function GroupTab({ by }: { by: GroupBy }) {
           : spec.what[0]?.toUpperCase() + spec.what.slice(1),
       cell: (g) => (by === 'runner-type' ? splitKind(g.name).kind : g.name),
       sort: (g) => g.name,
+      kind: 'grow',
     },
     ...(by === 'runner-type'
       ? [
@@ -81,6 +82,7 @@ export function GroupTab({ by }: { by: GroupBy }) {
             id: 'backend',
             header: 'Backend',
             cell: (g: Row) => splitKind(g.name).backend,
+            kind: 'grow' as const,
             secondary: true,
           },
         ]

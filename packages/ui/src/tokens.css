@@ -46,7 +46,7 @@
   --ds-control-height: 44px;
   --ds-control-height-large: 52px;
   --ds-row-action-width: 8rem;
-  --ds-cell-max: 12ch;
+  --ds-cell-grow-min: 6rem;
   --ds-border-thin: 1px;
   --ds-border-medium: 2px;
   --ds-border-thick: 3px;

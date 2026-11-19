@@ -33,7 +33,10 @@ describe('Queue', () => {
     const table = await screen.findByRole('table', { name: 'Queue runs' });
     const rows = within(table).getAllByRole('row');
     expect(rows).toHaveLength(2); // the head and one row for the run, not one for each job
-    expect(within(table).getByText('2')).toBeTruthy(); // jobs queued
+    // RES18: Jobs queued moved into the opened run; Commit and Event are two columns.
+    expect(within(table).queryByText('Jobs queued')).toBeNull();
+    expect(within(table).getByText('Commit')).toBeTruthy();
+    expect(within(table).getByText('Event')).toBeTruthy();
     expect(within(table).getByText('in about 4 to 7 min')).toBeTruthy();
     expect(within(table).getByText('waits for a free slot on build-1')).toBeTruthy();
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
@@ -52,7 +55,7 @@ describe('Queue', () => {
     expect(
       within(table).getAllByText('starts in about 4 to 7 min, 1st in line'),
     ).toHaveLength(1);
-    expect(within(table).getAllByText('2 min 5 s', { exact: false })).toHaveLength(2);
+    expect(within(table).queryByText('Waited')).toBeNull(); // RES18: Waited is on the Job page
   });
 
   it('says so when nothing waits', async () => {
@@ -146,11 +149,11 @@ describe('Done', () => {
     expect(api.count('GET', '/api/v1/runs')).toBe(1);
   });
 
-  it('lists runs with jobs done of all, total time, result and the retention words', async () => {
+  it('lists runs with jobs done of all, result and the retention words', async () => {
     renderApp(jobsApi({ runs: [runSummary()] }), '/jobs/done');
     const table = await screen.findByRole('table', { name: 'Done runs' });
     expect(within(table).getByText('3 of 3')).toBeTruthy();
-    expect(within(table).getByText('8 min')).toBeTruthy();
+    expect(within(table).queryByText('Total time')).toBeNull(); // RES18: in the opened run
     expect(within(table).getByText('success')).toBeTruthy();
     expect(screen.getByText(/Showing 1 of 1 runs in the last 90 days/)).toBeTruthy();
     expect(

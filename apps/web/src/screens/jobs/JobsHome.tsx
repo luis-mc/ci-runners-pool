@@ -4,6 +4,7 @@
 import {
   ActionBar,
   Button,
+  Cut,
   ListToolbar,
   Empty,
   ExportButton,
@@ -181,11 +182,10 @@ function BranchCell({ j }: { j: Job }) {
 
 function JobCell({ j }: { j: Job }) {
   return (
-    <>
+    <Cut tail={j.run_attempt > 1 ? `, attempt ${j.run_attempt}` : ''}>
       {`${j.workflow ?? 'workflow'} / `}
       <TextLink to={`/jobs/${j.id}`}>{j.job_name}</TextLink>
-      {j.run_attempt > 1 ? `, attempt ${j.run_attempt}` : ''}
-    </>
+    </Cut>
   );
 }
 
@@ -202,6 +202,7 @@ export function jobColumns(kind: Kind, now: number): Column<Job>[] {
     header: 'Repository',
     cell: (j) => j.repository.split('/')[1] ?? j.repository,
     sort: (j) => j.repository,
+    kind: 'grow',
   };
   const job: Column<Job> = {
     id: 'job',
@@ -209,13 +210,16 @@ export function jobColumns(kind: Kind, now: number): Column<Job>[] {
     cell: (j) => <JobCell j={j} />,
     title: (j) => `${j.workflow ?? 'workflow'} / ${j.job_name}`,
     sort: (j) => j.job_name,
+    kind: 'grow',
   };
   const branch: Column<Job> = {
     id: 'branch',
     header: 'Branch',
     cell: (j) => <BranchCell j={j} />,
+    middle: (j) => j.branch ?? '',
     title: (j) => j.branch ?? '',
     sort: (j) => j.branch ?? '',
+    kind: 'grow',
     secondary: true,
   };
   const where: Column<Job> = {
@@ -223,6 +227,7 @@ export function jobColumns(kind: Kind, now: number): Column<Job>[] {
     header: 'Runner and machine',
     cell: (j) => whereWords(j),
     sort: (j) => j.runner?.name ?? '',
+    kind: 'grow',
     secondary: true,
   };
   const waited: Column<Job> = {
@@ -256,7 +261,6 @@ export function jobColumns(kind: Kind, now: number): Column<Job>[] {
       repo,
       job,
       branch,
-      waited,
       {
         id: 'starts',
         header: 'Starts',
@@ -268,6 +272,7 @@ export function jobColumns(kind: Kind, now: number): Column<Job>[] {
         id: 'why',
         header: 'Why it waits',
         cell: () => null,
+        kind: 'grow',
         long: (j) => ({ full: waitWords(j) }),
         secondary: true,
       },
@@ -282,6 +287,7 @@ export function jobColumns(kind: Kind, now: number): Column<Job>[] {
       {
         id: 'progress',
         header: 'Progress',
+        kind: 'grow',
         cell: (j) => {
           const t = ranSeconds(j, now) ?? 0;
           const f = forecastOf(j);

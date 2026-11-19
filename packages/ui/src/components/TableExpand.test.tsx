@@ -1,7 +1,14 @@
 // LOOK19: a cell's long text is one clipped line with a button; the button opens the full text in a row under the row.
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
-import { CappedList, Table, summarize, type Column } from './Table';
+import {
+  CappedList,
+  Table,
+  columnKind,
+  splitMiddle,
+  summarize,
+  type Column,
+} from './Table';
 
 afterEach(cleanup);
 
@@ -120,5 +127,48 @@ describe('CappedList', () => {
     render(<CappedList items={['a', 'b']} />);
     expect(screen.getAllByText('a, b')).toHaveLength(2);
     expect(screen.queryByText(/\+/)).toBeNull();
+  });
+});
+
+describe('column kinds (UX-72)', () => {
+  it('a column is fit unless it says grow or has long text', () => {
+    expect(columnKind({})).toBe('fit');
+    expect(columnKind({ kind: 'grow' })).toBe('grow');
+    expect(columnKind({ kind: 'fit', long: () => null })).toBe('fit');
+    expect(columnKind({ long: () => null })).toBe('grow');
+  });
+  it('a one-line table marks every head and cell with its kind', () => {
+    const cols: Column<{ a: string; b: string }>[] = [
+      { id: 'a', header: 'Short', cell: (r) => r.a },
+      { id: 'b', header: 'Name', cell: (r) => r.b, kind: 'grow' },
+    ];
+    const { container } = render(
+      <Table
+        caption="t"
+        columns={cols}
+        rows={[{ a: '7 of 7', b: 'ci-runners' }]}
+        rowKey={(r) => r.a}
+        oneLine
+      />,
+    );
+    const kinds = [...container.querySelectorAll('th, td')].map((c) =>
+      c.getAttribute('data-kind'),
+    );
+    expect(kinds).toEqual(['fit', 'grow', 'fit', 'grow']);
+  });
+  it('a table that is not one line carries no kind', () => {
+    const { container } = render(
+      <Table
+        caption="t"
+        columns={[{ id: 'a', header: 'A', cell: () => 'x' }]}
+        rows={[{}]}
+        rowKey={() => 'k'}
+      />,
+    );
+    expect(container.querySelector('[data-kind]')).toBeNull();
+  });
+  it('a middle cut keeps the start and the last characters', () => {
+    expect(splitMiddle('RES18-column-widths')).toEqual(['RES18-column-', 'widths']);
+    expect(splitMiddle('main')).toEqual(['main', '']);
   });
 });

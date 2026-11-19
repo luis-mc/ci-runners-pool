@@ -2474,18 +2474,28 @@ button.ds-jobgraph__node:hover {
   white-space: nowrap;
   text-decoration: none;
 }
-/* One line a row (UX-72): wide screens only. A cell is cut with an ellipsis at --ds-cell-max, the button of a long
-   text sits inline at the right of its cell, and every row of the table has the height of a button plus padding. */
+/* One line a row (UX-72): wide screens only. A fit column is as wide as its widest value and never cut; a grow
+   column shares the width that is left, with a minimum from --ds-cell-grow-min, and is cut with an ellipsis. Every
+   row of the table has the height of a button plus padding. */
 @media (min-width: 600px) {
+  .ds-table[data-one-line] {
+    table-layout: auto;
+  }
   .ds-table[data-one-line] th,
   .ds-table[data-one-line] td {
     padding-inline: var(--ds-space-2);
+    white-space: nowrap;
   }
   .ds-table[data-one-line] .ds-table__sort {
     padding-inline: 0;
   }
-  .ds-table[data-one-line] td {
-    white-space: nowrap;
+  .ds-table[data-one-line] th[data-kind='fit'],
+  .ds-table[data-one-line] td[data-kind='fit'] {
+    inline-size: 1%;
+  }
+  .ds-table[data-one-line] th[data-kind='grow'],
+  .ds-table[data-one-line] td[data-kind='grow'] {
+    min-inline-size: var(--ds-cell-grow-min);
   }
   .ds-table[data-one-line] .ds-table__expanded td {
     white-space: normal;
@@ -2499,16 +2509,26 @@ button.ds-jobgraph__node:hover {
     display: flex;
     align-items: center;
     gap: var(--ds-space-2);
-    max-inline-size: var(--ds-cell-max);
     min-inline-size: 0;
+  }
+  .ds-table[data-one-line] td[data-kind='grow'] .ds-table__value {
+    inline-size: 0;
+    min-inline-size: 100%;
   }
   .ds-table[data-one-line] .ds-table__text,
   .ds-table[data-one-line] .ds-table__clip {
     display: block;
     min-inline-size: 0;
+    white-space: nowrap;
+  }
+  .ds-table[data-one-line] td[data-kind='fit'] .ds-table__text {
+    flex: none;
+    min-inline-size: max-content;
+  }
+  .ds-table[data-one-line] td[data-kind='grow'] .ds-table__text,
+  .ds-table[data-one-line] .ds-table__clip {
     overflow: hidden;
     text-overflow: ellipsis;
-    white-space: nowrap;
   }
   .ds-table[data-one-line] .ds-table__clip {
     flex: 1 1 auto;
@@ -2516,6 +2536,33 @@ button.ds-jobgraph__node:hover {
   }
   .ds-table[data-one-line] .ds-table__value .ds-button-wrap {
     flex: none;
+  }
+  .ds-table[data-one-line] .ds-cut {
+    display: flex;
+    align-items: center;
+    min-inline-size: 0;
+  }
+  /* A link in a cut cell is part of its one line and is cut with it; it keeps the target height (UX-16). */
+  .ds-table[data-one-line] .ds-table__text .ds-link,
+  .ds-table[data-one-line] .ds-cut__head .ds-link {
+    display: inline-block;
+    vertical-align: middle;
+    min-inline-size: 0;
+    max-inline-size: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    line-height: var(--ds-target-min);
+  }
+  .ds-table[data-one-line] .ds-cut__head {
+    flex: 0 1 auto;
+    min-inline-size: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .ds-table[data-one-line] .ds-cut__tail {
+    flex: none;
+    white-space: pre;
   }
 }
 /* At phone width the action is the last line of the card, full width, in the same place in every card. */

@@ -4,6 +4,7 @@
 import {
   CappedList,
   Cluster,
+  Cut,
   Empty,
   LinkButton,
   ShortText,
@@ -22,8 +23,9 @@ import { elapsedSeconds, runKey, type RunRow } from './runList';
 import { runRows } from './runViews';
 import {
   etaOne,
+  commitWords,
+  eventWords,
   jobStatus,
-  sourceWords,
   startRange,
   taskIdOf,
   taskOf,
@@ -63,16 +65,17 @@ export function runColumns(kind: RunKind, now: number): Column<RunRow>[] {
     header: 'Repository',
     cell: (r) => r.repository.split('/')[1] ?? r.repository,
     sort: (r) => r.repository,
+    kind: 'grow',
   };
   const workflow: Column<RunRow> = {
     id: 'workflow',
     header: 'Workflow',
     cell: (r) => (
-      <>
+      <Cut tail={` #${r.id}${r.attempt > 1 ? `, attempt ${r.attempt}` : ''}`}>
         <TextLink to={`/jobs/run/${r.id}?attempt=${r.attempt}`}>{r.workflow}</TextLink>
-        {` #${r.id}${r.attempt > 1 ? `, attempt ${r.attempt}` : ''}`}
-      </>
+      </Cut>
     ),
+    kind: 'grow',
     title: (r) =>
       `${r.workflow} #${r.id}${r.attempt > 1 ? `, attempt ${r.attempt}` : ''}`,
     sort: (r) => r.workflow,
@@ -81,14 +84,26 @@ export function runColumns(kind: RunKind, now: number): Column<RunRow>[] {
     id: 'branch',
     header: 'Branch',
     cell: (r) => <BranchWords branch={r.branch} task={r.task_id} />,
+    middle: (r) => r.branch,
     title: (r) => r.branch,
     sort: (r) => r.branch,
+    kind: 'grow',
     secondary: true,
   };
-  const source: Column<RunRow> = {
-    id: 'source',
-    header: 'Commit and event',
-    cell: (r) => sourceWords(r),
+  const commit: Column<RunRow> = {
+    id: 'commit',
+    header: 'Commit',
+    cell: (r) => commitWords(r),
+    sort: (r) => commitWords(r),
+    kind: 'fit',
+    secondary: true,
+  };
+  const event: Column<RunRow> = {
+    id: 'event',
+    header: 'Event',
+    cell: (r) => eventWords(r),
+    sort: (r) => eventWords(r),
+    kind: 'fit',
     secondary: true,
   };
   const status: Column<RunRow> = {
@@ -119,17 +134,8 @@ export function runColumns(kind: RunKind, now: number): Column<RunRow>[] {
       repo,
       workflow,
       branch,
-      source,
-      {
-        id: 'queued',
-        header: 'Jobs queued',
-        cell: (r) =>
-          r.jobsTotal === undefined
-            ? String(r.queued.length)
-            : `${r.queued.length} of ${r.jobsTotal}`,
-        sort: (r) => r.queued.length,
-        secondary: true,
-      },
+      commit,
+      event,
       {
         id: 'starts',
         header: 'Starts',
@@ -143,6 +149,7 @@ export function runColumns(kind: RunKind, now: number): Column<RunRow>[] {
         id: 'why',
         header: 'Why it waits',
         cell: () => null,
+        kind: 'grow',
         long: (r) => {
           const n = r.queued[0];
           return n ? { full: waitWords(n) } : null;
@@ -155,20 +162,15 @@ export function runColumns(kind: RunKind, now: number): Column<RunRow>[] {
       repo,
       workflow,
       branch,
-      source,
+      commit,
+      event,
       doneOf,
       {
         id: 'now',
         header: 'Running now',
         cell: (r) => <CappedList items={r.running.map((j) => j.job_name)} max={1} />,
         title: (r) => r.running.map((j) => j.job_name).join(', '),
-        secondary: true,
-      },
-      {
-        id: 'elapsed',
-        header: 'Time so far',
-        cell: (r) => formatDuration(elapsedSeconds(r, now)),
-        sort: (r) => elapsedSeconds(r, now),
+        kind: 'grow',
         secondary: true,
       },
       {
@@ -190,20 +192,14 @@ export function runColumns(kind: RunKind, now: number): Column<RunRow>[] {
     repo,
     workflow,
     branch,
-    source,
+    commit,
+    event,
     doneOf,
     {
       id: 'failed',
       header: 'Jobs failed',
       cell: (r) => String(r.jobsFailed ?? 0),
       sort: (r) => r.jobsFailed ?? 0,
-      secondary: true,
-    },
-    {
-      id: 'took',
-      header: 'Total time',
-      cell: (r) => formatDuration(elapsedSeconds(r, now)),
-      sort: (r) => elapsedSeconds(r, now),
       secondary: true,
     },
     status,
@@ -228,7 +224,7 @@ export function RunDetail({
         return (
           <Stack>
             <Text tone="muted">
-              {`Run ${run.id}${run.attempt > 1 ? `, attempt ${run.attempt}` : ''}, ${run.jobs.length} ${run.jobs.length === 1 ? 'job' : 'jobs'}: queue wait is the light part of a bar, the run the dark part. Open a job to see its steps. Branch: ${run.branch}. Task: ${taskOf(run)}. Worktree: ${run.worktree ?? 'not reported'}.`}
+              {`Run ${run.id}${run.attempt > 1 ? `, attempt ${run.attempt}` : ''}, ${run.jobs.length} ${run.jobs.length === 1 ? 'job' : 'jobs'}: queue wait is the light part of a bar, the run the dark part. Open a job to see its steps. ${row.state === 'done' ? 'Total time' : 'Time so far'}: ${formatDuration(elapsedSeconds(row, now))}. Jobs: ${row.jobsDone ?? 0} of ${row.jobsTotal ?? run.jobs.length} done, ${row.queued.length} queued. Branch: ${run.branch}. Task: ${taskOf(run)}. Worktree: ${run.worktree ?? 'not reported'}.`}
             </Text>
             {run.jobs.length === 0 ? (
               <Empty title="This run has no jobs yet." />
