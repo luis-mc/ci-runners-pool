@@ -392,7 +392,7 @@ export function RepositoriesList() {
                           options={[
                             {
                               value: 'types',
-                              label: `Active types: ${activeTypes(setting.enabled)}`,
+                              label: `Types: ${activeTypes(setting.enabled)}`,
                             },
                           ]}
                           value=""

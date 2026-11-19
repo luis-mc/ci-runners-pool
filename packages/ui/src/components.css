@@ -478,8 +478,11 @@ body {
   align-items: center;
   justify-content: center;
   gap: var(--ds-space-2);
+  flex: none;
   min-block-size: var(--ds-control-height);
-  min-inline-size: var(--ds-target-min);
+  /* A label is one line and whole (component 7, UX-72): the button is as wide as its label, never narrower. */
+  min-inline-size: max-content;
+  white-space: nowrap;
   padding-inline: var(--ds-space-4);
   font: inherit;
   font-weight: var(--ds-weight-semibold);
@@ -837,7 +840,7 @@ body {
 }
 .ds-table th {
   white-space: nowrap;
-  vertical-align: bottom;
+  vertical-align: middle;
 }
 .ds-table th,
 .ds-table td {
@@ -846,9 +849,6 @@ body {
   vertical-align: middle;
   overflow-wrap: anywhere;
   border-block-end: var(--ds-border-thin) solid var(--ds-color-divider);
-}
-.ds-table th {
-  vertical-align: bottom;
 }
 .ds-table__sort {
   font: inherit;
@@ -1411,7 +1411,9 @@ legend > .ds-field__changed {
   border-block-end: var(--ds-border-thin) solid var(--ds-color-divider);
 }
 .ds-chip {
+  flex: none;
   min-block-size: var(--ds-target-min);
+  white-space: nowrap;
   padding-inline: var(--ds-space-4);
   font: inherit;
   color: var(--ds-color-text);
@@ -2486,6 +2488,7 @@ button.ds-jobgraph__node:hover {
 }
 .ds-table td.ds-table__action .ds-button {
   inline-size: 100%;
+  min-inline-size: max-content;
   white-space: nowrap;
   text-decoration: none;
 }
@@ -2514,6 +2517,10 @@ button.ds-jobgraph__node:hover {
     min-inline-size: var(--ds-cell-grow-min);
     inline-size: calc(var(--ds-grow, 1) * 10%);
   }
+  .ds-table[data-one-line] td .ds-cluster,
+  .ds-table[data-one-line] td .ds-button-wrap {
+    flex-wrap: nowrap;
+  }
   .ds-table[data-one-line] .ds-table__expanded td {
     white-space: normal;
   }
@@ -2530,6 +2537,15 @@ button.ds-jobgraph__node:hover {
   }
   .ds-table[data-one-line] .ds-table__value > * + [data-long] {
     margin-inline-start: 0;
+  }
+  /* A status word before a long reason stays whole: only the reason is cut (UX-72). */
+  .ds-table[data-one-line] .ds-table__value:has(> [data-long]) > .ds-table__text {
+    flex: none;
+  }
+  /* A grow cell with a reason and its Details button is wide enough for both, so the button never covers the next cell. */
+  .ds-table[data-one-line]
+    td[data-kind='grow']:has(> .ds-table__value > .ds-button-wrap) {
+    min-inline-size: calc(var(--ds-cell-grow-min) * 2.5);
   }
   .ds-table[data-one-line] td[data-kind='grow'] .ds-table__value {
     inline-size: 0;

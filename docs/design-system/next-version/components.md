@@ -56,7 +56,7 @@ One numbered section per shared component. A part that nearly fits is extended w
 ## 7. Buttons
 
 - **Used for:** every action. Primary, secondary and quiet styles. A running button is not pressable and says it is running.
-- **Looks:** a filled primary, an outlined secondary and a text-only quiet button, all with a clear focus ring.
+- **Looks:** a filled primary, an outlined secondary and a text-only quiet button, all with a clear focus ring. A button and a chip are as wide as their label (`white-space: nowrap`, `flex: none`, `min-inline-size: max-content`): a long label gets a short word (*Set up parity*), it never wraps or shrinks.
 - **Source:** `src/ui/button`
 - **Rules:** UX-4, UX-8, UX-13, UX-16.
 - **Guard:** `e2e/tests/web-console/ux-routes.spec.ts` (`wrapped`, `wordBroken`: a button label is on one line and no word is broken inside).
@@ -606,7 +606,7 @@ A field's width caps its box, never its name and help: a lone field's name and h
 ## 57. Row action
 
 - **Used for:** the one button at the end of a table row that opens the thing the row is: a run, a group (repository, machine, runner, runner type, job type) or a job.
-- **Looks:** a normal button on one line, in a last column of fixed width (`--ds-row-action-width`), the same size in every row and every list. Its words come from the Row action words of content.md: *Open run*, *Open*, *Open job*; an action that acts on the row and opens no page (a failed runner's *Remove*) is a press in the same column, with the same one-line word. A group's name is already in the row, so the button says only *Open*; a screen reader hears the word and the name (`Open: runner-1`). At phone width it fills the last line of the card.
+- **Looks:** a normal button on one line, in a last column of fixed width (`--ds-row-action-width`), the same size in every row and every list. Its words come from the Row action words of content.md: *Open run*, *Open*, *Open job*; an action that acts on the row and opens no page (*Remove*, *Edit*, *Replace*, *Delete registration*, *Revoke*) is a press in the same column, with the same one-line word. A group's name is already in the row, so the button says only *Open*; a screen reader hears the word and the name (`Open: runner-1`). At phone width it fills the last line of the card.
 - **Source:** `packages/ui/src/components/RowAction.tsx`, `packages/ui/src/components.css`
 - **Rules:** UX-72, UX-16, UX-8.
 - **Guard:** `packages/ui/src/components/parts.test.tsx`.

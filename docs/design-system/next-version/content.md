@@ -604,7 +604,7 @@ The words of the setting that lets the pool serve public repositories, and of th
 | {n} public repositories use the pool now. Their runners are drained and removed, and their pool is switched off. The settings are kept. | The line of the question card when turning off ({n} is public_on_pool; the singular uses repository, uses, Its and its). Primary: Turn off. Busy word: Turning off. |
 | No public repository uses the pool now. Nothing is stopped. | The line of the question card when turning off and none is on the pool. |
 | The pool was switched off for {n} public repositories. Their settings are kept. | Done message after turning off. |
-| Active types: Private (default) / Active types: Private & Public | The line near the title of Repositories. The value links to the setting. |
+| Types: Private (default) / Types: Private & Public | The line near the title of Repositories. The value links to the setting. |
 | Visibility, Private, Public, Internal | The column and its values. |
 | Public repositories are off, so the pool does not serve this one. | The reason in a greyed public row. Link: Turn on public repositories. |
 | Use pool | Primary action of the action bar on Repositories, for the ticked repositories. Also the action on a repository's page. |
@@ -672,7 +672,7 @@ The words of the Settings section Access for CI and of the action that sets up p
 | No repository yet. Install the App on a repository first (Repositories). | Empty state of the section. |
 | crsp writes the access as the secret CRSP_ACCESS, and its address and certificate fingerprint as the variables CRSP_URL and CRSP_CA_FINGERPRINT, to the repository through the GitHub App. You copy nothing. The parity workflow reads them. | Note of the section. |
 | Repository | The field that chooses the repository. |
-| Set up parity for this repository | The primary button. Busy: Setting up. Reason when none is chosen: Choose a repository first. |
+| Set up parity | The primary button (one line at phone width). Busy: Setting up. Reason when none is chosen: Choose a repository first. |
 | Could not set up parity. Nothing was left behind. {reason} | Problem message when the setup fails. |
 | Parity is set up for {repository}. The workflow can run now. | Done message. |
 | The GitHub grant | See GitHub grant words: a missing App permission is shown by the shared part, not by words of this screen. |
@@ -1079,6 +1079,12 @@ One word set for the button at the end of a table row. The guard reads this tabl
 | Open | Row action of a group row (By repository, machine, runner, runner type, job type). The group's name is already in the row. |
 | Open job | Row action of a job row (Jobs view of Queue, Running, Done): opens the Job page. |
 | Remove | Row action of a failed runner (Runners): removes it and does not open a page. A press, not a link. Admin only (busy word: Removing). |
+| Edit | Row action of a user (Settings, Access): opens the change of its role. A press, not a link. Admin only. |
+| Replace | Button of an unmanaged runner (Runners): replaces it with one the pool manages, after a question. A press. Admin only (busy word: Replacing). |
+| Delete registration | Button of an offline managed runner (Runners): deletes its registration on GitHub, after a question. A press. Admin only (busy word: Deleting). |
+| Revoke | Row action of a live access for CI (Settings, Access): stops it working, after a question. A press. Admin only. |
+| Copy | The button of a code block in a cell (Doctor, a finding's command): copies the text and says Copied. It changes nothing. A press. |
+| On, Off | The word of a switch in a cell (Repositories, the pool for a repository): it shows the state; pressing it changes the state. Admin only. |
 | Why, Details | Button inside a cell that has a long text, to read it whole. Not a row action. |
 
 ## Runner leftover words

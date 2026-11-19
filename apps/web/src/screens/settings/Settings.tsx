@@ -315,6 +315,7 @@ export function UsersSettings() {
                 <Table
                   caption="Users"
                   columns={columns}
+                  oneLine
                   rows={rows}
                   rowKey={(u) => String(u.id)}
                 />
