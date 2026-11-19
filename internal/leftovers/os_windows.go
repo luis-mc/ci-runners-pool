@@ -55,7 +55,7 @@ func (*hostOS) Services(context.Context) ([]OSService, error) {
 	if err != nil {
 		return nil, fmt.Errorf("connect to the service manager: %w", err)
 	}
-	defer m.Disconnect()
+	defer func() { _ = m.Disconnect() }()
 	names, err := m.ListServices()
 	if err != nil {
 		return nil, fmt.Errorf("list services: %w", err)
@@ -95,12 +95,12 @@ func (*hostOS) StopService(ctx context.Context, name string) error {
 	if err != nil {
 		return err
 	}
-	defer m.Disconnect()
+	defer func() { _ = m.Disconnect() }()
 	s, err := m.OpenService(name)
 	if err != nil {
 		return scmErr(err)
 	}
-	defer s.Close()
+	defer func() { _ = s.Close() }()
 	st, err := s.Query()
 	if err != nil {
 		return err
@@ -134,12 +134,12 @@ func (*hostOS) DeleteService(_ context.Context, name string) error {
 	if err != nil {
 		return err
 	}
-	defer m.Disconnect()
+	defer func() { _ = m.Disconnect() }()
 	s, err := m.OpenService(name)
 	if err != nil {
 		return scmErr(err)
 	}
-	defer s.Close()
+	defer func() { _ = s.Close() }()
 	return scmErr(s.Delete())
 }
 
@@ -190,10 +190,10 @@ func (h *hostOS) DeleteAccount(ctx context.Context, name string) error {
 	if err != nil {
 		return err
 	}
-	switch {
-	case res.ExitCode == 0:
+	switch res.ExitCode {
+	case 0:
 		return nil
-	case res.ExitCode == 3:
+	case 3:
 		return fmt.Errorf("%w: account %s", ErrNotExist, name)
 	}
 	return fmt.Errorf("powershell exited %d: %s", res.ExitCode, strings.TrimSpace(res.Stderr))
