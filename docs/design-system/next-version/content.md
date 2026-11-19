@@ -1046,6 +1046,9 @@ The words of the new Jobs section (web-console 4.6, proposed). A wait names what
 | warm, the caches were ready / cold, the caches were rebuilt | Cache state of a job. |
 | Run time and wait per day, Jobs per day, Forecast against actual, Busiest hours | Chart pane titles. |
 | {n}% of {m} finished jobs ran inside their forecast range. The aim is about 80%. | Line over Forecast against actual. |
+| Median wait, Median run, Slow end of run, Jobs failed, Weight, Light, Heavy, Backend, Runner type | Column heads of the grouped tables and the Done runs list; the slow end is the run time 9 in 10 jobs stay under. |
+| Steps are no longer kept for a job this old. / This job reported no steps. | Steps pane of the Job page: older than 30 days, or GitHub sent none. |
+| This repository is not on the list of repositories, so no run belongs to it. | A list filtered by a repository the controller does not know. |
 
 ### Runs first (RES16, owner decisions of 18 Nov 2026)
 

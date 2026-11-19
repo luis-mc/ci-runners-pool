@@ -138,6 +138,14 @@ describe('Done', () => {
       runSummary({ id: 1000 + i, completed_at: '2026-11-18T09:08:00Z' }),
     );
 
+  it('asks for the list once, not on every render', async () => {
+    const api = jobsApi({ runs: [runSummary()] });
+    renderApp(api, '/jobs/done');
+    await screen.findByRole('table', { name: 'Done runs' });
+    await new Promise((r) => setTimeout(r, 300));
+    expect(api.count('GET', '/api/v1/runs')).toBe(1);
+  });
+
   it('lists runs with jobs done of all, total time, result and the retention words', async () => {
     renderApp(jobsApi({ runs: [runSummary()] }), '/jobs/done');
     const table = await screen.findByRole('table', { name: 'Done runs' });

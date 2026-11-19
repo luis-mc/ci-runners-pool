@@ -400,10 +400,11 @@ function JobsListTab({ kind }: { kind: Kind }) {
   const [shown, setShown] = useState(DONE_STEP);
   const limit = kind === 'done' ? shown : 100;
   const state = kind === 'queue' ? 'queued' : kind;
+  // The range starts at a whole minute, so the question stays the same between two renders and the list does not
+  // ask again on every render.
+  const minute = Math.floor(Date.now() / 60_000) * 60_000;
   const from =
-    kind === 'done'
-      ? new Date(Date.now() - Number(days) * DAY_MS).toISOString()
-      : undefined;
+    kind === 'done' ? new Date(minute - Number(days) * DAY_MS).toISOString() : undefined;
   const wait = !f.ready;
   const jobsQuery: JobsQuery = { ...f.query, state, limit, ...(from ? { from } : {}) };
   // Runs take the repository and the branch only; a filter on a runner or a machine shows jobs.

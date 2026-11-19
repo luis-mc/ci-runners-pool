@@ -50,6 +50,9 @@ import {
 
 type JobDetail = Schemas['JobDetail'];
 
+/** Steps are kept 30 days (owner decision 2). */
+const STEPS_KEPT_MS = 30 * 86_400_000;
+
 const ghUrl = (u: string | undefined) => (u?.startsWith('https://') ? u : undefined);
 
 export function JobPage() {
@@ -226,7 +229,11 @@ function JobBody({ j }: { j: JobDetail }) {
             label={`Steps of ${j.job_name}`}
             rows={steps.rows}
             {...(steps.nowSec !== undefined ? { nowSec: steps.nowSec } : {})}
-            emptyText="This job reported no steps."
+            emptyText={
+              j.completed_at && now - Date.parse(j.completed_at) > STEPS_KEPT_MS
+                ? 'Steps are no longer kept for a job this old.'
+                : 'This job reported no steps.'
+            }
           />
         )}
       </Section>

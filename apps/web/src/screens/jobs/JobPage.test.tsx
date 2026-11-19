@@ -45,6 +45,19 @@ describe('Job page', () => {
     expect(within(steps).getByText('This job reported no steps.')).toBeTruthy();
   });
 
+  it('says steps are no longer kept for a job older than 30 days', async () => {
+    renderApp(
+      jobsApi({
+        detail: jobDetail({ steps: [], completed_at: '2026-09-01T09:05:00Z' }),
+      }),
+      '/jobs/12',
+    );
+    const steps = await screen.findByRole('region', { name: 'Steps' });
+    expect(
+      within(steps).getByText('Steps are no longer kept for a job this old.'),
+    ).toBeTruthy();
+  });
+
   it('shows the forecast as a range with its basis, and where the time landed', async () => {
     renderApp(jobsApi({ detail: jobDetail() }), '/jobs/12');
     const forecast = await screen.findByRole('region', { name: 'Forecast' });
