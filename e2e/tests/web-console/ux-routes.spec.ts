@@ -14,8 +14,18 @@ import {
   type ScreenState,
 } from './ux-guards';
 
+// A tab is a state of a route, not a route of its own: the Registry tab (REG5) is checked like a screen.
+const TABS = [
+  {
+    pattern: '/pool/images?tab=registry',
+    url: '/pool/images?tab=registry',
+    signedOut: false,
+  },
+];
+
 const routes = [
   ...consoleRoutes(),
+  ...TABS,
   { pattern: 'not found', url: NOT_FOUND_URL, signedOut: false },
 ];
 

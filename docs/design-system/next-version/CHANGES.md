@@ -3,3 +3,5 @@
 One entry per change, `- C<n>: what changed (file; source)`.
 
 <!-- - C1: what changed (file; source) -->
+
+- C1: Registry words added (incl. the words of the image page, budgets, mirror, replace wizard and the pulling step of Add runners) and rule UX-73: a cleanup the owner decides is a recommendation with one primary at the foot, a cleanup crsp does alone says its date, and a deletion of an image a runner uses is refused with the job named on the question card (content.md Registry words, ux-rules.md UX-73; RES20 owner decision D18, REG5)
