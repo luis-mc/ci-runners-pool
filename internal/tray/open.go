@@ -158,7 +158,7 @@ func (o *Opener) LookForUpdates(ctx context.Context) error {
 			return nil
 		}
 		o.notify("Already updating", "Version "+st.Update.Latest+" is on its way. Running jobs finish first.")
-	case st.Update.Available && st.Update.Latest != "":
+	case st.NewerFound() && o.newerThanRunning(st.Update.Latest):
 		// A look only looks: the person is asked, and nothing installs before the yes (CRSP147).
 		return o.Offer(ctx, st)
 	default:

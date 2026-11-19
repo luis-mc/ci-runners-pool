@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/tray"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/update"
 )
 
 func snap(name string, pc int) Snapshot {
@@ -221,5 +222,65 @@ func TestSnapshotOf(t *testing.T) {
 	st := tray.Status{Version: "0.1.12", Running: 3, Update: tray.UpdateInfo{Stage: &tray.StageInfo{Name: "downloading"}}}
 	if s := SnapshotOf(st, nil); !s.ServiceUp || s.Jobs != 3 || s.Stage.Name != "downloading" || s.ServiceVersion != "0.1.12" {
 		t.Fatalf("%+v", s)
+	}
+}
+
+// TRAY8: the service says "already the newest": the window says Up to date, no failure, no internal prefix.
+func TestNoUpdateAnswerShowsUpToDate(t *testing.T) {
+	for _, err := range []error{update.ErrNoUpdate, errors.New("local channel: " + update.ErrNoUpdate.Error())} {
+		m := NewModel("0.1.13", "0.1.13", ModeLive)
+		m.Observe(Snapshot{ServiceUp: true, ServiceVersion: "0.1.13"})
+		m.Requested()
+		m.RequestReturned(err)
+		v := m.View()
+		all := v.Heading + " " + strings.Join(v.Body, " ")
+		if v.State != StateUpToDate || v.Heading != "Up to date" || v.Tone == ToneProblem || !strings.Contains(all, "0.1.13") || strings.Contains(all, "local channel") {
+			t.Fatalf("%v: %+v", err, v)
+		}
+	}
+}
+
+// TRAY8: a review of a version that is not newer than the running one offers nothing.
+func TestReviewNeverOffersAVersionThatIsNotNewer(t *testing.T) {
+	for _, to := range []string{"0.1.13", "0.1.12"} {
+		m := NewModel("0.1.13", to, ModeReview)
+		m.Observe(Snapshot{ServiceUp: true, ServiceVersion: "0.1.13"})
+		v := m.View()
+		if v.State != StateUpToDate {
+			t.Fatalf("%s: %+v", to, v)
+		}
+		for _, b := range v.Buttons {
+			if b.ID == BtnUpdate {
+				t.Fatalf("%s: offers Update now", to)
+			}
+		}
+	}
+	m := NewModel("0.1.12", "0.1.13", ModeReview)
+	m.Observe(Snapshot{ServiceUp: true, ServiceVersion: "0.1.12"})
+	if m.State() != StateReview {
+		t.Fatal("a newer version must still be offered")
+	}
+}
+
+// TRAY8: the long review text wraps in a narrow font and nothing is clipped.
+func TestReviewBodyWrapsWithoutCutting(t *testing.T) {
+	m := NewModel("0.1.12", "0.1.13", ModeReview)
+	m.Observe(Snapshot{ServiceUp: true, ServiceVersion: "0.1.12"})
+	v := m.View()
+	for _, unit := range dpiUnits {
+		mt := fake(unit)
+		l := Compute(mt, v)
+		if bad := Clipped(mt, l); len(bad) > 0 {
+			t.Fatal(bad)
+		}
+		joined := ""
+		for _, it := range l.Items {
+			if it.Kind == KindBody {
+				joined += strings.Join(it.Lines, " ") + " "
+			}
+		}
+		if !strings.Contains(joined, "No job is stopped.") {
+			t.Fatalf("text cut: %q", joined)
+		}
 	}
 }

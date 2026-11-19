@@ -96,9 +96,26 @@ export function jobLine(j: UpdateJob): string {
   return `${j.repository}${j.workflow ? ` ${j.workflow}` : ''}, run ${j.run_id}, job ${j.job}`;
 }
 
+const numbers = (v: string | undefined): number[] | null => {
+  const m = /^v?(\d+)\.(\d+)\.(\d+)$/.exec((v ?? '').trim());
+  return m ? [Number(m[1]), Number(m[2]), Number(m[3])] : null;
+};
+
+/** A release is offered only when it is newer than the running version, whatever the flag says. */
+export function offered(u: UpdateStatus): boolean {
+  if (!u.update_available || !u.latest_version) return false;
+  const cur = numbers(u.current_version);
+  const next = numbers(u.latest_version);
+  if (!cur || !next) return u.update_available;
+  for (let i = 0; i < 3; i += 1) {
+    if (next[i] !== cur[i]) return next[i]! > cur[i]!;
+  }
+  return false;
+}
+
 // The idle state is two real cases; say the one that is true (a newer release waits, or nothing is newer).
 function idleWord(s: UpdateStatus): string {
-  if (s.update_available)
+  if (offered(s))
     return `Version ${s.latest_version ?? ''} is waiting for your yes`.replace('  ', ' ');
   return s.latest_version ? 'Up to date' : 'Not looked for yet';
 }
@@ -180,7 +197,7 @@ export function UpdatesSettings() {
               >
                 Look for updates
               </Button>
-              {u.update_available ? (
+              {offered(u) ? (
                 <Button
                   onPress={() => void navigate('/settings/updates/review?kind=update')}
                   disabled={!session.can('admin')}
@@ -254,9 +271,9 @@ export function UpdateWizard({ compact = false }: { compact?: boolean } = {}) {
         setProblem(`The service still runs ${u.current_version}, not ${startedTo}.`);
         setPhase('failed');
       } else setPhase(afterReload ? 'done-after-reload' : 'done');
-    } else if (compact && stageRecentDone(u) && !u.update_available) {
+    } else if (compact && stageRecentDone(u) && !offered(u)) {
       setPhase('done-after-reload');
-    } else if (kind === 'update' && !u.update_available) {
+    } else if (kind === 'update' && !offered(u)) {
       setPhase(u.latest_version ? 'stopped' : 'first-run');
     } else setPhase('ready-to-review');
   };
@@ -347,10 +364,7 @@ export function UpdateWizard({ compact = false }: { compact?: boolean } = {}) {
       .then((u) => {
         setStatus(u);
         if (IN_PROGRESS.includes(u.state)) void follow(u.latest_version);
-        else
-          setPhase(
-            kind === 'update' && !u.update_available ? 'stopped' : 'ready-to-review',
-          );
+        else setPhase(kind === 'update' && !offered(u) ? 'stopped' : 'ready-to-review');
       })
       .catch((e: unknown) => {
         setProblem(e instanceof Error ? e.message : 'The service did not answer.');
