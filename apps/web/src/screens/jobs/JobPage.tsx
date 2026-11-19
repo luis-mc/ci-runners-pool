@@ -55,11 +55,22 @@ const STEPS_KEPT_MS = 30 * 86_400_000;
 
 const ghUrl = (u: string | undefined) => (u?.startsWith('https://') ? u : undefined);
 
+/** The repository's page on the GitHub the controller is set to (OPS35): the part of the job's
+ * own GitHub address up to the repository, so the console never writes a GitHub host itself. */
+function repoPage(
+  jobUrl: string | undefined,
+  repository: string,
+): string | undefined {
+  const at = jobUrl?.indexOf(`/${repository}/`) ?? -1;
+  return jobUrl && at > 0 ? jobUrl.slice(0, at + repository.length + 1) : undefined;
+}
+
 export function JobPage() {
   const { id = '' } = useParams();
   const { result, reload } = useJobDetail(Number(id));
   const j = result.state === 'ready' ? result.data : undefined;
   const url = ghUrl(j?.html_url);
+  const repo = j ? repoPage(url, j.repository) : undefined;
   return (
     <Page>
       <Breadcrumbs
@@ -90,17 +101,13 @@ export function JobPage() {
         <ActionBar
           secondary={
             <>
-              {j.head_sha ? (
-                <ExternalButton
-                  href={`https://github.com/${j.repository}/commit/${j.head_sha}`}
-                >
+              {repo && j.head_sha ? (
+                <ExternalButton href={`${repo}/commit/${j.head_sha}`}>
                   Open the commit
                 </ExternalButton>
               ) : null}
-              {j.pull_request ? (
-                <ExternalButton
-                  href={`https://github.com/${j.repository}/pull/${j.pull_request}`}
-                >
+              {repo && j.pull_request ? (
+                <ExternalButton href={`${repo}/pull/${j.pull_request}`}>
                   Open the pull request
                 </ExternalButton>
               ) : null}
