@@ -96,6 +96,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.deleteRegistryLayerStmt, err = db.PrepareContext(ctx, deleteRegistryLayer); err != nil {
 		return nil, fmt.Errorf("error preparing query DeleteRegistryLayer: %w", err)
 	}
+	if q.deleteRegistryTokenLeaseStmt, err = db.PrepareContext(ctx, deleteRegistryTokenLease); err != nil {
+		return nil, fmt.Errorf("error preparing query DeleteRegistryTokenLease: %w", err)
+	}
 	if q.deleteRunnerStmt, err = db.PrepareContext(ctx, deleteRunner); err != nil {
 		return nil, fmt.Errorf("error preparing query DeleteRunner: %w", err)
 	}
@@ -260,6 +263,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	}
 	if q.getRegistryTagStmt, err = db.PrepareContext(ctx, getRegistryTag); err != nil {
 		return nil, fmt.Errorf("error preparing query GetRegistryTag: %w", err)
+	}
+	if q.getRegistryTokenLeaseStmt, err = db.PrepareContext(ctx, getRegistryTokenLease); err != nil {
+		return nil, fmt.Errorf("error preparing query GetRegistryTokenLease: %w", err)
 	}
 	if q.getRepoPolicyStmt, err = db.PrepareContext(ctx, getRepoPolicy); err != nil {
 		return nil, fmt.Errorf("error preparing query GetRepoPolicy: %w", err)
@@ -992,6 +998,11 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing deleteRegistryLayerStmt: %w", cerr)
 		}
 	}
+	if q.deleteRegistryTokenLeaseStmt != nil {
+		if cerr := q.deleteRegistryTokenLeaseStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing deleteRegistryTokenLeaseStmt: %w", cerr)
+		}
+	}
 	if q.deleteRunnerStmt != nil {
 		if cerr := q.deleteRunnerStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing deleteRunnerStmt: %w", cerr)
@@ -1265,6 +1276,11 @@ func (q *Queries) Close() error {
 	if q.getRegistryTagStmt != nil {
 		if cerr := q.getRegistryTagStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing getRegistryTagStmt: %w", cerr)
+		}
+	}
+	if q.getRegistryTokenLeaseStmt != nil {
+		if cerr := q.getRegistryTokenLeaseStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getRegistryTokenLeaseStmt: %w", cerr)
 		}
 	}
 	if q.getRepoPolicyStmt != nil {
@@ -2340,6 +2356,7 @@ type Queries struct {
 	deleteOldRegistryPullsStmt                  *sql.Stmt
 	deletePendingFactsStmt                      *sql.Stmt
 	deleteRegistryLayerStmt                     *sql.Stmt
+	deleteRegistryTokenLeaseStmt                *sql.Stmt
 	deleteRunnerStmt                            *sql.Stmt
 	deleteRunnerUsageBeforeStmt                 *sql.Stmt
 	deleteRunsOnFindingsStmt                    *sql.Stmt
@@ -2395,6 +2412,7 @@ type Queries struct {
 	getRegistryScanStmt                         *sql.Stmt
 	getRegistrySettingsRowStmt                  *sql.Stmt
 	getRegistryTagStmt                          *sql.Stmt
+	getRegistryTokenLeaseStmt                   *sql.Stmt
 	getRepoPolicyStmt                           *sql.Stmt
 	getRepositoryStmt                           *sql.Stmt
 	getRepositoryByNameStmt                     *sql.Stmt
@@ -2627,6 +2645,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		deleteOldRegistryPullsStmt:                  q.deleteOldRegistryPullsStmt,
 		deletePendingFactsStmt:                      q.deletePendingFactsStmt,
 		deleteRegistryLayerStmt:                     q.deleteRegistryLayerStmt,
+		deleteRegistryTokenLeaseStmt:                q.deleteRegistryTokenLeaseStmt,
 		deleteRunnerStmt:                            q.deleteRunnerStmt,
 		deleteRunnerUsageBeforeStmt:                 q.deleteRunnerUsageBeforeStmt,
 		deleteRunsOnFindingsStmt:                    q.deleteRunsOnFindingsStmt,
@@ -2682,6 +2701,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		getRegistryScanStmt:                         q.getRegistryScanStmt,
 		getRegistrySettingsRowStmt:                  q.getRegistrySettingsRowStmt,
 		getRegistryTagStmt:                          q.getRegistryTagStmt,
+		getRegistryTokenLeaseStmt:                   q.getRegistryTokenLeaseStmt,
 		getRepoPolicyStmt:                           q.getRepoPolicyStmt,
 		getRepositoryStmt:                           q.getRepositoryStmt,
 		getRepositoryByNameStmt:                     q.getRepositoryByNameStmt,
