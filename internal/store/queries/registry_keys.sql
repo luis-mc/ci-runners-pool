@@ -27,3 +27,6 @@ ORDER BY promoted_at DESC;
 -- name: SetRegistryBranchGone :execrows
 UPDATE registry_images SET branch_gone_at = ?, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
 WHERE source_repository = ? AND branch = ? AND branch_gone_at = '';
+
+-- name: ListRegistryPointersOfProfile :many
+SELECT * FROM registry_pointers WHERE profile_id = ? AND arch = ? ORDER BY repository;

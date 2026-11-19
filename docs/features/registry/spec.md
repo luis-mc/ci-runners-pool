@@ -134,6 +134,8 @@ Every group names the task that owns it. "Must" is binding.
 
 ### REG3: keys, pointers and update-of detection (R5.21 to R5.28)
 
+**Built (REG3).** R5.21 to R5.28 are built in `internal/registry/keys/` (Keyer, labels, pointer rules, update-of detection, similar) over `internal/store/registry_keys.go`. The call that picks a job's image (REG2, `internal/backend/container/ensure.go`) calls `Keyer.KeyFor`; the controller wires `Detector.OnPromoted` as a Promoted hook and calls `Detector.OnBranchMerged` when a branch merges. Choices where this spec was open: a repository's first default-branch image becomes its pointer (a first use, not a move); `io.crsp.lineage` is `<owner/name>|<profile>|<arch>` (`std` for a standard image); the similar share is shared bytes over the bytes of the larger image.
+
 **R5.21** — The image key is exactly:
 
 `key = first 12 lowercase hex characters of sha256(canonical JSON of {profile, stack_hash, arch, base_digest, pins, toolchains})`
@@ -349,7 +351,10 @@ Rows for R5.21 and R5.22 (key) and R5.20 (agent link stub) are built and run in 
 | R5.13 to R5.18 | internal/backend/container/ensure_test.go (order, wait when offline, busy, push in background, progress lines, fallback) |
 | R5.19, R5.20 | `internal/agentlink/registry_test.go` (built: stub answers, request ids, capability); internal/agent/registry_test.go (planned) |
 | R5.21, R5.22, R5.23 | `internal/registry/key_test.go` (built: TestKeyVectors, TestStackHashVector, TestStackHashIgnoresOrderAndCRLFOnly, TestKeyChangesWithEveryPart, TestKeyRefusesBadInput) |
-| R5.24 to R5.28 | internal/registry/keys/pointers_test.go, update_test.go |
+| R5.21, R5.23, R5.7 labels | `internal/registry/keys/keys_test.go` (built: TestSameStackFilesSameKey, TestLockFileChangeGivesNewKey, TestLabels) |
+| R5.24, R5.27 | `internal/registry/keys/update_test.go` (built: TestStandardPointerMovesAloneCustomNever, TestPointerPerRepository), `internal/store/registry_keys_test.go` (built) |
+| R5.25, R5.26 | `internal/registry/keys/update_test.go` (built: TestUpdateOfDetected, TestNoUpdateCases, TestBranchVariantThenMerge) |
+| R5.28 | `internal/registry/keys/keys_test.go` (built: TestSimilar) |
 | R5.29 to R5.32 | internal/registry/records/records_test.go |
 | R5.33 to R5.36 | internal/api/handlers_registry_read_test.go |
 | R5.37 to R5.40 | apps/web/src/screens/registry/*.test.tsx; e2e/registry/registry.spec.ts |
@@ -396,6 +401,7 @@ Built (REG10):
 - internal/agentlink/registry.go (controller side stub of the protocol version 3 calls)
 - internal/profiles/ (IMG3: profiles, defaults, stack mapping, resolver, read side), internal/store/profilestore.go, migration 00021_image_profiles.sql and `image_profiles.sql`
 - internal/store/migrations/00019_registry.sql and the query files `registry_core.sql` (REG1), `registry_keys.sql` (REG3), `registry_records.sql` (REG4), `registry_retention.sql` (REG6), `registry_replace.sql` (REG7), `registry_scan.sql` (REG8), `registry_mirror.sql` (REG9), `image_builds.sql` (IMG1)
+- internal/registry/keys/ (REG3: Keyer, labels, pointer rules, Detector, similar) and internal/store/registry_keys.go (pointer and lineage store)
 - internal/api/stubs_registry_reg4.go, `_reg6.go`, `_reg7.go`, `_reg9.go`, `_img1.go` (501 per owning task)
 
 Migration numbers reserved for the wave, so parallel tasks never collide: 00020 IMG2, 00021 IMG3, 00022 REG1, 00023 REG3, 00024 REG4, 00025 REG6, 00026 REG7, 00027 REG8, 00028 REG9, 00029 IMG1. A task that needs no new column uses none.
