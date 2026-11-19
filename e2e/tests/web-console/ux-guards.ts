@@ -2,9 +2,15 @@
 // the DOM facts the design-system rules name. Every measure runs in the page and returns plain problem lines;
 // a spec asserts the list is empty. No screenshots.
 import type { Page } from '@playwright/test';
-import { failure, signedIn, type Mock } from './fixtures';
+import { failure, machine, repository, runner, signedIn, type Mock } from './fixtures';
 import { jobsAndDoctor } from './jobs-doctor-fixtures';
 import type { ConsoleRoute } from './routes';
+import {
+  rowActionWords,
+  rowActionWordsMeasure,
+  TEXT_MEASURES,
+  VISIBLE,
+} from './ux-measure-source';
 
 export const WIDTHS = [
   { width: 360, height: 780 },
@@ -14,7 +20,10 @@ export const WIDTHS = [
 ] as const;
 export const MODES = ['dark', 'light'] as const;
 export type Mode = (typeof MODES)[number];
-export type ScreenState = 'data' | 'empty' | 'failed';
+/** `stress` is the data state with the stress data set (see `stressData`): long names, failed and offline machines. `loading` never answers a data call, so the page stays in its loading state. */
+export type ScreenState = 'data' | 'empty' | 'failed' | 'stress' | 'loading';
+/** The widths the text measures (LOOK35) run at: phone, large phone, desktop. */
+export const TEXT_WIDTHS = WIDTHS.filter((w) => w.width !== 1800);
 
 const SESSION = ['/api/v1/me', '/api/v1/me/preferences', '/api/v1/events'];
 
@@ -32,6 +41,179 @@ const LISTS = [
   '/api/v1/doctor/findings',
 ];
 
+const LONG_HOST = 'mac-studio-ci-runner-with-a-very-long-hostname-01.local';
+const LONG_REASON =
+  'no usable backend: docker is not running (cannot connect to the Docker daemon at unix:///var/run/docker.sock) and persistent is not allowed on this machine';
+const STRESS_MACHINES = [
+  machine(),
+  machine({
+    id: 'm2',
+    name: 'GameRoomPC',
+    os: 'windows',
+    container_os: 'linux',
+    slots_used: 3,
+    load: {
+      memory_pct: 91,
+      cpu_pct: 88,
+      memory_known: true,
+      cpu_known: true,
+      sampled_at: '2026-11-14T10:00:00Z',
+      stale: false,
+    },
+  }),
+  machine({
+    id: 'm3',
+    name: LONG_HOST,
+    os: 'darwin',
+    arch: 'arm64',
+    state: 'drained',
+    accepting: false,
+    taking: { taking_jobs: false, reason: 'stopped' },
+  }),
+  machine({
+    id: 'm4',
+    name: 'offline-box',
+    online: false,
+    state: 'offline',
+    last_seen_at: '2026-11-10T10:00:00Z',
+  }),
+  machine({ id: 'm5', name: 'controller-nuc', is_controller: true }),
+  machine({
+    id: 'm6',
+    name: 'old-agent',
+    recovery: {
+      state: 'needs_recovery',
+      reason: 'old_protocol',
+      has: '0.1.0',
+      needs: '0.3.0',
+      since: '2026-11-14T08:00:00Z',
+      armed: false,
+    },
+  }),
+];
+const STRESS_RUNNERS = [
+  runner(),
+  runner({
+    id: 'r2',
+    name: 'crsp-linux-2',
+    state: 'busy',
+    current_job: {
+      id: 9,
+      repository: 'octo/app',
+      run_id: 1,
+      run_attempt: 1,
+      github_job_id: 1,
+      job_name: 'e2e',
+      labels: [],
+      state: 'running',
+    },
+  }),
+  runner({
+    id: 'r3',
+    name: 'crsp-linux-3',
+    state: 'failed',
+    failed_reason: LONG_REASON,
+    reason: LONG_REASON,
+  }),
+  runner({ id: 'r4', name: 'crsp-win-1', os: 'windows', state: 'offline' }),
+  runner({
+    id: 'r5',
+    name: 'crsp-eph-5',
+    kind: 'ephemeral',
+    backend: 'docker',
+    isolation: 'container',
+    keeps_state: false,
+    state: 'idle',
+    managed: false,
+  }),
+  runner({
+    id: 'r6',
+    name: 'crsp-mac-6',
+    os: 'darwin',
+    arch: 'arm64',
+    state: 'idle',
+    unclean_reason: 'The clean-up of the work folder failed: the folder is in use.',
+  }),
+  runner({
+    id: 'r7',
+    name: 'crsp-a-very-long-runner-name-for-the-wrapping-check-7',
+    state: 'not_registered',
+  }),
+];
+const MANY_POLICIES = repository({
+  policy: {
+    priority: 10,
+    max_parallel_jobs: 2,
+    allow_fork_pull_requests: false,
+    labels: [
+      'self-hosted',
+      'linux',
+      'x64',
+      'gpu',
+      'large-memory',
+      'nightly',
+      'release',
+      'docker',
+      'persistent',
+      'cache-heavy',
+      'long-running-integration-label',
+      'arm64',
+    ],
+    runner_groups: [
+      'default',
+      'release-builders',
+      'nightly',
+      'gpu-pool',
+      'long-group-name-for-the-wrapping-check',
+    ],
+  },
+  variables: [
+    { name: 'RUNS_ON_LINUX', status: 'ok', value: '["self-hosted","linux","x64"]' },
+    {
+      name: 'RUNS_ON_WINDOWS',
+      status: 'wrong',
+      value: '["self-hosted","windows","x64","very-long-label-that-goes-on"]',
+    },
+    { name: 'RUNS_ON_MACOS', status: 'missing' },
+    { name: 'RUNS_ON_LIGHT', status: 'not_managed', value: '["ubuntu-latest"]' },
+  ],
+});
+
+/** The stress data set (LOOK35, RES21): six machines, seven runners, a repository with many policies. */
+export function stressData(mock: Mock): Mock {
+  mock.on('GET', '/api/v1/machines', { items: STRESS_MACHINES });
+  mock.on('GET', '/api/v1/runners', { items: STRESS_RUNNERS });
+  mock.on(
+    'GET',
+    '/api/v1/runners/:id',
+    (_c, p) => STRESS_RUNNERS.find((r) => r.id === p.id) ?? STRESS_RUNNERS[0],
+  );
+  mock.on(
+    'GET',
+    '/api/v1/machines/:id',
+    (_c, p) => STRESS_MACHINES.find((m) => m.id === p.id) ?? STRESS_MACHINES[0],
+  );
+  mock.on('GET', '/api/v1/overview', {
+    machines: STRESS_MACHINES,
+    queued_count: 4,
+    running: [],
+    last_event_id: '1',
+  });
+  mock.on('GET', '/api/v1/repositories/:id', MANY_POLICIES);
+  mock.on('GET', '/api/v1/github/repositories', {
+    stale: { stale: false },
+    items: [
+      MANY_POLICIES,
+      repository({
+        id: 8,
+        full_name: 'octo/another-repository-with-a-long-name',
+        name: 'another-repository-with-a-long-name',
+      }),
+    ],
+  });
+  return mock;
+}
+
 /** Opens a route with the mocked controller. `failed` answers every data call with a 500, `empty` has no rows. */
 export async function openRoute(
   page: Page,
@@ -42,6 +224,7 @@ export async function openRoute(
   const state = opts.state ?? 'data';
   const mock = jobsAndDoctor(signedIn());
   mock.on('GET', '/api/v1/me/preferences', { theme: mode });
+  if (state === 'stress') stressData(mock);
   if (route.signedOut)
     mock.on('GET', '/api/v1/me', failure(401, 'unauthenticated', 'Sign in.'));
   if (state === 'empty') {
@@ -56,10 +239,11 @@ export async function openRoute(
     mock.on('GET', '/api/v1/runs/:id', failure(404, 'not_found', 'No such run.'));
   }
   await mock.install(page);
-  if (state === 'failed')
+  if (state === 'failed' || state === 'loading')
     await page.route('**/api/v1/**', (r) => {
       const path = new URL(r.request().url()).pathname;
       if (SESSION.includes(path)) return r.fallback();
+      if (state === 'loading') return; // never answered: the loading state stays
       return r.fulfill({
         status: 500,
         json: {
@@ -84,14 +268,15 @@ export async function openRoute(
     height: WIDTHS.find((w) => w.width === (opts.width ?? 1300))?.height ?? 900,
   });
   await page.goto(route.url);
-  await settle(page, mode);
+  await settle(page, mode, state === 'loading');
   return mock;
 }
 
 /** Waits for the page to be at rest, and puts the mode on pages that have no stored one (sign-in, first run). */
-export async function settle(page: Page, mode: Mode): Promise<void> {
+export async function settle(page: Page, mode: Mode, loading = false): Promise<void> {
   await page.locator('main').first().waitFor();
-  await page.waitForLoadState('networkidle');
+  if (loading) await page.waitForTimeout(500);
+  else await page.waitForLoadState('networkidle');
   await page.evaluate(
     (m) => document.documentElement.setAttribute('data-theme', m),
     mode,
@@ -100,10 +285,9 @@ export async function settle(page: Page, mode: Mode): Promise<void> {
 }
 
 /** The measures. Each is a function body run in the page; it returns a list of problem lines. */
-const VISIBLE = `const visible = (e) => { const r = e.getBoundingClientRect(); const s = getComputedStyle(e); return r.width > 0 && r.height > 0 && s.visibility !== 'hidden' && s.display !== 'none'; };
-const label = (e) => e.tagName.toLowerCase() + (e.getAttribute('aria-label') ? '[' + e.getAttribute('aria-label') + ']' : '') + ':' + (e.textContent || e.getAttribute('name') || '').trim().replace(/\\s+/g, ' ').slice(0, 30);`;
-
 const MEASURES = {
+  ...TEXT_MEASURES,
+  rowActionWords: rowActionWordsMeasure(rowActionWords()),
   /** UX-16: every control has a hit area of at least 44 by 44 px. */
   touch: `${VISIBLE}
     const sel = 'a[href], button, input:not([type=hidden]), select, textarea, summary, [role=button], [role=tab], [role=menuitem], [role=checkbox], [role=switch], [role=radio], [role=option]';
@@ -289,14 +473,119 @@ export async function measureEverywhere(
   route: Pick<ConsoleRoute, 'pattern' | 'url' | 'signedOut'>,
   what: Measure,
   state: ScreenState = 'data',
+  widths: readonly { width: number; height: number }[] = WIDTHS,
 ): Promise<string[]> {
   const out: string[] = [];
   for (const mode of MODES) {
     await openRoute(page, route, { mode, state });
-    for (const w of WIDTHS) {
+    for (const w of widths) {
       await page.setViewportSize(w);
       await page.waitForTimeout(30);
       for (const line of await measure(page, what))
+        out.push(`${route.pattern} ${state} ${mode} ${w.width}px: ${line}`);
+    }
+    await page.unrouteAll({ behavior: 'ignoreErrors' });
+  }
+  return out;
+}
+
+/**
+ * UX-42, UX-71, component 5 and 48 (RES21 B01, B02, B03, B19, N3, N5): on a page that scrolls and has an action
+ * bar, the bar is inside the window at scroll 0, half way and at the end, and at the end the last text ends above
+ * the bar and above the key-hint bar. Returns problem lines; a page that does not scroll has none.
+ */
+export async function stickyWalk(page: Page): Promise<string[]> {
+  const out: string[] = [];
+  const info = await page.evaluate(() => ({
+    max: document.documentElement.scrollHeight - window.innerHeight,
+    has: document.querySelector('.ds-action-bar') !== null,
+  }));
+  if (!info.has || info.max < 40) return out;
+  for (const frac of [0, 0.5, 1]) {
+    const bars = await page.evaluate((f) => {
+      window.scrollTo(
+        0,
+        Math.round((document.documentElement.scrollHeight - window.innerHeight) * f),
+      );
+      return Array.from(document.querySelectorAll('.ds-action-bar')).map((bar) => {
+        const r = bar.getBoundingClientRect();
+        return {
+          name:
+            (bar.getAttribute('aria-label') ?? 'action bar') +
+            ':' +
+            (bar.textContent ?? '').trim().replace(/\s+/g, ' ').slice(0, 30),
+          top: r.top,
+          bottom: r.bottom,
+          height: r.height,
+          position: getComputedStyle(bar).position,
+          inset: getComputedStyle(bar).insetBlockEnd,
+          window: window.innerHeight,
+          page: document.documentElement.scrollHeight,
+          sticky: bar.getAttribute('data-sticky'),
+        };
+      });
+    }, frac);
+    for (const b of bars)
+      if (b.height > 0 && b.sticky !== 'false' && (b.top < -1 || b.bottom > b.window + 1))
+        out.push(
+          `${b.name} (position ${b.position}, bottom offset ${b.inset}) is at ${Math.round(b.top)}..${Math.round(b.bottom)} in a ${b.window} px window at ${Math.round(frac * 100)}% of a ${b.page} px page`,
+        );
+  }
+  const covered = await page.evaluate(() => {
+    window.scrollTo(0, document.documentElement.scrollHeight);
+    const bars = Array.from(document.querySelectorAll('.ds-action-bar, .ds-keyhints'))
+      .map((b) => b.getBoundingClientRect())
+      .filter((r) => r.height > 0 && r.top < window.innerHeight);
+    const walk = document.createTreeWalker(
+      document.querySelector('main') ?? document.body,
+      NodeFilter.SHOW_TEXT,
+    );
+    const hit: string[] = [];
+    for (let n = walk.nextNode(); n; n = walk.nextNode()) {
+      const el = n.parentElement;
+      if (
+        !el ||
+        !(n.textContent ?? '').trim() ||
+        el.closest('.ds-action-bar, .ds-keyhints, .ds-visually-hidden')
+      )
+        continue;
+      const box = el.getBoundingClientRect();
+      if (box.width === 0 || getComputedStyle(el).visibility === 'hidden') continue;
+      const rg = document.createRange();
+      rg.selectNodeContents(n);
+      for (const r of rg.getClientRects())
+        for (const b of bars)
+          if (
+            r.width > 2 &&
+            r.bottom > b.top + 3 &&
+            r.top < b.bottom - 3 &&
+            r.right > b.left &&
+            r.left < b.right
+          )
+            hit.push((n.textContent ?? '').trim().slice(0, 30));
+    }
+    return hit.slice(0, 3);
+  });
+  if (covered.length)
+    out.push(`at the end of the page the bar covers "${covered.join('", "')}"`);
+  await page.evaluate(() => window.scrollTo(0, 0));
+  return out;
+}
+
+/** `stickyWalk` on the route at each width and mode, prefixed with where. */
+export async function stickyEverywhere(
+  page: Page,
+  route: Pick<ConsoleRoute, 'pattern' | 'url' | 'signedOut'>,
+  state: ScreenState = 'data',
+  widths: readonly { width: number; height: number }[] = TEXT_WIDTHS,
+): Promise<string[]> {
+  const out: string[] = [];
+  for (const mode of MODES) {
+    await openRoute(page, route, { mode, state });
+    for (const w of widths) {
+      await page.setViewportSize(w);
+      await page.waitForTimeout(30);
+      for (const line of await stickyWalk(page))
         out.push(`${route.pattern} ${state} ${mode} ${w.width}px: ${line}`);
     }
     await page.unrouteAll({ behavior: 'ignoreErrors' });

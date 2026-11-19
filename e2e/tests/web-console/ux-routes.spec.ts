@@ -10,6 +10,9 @@ import {
   MODES,
   measureEverywhere,
   openRoute,
+  stickyEverywhere,
+  stickyWalk,
+  TEXT_WIDTHS,
   type Measure,
   type ScreenState,
 } from './ux-guards';
@@ -22,7 +25,7 @@ const routes = [
 const CHECKS: { id: Measure; states: ScreenState[] }[] = [
   { id: 'touch', states: ['data'] },
   { id: 'primary', states: ['data'] },
-  { id: 'h1', states: ['data', 'empty', 'failed'] },
+  { id: 'h1', states: ['data', 'empty', 'failed', 'loading'] },
   { id: 'selectAll', states: ['data'] },
   { id: 'navScroll', states: ['data'] },
   { id: 'noScrollbar', states: ['data'] },
@@ -35,6 +38,21 @@ const CHECKS: { id: Measure; states: ScreenState[] }[] = [
   { id: 'titleOverlap', states: ['data'] },
   { id: 'hintKeys', states: ['data'] },
 ];
+
+// LOOK35 (RES21 T8): the measures of text lines and boxes, on the default data and on the stress data (six machines
+// with a long host name, seven runners with a long reason, a repository with many policies), at 360, 393 and 1300 px.
+const TEXT_CHECKS: Measure[] = [
+  'wrapped',
+  'wordBroken',
+  'textOverText',
+  'textOverBorder',
+  'wordsGlued',
+  'rowHeights',
+  'rowActionWords',
+];
+const TEXT_STATES: ScreenState[] = ['data', 'stress'];
+// Empty states have their own words and links (RES21 B13, B17): the measures of words and wraps read them too.
+const EMPTY_CHECKS: Measure[] = ['wrapped', 'wordBroken', 'wordsGlued'];
 
 for (const route of routes) {
   test(`ux layout: ${route.pattern}`, async ({ page }) => {
@@ -65,4 +83,51 @@ for (const route of routes) {
       });
     }
   }
+
+  for (const id of TEXT_CHECKS) {
+    for (const state of TEXT_STATES) {
+      test(`ux ${id}: ${route.pattern} (${state})`, async ({ page }) => {
+        const why = fixmeFor(id, route.pattern, state);
+        test.fixme(why !== undefined, why ?? '');
+        expect(await measureEverywhere(page, route, id, state, TEXT_WIDTHS)).toEqual([]);
+      });
+    }
+  }
+
+  for (const id of EMPTY_CHECKS) {
+    test(`ux ${id}: ${route.pattern} (empty)`, async ({ page }) => {
+      const why = fixmeFor(id, route.pattern, 'empty');
+      test.fixme(why !== undefined, why ?? '');
+      expect(await measureEverywhere(page, route, id, 'empty', TEXT_WIDTHS)).toEqual([]);
+    });
+  }
+
+  for (const state of TEXT_STATES) {
+    test(`ux stickyWalk: ${route.pattern} (${state})`, async ({ page }) => {
+      const why = fixmeFor('stickyWalk', route.pattern, state);
+      test.fixme(why !== undefined, why ?? '');
+      expect(await stickyEverywhere(page, route, state)).toEqual([]);
+    });
+  }
+}
+
+// N5 (RES21): a frame with no key-hint bar (the setup page) has no `--ds-keyhints-height`; the bar still sticks.
+// A short window makes the page scroll, so the walk has something to judge.
+for (const url of ['/setup', '/update']) {
+  test(`ux stickyWalk: ${url} in a short window`, async ({ page }) => {
+    const why = fixmeFor('stickyWalk', `${url} short`, 'data');
+    test.fixme(why !== undefined, why ?? '');
+    const found: string[] = [];
+    for (const mode of MODES) {
+      await openRoute(page, { url, signedOut: false }, { mode });
+      for (const w of TEXT_WIDTHS) {
+        await page.setViewportSize({ width: w.width, height: 320 });
+        await page.waitForTimeout(30);
+        for (const line of await stickyWalk(page))
+          found.push(`${url} ${mode} ${w.width}x320: ${line}`);
+      }
+      await page.unrouteAll({ behavior: 'ignoreErrors' });
+    }
+    expect(found).toEqual([]);
+  });
 }
