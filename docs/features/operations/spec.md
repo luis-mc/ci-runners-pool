@@ -320,6 +320,10 @@ Not built: a copyable reinstall command with a one-time token in the console, an
 
 **R5.95** (built, OPS35) — **A guard keeps it so.** `go test ./...` fails when a non-test Go file other than `internal/addresses/addresses.go` (and generated code and the fake GitHub) holds a string literal that starts with `http://` or `https://` and a host; comments are not scanned. `pnpm exec vitest run --project guard` fails when code in `apps/web/src` or `packages/*/src` (tests and test support excluded) holds an absolute `http(s)` address in a string, a template or JSX text, except `127.0.0.1`, `localhost` and `example.com` in help words. Source: `internal/addresses/guard_test.go`, `guards/no-hardcoded-addresses.guard.test.ts`.
 
+**R5.96** (built, TRAY8) — **The health check after a restart is always on loopback.** The update helper asks `http://127.0.0.1:<listen port>/healthz`, whatever address the console listens on: the controller always keeps `127.0.0.1` open next to a chosen address (R5.90), and the chosen address can change (a new DHCP lease) between the plan and the restart, which marked a good restart `the new build did not report healthy in time`. Source: `cmd/crsp/update_wiring.go` `healthURL`.
+
+**R5.97** (built, TRAY8) — **Old installers do not pile up.** After a successful update, when the service starts on the version the result file names, the update folder keeps only the folders of the running version and the one before it (`updates/<version>/`, the installer and its `SHA256SUMS`) and removes the others. Other files (stage, result, plan, logs) and folders that are not a stable version are never removed. Source: `internal/update/prune.go`.
+
 ## 6. Non-functional requirements
 
 **R6.1** (M3) — An update never stops a running job. A controller restart never stops a job on any machine; agents reconnect with backoff.
@@ -462,6 +466,8 @@ All tests are planned; none exists yet. Paths are where each test will live.
 | R5.93 | internal/update/cancel_test.go (cancel while waiting, while downloading, refused from installing on, started_by survives the restart); internal/trayserver/server_unix_test.go TestChannelCancelIsItsOwnCall |
 | R5.94 | internal/addresses/addresses_test.go TestLoadDefaults, TestLoadEnterpriseDerivesAPIAndDownload, TestLoadExplicitValuesWin, TestLoadRejectsBadAddressesNamingTheVariable, TestLoadReportsEveryProblem, TestEnterpriseHostRunnerURLAndGrantPages, TestZeroSetDownloadURLUsesDefaults; packages/ui/src/components/Grant.test.tsx "opens only https pages the controller names" |
 | R5.95 | internal/addresses/guard_test.go TestNoLiteralAddressesInGo; guards/no-hardcoded-addresses.guard.test.ts |
+| R5.96 | built (TRAY8): cmd/crsp/update_wiring_test.go TestHealthURLIsAlwaysLoopback |
+| R5.97 | built (TRAY8): internal/update/prune_test.go TestPruneVersionsKeepsCurrentAndPrevious, TestManagerPrunesAfterASuccessfulUpdate |
 
 ## 10. Decisions
 

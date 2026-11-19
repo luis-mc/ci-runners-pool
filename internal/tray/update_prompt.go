@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+
+	"github.com/luis-mc/ci-runners-shared-pool/internal/update"
 )
 
 // UpdatePrompt is what the native update box says (CRSP147, TRAY4). The console page
@@ -47,6 +49,11 @@ type UpdateInstaller interface {
 // asks the service to install (it drains first), Not now changes nothing. Only the
 // person's answer installs; a check alone never does.
 func (o *Opener) Offer(ctx context.Context, st Status) error {
+	// Never offer a version that is not newer than the one that runs (TRAY8).
+	if !st.NewerFound() || !o.newerThanRunning(st.Update.Latest) {
+		o.notify("Up to date", ProductName+" "+o.Version+" is the newest stable release.")
+		return nil
+	}
 	// The console page asks (and shows the progress) in the console theme. The native box is the fallback.
 	if o.OpenUpdate(ctx) == nil {
 		return nil
@@ -69,6 +76,10 @@ func (o *Opener) Offer(ctx context.Context, st Status) error {
 		return nil
 	}
 	got, err := o.Installer.Install(ctx)
+	if errors.Is(err, update.ErrNoUpdate) {
+		o.notify("Up to date", ProductName+" "+o.Version+" is the newest stable release.")
+		return nil
+	}
 	if err != nil {
 		o.notify("Could not start the update", err.Error()+". Check the status line, then try again.")
 		return err
@@ -79,6 +90,12 @@ func (o *Opener) Offer(ctx context.Context, st Status) error {
 	}
 	o.notify("Updating to "+p.Latest, body)
 	return nil
+}
+
+// newerThanRunning says latest is newer than the version this tray runs with. An unknown
+// version is trusted: the service has already compared (TRAY8).
+func (o *Opener) newerThanRunning(latest string) bool {
+	return o.Version == "" || update.Newer(o.Version, latest)
 }
 
 // Offered remembers the release the person was already asked about in this tray, so a
@@ -93,7 +110,7 @@ type Offered struct {
 // and not offered yet. It records the offer.
 func (f *Offered) Due(st Status) bool {
 	u := st.Update
-	if !u.Available || u.Latest == "" || u.Updating() || !u.AutoOff {
+	if !st.NewerFound() || u.Updating() || !u.AutoOff {
 		return false
 	}
 	f.mu.Lock()

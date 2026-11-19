@@ -85,6 +85,9 @@ func Compute(m Metrics, v View) Layout {
 	}
 	w := max(tenths(u, clientUnits), need+2*pad)
 	textW := w - 2*pad
+	// Wrap a little narrower than the box: the measured width of a line can differ from the
+	// drawn width by a pixel or two, and a long line must wrap, never be cut (TRAY8).
+	wrapW := textW - tenths(u, 5)
 
 	l := Layout{W: w, Unit: u}
 	add := func(it Item) { l.Items = append(l.Items, it) }
@@ -94,13 +97,13 @@ func Compute(m Metrics, v View) Layout {
 	add(Item{Kind: KindBand, Rect: image.Rect(0, 0, w, band)})
 	y = band + pad
 
-	head := wrap(m, v.Heading, textW, true)
+	head := wrap(m, v.Heading, wrapW, true)
 	hh := len(head) * tenths(u, headUnits)
 	add(Item{Kind: KindHeading, Rect: image.Rect(pad, y, pad+textW, y+hh), Lines: head})
 	y += hh + tenths(u, paraGap)
 
 	for i, p := range v.Body {
-		lines := wrap(m, p, textW, false)
+		lines := wrap(m, p, wrapW, false)
 		ph := len(lines) * tenths(u, lineUnits)
 		add(Item{Kind: KindBody, Rect: image.Rect(pad, y, pad+textW, y+ph), Lines: lines})
 		y += ph
@@ -252,6 +255,8 @@ func SampleViews() []View {
 			snap.Stage.LogPath = `C:\ProgramData\crsp\logs\msi-update-0.1.13-2026-11-18T14-05-00.log`
 		case StateCancelled:
 			m.Cancelled()
+		case StateUpToDate:
+			m.Mode, m.To = ModeReview, "0.1.12"
 		}
 		m.Observe(snap)
 		out = append(out, m.View())

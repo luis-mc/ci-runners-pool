@@ -220,6 +220,10 @@ func New(o Options) *Manager {
 		// The new build runs: the old tray was ended by the MSI, so start the tray again (CRSP147).
 		go o.AfterInstall(res.To)
 	}
+	if r, ok := ReadResult(o.Dir); ok && r.OK && r.To == o.Current {
+		// The update worked: keep the folders of the version that runs and the one before it (TRAY8).
+		PruneVersions(o.Dir, r.To, r.From)
+	}
 	if r, ok := ReadResult(o.Dir); ok && !r.OK && r.To != o.Current {
 		m.state, m.errText = StateFailed, "The last update to "+r.To+" failed: "+r.Error
 	}

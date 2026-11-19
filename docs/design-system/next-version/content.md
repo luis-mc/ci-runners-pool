@@ -918,6 +918,8 @@ The words of the native update window on Windows (tray R5.46 to R5.49). The step
 | Still on {version}. | The line after the reason on Failed and after a cancel. |
 | Log: {path} | The last line on Failed. |
 | Update cancelled | The heading after Cancel update. |
+| Up to date | The heading when nothing newer exists: the service says it is already the newest, or the version offered is not newer than the one that runs. Also the title of the tray notice. |
+| Now running {version}. This is the newest stable release. | The line under Up to date; the button is Close. |
 | Nothing changed. Still on {version}. | The line after a cancel. |
 | CI RUNNERS SHARED POOL | The name in the band and in the installer bitmaps (capitals: the art is drawn in a 5 by 7 pixel font). |
 
