@@ -204,7 +204,7 @@ function ImageBody({ image }: { image: Image }) {
     : 'the rollback days end';
   const sharedBytes = Math.max(0, image.size_bytes - image.unique_bytes);
   return (
-    <Stack>
+    <Stack gap="section">
       <PageHeader
         title={image.profile}
         lead={`${image.kind} · ${image.arch} · key ${shortKey(image.key)} · pushed on ${formatDate(image.pushed_at)}`}
