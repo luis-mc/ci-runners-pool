@@ -65,7 +65,6 @@ export const guardPaths = (cell: string): string[] =>
  * build's spec; LOOK35 points the rule at the real file in next-version.
  */
 const MISSING_GUARDS: Record<string, string> = {
-  'UX-72': 'e2e/tests/review/review-layout.spec.ts',
 };
 
 /** The rule IDs and their guard column, from the rule table. */
