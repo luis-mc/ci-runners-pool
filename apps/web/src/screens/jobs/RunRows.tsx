@@ -1,26 +1,15 @@
-// A run as one row (owner decision A, 18 Nov 2026): the columns of the Queue, Running and Done lists, and the detail
-// that opens in place: the jobs of the run as a waterfall, each job opening to its steps. The list answers without the
-// jobs of a run, so the detail reads the run when it opens.
+// A run as one row (owner decision A, 18 Nov 2026): the columns of the Queue, Running and Done lists. The row action
+// Open run goes straight to the Run page (OPS43), as Open job goes to the Job page.
 import {
   CappedList,
-  Cluster,
   Cut,
-  Empty,
-  LinkButton,
   ShortText,
-  Stack,
   Status,
-  Text,
   TextLink,
-  Waterfall,
   formatShortDateTime,
-  formatDuration,
   type Column,
 } from '@crsp/ui';
-import { Load } from '../common';
-import { useRun } from './api';
-import { elapsedSeconds, runKey, type RunRow } from './runList';
-import { runRows } from './runViews';
+import { runKey, type RunRow } from './runList';
 import {
   etaOne,
   commitWords,
@@ -28,8 +17,6 @@ import {
   jobStatus,
   startRange,
   taskIdOf,
-  taskOf,
-  type Job,
 } from './words';
 import { waitWords } from './words';
 
@@ -66,16 +53,18 @@ export function runColumns(kind: RunKind, _now: number): Column<RunRow>[] {
     cell: (r) => r.repository.split('/')[1] ?? r.repository,
     sort: (r) => r.repository,
     kind: 'grow',
+    grow: 2,
   };
   const workflow: Column<RunRow> = {
     id: 'workflow',
     header: 'Workflow',
     cell: (r) => (
       <Cut tail={` #${r.id}${r.attempt > 1 ? `, attempt ${r.attempt}` : ''}`}>
-        <TextLink to={`/jobs/run/${r.id}?attempt=${r.attempt}`}>{r.workflow}</TextLink>
+        <TextLink to={runPath(r)}>{r.workflow}</TextLink>
       </Cut>
     ),
     kind: 'grow',
+    grow: 2,
     title: (r) =>
       `${r.workflow} #${r.id}${r.attempt > 1 ? `, attempt ${r.attempt}` : ''}`,
     sort: (r) => r.workflow,
@@ -88,6 +77,7 @@ export function runColumns(kind: RunKind, _now: number): Column<RunRow>[] {
     title: (r) => r.branch,
     sort: (r) => r.branch,
     kind: 'grow',
+    grow: 1,
     secondary: true,
   };
   const commit: Column<RunRow> = {
@@ -206,47 +196,9 @@ export function runColumns(kind: RunKind, _now: number): Column<RunRow>[] {
   ];
 }
 
-/** What opens under a run row: its jobs on one time line; a job opens to its steps. */
-export function RunDetail({
-  row,
-  now,
-  open,
-}: {
-  row: RunRow;
-  now: number;
-  open: (j: Job) => void;
-}) {
-  const { result, reload } = useRun(row.id, row.attempt, row.state !== 'done');
-  return (
-    <Load result={result} what="the run" reload={reload}>
-      {(run) => {
-        const view = runRows(run, now, open);
-        return (
-          <Stack>
-            <Text tone="muted">
-              {`Run ${run.id}${run.attempt > 1 ? `, attempt ${run.attempt}` : ''}, ${run.jobs.length} ${run.jobs.length === 1 ? 'job' : 'jobs'}: queue wait is the light part of a bar, the run the dark part. Open a job to see its steps. ${row.state === 'done' ? 'Total time' : 'Time so far'}: ${formatDuration(elapsedSeconds(row, now))}. Jobs: ${row.jobsDone ?? 0} of ${row.jobsTotal ?? run.jobs.length} done, ${row.queued.length} queued. Branch: ${run.branch}. Task: ${taskOf(run)}. Worktree: ${run.worktree ?? 'not reported'}.`}
-            </Text>
-            {run.jobs.length === 0 ? (
-              <Empty title="This run has no jobs yet." />
-            ) : (
-              <Waterfall
-                label={`Jobs of run ${run.id}`}
-                rows={view.rows}
-                totalSec={view.totalSec}
-                {...(view.nowSec !== undefined ? { nowSec: view.nowSec } : {})}
-                emptyText="This run has no jobs."
-              />
-            )}
-            <Cluster>
-              <LinkButton to={`/jobs/run/${run.id}?attempt=${run.attempt}`}>
-                Open run page
-              </LinkButton>
-            </Cluster>
-          </Stack>
-        );
-      }}
-    </Load>
-  );
+/** Where a run row opens: the Run page of that attempt. */
+export function runPath(r: Pick<RunRow, 'id' | 'attempt'>): string {
+  return `/jobs/run/${r.id}?attempt=${r.attempt}`;
 }
 
 export { runKey };

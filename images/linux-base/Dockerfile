@@ -7,7 +7,7 @@
 # Every download below is pinned and SHA-256 checked; a wrong hash fails the build.
 
 # Ubuntu 24.04 LTS, pinned by digest (the multi-arch index).
-FROM ubuntu:24.04@sha256:2198e4c65076e9cb0b3d695219df667c0e3b0072da64ca3c2648aca17dcecaf5
+FROM ubuntu:24.04@sha256:2198e4c65076e9cb0b3d695219df667c0e3b0072da64ca3c2648aca17dcecaf5 AS tools
 
 ARG TARGETARCH=amd64
 ARG NODE_VERSION=26.13.1
@@ -32,6 +32,11 @@ ENV DEBIAN_FRONTEND=noninteractive \
 ENV PATH=/usr/local/bin:/usr/local/sbin:/usr/sbin:/usr/bin:/sbin:/bin
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
+# apt retries and timeouts: a slow or flaky mirror retries instead of hanging
+# for the whole job (OPS41). Layers built on this image inherit the file.
+RUN printf '%s\n' 'Acquire::Retries "5";' 'Acquire::http::Timeout "30";' 'Acquire::https::Timeout "30";' \
+      > /etc/apt/apt.conf.d/80-crsp-retries
 
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
@@ -73,10 +78,6 @@ RUN set -eu; \
     install -m 0755 "/tmp/gh_${GH_VERSION}_linux_${TARGETARCH}/bin/gh" /usr/local/bin/gh; \
     rm -rf "/tmp/${f}" "/tmp/gh_${GH_VERSION}_linux_${TARGETARCH}"
 
-# The crsp binary, for `crsp vm` and `crsp db-env` (runners R5.48). A running
-# container job gets the agent's own binary mounted over it.
-COPY --chmod=0755 crsp /usr/local/bin/crsp
-
 # A fixed non-root job user with no sudo.
 RUN groupadd --gid "${JOB_UID}" runner \
  && useradd --uid "${JOB_UID}" --gid runner --create-home --shell /bin/bash runner \
@@ -109,11 +110,20 @@ RUN git --version && curl --version >/dev/null && jq --version && zip -v >/dev/n
  && pkg-config --version && psql --version \
  && node --version && corepack --version && gh --version \
  && test -x "$(command -v pnpm)" && test -x "$(command -v yarn)" \
- && ldconfig -p | grep libatomic >/dev/null \
- && crsp version >/dev/null
+ && ldconfig -p | grep libatomic >/dev/null
 
 USER runner
 # The runner starts as the job user and prints the pinned version.
 RUN /opt/actions-runner/run.sh --version | grep -x "${RUNNER_VERSION}" >/dev/null \
  && test -f /opt/actions-runner/.env
 WORKDIR /home/runner
+
+# The last stage adds only the crsp binary, which changes on every commit. The
+# stage above holds every slow layer and does not depend on crsp, so CI builds
+# it with `--target tools`, caches it, and builds the tool layers on it (OPS41).
+# A plain `docker build` builds this last stage: the full base image.
+FROM tools
+# The crsp binary, for `crsp vm` and `crsp db-env` (runners R5.48). A running
+# container job gets the agent's own binary mounted over it.
+COPY --chmod=0755 crsp /usr/local/bin/crsp
+RUN crsp version >/dev/null

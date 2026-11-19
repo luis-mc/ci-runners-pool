@@ -374,12 +374,17 @@ func TestImageBuildMatrixListsArm64(t *testing.T) {
 	if j := strings.Index(job[1:], "\n  e2e:"); j >= 0 {
 		job = job[:j+1]
 	}
-	for _, want := range []string{"arch: amd64", "arch: arm64", "ubuntu-24.04-arm", "layers: 'llvm'", "crsp-linux-${{ matrix.arch }}"} {
+	for _, want := range []string{"arch: amd64", "arch: arm64", "ubuntu-24.04-arm", "context: images/layers/llvm", "scope=llvm-${{ matrix.arch }}", "crsp-linux-${{ matrix.arch }}"} {
 		if !strings.Contains(job, want) {
 			t.Errorf("image job lacks %q", want)
 		}
 	}
-	if !regexp.MustCompile(`(?s)arch: amd64.*layers: '[^']*\bllvm\b`).MatchString(job) {
-		t.Error("the amd64 entry must build the llvm layer")
+	// The llvm step has no `if: matrix.all`, so both architectures build it.
+	llvm := job[strings.Index(job, "docker build llvm layer"):]
+	if j := strings.Index(llvm[1:], "\n      - name:"); j >= 0 {
+		llvm = llvm[:j+1]
+	}
+	if regexp.MustCompile(`(?m)^\s+if:`).MatchString(llvm) {
+		t.Error("the llvm layer must build on every architecture, with no `if`")
 	}
 }

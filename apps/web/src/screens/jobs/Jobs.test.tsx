@@ -45,7 +45,7 @@ describe('Queue', () => {
   it('says what a run row opens to with the one word of every list, Open run', async () => {
     renderApp(jobsApi({ jobs: [queued(1, 1)] }), '/jobs');
     const table = await screen.findByRole('table', { name: 'Queue runs' });
-    expect(within(table).getByRole('button', { name: 'Open run' })).toBeTruthy();
+    expect(within(table).getByRole('button', { name: /^Open run: / })).toBeTruthy();
   });
 
   it('lists every waiting job in order in the Jobs view, each with Open job', async () => {
@@ -187,12 +187,21 @@ describe('Done', () => {
     });
   });
 
-  it('opens a run in place to its jobs', async () => {
+  it('goes from Open run straight to the Run page, with no row opened in place', async () => {
     renderApp(jobsApi({ runs: [runSummary()] }), '/jobs/done');
     const table = await screen.findByRole('table', { name: 'Done runs' });
-    fireEvent.click(within(table).getByRole('button', { name: 'Open run' }));
-    expect(await screen.findByText(/queue wait is the light part of a bar/)).toBeTruthy();
-    expect(await screen.findByText('Open run page')).toBeTruthy();
+    fireEvent.click(within(table).getByRole('button', { name: /^Open run: / }));
+    expect(await screen.findByRole('region', { name: 'Job graph' })).toBeTruthy();
+    expect(screen.queryByText('Open run page')).toBeNull();
+    expect(screen.queryByText(/queue wait is the light part of a bar/)).toBeNull();
+  });
+
+  it('opens the Run page with Enter on a run row', async () => {
+    renderApp(jobsApi({ runs: [runSummary()] }), '/jobs/done');
+    const table = await screen.findByRole('table', { name: 'Done runs' });
+    const row = within(table).getAllByRole('row')[1] as HTMLElement;
+    fireEvent.keyDown(row, { key: 'Enter' });
+    expect(await screen.findByRole('region', { name: 'Job graph' })).toBeTruthy();
   });
 
   it('shows the jobs view with a filter from the address, by repository name', async () => {

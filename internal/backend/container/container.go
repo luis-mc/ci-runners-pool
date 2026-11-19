@@ -56,6 +56,10 @@ type Config struct {
 	KVM bool
 	// CrspHostPath is the agent's linux binary for the read-only mount.
 	CrspHostPath string
+	// VMImageMirror is CRSP_VM_IMAGE_MIRROR: passed to every job so `crsp vm`
+	// downloads from the mirror (operations R5.96). New takes it from the
+	// deps' addresses when empty.
+	VMImageMirror string
 	// CacheRoot is the machine's cache folder; the lanes of every repository
 	// live under it (caches R5.43). Empty means no pool takes a lane.
 	CacheRoot string
@@ -102,6 +106,9 @@ var _ backend.Backend = (*Backend)(nil)
 func New(d sys.Deps, eng Engine, cfg Config) *Backend {
 	if cfg.StopGrace <= 0 {
 		cfg.StopGrace = 30 * time.Second
+	}
+	if cfg.VMImageMirror == "" {
+		cfg.VMImageMirror = d.Addresses.VMImageMirror
 	}
 	b := &Backend{d: d, eng: eng, cfg: cfg, draining: map[string]bool{}, dbRunners: map[string]string{}}
 	if cfg.CPUBudget > 0 {

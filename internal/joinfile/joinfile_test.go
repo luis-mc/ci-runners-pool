@@ -162,3 +162,30 @@ func TestParseSumsTakesCRLFAndStarMarks(t *testing.T) {
 		t.Errorf("got %+v", got)
 	}
 }
+
+// OPS40: a release since 0.1.15 names its installers crsp-<os>-<arch>_<version>.<ext>.
+// The file still asks for the plain name and downloads the versioned one.
+func TestVersionedPackagesAreFoundByPlainName(t *testing.T) {
+	versioned := []byte(strings.Join([]string{
+		hexA + "  crsp-windows-amd64_0.1.15.msi",
+		hexB + "  crsp-linux-amd64_0.1.15.deb",
+		hexC + "  crsp-darwin-arm64_0.1.15.pkg",
+	}, "\n") + "\n")
+	for osName, want := range map[string][]string{
+		"windows": {"'crsp-windows-amd64.msi' = 'crsp-windows-amd64_0.1.15.msi'"},
+		"linux":   {"'crsp-linux-amd64.deb') say 'crsp-linux-amd64_0.1.15.deb'", "'crsp-linux-amd64.deb') say '" + hexB + "'"},
+		"macos":   {"'crsp-darwin-arm64.pkg') say 'crsp-darwin-arm64_0.1.15.pkg'"},
+	} {
+		p := params(osName)
+		p.Sums = versioned
+		f, err := Render(p)
+		if err != nil {
+			t.Fatalf("%s: %v", osName, err)
+		}
+		for _, w := range want {
+			if !strings.Contains(string(f.Content), w) {
+				t.Errorf("%s file lacks %q", osName, w)
+			}
+		}
+	}
+}

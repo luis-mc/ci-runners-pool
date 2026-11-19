@@ -13,14 +13,18 @@ function Stop-Install([string]$Message) {
 }
 
 $arch = if ($env:PROCESSOR_ARCHITECTURE -eq 'ARM64') { 'arm64' } else { 'amd64' }
-$name = "crsp-windows-$arch.zip"
 $work = Join-Path ([IO.Path]::GetTempPath()) ("crsp-install-" + [Guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $work | Out-Null
 try {
-    $file = Join-Path $work $name
     $sums = Join-Path $work 'SHA256SUMS'
-    Invoke-WebRequest -Uri "$Base/$name" -OutFile $file -UseBasicParsing
     Invoke-WebRequest -Uri "$Base/SHA256SUMS" -OutFile $sums -UseBasicParsing
+    # The archive carries the release version in its name (crsp-windows-<arch>_<version>.zip,
+    # OPS40). SHA256SUMS has a fixed name and lists it. A release up to 0.1.14 lists the plain name.
+    $name = Get-Content $sums | ForEach-Object { ($_ -split '\s+', 2)[1] -replace '^\*', '' } |
+        Where-Object { $_ -match "^crsp-windows-$arch(_[0-9A-Za-z.+-]+)?\.zip$" } | Select-Object -First 1
+    if (-not $name) { Stop-Install "no archive for windows-$arch is in SHA256SUMS" }
+    $file = Join-Path $work $name
+    Invoke-WebRequest -Uri "$Base/$name" -OutFile $file -UseBasicParsing
 
     # Step 1: the SHA-256 must match the line for this file.
     $line = Get-Content $sums | Where-Object { ($_ -split '\s+', 2)[1] -replace '^\*', '' -eq $name } | Select-Object -First 1

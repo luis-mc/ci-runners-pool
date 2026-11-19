@@ -2,7 +2,7 @@
 // (operations R5.11 to R5.18, tray R5.15 to R5.18).
 //
 // The flow: look at GitHub Releases for a newer stable release; download the
-// asset for this OS and architecture (the MSI on Windows, crsp-<os>-<arch>.tar.gz
+// asset for this OS and architecture (the MSI on Windows, crsp-<os>-<arch>_<version>.tar.gz
 // elsewhere) and SHA256SUMS; verify the SHA-256 and the build provenance
 // attestation; then drain (no new jobs, wait for running jobs up to the drain
 // timeout) and only then hand the install to a helper process that survives the
@@ -219,6 +219,10 @@ func New(o Options) *Manager {
 	if settled, res := recoverMSI(o.Dir, o.Current, o.Now()); settled && res.OK && o.AfterInstall != nil {
 		// The new build runs: the old tray was ended by the MSI, so start the tray again (CRSP147).
 		go o.AfterInstall(res.To)
+	}
+	if r, ok := ReadResult(o.Dir); ok && r.OK && r.To == o.Current {
+		// The update worked: keep the folders of the version that runs and the one before it (TRAY8).
+		PruneVersions(o.Dir, r.To, r.From)
 	}
 	if r, ok := ReadResult(o.Dir); ok && !r.OK && r.To != o.Current {
 		m.state, m.errText = StateFailed, "The last update to "+r.To+" failed: "+r.Error
@@ -574,7 +578,7 @@ func (m *Manager) fail(err error, version string) {
 // prepare downloads the asset and SHA256SUMS, verifies both checks, and (on
 // unix) extracts the binary and runs the self-check. It returns the file to install.
 func (m *Manager) prepare(ctx context.Context, rel Release) (string, error) {
-	asset := AssetFor(m.o.InstallKind, m.o.GOOS, m.o.GOARCH)
+	asset := PickAsset(rel, AssetFor(m.o.InstallKind, m.o.GOOS, m.o.GOARCH))
 	assetURL, ok := rel.Assets[asset]
 	if !ok {
 		return "", fmt.Errorf("release %s has no %s for this machine", rel.Version, asset)

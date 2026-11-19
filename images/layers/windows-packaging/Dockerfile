@@ -15,6 +15,11 @@ ARG WINE_LINE=9.0
 
 USER root
 ENV DEBIAN_FRONTEND=noninteractive
+# apt retries and timeouts: a slow or flaky mirror retries instead of hanging
+# for the whole job (OPS41). The base image has it; written again so the layer holds without it.
+RUN printf '%s\n' 'Acquire::Retries "5";' 'Acquire::http::Timeout "30";' 'Acquire::https::Timeout "30";' \
+      > /etc/apt/apt.conf.d/80-crsp-retries
+
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
       dotnet-sdk-8.0 wine wine64 xvfb xauth msitools \

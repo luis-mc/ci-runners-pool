@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OPS42 run page Jobs table</title>
+<style>
+:root { --bg:#fff; --fg:#1a1a1a; --mut:#555; --line:#ccc; }
+@media (prefers-color-scheme: dark) { :root { --bg:#111; --fg:#eee; --mut:#aaa; --line:#444; } }
+body { background:var(--bg); color:var(--fg); font:16px/1.5 system-ui,sans-serif; margin:0; padding:16px; max-width:1300px; }
+h1,h2 { font-weight:600 } h2 { margin-top:32px }
+p { color:var(--mut); max-width:70ch }
+.grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,360px),1fr)); gap:16px }
+figure { margin:0; border:1px solid var(--line); padding:8px }
+figcaption { font-size:14px; color:var(--mut); margin-top:4px }
+img { max-width:100%; height:auto; display:block }
+</style>
+</head>
+<body>
+<h1>OPS42: run page, one Jobs table</h1>
+<p>The Job graph and the Timeline no longer fold a "Show as table" each; both point to the Jobs table below the Timeline. The sticky header and action bar show inside the full-page shots at the scroll position of the capture.</p>
+<h2>1300 px</h2>
+<div class="grid">
+<figure><img src="run-1300-dark.png" alt="Run page at 1300 px, dark"><figcaption>Dark</figcaption></figure>
+<figure><img src="run-1300-light.png" alt="Run page at 1300 px, light"><figcaption>Light</figcaption></figure>
+</div>
+<h2>393 px</h2>
+<div class="grid">
+<figure><img src="run-393-dark.png" alt="Run page at 393 px, dark"><figcaption>Dark</figcaption></figure>
+<figure><img src="run-393-light.png" alt="Run page at 393 px, light"><figcaption>Light</figcaption></figure>
+</div>
+</body>
+</html>

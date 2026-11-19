@@ -23,7 +23,7 @@ func (r releasePackages) WindowsPackage(ctx context.Context, arch string) (machi
 	if err != nil {
 		return machines.PackageRef{}, err
 	}
-	asset := update.AssetName("windows", arch)
+	asset := update.PickAsset(rel, update.AssetName("windows", arch))
 	url, ok := rel.Assets[asset]
 	if !ok {
 		return machines.PackageRef{}, fmt.Errorf("release %s has no %s", rel.Version, asset)
@@ -64,11 +64,11 @@ type controllerPackages struct {
 }
 
 func (c controllerPackages) WindowsPackage(ctx context.Context, arch string) (machines.PackageRef, error) {
-	sums, _, err := c.sums.Sums(ctx)
+	sums, version, err := c.sums.Sums(ctx)
 	if err != nil {
 		return machines.PackageRef{}, err
 	}
-	asset := update.AssetName("windows", arch)
+	asset := update.PickFromSums(sums, update.AssetName("windows", arch), version)
 	sum, ok := update.SumFor(sums, asset)
 	if !ok {
 		return machines.PackageRef{}, fmt.Errorf("%s is not listed in SHA256SUMS", asset)
