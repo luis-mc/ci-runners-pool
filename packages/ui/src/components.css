@@ -1908,6 +1908,9 @@ legend > .ds-field__changed {
     block-size: 1px;
     overflow: hidden;
   }
+  .ds-viz-table thead th {
+    white-space: nowrap;
+  }
   .ds-viz-table,
   .ds-viz-table tbody {
     display: block;
