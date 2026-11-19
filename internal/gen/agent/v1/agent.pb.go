@@ -1246,7 +1246,7 @@ type SessionResponse struct {
 	//	*SessionResponse_ScanRunnerLeftovers
 	//	*SessionResponse_RemoveRunnerLeftovers
 	//	*SessionResponse_EnsureImageAnswer
-	//	*SessionResponse_RegistryToken
+	//	*SessionResponse_RegistryGrant
 	Message       isSessionResponse_Message `protobuf_oneof:"message"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -1505,10 +1505,10 @@ func (x *SessionResponse) GetEnsureImageAnswer() *EnsureImageAnswer {
 	return nil
 }
 
-func (x *SessionResponse) GetRegistryToken() *RegistryToken {
+func (x *SessionResponse) GetRegistryGrant() *RegistryToken {
 	if x != nil {
-		if x, ok := x.Message.(*SessionResponse_RegistryToken); ok {
-			return x.RegistryToken
+		if x, ok := x.Message.(*SessionResponse_RegistryGrant); ok {
+			return x.RegistryGrant
 		}
 	}
 	return nil
@@ -1621,8 +1621,8 @@ type SessionResponse_EnsureImageAnswer struct {
 	EnsureImageAnswer *EnsureImageAnswer `protobuf:"bytes,28,opt,name=ensure_image_answer,json=ensureImageAnswer,proto3,oneof"`
 }
 
-type SessionResponse_RegistryToken struct {
-	RegistryToken *RegistryToken `protobuf:"bytes,29,opt,name=registry_token,json=registryToken,proto3,oneof"` // secret-scan:ignore: a field number, not a value
+type SessionResponse_RegistryGrant struct {
+	RegistryGrant *RegistryToken `protobuf:"bytes,29,opt,name=registry_grant,json=registryGrant,proto3,oneof"`
 }
 
 func (*SessionResponse_HelloAck) isSessionResponse_Message() {}
@@ -1673,7 +1673,7 @@ func (*SessionResponse_RemoveRunnerLeftovers) isSessionResponse_Message() {}
 
 func (*SessionResponse_EnsureImageAnswer) isSessionResponse_Message() {}
 
-func (*SessionResponse_RegistryToken) isSessionResponse_Message() {}
+func (*SessionResponse_RegistryGrant) isSessionResponse_Message() {}
 
 // Hello opens a session. On reconnect it carries what the agent runs now, so
 // the controller can reconcile (machines R5.38, scheduling R5.35).
@@ -8227,7 +8227,7 @@ const file_agent_v1_agent_proto_rawDesc = "" +
 	"\x15scan_runner_leftovers\x18\x1a \x01(\v2\x1d.agent.v1.ScanRunnerLeftoversH\x00R\x13scanRunnerLeftovers\x12Y\n" +
 	"\x17remove_runner_leftovers\x18\x1b \x01(\v2\x1f.agent.v1.RemoveRunnerLeftoversH\x00R\x15removeRunnerLeftovers\x12M\n" +
 	"\x13ensure_image_answer\x18\x1c \x01(\v2\x1b.agent.v1.EnsureImageAnswerH\x00R\x11ensureImageAnswer\x12@\n" +
-	"\x0eregistry_token\x18\x1d \x01(\v2\x17.agent.v1.RegistryTokenH\x00R\rregistryTokenB\t\n" +
+	"\x0eregistry_grant\x18\x1d \x01(\v2\x17.agent.v1.RegistryTokenH\x00R\rregistryGrantB\t\n" +
 	"\amessage\"\xf1\x02\n" +
 	"\x05Hello\x12\x1d\n" +
 	"\n" +
@@ -9055,7 +9055,7 @@ var file_agent_v1_agent_proto_depIdxs = []int32{
 	66,  // 51: agent.v1.SessionResponse.scan_runner_leftovers:type_name -> agent.v1.ScanRunnerLeftovers
 	68,  // 52: agent.v1.SessionResponse.remove_runner_leftovers:type_name -> agent.v1.RemoveRunnerLeftovers
 	82,  // 53: agent.v1.SessionResponse.ensure_image_answer:type_name -> agent.v1.EnsureImageAnswer
-	84,  // 54: agent.v1.SessionResponse.registry_token:type_name -> agent.v1.RegistryToken
+	84,  // 54: agent.v1.SessionResponse.registry_grant:type_name -> agent.v1.RegistryToken
 	0,   // 55: agent.v1.Hello.protocol_version:type_name -> agent.v1.ProtocolVersion
 	16,  // 56: agent.v1.Hello.facts:type_name -> agent.v1.Facts
 	19,  // 57: agent.v1.Hello.load:type_name -> agent.v1.LoadReport
@@ -9183,7 +9183,7 @@ func file_agent_v1_agent_proto_init() {
 		(*SessionResponse_ScanRunnerLeftovers)(nil),
 		(*SessionResponse_RemoveRunnerLeftovers)(nil),
 		(*SessionResponse_EnsureImageAnswer)(nil),
-		(*SessionResponse_RegistryToken)(nil),
+		(*SessionResponse_RegistryGrant)(nil),
 	}
 	file_agent_v1_agent_proto_msgTypes[13].OneofWrappers = []any{
 		(*AddRunner_Registration)(nil),

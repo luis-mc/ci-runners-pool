@@ -157,7 +157,7 @@ message SessionResponse {
     RemoveRunnerLeftovers remove_runner_leftovers = 27;
     // Protocol version 3, the image registry (REG10).
     EnsureImageAnswer ensure_image_answer = 28;
-    RegistryToken registry_token = 29; // secret-scan:ignore: a field number, not a value
+    RegistryToken registry_grant = 29;
   }
 }
 

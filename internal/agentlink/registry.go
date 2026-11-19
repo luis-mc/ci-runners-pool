@@ -75,7 +75,7 @@ func (l *Link) onRegistry(machineID string, msg *agentv1.SessionRequest) bool {
 					tok.RequestId = m.RegistryTokenRequest.GetRequestId()
 				}
 			}
-			_ = l.Sender.Send(machineID, &agentv1.SessionResponse{Message: &agentv1.SessionResponse_RegistryToken{RegistryToken: tok}})
+			_ = l.Sender.Send(machineID, &agentv1.SessionResponse{Message: &agentv1.SessionResponse_RegistryGrant{RegistryGrant: tok}})
 		}()
 		return true
 	case *agentv1.SessionRequest_PushReport:

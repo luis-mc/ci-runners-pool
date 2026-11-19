@@ -57,7 +57,7 @@ func TestRegistryStubAnswersNotFoundAndRefusesTokens(t *testing.T) {
 		t.Fatalf("answer %v", a)
 	}
 	l.OnMessage("m1", &agentv1.SessionRequest{Message: &agentv1.SessionRequest_RegistryTokenRequest{RegistryTokenRequest: &agentv1.RegistryTokenRequest{RequestId: "r2"}}})
-	tok := next(t, sent).GetRegistryToken()
+	tok := next(t, sent).GetRegistryGrant()
 	if tok.GetRequestId() != "r2" || tok.GetToken() != "" || tok.GetRefused() == "" {
 		t.Fatalf("token %v", tok)
 	}
@@ -79,7 +79,7 @@ func TestRegistrySinkAnswersKeepTheRequestID(t *testing.T) {
 		t.Fatalf("answer %v", a)
 	}
 	l.OnMessage("m9", &agentv1.SessionRequest{Message: &agentv1.SessionRequest_RegistryTokenRequest{RegistryTokenRequest: &agentv1.RegistryTokenRequest{RequestId: "r2"}}})
-	if tok := next(t, sent).GetRegistryToken(); tok.GetRequestId() != "r2" || tok.GetToken() != "t-m9" {
+	if tok := next(t, sent).GetRegistryGrant(); tok.GetRequestId() != "r2" || tok.GetToken() != "t-m9" {
 		t.Fatalf("token %v", tok)
 	}
 	l.OnMessage("m1", &agentv1.SessionRequest{Message: &agentv1.SessionRequest_PullReport{PullReport: &agentv1.PullReport{PullId: "p1"}}})
