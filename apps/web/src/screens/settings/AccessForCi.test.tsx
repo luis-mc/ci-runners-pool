@@ -136,14 +136,14 @@ describe('Revoke (R5.90, UX-62)', () => {
 
 describe('Set up parity for this repository (R5.91)', () => {
   const pick = async () => {
-    await screen.findByRole('button', { name: 'Set up parity for this repository' });
+    await screen.findByRole('button', { name: 'Set up parity' });
     fireEvent.click(screen.getByRole('radio', { name: 'octo/app' }));
   };
 
   it('is disabled until a repository is chosen, and says why', async () => {
     renderApp(api(), '/settings/access');
     const button = await screen.findByRole('button', {
-      name: 'Set up parity for this repository',
+      name: 'Set up parity',
     });
     expect(
       button.hasAttribute('disabled') || button.getAttribute('aria-disabled') === 'true',
@@ -159,9 +159,7 @@ describe('Set up parity for this repository (R5.91)', () => {
     });
     renderApp(a, '/settings/access');
     await pick();
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Set up parity for this repository' }),
-    );
+    fireEvent.click(screen.getByRole('button', { name: 'Set up parity' }));
     expect(await screen.findByText(/Parity is set up for octo\/app/)).toBeTruthy();
     expect(a.count('POST', '/api/v1/repositories/100/parity-setup')).toBe(1);
     expect(document.body.textContent).not.toContain('crsp_acc_');
@@ -184,9 +182,7 @@ describe('Set up parity for this repository (R5.91)', () => {
     renderApp(a, '/settings/access');
     expect(await screen.findByText(/No access yet/)).toBeTruthy();
     await pick();
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Set up parity for this repository' }),
-    );
+    fireEvent.click(screen.getByRole('button', { name: 'Set up parity' }));
     const table = await screen.findByRole('table', { name: 'Access for CI' });
     expect(within(table).getByText('parity: octo/app')).toBeTruthy();
     expect(screen.queryByText(/No access yet/)).toBeNull();
@@ -241,9 +237,7 @@ describe('Set up parity for this repository (R5.91)', () => {
       .on('GET', '/api/v1/github/grant', notAsked);
     renderApp(a, '/settings/access');
     await pick();
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Set up parity for this repository' }),
-    );
+    fireEvent.click(screen.getByRole('button', { name: 'Set up parity' }));
     expect(
       await screen.findByText('Ask for Secrets (write) on the App page'),
     ).toBeTruthy();
@@ -268,9 +262,7 @@ describe('Set up parity for this repository (R5.91)', () => {
       .on('GET', '/api/v1/github/grant', askedNotAccepted);
     renderApp(a, '/settings/access');
     await pick();
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Set up parity for this repository' }),
-    );
+    fireEvent.click(screen.getByRole('button', { name: 'Set up parity' }));
     const open = await screen.findByRole('button', { name: 'Accept it on GitHub' });
     expect(open.getAttribute('href')).toBe(
       'https://github.com/settings/installations/10',
@@ -294,9 +286,7 @@ describe('Set up parity for this repository (R5.91)', () => {
       });
     renderApp(a, '/settings/access');
     await pick();
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Set up parity for this repository' }),
-    );
+    fireEvent.click(screen.getByRole('button', { name: 'Set up parity' }));
     await screen.findByRole('button', { name: 'Accept it on GitHub' });
     // The person accepts on GitHub in the other tab and comes back.
     fireEvent.focus(window);
@@ -319,9 +309,7 @@ describe('Set up parity for this repository (R5.91)', () => {
       .on('GET', '/api/v1/github/grant', bad);
     renderApp(a, '/settings/access');
     await pick();
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Set up parity for this repository' }),
-    );
+    fireEvent.click(screen.getByRole('button', { name: 'Set up parity' }));
     await screen.findByText('Ask for Secrets (write) on the App page');
     expect(screen.queryByRole('button', { name: /on GitHub$/ })).toBeNull();
   });
@@ -340,9 +328,7 @@ describe('Set up parity for this repository (R5.91)', () => {
     );
     renderApp(a, '/settings/access');
     await pick();
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Set up parity for this repository' }),
-    );
+    fireEvent.click(screen.getByRole('button', { name: 'Set up parity' }));
     expect(
       await screen.findByText(/Could not set up parity\. Nothing was left behind/),
     ).toBeTruthy();
@@ -351,9 +337,7 @@ describe('Set up parity for this repository (R5.91)', () => {
 
 describe('The address parity writes (R5.91, CRSP141)', () => {
   const press = () =>
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Set up parity for this repository' }),
-    );
+    fireEvent.click(screen.getByRole('button', { name: 'Set up parity' }));
 
   it('shows the address before anything is written, and that it answers', async () => {
     renderApp(api(), '/settings/access');
@@ -390,7 +374,7 @@ describe('The address parity writes (R5.91, CRSP141)', () => {
     expect(await screen.findByText(/cannot reach this controller yet/)).toBeTruthy();
     expect(screen.getByText('CRSP_PUBLIC_HOST')).toBeTruthy();
     const button = await screen.findByRole('button', {
-      name: 'Set up parity for this repository',
+      name: 'Set up parity',
     });
     fireEvent.click(screen.getByRole('radio', { name: 'octo/app' }));
     expect(
@@ -405,7 +389,7 @@ describe('The address parity writes (R5.91, CRSP141)', () => {
       address_setting: 'CRSP_LISTEN_ADDR',
     });
     renderApp(a, '/settings/access');
-    await screen.findByRole('button', { name: 'Set up parity for this repository' });
+    await screen.findByRole('button', { name: 'Set up parity' });
     fireEvent.click(screen.getByRole('radio', { name: 'octo/app' }));
     press();
     expect(await screen.findByText(/CRSP_LISTEN_ADDR is loopback/)).toBeTruthy();

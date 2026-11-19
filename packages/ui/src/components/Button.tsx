@@ -1,6 +1,7 @@
 // Component 7: buttons. One look per kind. A button that starts work is not pressable while it runs and says
 // so (UX-13). A blocked action says why next to it (UX-38). Never a plain link as an action (UX-8).
-import { useId, type ReactNode } from 'react';
+import { useContext, useId, type ReactNode } from 'react';
+import { FormOwnerContext } from './ActionBar';
 import { Link } from 'react-router-dom';
 
 export type ButtonKind = 'primary' | 'default' | 'stop' | 'danger';
@@ -45,12 +46,14 @@ export function Button({
   controls,
 }: ButtonProps) {
   const reasonId = useId();
+  const formOwner = useContext(FormOwnerContext);
   const locked = disabled || busy;
   const showReason = Boolean(reason) && disabled && !busy;
   return (
     <span className="ds-button-wrap">
       <button
         type={submit ? 'submit' : 'button'}
+        form={submit ? formOwner : undefined}
         className="ds-button"
         data-kind={kind}
         data-primary={kind === 'primary' || undefined}
