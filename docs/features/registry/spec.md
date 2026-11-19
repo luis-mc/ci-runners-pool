@@ -176,7 +176,7 @@ Canonical JSON (`registry.CanonicalJSON`): one object, no whitespace, keys in by
 
 **R5.37** — The approved RES20 REG-5 screens move from `origin/RES20-image-registry` `apps/web/src/screens/images-next` into the real console under `apps/web/src/screens/registry/`, reading the real API; review-only hooks and the mock API stay behind.
 
-**R5.38** — The words come from `registryWords.ts` as approved and the "Registry words" section moves from `next-version` into the live content version with a `CHANGES` entry.
+**R5.38** — The words come from `registryWords.ts` as approved. The "Registry words" section of RES20's `next-version` content goes into this repository's `docs/design-system/next-version/content.md` with a `CHANGES` entry (the live version is `v2` since RELEASE-44); it reaches a numbered version through the design-system release, not through REG5.
 
 **R5.39** — The Add runners wizard shows the pulling step (Review line and Work line of RES20 4.6) through the shared Wizard part.
 

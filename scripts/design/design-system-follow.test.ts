@@ -47,6 +47,27 @@ export const findRetired = (source: string, words: readonly string[]): string[] 
     return new RegExp(`(['"\`]\\s*${e}\\s*['"\`]|>\\s*${e}\\s*<)`).test(source);
   });
 
+/**
+ * The file paths of a Guard cell: a comma-separated list of paths, each with an
+ * optional note in parentheses; `none` and `none yet` name no guard.
+ */
+export const guardPaths = (cell: string): string[] =>
+  cell
+    .replaceAll('`', '')
+    .replace(/\([^)]*\)/g, '')
+    .split(',')
+    .map((p) => p.trim())
+    .filter((p) => p !== '' && p !== 'none' && p !== 'none yet');
+
+/**
+ * Guard files a version names that are not in the tree yet. A RATCHET: an entry
+ * whose file exists fails, so the list only shrinks. UX-72 of v2 names the review
+ * build's spec; LOOK35 points the rule at the real file in next-version.
+ */
+const MISSING_GUARDS: Record<string, string> = {
+  'UX-72': 'e2e/tests/review/review-layout.spec.ts',
+};
+
 /** The rule IDs and their guard column, from the rule table. */
 export const ruleTable = (uxRules: string): { id: string; guard: string }[] =>
   rows(section(uxRules, 'rule-table')).map((r) => ({ id: r[0]!, guard: r[2] ?? '' }));
@@ -111,9 +132,14 @@ describe('the apps follow the enforced design-system version', () => {
     expect(new Set(rules.map((r) => r.id)).size).toBe(rules.length);
     for (const r of rules) {
       expect(r.id, 'rule ID').toMatch(/^UX-\d+$/);
-      const guard = r.guard.replaceAll('`', '');
-      if (guard && guard !== 'none yet')
-        expect(existsSync(join(repoRoot, guard)), `${r.id}: guard ${guard}`).toBe(true);
+      for (const guard of guardPaths(r.guard)) {
+        const missing = !existsSync(join(repoRoot, guard));
+        const known = MISSING_GUARDS[r.id] === guard;
+        expect(
+          missing,
+          `${r.id}: guard ${guard}${known ? ' exists now: remove it from MISSING_GUARDS' : ''}`,
+        ).toBe(known);
+      }
     }
   });
 
