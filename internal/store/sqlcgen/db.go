@@ -216,11 +216,23 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.getRegistryImageStmt, err = db.PrepareContext(ctx, getRegistryImage); err != nil {
 		return nil, fmt.Errorf("error preparing query GetRegistryImage: %w", err)
 	}
+	if q.getRegistryImageByManifestStmt, err = db.PrepareContext(ctx, getRegistryImageByManifest); err != nil {
+		return nil, fmt.Errorf("error preparing query GetRegistryImageByManifest: %w", err)
+	}
+	if q.getRegistryImageByTagStmt, err = db.PrepareContext(ctx, getRegistryImageByTag); err != nil {
+		return nil, fmt.Errorf("error preparing query GetRegistryImageByTag: %w", err)
+	}
 	if q.getRegistryMirrorSettingsStmt, err = db.PrepareContext(ctx, getRegistryMirrorSettings); err != nil {
 		return nil, fmt.Errorf("error preparing query GetRegistryMirrorSettings: %w", err)
 	}
 	if q.getRegistryPointerStmt, err = db.PrepareContext(ctx, getRegistryPointer); err != nil {
 		return nil, fmt.Errorf("error preparing query GetRegistryPointer: %w", err)
+	}
+	if q.getRegistryPullByIDStmt, err = db.PrepareContext(ctx, getRegistryPullByID); err != nil {
+		return nil, fmt.Errorf("error preparing query GetRegistryPullByID: %w", err)
+	}
+	if q.getRegistryPushByIDStmt, err = db.PrepareContext(ctx, getRegistryPushByID); err != nil {
+		return nil, fmt.Errorf("error preparing query GetRegistryPushByID: %w", err)
 	}
 	if q.getRegistryReplacePlanStmt, err = db.PrepareContext(ctx, getRegistryReplacePlan); err != nil {
 		return nil, fmt.Errorf("error preparing query GetRegistryReplacePlan: %w", err)
@@ -465,6 +477,12 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.listRegistryImagesOfLineageStmt, err = db.PrepareContext(ctx, listRegistryImagesOfLineage); err != nil {
 		return nil, fmt.Errorf("error preparing query ListRegistryImagesOfLineage: %w", err)
 	}
+	if q.listRegistryLayerHoldersStmt, err = db.PrepareContext(ctx, listRegistryLayerHolders); err != nil {
+		return nil, fmt.Errorf("error preparing query ListRegistryLayerHolders: %w", err)
+	}
+	if q.listRegistryLayerUseOfImageStmt, err = db.PrepareContext(ctx, listRegistryLayerUseOfImage); err != nil {
+		return nil, fmt.Errorf("error preparing query ListRegistryLayerUseOfImage: %w", err)
+	}
 	if q.listRegistryPointersOfRepositoryStmt, err = db.PrepareContext(ctx, listRegistryPointersOfRepository); err != nil {
 		return nil, fmt.Errorf("error preparing query ListRegistryPointersOfRepository: %w", err)
 	}
@@ -509,6 +527,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	}
 	if q.listUsersStmt, err = db.PrepareContext(ctx, listUsers); err != nil {
 		return nil, fmt.Errorf("error preparing query ListUsers: %w", err)
+	}
+	if q.machinePullSpeedStmt, err = db.PrepareContext(ctx, machinePullSpeed); err != nil {
+		return nil, fmt.Errorf("error preparing query MachinePullSpeed: %w", err)
 	}
 	if q.markBackupDeletedStmt, err = db.PrepareContext(ctx, markBackupDeleted); err != nil {
 		return nil, fmt.Errorf("error preparing query MarkBackupDeleted: %w", err)
@@ -642,6 +663,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.setRegistryImageSizesStmt, err = db.PrepareContext(ctx, setRegistryImageSizes); err != nil {
 		return nil, fmt.Errorf("error preparing query SetRegistryImageSizes: %w", err)
 	}
+	if q.setRegistryLayerChargeStmt, err = db.PrepareContext(ctx, setRegistryLayerCharge); err != nil {
+		return nil, fmt.Errorf("error preparing query SetRegistryLayerCharge: %w", err)
+	}
 	if q.setRegistryReadOnlyStmt, err = db.PrepareContext(ctx, setRegistryReadOnly); err != nil {
 		return nil, fmt.Errorf("error preparing query SetRegistryReadOnly: %w", err)
 	}
@@ -672,11 +696,23 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.slotLogCutoffStmt, err = db.PrepareContext(ctx, slotLogCutoff); err != nil {
 		return nil, fmt.Errorf("error preparing query SlotLogCutoff: %w", err)
 	}
+	if q.sumRegistryBytesPulledSinceStmt, err = db.PrepareContext(ctx, sumRegistryBytesPulledSince); err != nil {
+		return nil, fmt.Errorf("error preparing query SumRegistryBytesPulledSince: %w", err)
+	}
 	if q.sumRegistryLayersByKindStmt, err = db.PrepareContext(ctx, sumRegistryLayersByKind); err != nil {
 		return nil, fmt.Errorf("error preparing query SumRegistryLayersByKind: %w", err)
 	}
+	if q.sumRegistryPullDailyByImageSinceStmt, err = db.PrepareContext(ctx, sumRegistryPullDailyByImageSince); err != nil {
+		return nil, fmt.Errorf("error preparing query SumRegistryPullDailyByImageSince: %w", err)
+	}
 	if q.sumRegistryPullDailySinceStmt, err = db.PrepareContext(ctx, sumRegistryPullDailySince); err != nil {
 		return nil, fmt.Errorf("error preparing query SumRegistryPullDailySince: %w", err)
+	}
+	if q.sumRegistrySharedLayersByKindStmt, err = db.PrepareContext(ctx, sumRegistrySharedLayersByKind); err != nil {
+		return nil, fmt.Errorf("error preparing query SumRegistrySharedLayersByKind: %w", err)
+	}
+	if q.sumRegistryUsedByKindStmt, err = db.PrepareContext(ctx, sumRegistryUsedByKind); err != nil {
+		return nil, fmt.Errorf("error preparing query SumRegistryUsedByKind: %w", err)
 	}
 	if q.sumRunMinutesSinceStmt, err = db.PrepareContext(ctx, sumRunMinutesSince); err != nil {
 		return nil, fmt.Errorf("error preparing query SumRunMinutesSince: %w", err)
@@ -1102,6 +1138,16 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing getRegistryImageStmt: %w", cerr)
 		}
 	}
+	if q.getRegistryImageByManifestStmt != nil {
+		if cerr := q.getRegistryImageByManifestStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getRegistryImageByManifestStmt: %w", cerr)
+		}
+	}
+	if q.getRegistryImageByTagStmt != nil {
+		if cerr := q.getRegistryImageByTagStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getRegistryImageByTagStmt: %w", cerr)
+		}
+	}
 	if q.getRegistryMirrorSettingsStmt != nil {
 		if cerr := q.getRegistryMirrorSettingsStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing getRegistryMirrorSettingsStmt: %w", cerr)
@@ -1110,6 +1156,16 @@ func (q *Queries) Close() error {
 	if q.getRegistryPointerStmt != nil {
 		if cerr := q.getRegistryPointerStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing getRegistryPointerStmt: %w", cerr)
+		}
+	}
+	if q.getRegistryPullByIDStmt != nil {
+		if cerr := q.getRegistryPullByIDStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getRegistryPullByIDStmt: %w", cerr)
+		}
+	}
+	if q.getRegistryPushByIDStmt != nil {
+		if cerr := q.getRegistryPushByIDStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getRegistryPushByIDStmt: %w", cerr)
 		}
 	}
 	if q.getRegistryReplacePlanStmt != nil {
@@ -1517,6 +1573,16 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing listRegistryImagesOfLineageStmt: %w", cerr)
 		}
 	}
+	if q.listRegistryLayerHoldersStmt != nil {
+		if cerr := q.listRegistryLayerHoldersStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listRegistryLayerHoldersStmt: %w", cerr)
+		}
+	}
+	if q.listRegistryLayerUseOfImageStmt != nil {
+		if cerr := q.listRegistryLayerUseOfImageStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listRegistryLayerUseOfImageStmt: %w", cerr)
+		}
+	}
 	if q.listRegistryPointersOfRepositoryStmt != nil {
 		if cerr := q.listRegistryPointersOfRepositoryStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing listRegistryPointersOfRepositoryStmt: %w", cerr)
@@ -1590,6 +1656,11 @@ func (q *Queries) Close() error {
 	if q.listUsersStmt != nil {
 		if cerr := q.listUsersStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing listUsersStmt: %w", cerr)
+		}
+	}
+	if q.machinePullSpeedStmt != nil {
+		if cerr := q.machinePullSpeedStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing machinePullSpeedStmt: %w", cerr)
 		}
 	}
 	if q.markBackupDeletedStmt != nil {
@@ -1812,6 +1883,11 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing setRegistryImageSizesStmt: %w", cerr)
 		}
 	}
+	if q.setRegistryLayerChargeStmt != nil {
+		if cerr := q.setRegistryLayerChargeStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing setRegistryLayerChargeStmt: %w", cerr)
+		}
+	}
 	if q.setRegistryReadOnlyStmt != nil {
 		if cerr := q.setRegistryReadOnlyStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing setRegistryReadOnlyStmt: %w", cerr)
@@ -1862,14 +1938,34 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing slotLogCutoffStmt: %w", cerr)
 		}
 	}
+	if q.sumRegistryBytesPulledSinceStmt != nil {
+		if cerr := q.sumRegistryBytesPulledSinceStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing sumRegistryBytesPulledSinceStmt: %w", cerr)
+		}
+	}
 	if q.sumRegistryLayersByKindStmt != nil {
 		if cerr := q.sumRegistryLayersByKindStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing sumRegistryLayersByKindStmt: %w", cerr)
 		}
 	}
+	if q.sumRegistryPullDailyByImageSinceStmt != nil {
+		if cerr := q.sumRegistryPullDailyByImageSinceStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing sumRegistryPullDailyByImageSinceStmt: %w", cerr)
+		}
+	}
 	if q.sumRegistryPullDailySinceStmt != nil {
 		if cerr := q.sumRegistryPullDailySinceStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing sumRegistryPullDailySinceStmt: %w", cerr)
+		}
+	}
+	if q.sumRegistrySharedLayersByKindStmt != nil {
+		if cerr := q.sumRegistrySharedLayersByKindStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing sumRegistrySharedLayersByKindStmt: %w", cerr)
+		}
+	}
+	if q.sumRegistryUsedByKindStmt != nil {
+		if cerr := q.sumRegistryUsedByKindStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing sumRegistryUsedByKindStmt: %w", cerr)
 		}
 	}
 	if q.sumRunMinutesSinceStmt != nil {
@@ -2140,8 +2236,12 @@ type Queries struct {
 	getPreferencesStmt                       *sql.Stmt
 	getPromotedRegistryImageByKeyStmt        *sql.Stmt
 	getRegistryImageStmt                     *sql.Stmt
+	getRegistryImageByManifestStmt           *sql.Stmt
+	getRegistryImageByTagStmt                *sql.Stmt
 	getRegistryMirrorSettingsStmt            *sql.Stmt
 	getRegistryPointerStmt                   *sql.Stmt
+	getRegistryPullByIDStmt                  *sql.Stmt
+	getRegistryPushByIDStmt                  *sql.Stmt
 	getRegistryReplacePlanStmt               *sql.Stmt
 	getRegistryScanStmt                      *sql.Stmt
 	getRegistrySettingsRowStmt               *sql.Stmt
@@ -2223,6 +2323,8 @@ type Queries struct {
 	listRegistryImageMachinesStmt            *sql.Stmt
 	listRegistryImagesStmt                   *sql.Stmt
 	listRegistryImagesOfLineageStmt          *sql.Stmt
+	listRegistryLayerHoldersStmt             *sql.Stmt
+	listRegistryLayerUseOfImageStmt          *sql.Stmt
 	listRegistryPointersOfRepositoryStmt     *sql.Stmt
 	listRegistryPointersToStmt               *sql.Stmt
 	listRegistryPullDailyStmt                *sql.Stmt
@@ -2238,6 +2340,7 @@ type Queries struct {
 	listRunsOnFindingsStmt                   *sql.Stmt
 	listSettingsStmt                         *sql.Stmt
 	listUsersStmt                            *sql.Stmt
+	machinePullSpeedStmt                     *sql.Stmt
 	markBackupDeletedStmt                    *sql.Stmt
 	markInstallationRemovedStmt              *sql.Stmt
 	markMachineRemovedStmt                   *sql.Stmt
@@ -2282,6 +2385,7 @@ type Queries struct {
 	setRegistryImageLineageStmt              *sql.Stmt
 	setRegistryImageScanStateStmt            *sql.Stmt
 	setRegistryImageSizesStmt                *sql.Stmt
+	setRegistryLayerChargeStmt               *sql.Stmt
 	setRegistryReadOnlyStmt                  *sql.Stmt
 	setRegistryReplacePlanRolledBackStmt     *sql.Stmt
 	setRegistryReplacePlanStateStmt          *sql.Stmt
@@ -2292,8 +2396,12 @@ type Queries struct {
 	setSettingStmt                           *sql.Stmt
 	setTicketWaitReasonStmt                  *sql.Stmt
 	slotLogCutoffStmt                        *sql.Stmt
+	sumRegistryBytesPulledSinceStmt          *sql.Stmt
 	sumRegistryLayersByKindStmt              *sql.Stmt
+	sumRegistryPullDailyByImageSinceStmt     *sql.Stmt
 	sumRegistryPullDailySinceStmt            *sql.Stmt
+	sumRegistrySharedLayersByKindStmt        *sql.Stmt
+	sumRegistryUsedByKindStmt                *sql.Stmt
 	sumRunMinutesSinceStmt                   *sql.Stmt
 	supersedeRegistryImageStmt               *sql.Stmt
 	touchSessionStmt                         *sql.Stmt
@@ -2397,8 +2505,12 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		getPreferencesStmt:                       q.getPreferencesStmt,
 		getPromotedRegistryImageByKeyStmt:        q.getPromotedRegistryImageByKeyStmt,
 		getRegistryImageStmt:                     q.getRegistryImageStmt,
+		getRegistryImageByManifestStmt:           q.getRegistryImageByManifestStmt,
+		getRegistryImageByTagStmt:                q.getRegistryImageByTagStmt,
 		getRegistryMirrorSettingsStmt:            q.getRegistryMirrorSettingsStmt,
 		getRegistryPointerStmt:                   q.getRegistryPointerStmt,
+		getRegistryPullByIDStmt:                  q.getRegistryPullByIDStmt,
+		getRegistryPushByIDStmt:                  q.getRegistryPushByIDStmt,
 		getRegistryReplacePlanStmt:               q.getRegistryReplacePlanStmt,
 		getRegistryScanStmt:                      q.getRegistryScanStmt,
 		getRegistrySettingsRowStmt:               q.getRegistrySettingsRowStmt,
@@ -2480,6 +2592,8 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		listRegistryImageMachinesStmt:            q.listRegistryImageMachinesStmt,
 		listRegistryImagesStmt:                   q.listRegistryImagesStmt,
 		listRegistryImagesOfLineageStmt:          q.listRegistryImagesOfLineageStmt,
+		listRegistryLayerHoldersStmt:             q.listRegistryLayerHoldersStmt,
+		listRegistryLayerUseOfImageStmt:          q.listRegistryLayerUseOfImageStmt,
 		listRegistryPointersOfRepositoryStmt:     q.listRegistryPointersOfRepositoryStmt,
 		listRegistryPointersToStmt:               q.listRegistryPointersToStmt,
 		listRegistryPullDailyStmt:                q.listRegistryPullDailyStmt,
@@ -2495,6 +2609,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		listRunsOnFindingsStmt:                   q.listRunsOnFindingsStmt,
 		listSettingsStmt:                         q.listSettingsStmt,
 		listUsersStmt:                            q.listUsersStmt,
+		machinePullSpeedStmt:                     q.machinePullSpeedStmt,
 		markBackupDeletedStmt:                    q.markBackupDeletedStmt,
 		markInstallationRemovedStmt:              q.markInstallationRemovedStmt,
 		markMachineRemovedStmt:                   q.markMachineRemovedStmt,
@@ -2539,6 +2654,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		setRegistryImageLineageStmt:              q.setRegistryImageLineageStmt,
 		setRegistryImageScanStateStmt:            q.setRegistryImageScanStateStmt,
 		setRegistryImageSizesStmt:                q.setRegistryImageSizesStmt,
+		setRegistryLayerChargeStmt:               q.setRegistryLayerChargeStmt,
 		setRegistryReadOnlyStmt:                  q.setRegistryReadOnlyStmt,
 		setRegistryReplacePlanRolledBackStmt:     q.setRegistryReplacePlanRolledBackStmt,
 		setRegistryReplacePlanStateStmt:          q.setRegistryReplacePlanStateStmt,
@@ -2549,8 +2665,12 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		setSettingStmt:                           q.setSettingStmt,
 		setTicketWaitReasonStmt:                  q.setTicketWaitReasonStmt,
 		slotLogCutoffStmt:                        q.slotLogCutoffStmt,
+		sumRegistryBytesPulledSinceStmt:          q.sumRegistryBytesPulledSinceStmt,
 		sumRegistryLayersByKindStmt:              q.sumRegistryLayersByKindStmt,
+		sumRegistryPullDailyByImageSinceStmt:     q.sumRegistryPullDailyByImageSinceStmt,
 		sumRegistryPullDailySinceStmt:            q.sumRegistryPullDailySinceStmt,
+		sumRegistrySharedLayersByKindStmt:        q.sumRegistrySharedLayersByKindStmt,
+		sumRegistryUsedByKindStmt:                q.sumRegistryUsedByKindStmt,
 		sumRunMinutesSinceStmt:                   q.sumRunMinutesSinceStmt,
 		supersedeRegistryImageStmt:               q.supersedeRegistryImageStmt,
 		touchSessionStmt:                         q.touchSessionStmt,

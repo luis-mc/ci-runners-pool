@@ -205,6 +205,10 @@ type Locator interface {
 // PullRecord is a finished or progressing pull, from the agent (REG2 sends,
 // REG4 keeps).
 type PullRecord struct {
+	// PullID is the agent's id of the pull (PullReport.pull_id): a resent report is one row.
+	PullID string
+	// Arch is the OCI arch of the image (PullReport.arch).
+	Arch         string
 	MachineID    string
 	Key          Key
 	Manifest     string
@@ -223,6 +227,8 @@ type PullRecord struct {
 // PushRecord is a push to staging, from the agent.
 type PushRecord struct {
 	Staged
+	// PushID is the agent's id of the push (PushReport.push_id): a resent report is one row.
+	PushID  string
 	State   string // pushing, waiting_controller, pushed or failed
 	Seconds float64
 	Error   string
