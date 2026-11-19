@@ -253,6 +253,10 @@ func runController() error {
 
 	mux := http.NewServeMux()
 	api.Register(mux, ctl.Options)
+	// The image registry core, under /v2/ on the same listener (registry R5.1).
+	rc := startRegistryCore(ctx, logger, db, sec, cfg.DataDir, listenAt, mr.PublicHost, mr.Link)
+	defer rc.Close()
+	mountRegistry(mux, rc)
 	mux.Handle("/", webui.Handler())
 
 	handler := api.Recover(logger, mux)

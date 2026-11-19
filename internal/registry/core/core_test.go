@@ -21,6 +21,7 @@ import (
 	agentv1 "github.com/luis-mc/ci-runners-shared-pool/internal/gen/agent/v1"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/registry"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/registry/keys"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/runnercache"
 )
 
 // ---- fakes
@@ -1083,5 +1084,42 @@ func TestSinkPullReport(t *testing.T) {
 	s.PullReport(context.Background(), "m1", &agentv1.PullReport{PullId: "y"}) // no source: dropped
 	if len(rec.pulls) != 1 || rec.pulls[0].MachineID != "m1" || rec.pulls[0].Source != registry.SourcePulled || rec.pulls[0].State != "done" {
 		t.Fatalf("pulls = %+v", rec.pulls)
+	}
+}
+
+// R5.8: a push token is refused when the disk is under the free floor or the kind is over budget.
+func TestDiskGate(t *testing.T) {
+	ctx := context.Background()
+	disk := func(free int64) func(string) (runnercache.Disk, error) {
+		return func(string) (runnercache.Disk, error) { return runnercache.Disk{Free: free, Total: 100}, nil }
+	}
+	var refused []registry.Kind
+	g := &DiskGate{Disk: disk(50), Refused: func(_ context.Context, k registry.Kind) { refused = append(refused, k) }}
+	if err := g.AllowPush(ctx, "crsp/incoming/m1/std/base"); err != nil {
+		t.Fatal(err)
+	}
+	g.Disk = disk(5) // under the 10 percent floor
+	err := g.AllowPush(ctx, "crsp/incoming/m1/custom/o-r/base")
+	if !errors.Is(err, registry.ErrOverBudget) || len(refused) != 1 || refused[0] != registry.KindCustom {
+		t.Fatalf("err = %v, refused = %v", err, refused)
+	}
+	g.Disk = disk(50)
+	g.OverBudget = func(_ context.Context, k registry.Kind) (bool, error) { return k == registry.KindStandard, nil }
+	if err := g.AllowPush(ctx, "crsp/incoming/m1/std/base"); !errors.Is(err, registry.ErrOverBudget) {
+		t.Fatalf("over budget: %v", err)
+	}
+	if err := g.AllowPush(ctx, "crsp/incoming/m1/custom/o-r/base"); err != nil {
+		t.Fatalf("custom has room: %v", err)
+	}
+	// the issuer asks the gate for a push and only for a push
+	iss := &Issuer{Secret: bytes.Repeat([]byte{6}, 32), Gate: g}
+	if _, err := iss.Issue(ctx, "m1", push("crsp/incoming/m1/std/base")); !errors.Is(err, registry.ErrOverBudget) {
+		t.Fatalf("issue: %v", err)
+	}
+	if _, err := iss.Issue(ctx, "m1", pull("crsp/std/base")); err != nil {
+		t.Fatalf("a pull needs no room: %v", err)
+	}
+	if free, err := (OSDisk{}).Free(t.TempDir()); err != nil || free <= 0 {
+		t.Fatalf("free = %d %v", free, err)
 	}
 }

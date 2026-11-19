@@ -572,3 +572,21 @@ func (r *Registry) SizeOnDisk() (int64, error) {
 	})
 	return n, err
 }
+
+// LogEvents records the registry events as log lines until ctx ends or the
+// channel closes: the action, the repository name, the digest and the machine.
+// A token is never in an event. The records of REG4 take the same channel
+// through records.Service.Consume when the services are joined.
+func LogEvents(ctx context.Context, events <-chan registry.Event, log *slog.Logger) {
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case ev, ok := <-events:
+			if !ok {
+				return
+			}
+			log.Info("registry event", "action", ev.Action, "name", ev.Name, "digest", ev.Digest, "machine", ev.MachineID)
+		}
+	}
+}
