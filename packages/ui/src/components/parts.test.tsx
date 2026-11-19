@@ -254,13 +254,17 @@ describe('RowAction and the one-line table (UX-72)', () => {
   it('marks the table one line and gives a cut cell its full text on hover', () => {
     const { container } = view();
     expect(container.querySelector('table')?.hasAttribute('data-one-line')).toBe(true);
-    expect(container.querySelector('[title="a-very-long-branch-name-that-is-cut"]')).not.toBeNull();
+    expect(
+      container.querySelector('[title="a-very-long-branch-name-that-is-cut"]'),
+    ).not.toBeNull();
   });
   it('keeps the action column a fixed width from a token and never wraps its label', () => {
-    expect(block('.ds-table th.ds-table__action,\n.ds-table td.ds-table__action {')).toContain(
-      'inline-size: var(--ds-row-action-width)',
+    expect(
+      block('.ds-table th.ds-table__action,\n.ds-table td.ds-table__action {'),
+    ).toContain('inline-size: var(--ds-row-action-width)');
+    expect(block('.ds-table td.ds-table__action .ds-button {')).toContain(
+      'white-space: nowrap',
     );
-    expect(block('.ds-table td.ds-table__action .ds-button {')).toContain('white-space: nowrap');
   });
   it('short date: 18 Nov 13:28', async () => {
     const { formatShortDateTime } = await import('./format');

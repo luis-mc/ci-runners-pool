@@ -23,7 +23,7 @@ import { unwrap, useClient, type Schemas } from '../../api/api';
 import { useLiveState, useLiveStore } from '../../live/LiveProvider';
 import { useLoad } from '../../api/hooks';
 import { useMachines } from '../../api/machines';
-import { waitWords } from '../jobs/Jobs';
+import { waitWords } from '../jobs/words';
 import { Load } from '../common';
 import { HowCrspWorks } from './HowCrspWorks';
 

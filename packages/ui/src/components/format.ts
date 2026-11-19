@@ -19,7 +19,20 @@ export function formatDateTime(v: string | number | Date): string {
   return `${formatDate(v)} ${formatTime(v)}`;
 }
 
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const MONTHS = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+];
 
 /** A date and time short enough for one table line: "18 Nov 13:28". The detail shows the full date (UX-72). */
 export function formatShortDateTime(v: string | number | Date): string {

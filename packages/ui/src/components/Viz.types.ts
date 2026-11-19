@@ -101,6 +101,12 @@ export interface HeatmapProps {
 /** Forecast against actual: one dot per finished job, a diagonal for "forecast = actual", a band for the range. */
 export interface ForecastChartProps {
   label: string;
-  points: readonly { forecastSec: number; actualSec: number; loSec?: number; hiSec?: number; note: string }[];
+  points: readonly {
+    forecastSec: number;
+    actualSec: number;
+    loSec?: number;
+    hiSec?: number;
+    note: string;
+  }[];
 }
 export type VizChild = ReactNode;

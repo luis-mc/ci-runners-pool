@@ -6892,7 +6892,21 @@ components:
       type: object
       description: One run attempt in a list.
       required:
-        [id, attempt, repository, workflow, branch, head_sha, trigger, html_url, state, created_at, jobs_total, jobs_done, jobs_failed]
+        [
+          id,
+          attempt,
+          repository,
+          workflow,
+          branch,
+          head_sha,
+          trigger,
+          html_url,
+          state,
+          created_at,
+          jobs_total,
+          jobs_done,
+          jobs_failed,
+        ]
       properties:
         id:
           type: integer
@@ -6981,7 +6995,23 @@ components:
       type: object
       description: A run attempt with its jobs and needs graph.
       required:
-        [id, attempt, attempts, repository, workflow, branch, head_sha, trigger, html_url, state, created_at, jobs, edges, critical_path, graph]
+        [
+          id,
+          attempt,
+          attempts,
+          repository,
+          workflow,
+          branch,
+          head_sha,
+          trigger,
+          html_url,
+          state,
+          created_at,
+          jobs,
+          edges,
+          critical_path,
+          graph,
+        ]
       properties:
         id:
           type: integer
@@ -7048,7 +7078,20 @@ components:
           $ref: '#/components/schemas/RunGraph'
     JobGroupRow:
       type: object
-      required: [name, filter, running, queued, done, failed, wait_p50, wait_p90, run_p50, run_p90, trend]
+      required:
+        [
+          name,
+          filter,
+          running,
+          queued,
+          done,
+          failed,
+          wait_p50,
+          wait_p90,
+          run_p50,
+          run_p90,
+          trend,
+        ]
       properties:
         name:
           type: string
@@ -7157,7 +7200,18 @@ components:
     JobSummary:
       type: object
       description: One job type of one repository on one day (OPS34 D2).
-      required: [day, repository, job_type, jobs, failed, wait_p50_ms, wait_p90_ms, run_p50_ms, run_p90_ms]
+      required:
+        [
+          day,
+          repository,
+          job_type,
+          jobs,
+          failed,
+          wait_p50_ms,
+          wait_p90_ms,
+          run_p50_ms,
+          run_p90_ms,
+        ]
       properties:
         day:
           type: string

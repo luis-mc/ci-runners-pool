@@ -189,7 +189,9 @@ export function Table<T>({
             ))}
             {detail || action ? (
               <th scope="col" className="ds-table__action">
-                <span className="ds-visually-hidden">{detail?.label ?? action?.label}</span>
+                <span className="ds-visually-hidden">
+                  {detail?.label ?? action?.label}
+                </span>
               </th>
             ) : null}
           </tr>
@@ -288,7 +290,11 @@ export function Table<T>({
                       {(() => {
                         const to = action.to(row);
                         return to ? (
-                          <RowAction to={to} label={action.label} name={action.name(row)} />
+                          <RowAction
+                            to={to}
+                            label={action.label}
+                            name={action.name(row)}
+                          />
                         ) : null;
                       })()}
                     </td>
@@ -296,7 +302,11 @@ export function Table<T>({
                 </tr>
                 {isOpen && detail ? (
                   <tr className="ds-table__expanded">
-                    <td colSpan={columns.length + (detail || action ? 1 : 0) + (onToggle ? 1 : 0)}>
+                    <td
+                      colSpan={
+                        columns.length + (detail || action ? 1 : 0) + (onToggle ? 1 : 0)
+                      }
+                    >
                       <div
                         id={regionId}
                         role="region"
