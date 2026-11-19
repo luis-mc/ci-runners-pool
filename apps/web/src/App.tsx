@@ -3,12 +3,14 @@ import {
   ArrowNavigation,
   Button,
   ClockProvider,
+  type ActivityJob,
   Failed,
   Loading,
   Page,
   PageHeader,
 } from '@crsp/ui';
 import type { ApiClient } from '@crsp/contract';
+import type { ReactNode } from 'react';
 import { Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom';
 import { ApiProvider } from './api/api';
 import { SignInPage, NoAccess } from './auth/SignIn';
@@ -48,7 +50,15 @@ import { UpdateCompactPage, UpdateReviewPage } from './screens/settings/Updates'
 import { SetupPage } from './screens/setup/Setup';
 
 /** No valid session: every path but /sign-in and /setup goes to /sign-in and keeps the path (R5.8). */
-function Gate({ factory }: { factory: EventSourceFactory | undefined }) {
+function Gate({
+  factory,
+  banner,
+  activity,
+}: {
+  factory: EventSourceFactory | undefined;
+  banner: ReactNode;
+  activity: (() => ActivityJob[]) | undefined;
+}) {
   const session = useSession();
   const location = useLocation();
   const s = session.state;
@@ -87,7 +97,7 @@ function Gate({ factory }: { factory: EventSourceFactory | undefined }) {
   return (
     <LiveProvider {...(factory ? { factory } : {})}>
       <ThemeApplier />
-      <AppShell>
+      <AppShell {...(banner ? { banner } : {})} {...(activity ? { activity } : {})}>
         <FaultBoundary key={location.pathname}>
           <Outlet />
         </FaultBoundary>
@@ -146,10 +156,19 @@ function CompactGate() {
 export function App({
   client,
   eventSource,
+  imagesRoutes,
+  banner,
+  activity,
 }: {
   client?: ApiClient;
   /** A stream factory for tests; the browser's EventSource is used when it is not given. */
   eventSource?: EventSourceFactory;
+  /** Replaces the Images and caches routes. Only the review build passes it; the console does not. */
+  imagesRoutes?: { tab: ReactNode; pages: ReactNode };
+  /** A banner in every signed-in screen. Only the review build passes it. */
+  banner?: ReactNode;
+  /** Extra running work for the strip. Only the review build passes it. */
+  activity?: () => ActivityJob[];
 }) {
   return (
     <ApiProvider {...(client ? { client } : {})}>
@@ -162,7 +181,11 @@ export function App({
               <Route element={<CompactGate />}>
                 <Route path="update" element={<UpdateCompactPage />} />
               </Route>
-              <Route element={<Gate factory={eventSource} />}>
+              <Route
+                element={
+                  <Gate factory={eventSource} banner={banner} activity={activity} />
+                }
+              >
                 <Route index element={<Overview />} />
                 <Route path="repositories" element={<RepositoriesList />} />
                 <Route path="repositories/turn-on" element={<TurnOnPoolPage />} />
@@ -171,14 +194,22 @@ export function App({
                   <Route index element={<PoolSummary />} />
                   <Route path="machines" element={<MachinesList />} />
                   <Route path="runners" element={<RunnersList />} />
-                  <Route path="images" element={<ImagesAndCaches />} />
+                  {imagesRoutes ? (
+                    imagesRoutes.tab
+                  ) : (
+                    <Route path="images" element={<ImagesAndCaches />} />
+                  )}
                   <Route path="size" element={<PoolSizePage />} />
                 </Route>
                 <Route path="pool/machines/add" element={<AddMachinePage />} />
                 <Route path="pool/machines/:id" element={<MachineDetail />} />
                 <Route path="pool/runners/add" element={<AddRunnersPage />} />
                 <Route path="pool/runners/:id" element={<RunnerPage />} />
-                <Route path="pool/images/:imageId" element={<ImageDetail />} />
+                {imagesRoutes ? (
+                  imagesRoutes.pages
+                ) : (
+                  <Route path="pool/images/:imageId" element={<ImageDetail />} />
+                )}
                 {jobsRoutes}
                 {MOVED.map(([from, to]) => (
                   <Route key={from} path={from} element={<MovedTo to={to} />} />

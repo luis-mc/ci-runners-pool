@@ -241,7 +241,20 @@ function Palette({ onClose }: { onClose: () => void }) {
   );
 }
 
-export function AppShell({ children }: { children?: ReactNode }) {
+const noActivity = (): ActivityJob[] => [];
+
+export function AppShell({
+  children,
+  banner,
+  activity,
+}: {
+  children?: ReactNode;
+  /** An extra banner for every screen; only the review build passes one. */
+  banner?: ReactNode;
+  /** A hook that gives extra running work for the strip; only the review build passes one (image builds, RES19). */
+  activity?: () => ActivityJob[];
+}) {
+  const extraWork = (activity ?? noActivity)();
   const session = useSession();
   const live = useLiveState();
   const navigate = useNavigate();
@@ -340,9 +353,11 @@ export function AppShell({ children }: { children?: ReactNode }) {
       }
       return undefined;
     })
-    .filter((j): j is ActivityJob => j !== undefined);
+    .filter((j): j is ActivityJob => j !== undefined)
+    .concat(extraWork);
 
   const banners: ReactNode[] = [];
+  if (banner) banners.push(<div key="extra">{banner}</div>);
   const open = setup ? firstOpenStep(setup) : undefined;
   if (open)
     banners.push(
