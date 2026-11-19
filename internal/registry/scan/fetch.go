@@ -36,11 +36,11 @@ func LoadPin(toolsJSON []byte, tool, platform string) (version string, p Pin, er
 		Platforms map[string]Pin `json:"platforms"`
 	}
 	if err := json.Unmarshal(toolsJSON, &all); err != nil {
-		return "", Pin{}, fmt.Errorf("tools.json: %w", err)
+		return "", Pin{}, fmt.Errorf("the tool pins: %w", err)
 	}
 	t, ok := all[tool]
 	if !ok {
-		return "", Pin{}, fmt.Errorf("tool %q is not pinned in tools.json", tool)
+		return "", Pin{}, fmt.Errorf("tool %q is not pinned", tool)
 	}
 	p, ok = t.Platforms[platform]
 	if !ok || p.URL == "" || len(p.SHA256) != 64 {
