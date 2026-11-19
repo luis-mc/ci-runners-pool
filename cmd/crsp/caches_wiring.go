@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 
+	"github.com/luis-mc/ci-runners-shared-pool/internal/backend/container"
+
 	"github.com/luis-mc/ci-runners-shared-pool/internal/agent"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backend"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backend/registry"
@@ -13,7 +15,13 @@ import (
 // takes no path from the controller.
 func agentCacheSource() agent.CacheSource {
 	reg := registry.Platform(realDeps(func(string, string) {}, secretRedactor.Redact, secretRedactor.Add))
-	return agent.FoundRunners{Find: func(ctx context.Context) ([]agent.CacheRunner, error) {
+	var ctr agent.ContainerRunners
+	if b, ok := reg.Get(backend.Docker); ok {
+		if pc, ok := b.(persistentContainer); ok {
+			ctr = containerRunners{pc}
+		}
+	}
+	return agent.FoundRunners{Container: ctr, Find: func(ctx context.Context) ([]agent.CacheRunner, error) {
 		b, ok := reg.Get(backend.Persistent)
 		if !ok {
 			return nil, nil
@@ -34,4 +42,26 @@ func agentCacheSource() agent.CacheSource {
 		}
 		return out, nil
 	}}
+}
+
+// persistentContainer is the container backend's part for persistent Linux
+// runners (runners R5.93).
+type persistentContainer interface {
+	PersistentStates(ctx context.Context) ([]container.PersistentState, error)
+	ApplyHygiene(ctx context.Context, name string, keep, clear bool) error
+}
+
+type containerRunners struct{ b persistentContainer }
+
+func (c containerRunners) Clean(ctx context.Context) ([]agent.ContainerClean, error) {
+	st, err := c.b.PersistentStates(ctx)
+	out := make([]agent.ContainerClean, 0, len(st))
+	for _, s := range st {
+		out = append(out, agent.ContainerClean{Name: s.Name, DependencyBytes: s.DependencyBytes, UncleanReason: s.UncleanReason})
+	}
+	return out, err
+}
+
+func (c containerRunners) Apply(ctx context.Context, name string, keep, clear bool) error {
+	return c.b.ApplyHygiene(ctx, name, keep, clear)
 }

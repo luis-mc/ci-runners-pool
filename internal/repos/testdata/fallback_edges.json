@@ -202,10 +202,10 @@
       {"do": "expect", "var": "hosted", "where": "hosted", "why": "fallback_on"},
       {"do": "make_public"},
       {"do": "eval"},
-      {"do": "expect", "var": "crsp", "where": "waiting", "why": "public_repository"},
+      {"do": "expect", "var": "crsp_public", "where": "waiting", "why": "public_repository"},
       {"do": "advance", "d": "1h"},
       {"do": "eval"},
-      {"do": "expect", "var": "crsp", "where": "waiting", "why": "public_repository"}
+      {"do": "expect", "var": "crsp_public", "where": "waiting", "why": "public_repository"}
     ]
   },
   {

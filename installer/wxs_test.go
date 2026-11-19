@@ -47,3 +47,27 @@ func TestMSIUpgradeReplacesTheOldProduct(t *testing.T) {
 		t.Error("one product: no bundle next to the MSI")
 	}
 }
+
+// TRAY5 D12: the stock dialogs carry our art: a banner (493x58) and a dialog bitmap (493x312),
+// both made by the build from the design tokens, never a file in the repository.
+func TestMSIUsesTheGeneratedInstallerArt(t *testing.T) {
+	s := wxs(t)
+	for _, want := range []string{
+		`<WixVariable Id="WixUIBannerBmp" Value="$(var.BannerBmp)" />`,
+		`<WixVariable Id="WixUIDialogBmp" Value="$(var.DialogBmp)" />`,
+		`<ui:WixUI Id="WixUI_Minimal" />`,
+	} {
+		if !strings.Contains(s, want) {
+			t.Errorf("missing %s", want)
+		}
+	}
+	b, err := os.ReadFile("build.ps1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"internal/updatewindow/genart", "packages/ui/src/tokens.css", "BannerBmp=", "DialogBmp="} {
+		if !strings.Contains(string(b), want) {
+			t.Errorf("build.ps1 does not wire %s", want)
+		}
+	}
+}

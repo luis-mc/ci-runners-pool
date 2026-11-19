@@ -156,6 +156,9 @@
     "internal/update/**": [
       "docs/features/operations/spec.md"
     ],
+    "internal/updatewindow/**": [
+      "docs/features/tray/spec.md"
+    ],
     "internal/vmcheck/**": [
       "docs/features/caches/spec.md"
     ],

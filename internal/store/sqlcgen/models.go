@@ -361,32 +361,35 @@ type RestoreDrill struct {
 }
 
 type Runner struct {
-	ID             string
-	Name           string
-	MachineID      string
-	Os             string
-	Arch           string
-	Kind           string
-	Backend        string
-	Isolation      string
-	Labels         string
-	ScopeKind      string
-	RepositoryID   sql.NullInt64
-	Organization   sql.NullString
-	RunnerGroup    sql.NullString
-	GithubRunnerID sql.NullInt64
-	RunnerVersion  string
-	State          string
-	Managed        int64
-	ServiceName    string
-	Account        string
-	Folder         string
-	CurrentJobID   sql.NullInt64
-	CreatedAt      string
-	UpdatedAt      string
-	RoutePool      string
-	RouteQueue     string
-	SizeClass      string
+	ID                   string
+	Name                 string
+	MachineID            string
+	Os                   string
+	Arch                 string
+	Kind                 string
+	Backend              string
+	Isolation            string
+	Labels               string
+	ScopeKind            string
+	RepositoryID         sql.NullInt64
+	Organization         sql.NullString
+	RunnerGroup          sql.NullString
+	GithubRunnerID       sql.NullInt64
+	RunnerVersion        string
+	State                string
+	Managed              int64
+	ServiceName          string
+	Account              string
+	Folder               string
+	CurrentJobID         sql.NullInt64
+	CreatedAt            string
+	UpdatedAt            string
+	RoutePool            string
+	RouteQueue           string
+	SizeClass            string
+	KeepDependencies     int64
+	DependencyCacheBytes int64
+	UncleanReason        string
 }
 
 type RunnerEvent struct {

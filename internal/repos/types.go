@@ -68,8 +68,47 @@ type Policy struct {
 	// HostedLabels is the hosted label per OS ("linux", "windows", "macos");
 	// a missing OS uses DefaultHostedLabels.
 	HostedLabels map[string]string
-	UpdatedAt    time.Time
-	UpdatedBy    string
+	// RunnerKinds is the owner's choice of which runners take the repository's
+	// jobs: RunnerKindsEphemeralOnly or RunnerKindsAnyRunner. Empty means the
+	// owner did not choose and the default of the visibility applies
+	// (github-integration R5.60). Read it with EffectiveRunnerKinds.
+	RunnerKinds string
+	UpdatedAt   time.Time
+	UpdatedBy   string
+}
+
+// Runner kinds a repository's jobs may use (github-integration R5.60).
+const (
+	RunnerKindsEphemeralOnly = "ephemeral_only"
+	RunnerKindsAnyRunner     = "any_runner"
+)
+
+// DefaultRunnerKinds is the kind a repository gets while the owner has not
+// chosen: a public repository runs on ephemeral runners only, a private or
+// internal one may use any runner.
+func DefaultRunnerKinds(visibility string) string {
+	if visibility == "public" {
+		return RunnerKindsEphemeralOnly
+	}
+	return RunnerKindsAnyRunner
+}
+
+// EffectiveRunnerKinds is the owner's choice, or the default of the visibility.
+func (p Policy) EffectiveRunnerKinds(visibility string) string {
+	if p.RunnerKindsSet() {
+		return p.RunnerKinds
+	}
+	return DefaultRunnerKinds(visibility)
+}
+
+// RunnerKindsSet says whether the owner chose the kind.
+func (p Policy) RunnerKindsSet() bool {
+	return p.RunnerKinds == RunnerKindsEphemeralOnly || p.RunnerKinds == RunnerKindsAnyRunner
+}
+
+// EphemeralOnly is true when the repository's jobs go to ephemeral runners only.
+func (p Policy) EphemeralOnly(visibility string) bool {
+	return p.EffectiveRunnerKinds(visibility) == RunnerKindsEphemeralOnly
 }
 
 // DefaultPolicy is what a repository gets when the pool is first turned on:

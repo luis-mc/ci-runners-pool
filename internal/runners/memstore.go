@@ -132,6 +132,19 @@ func (m *MemStore) GetPlan(_ context.Context, id string) (Plan, error) {
 	return p, nil
 }
 
+// SetRunnerHygiene implements Store.
+func (m *MemStore) SetRunnerHygiene(_ context.Context, id string, h Hygiene) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	r, ok := m.runners[id]
+	if !ok {
+		return ErrNotFound
+	}
+	r.KeepDependencies, r.DependencyCacheBytes, r.UncleanReason = h.KeepDependencies, h.DependencyCacheBytes, h.UncleanReason
+	m.runners[id] = r
+	return nil
+}
+
 // SetRunnerPool implements Store.
 func (m *MemStore) SetRunnerPool(_ context.Context, id, poolRunnerID string) error {
 	m.mu.Lock()

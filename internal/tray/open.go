@@ -61,6 +61,8 @@ type Opener struct {
 	Browser Launcher
 	// Window opens a URL in a small app-style window (TRAY4); nil: the update is asked with Ask.
 	Window Launcher
+	// Native opens the native update window (Windows, TRAY5); nil: the console page opens instead.
+	Native NativeWindow
 	Files  Launcher
 	Notify Notifier
 	// Current returns the last known status; Open refuses a dead link while stopped (R5.14).
@@ -98,6 +100,17 @@ func (o *Opener) OpenPage(ctx context.Context, path string) error {
 // then shows the progress (TRAY4). It returns an error when no window could be opened,
 // so the caller can fall back to the native box.
 func (o *Opener) OpenUpdate(ctx context.Context) error {
+	if o.Native != nil {
+		var st Status
+		if o.Current != nil {
+			st = o.Current()
+		}
+		if st.State != StateStopped {
+			if err := o.Native(ctx, WindowMode(st), st); err == nil {
+				return nil
+			}
+		}
+	}
 	if o.Window == nil || o.Targets == nil {
 		return errNoWindow
 	}

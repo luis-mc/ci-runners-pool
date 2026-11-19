@@ -27,6 +27,9 @@ type Env struct {
 	Engines EngineSource
 	// Demand is nil when the demand source is not running; demand.quiet then skips.
 	Demand DemandSource
+	// Ephemeral says whether the pool can make an ephemeral runner; nil makes
+	// repo.ephemeral_capacity skip.
+	Ephemeral EphemeralSource
 	// PoolName is the pool's name label; RunnerPrefix starts the name of every
 	// runner the product makes (default "crsp-").
 	PoolName string
@@ -172,6 +175,9 @@ type Runner struct {
 	MachineName string
 	OS          string
 	Kind        string // persistent or ephemeral
+	// UncleanReason is why the clean-up after a job failed; the runner takes
+	// no new job until it is clean (runners R5.90).
+	UncleanReason string
 	// Labels are the labels the runner carries.
 	Labels []string
 	// GitHubRunnerID is set once registered.
@@ -315,6 +321,9 @@ type Repository struct {
 	// LightRunner is true when the repository's policy keeps a light runner
 	// for it (scheduling R5.65).
 	LightRunner bool
+	// EphemeralOnly is true when the repository's jobs go to ephemeral runners
+	// only (github-integration R5.60).
+	EphemeralOnly bool
 	// Where is where the repository's jobs go now: "crsp", "hosted" or
 	// "waiting"; HostedOSes are the OSes on GitHub-hosted runners, WaitingOSes
 	// the ones whose jobs wait for a machine. FallbackOn is the setting
@@ -387,6 +396,19 @@ type QuietDemand struct {
 	// Restarted is true once the controller restarted the demand loop for it.
 	Restarted   bool
 	RestartedAt time.Time
+}
+
+// EphemeralSource says whether an ephemeral pool ceiling slot exists on an
+// online machine (doctor R5.47).
+type EphemeralSource interface {
+	EphemeralCapacity(ctx context.Context) (bool, error)
+}
+
+// UncleanLister is an optional part of Fleet: the runners with a failed
+// clean-up, pool runners included (doctor R5.46). Without it the check reads
+// Fleet.Runners.
+type UncleanLister interface {
+	UncleanRunners(ctx context.Context) ([]Runner, error)
 }
 
 // DemandSource lists the repositories whose demand source is quiet while jobs

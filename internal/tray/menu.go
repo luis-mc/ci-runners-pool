@@ -84,6 +84,8 @@ type UpdateInfo struct {
 	// ReleaseURL is the release page of Latest; Jobs is how many jobs run now (a drain waits for them).
 	ReleaseURL string
 	Jobs       int
+	// Stage is the live update stage (the update window follows it); nil when none ran.
+	Stage *StageInfo
 }
 
 // Updating says whether an update is in progress (drain, download, install).

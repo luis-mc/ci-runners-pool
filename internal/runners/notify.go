@@ -56,6 +56,15 @@ func (n NotifyStore) SetRunnerRegistration(ctx context.Context, id string, githu
 	return nil
 }
 
+// SetRunnerHygiene implements Store.
+func (n NotifyStore) SetRunnerHygiene(ctx context.Context, id string, h Hygiene) error {
+	if err := n.Store.SetRunnerHygiene(ctx, id, h); err != nil {
+		return err
+	}
+	n.changed(ctx, id)
+	return nil
+}
+
 // DeleteRunner implements Store.
 func (n NotifyStore) DeleteRunner(ctx context.Context, id string) error {
 	rec, getErr := n.GetRunner(ctx, id)

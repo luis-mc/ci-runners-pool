@@ -31,6 +31,9 @@ type Config struct {
 	SizeFloors func() map[string]SizeFloor
 	// Light keeps the light runners; nil means none are kept.
 	Light LightRunners
+	// Ephemeral says whether the pool can make an ephemeral runner now; nil
+	// means unknown and the repository view claims nothing (R5.60).
+	Ephemeral EphemeralCapacity
 	// Registrar keeps the hidden registrations of the pool runners; nil means
 	// none are kept.
 	Registrar PoolRegistrar
@@ -90,6 +93,29 @@ func (s *Service) SetRegistrar(r PoolRegistrar) { s.cfg.Registrar = r }
 // SetLight sets who keeps the light runners. The wiring calls it once the
 // runners service exists, which is after this one.
 func (s *Service) SetLight(l LightRunners) { s.cfg.Light = l }
+
+// EphemeralCapacity says whether an ephemeral pool ceiling slot exists on an
+// online machine. (*runners.Service).EphemeralCapacity implements it.
+type EphemeralCapacity interface {
+	EphemeralCapacity(ctx context.Context) (bool, error)
+}
+
+// SetEphemeral sets who answers whether the pool has ephemeral capacity. The
+// wiring calls it once the runners service exists.
+func (s *Service) SetEphemeral(e EphemeralCapacity) { s.cfg.Ephemeral = e }
+
+// HasEphemeralCapacity reports whether the pool can make an ephemeral runner
+// now. known is false when no source is wired or it failed.
+func (s *Service) HasEphemeralCapacity(ctx context.Context) (has, known bool) {
+	if s.cfg.Ephemeral == nil {
+		return false, false
+	}
+	ok, err := s.cfg.Ephemeral.EphemeralCapacity(ctx)
+	if err != nil {
+		return false, false
+	}
+	return ok, true
+}
 
 // ErrNotAdmin: the user lacks the GitHub admin permission on the repository.
 type ErrNotAdmin struct{ Repo string }
@@ -277,6 +303,10 @@ type RepositoryView struct {
 	VariablesDrift bool
 	// Routing is where the repository's jobs go now and why (R5.44).
 	Routing Routing
+	// EphemeralCapacity is false when the repository's jobs go to ephemeral
+	// runners only and the pool cannot make one, so its jobs would wait. Nil
+	// while the pool is off for the repository or the answer is unknown (R5.60).
+	EphemeralCapacity *bool
 	// Problem is a fault the owner can fix, or nil (R5.56).
 	Problem *Problem
 }
@@ -311,6 +341,11 @@ func (s *Service) view(ctx context.Context, p auth.Principal, r Repository) (Rep
 	}
 	if rt, err := s.routing(ctx, r, v.Policy); err == nil {
 		v.Routing = rt
+	}
+	if r.PoolOn && v.Policy.EphemeralOnly(r.Visibility) {
+		if has, known := s.HasEphemeralCapacity(ctx); known {
+			v.EphemeralCapacity = &has
+		}
 	}
 	v.Problem = s.problemOf(ctx, r)
 	s.mu.Lock()
@@ -496,6 +531,13 @@ func describePolicy(a, b Policy) string {
 	}
 	if fmt.Sprint(a.HostedLabels) != fmt.Sprint(b.HostedLabels) {
 		d = append(d, fmt.Sprintf("hosted labels %v", b.HostedLabels))
+	}
+	if a.RunnerKinds != b.RunnerKinds {
+		k := b.RunnerKinds
+		if k == "" {
+			k = RunnerKindsDefault
+		}
+		d = append(d, "runner kinds "+k)
 	}
 	if a.BudgetMemoryPct != b.BudgetMemoryPct || a.BudgetCPUPct != b.BudgetCPUPct {
 		d = append(d, "budget")

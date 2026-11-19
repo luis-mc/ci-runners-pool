@@ -294,7 +294,7 @@ The terminal glow and scanline appear only on the focused control (UX-59). Nothi
 |---|---|---|---|
 | `--ds-glow-focus` | `0 0 0 1px #006a77` | `0 0 0 1px #5ee6f0, 0 0 8px rgba(94, 230, 240, 0.55)` | added to the focus ring |
 | `--ds-scanline-focus` | `none` | `repeating-linear-gradient(0deg, rgba(94, 230, 240, 0.06) 0 1px, transparent 1px 3px)` | background layer of the focused control |
-| `--ds-cursor-blink` | `1000ms` | `1000ms` | the caret block in the command palette; `0ms` (steady) under reduced motion |
+| `--ds-cursor-blink` | `1000ms` | `1000ms` | the block caret of every single-line text box (component 21, `CaretInput`), the command palette's included; `0ms` (steady) under reduced motion |
 
 ## Breakpoints
 

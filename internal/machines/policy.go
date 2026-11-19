@@ -143,9 +143,13 @@ func applyPolicy(set Settings, u SettingsUpdate, now time.Time) (Settings, error
 }
 
 // fillPolicy puts the reported policy on the machine record of a view.
-func (s *Service) fillPolicy(m *Machine) {
+func (s *Service) fillPolicy(m *Machine, set Settings) {
 	p := s.Policy(m.ID)
-	m.Accepting, m.PauseReason = p.Accepting, p.PauseReason
+	now := s.now()
+	m.Taking = ComputeAvailability(m.Online, m.State, set, p, now)
+	// Accepting excludes online: another feature reads `Online && Accepting`.
+	a := ComputeAvailability(true, m.State, set, p, now)
+	m.Accepting, m.PauseReason = a.Taking, legacyPauseReason(a.Reason)
 }
 
 // capFor settles the cap state a view shows. A report is about the percent the

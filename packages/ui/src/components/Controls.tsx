@@ -4,6 +4,7 @@ import { NumberKeypad } from '../pickers/NumberKeypad';
 import { commitValue } from '../pickers/number-keypad-logic';
 import { Button } from './Button';
 import { Dialog } from './Dialog';
+import { CaretInput } from './CaretInput';
 import { ChangedMark } from './Fields';
 
 export function SearchBar({
@@ -20,7 +21,7 @@ export function SearchBar({
   const ref = useRef<HTMLInputElement>(null);
   return (
     <div className="ds-search" role="search" data-layout-group>
-      <input
+      <CaretInput
         ref={ref}
         data-search
         className="ds-input"

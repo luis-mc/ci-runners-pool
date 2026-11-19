@@ -20,6 +20,7 @@ import (
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backend"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backend/persistent"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backend/sys"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/hygiene"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/poolsize"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/runnercache"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/runners"
@@ -166,6 +167,10 @@ func Unit(name, user, folder string) string {
 func (b *Backend) want(r backend.RunnerSpec, user string) (persistent.Meta, string) {
 	folder := b.Folder(r.Name)
 	kv := runnercache.EnvJoin(folder, r.CacheQuota, path.Join)
+	// Each persistent runner keeps its dependencies in its own folder, and its
+	// hooks clean after every job (runners R5.90, R5.91).
+	maps.Copy(kv, runnercache.DependencyEnvJoin(folder, path.Join))
+	kv[hygiene.EnvRunnerDir] = folder
 	if r.MaxParallel > 0 {
 		maps.Copy(kv, poolsize.Env(r.MaxParallel))
 	}
@@ -218,7 +223,7 @@ func (b *Backend) Start(ctx context.Context, r backend.RunnerSpec, cfg backend.S
 	case persistent.Already:
 		return h, nil
 	case persistent.UpdateRights, persistent.RewriteEnv:
-		if err := b.writeFiles(ctx, folder, user, wantEnv); err != nil {
+		if err := b.writeFiles(ctx, folder, user, wantEnv, r.KeepDependencies); err != nil {
 			return h, err
 		}
 		if err := persistent.WriteMeta(b.d.FS, folder+"/"+persistent.MetaFile, wantMeta); err != nil {
@@ -261,7 +266,7 @@ func (b *Backend) Start(ctx context.Context, r backend.RunnerSpec, cfg backend.S
 		persistent.ConfigArgs(r.GitHubURL, r.Name, r.Group, r.Labels), cfg.Registration); err != nil {
 		return h, err
 	}
-	if err := b.writeFiles(ctx, folder, user, wantEnv); err != nil {
+	if err := b.writeFiles(ctx, folder, user, wantEnv, r.KeepDependencies); err != nil {
 		return h, err
 	}
 	if err := persistent.WriteMeta(b.d.FS, folder+"/"+persistent.MetaFile, wantMeta); err != nil {
@@ -334,7 +339,7 @@ func (b *Backend) configure(ctx context.Context, step, folder, user string, args
 	return err
 }
 
-func (b *Backend) writeFiles(ctx context.Context, folder, user, env string) error {
+func (b *Backend) writeFiles(ctx context.Context, folder, user, env string, keep bool) error {
 	hookDir := folder + "/hooks"
 	if err := b.d.FS.MkdirAll(hookDir, 0o700); err != nil {
 		return err
@@ -349,6 +354,9 @@ func (b *Backend) writeFiles(ctx context.Context, folder, user, env string) erro
 		}
 	}
 	if err := b.d.FS.WriteFile(folder+"/.env", []byte(env), 0o600); err != nil {
+		return err
+	}
+	if err := b.seedKeep(folder, keep); err != nil {
 		return err
 	}
 	_, err := b.run(ctx, "own files", sys.Command{Name: "chown", Args: []string{"-R", user + ":" + runners.RunnersGroup, folder}})
@@ -511,4 +519,13 @@ func (b *Backend) learn(values ...string) {
 			b.d.Secret(v)
 		}
 	}
+}
+
+// seedKeep writes the setting Keep downloaded dependencies once. A file that is
+// there stays: the agent changes it later when the owner does (runners R5.90).
+func (b *Backend) seedKeep(folder string, keep bool) error {
+	if b.d.FS.Exists(folder + "/" + hygiene.SettingsFile) {
+		return nil
+	}
+	return hygiene.WriteKeep(b.d.FS, folder, keep)
 }
