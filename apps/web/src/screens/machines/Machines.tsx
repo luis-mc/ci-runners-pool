@@ -532,30 +532,28 @@ function MachineBody({ m, onChanged }: { m: Machine; onChanged: () => void }) {
           finish first. The agent stays installed on the machine.
         </Text>
       </Pane>
-      <Stack gap="tight">
-        {saved ? <Message tone="done">Settings saved.</Message> : null}
-        {save.error ? (
-          <Message tone="problem">Could not save. {save.error} Try again.</Message>
-        ) : null}
-        <EditBar
-          changes={changeCount}
-          onSave={() => void save.run()}
-          onCancel={() => {
-            setMem(m.settings.budget_memory_pct);
-            setCpu(m.settings.budget_cpu_pct);
-            setSlots(m.settings.job_slots);
-            setDrain(m.settings.drain_timeout_minutes);
-            setAllowed(m.settings.allowed_backends);
-            setErrors([]);
-            poolSize.reset();
-          }}
-          submit={false}
-          busy={save.busy}
-          blocked={!admin}
-          why={why}
-          holdReason={poolSize.hold}
-        />
-      </Stack>
+      {saved ? <Message tone="done">Settings saved.</Message> : null}
+      {save.error ? (
+        <Message tone="problem">Could not save. {save.error} Try again.</Message>
+      ) : null}
+      <EditBar
+        changes={changeCount}
+        onSave={() => void save.run()}
+        onCancel={() => {
+          setMem(m.settings.budget_memory_pct);
+          setCpu(m.settings.budget_cpu_pct);
+          setSlots(m.settings.job_slots);
+          setDrain(m.settings.drain_timeout_minutes);
+          setAllowed(m.settings.allowed_backends);
+          setErrors([]);
+          poolSize.reset();
+        }}
+        submit={false}
+        busy={save.busy}
+        blocked={!admin}
+        why={why}
+        holdReason={poolSize.hold}
+      />
       <Ask
         title={`Stop new jobs on ${m.name}?`}
         action="Stop new jobs"
