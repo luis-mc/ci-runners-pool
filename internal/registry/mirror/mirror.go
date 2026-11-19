@@ -2,7 +2,6 @@ package mirror
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io/fs"
 	"log/slog"
@@ -13,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/distribution/distribution/v3/configuration"
 	"github.com/distribution/distribution/v3/registry/handlers"
 	// The storage driver the proxy instances keep their content in.
 	_ "github.com/distribution/distribution/v3/registry/storage/driver/filesystem"
@@ -35,13 +35,59 @@ type Options struct {
 	Now func() time.Time
 }
 
+// proxy is one upstream's Distribution instance. It starts on the first request
+// and retries after a failure: Distribution asks the upstream for its token
+// endpoint when it starts, and a controller whose upstream is offline must still
+// start and serve the tags it has cached once the upstream is back (R5.66).
+type proxy struct {
+	cfg   *configuration.Configuration
+	mu    sync.Mutex
+	app   *handlers.App
+	err   error
+	tried time.Time
+}
+
+func (p *proxy) get(ctx context.Context, now time.Time) (*handlers.App, error) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if p.app != nil {
+		return p.app, nil
+	}
+	if p.err != nil && now.Sub(p.tried) < 10*time.Second {
+		return nil, p.err // do not hammer an upstream that is down
+	}
+	p.tried = now
+	p.app, p.err = startApp(ctx, p.cfg)
+	return p.app, p.err
+}
+
+func (p *proxy) close() {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if p.app != nil {
+		_ = p.app.Shutdown()
+		p.app = nil
+	}
+}
+
+// startApp builds the Distribution app; it panics on a configuration it cannot
+// run with and it needs the upstream to answer.
+func startApp(ctx context.Context, cfg *configuration.Configuration) (app *handlers.App, err error) {
+	defer func() {
+		if p := recover(); p != nil {
+			app, err = nil, fmt.Errorf("start the mirror of %s: %v", cfg.Proxy.RemoteURL, p)
+		}
+	}()
+	return handlers.NewApp(context.WithoutCancel(ctx), cfg), nil
+}
+
 // Mirror implements registry.Mirror.
 type Mirror struct {
 	opts Options
 
 	mu       sync.RWMutex
 	settings registry.MirrorSettings
-	apps     map[string]*handlers.App // by upstream host
+	apps     map[string]*proxy // by upstream host
 	folder   string
 
 	usedMu   sync.Mutex
@@ -59,7 +105,7 @@ func New(o Options) *Mirror {
 	if o.Now == nil {
 		o.Now = time.Now
 	}
-	return &Mirror{opts: o, apps: map[string]*handlers.App{}}
+	return &Mirror{opts: o, apps: map[string]*proxy{}}
 }
 
 // Handler serves PathPrefix: /mirror/<upstream>/v2/... goes to the proxy of that
@@ -84,10 +130,10 @@ func (m *Mirror) serve(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	m.mu.RLock()
-	app := m.apps[strings.ToLower(host)]
+	px := m.apps[strings.ToLower(host)]
 	budget := m.settings.BudgetBytes
 	m.mu.RUnlock()
-	if app == nil {
+	if px == nil {
 		http.NotFound(w, r)
 		return
 	}
@@ -98,29 +144,39 @@ func (m *Mirror) serve(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "the mirror is full", http.StatusServiceUnavailable)
 		return
 	}
+	app, err := px.get(r.Context(), m.opts.Now())
+	if err != nil {
+		m.opts.Logger.Warn("the mirror could not start for an upstream", "upstream", host, "err", err)
+		w.Header().Set("Retry-After", "10")
+		http.Error(w, "the upstream registry cannot be reached", http.StatusServiceUnavailable)
+		return
+	}
 	r2 := r.Clone(r.Context())
 	r2.URL.Path = "/" + tail
 	r2.URL.RawPath = ""
 	app.ServeHTTP(w, r2)
 }
 
-// Apply starts one proxy per upstream, or stops them all when the mirror is off.
-// The old instances are shut down after the new ones are in place.
-func (m *Mirror) Apply(ctx context.Context, s registry.MirrorSettings) error {
+// Apply sets one proxy per upstream, or none when the mirror is off. Each proxy
+// starts on its first request. The old instances are shut down after the new ones
+// are in place.
+func (m *Mirror) Apply(_ context.Context, s registry.MirrorSettings) error {
 	s, err := Validate(s)
 	if err != nil {
 		return err
 	}
 	folder := Folder(s, m.opts.DataDir)
-	apps := map[string]*handlers.App{}
+	apps := map[string]*proxy{}
 	if s.Enabled {
 		for _, up := range s.Upstreams {
-			app, err := m.start(ctx, s, up)
+			cfg, err := ProxyConfig(s, m.opts.DataDir, up)
 			if err != nil {
-				closeAll(apps)
 				return err
 			}
-			apps[up] = app
+			if err := os.MkdirAll(UpstreamDir(folder, up), 0o700); err != nil {
+				return fmt.Errorf("create the mirror folder for %s: %w", up, err)
+			}
+			apps[up] = &proxy{cfg: cfg}
 		}
 	}
 	m.mu.Lock()
@@ -134,27 +190,9 @@ func (m *Mirror) Apply(ctx context.Context, s registry.MirrorSettings) error {
 	return nil
 }
 
-func (m *Mirror) start(ctx context.Context, s registry.MirrorSettings, up string) (app *handlers.App, err error) {
-	cfg, err := ProxyConfig(s, m.opts.DataDir, up)
-	if err != nil {
-		return nil, err
-	}
-	root := cfg.Storage.Parameters()["rootdirectory"].(string)
-	if err := os.MkdirAll(root, 0o700); err != nil {
-		return nil, fmt.Errorf("create the mirror folder for %s: %w", up, err)
-	}
-	// Distribution panics on a configuration it cannot run with.
-	defer func() {
-		if p := recover(); p != nil {
-			app, err = nil, fmt.Errorf("start the mirror of %s: %v", up, p)
-		}
-	}()
-	return handlers.NewApp(context.WithoutCancel(ctx), cfg), nil
-}
-
-func closeAll(apps map[string]*handlers.App) {
+func closeAll(apps map[string]*proxy) {
 	for _, a := range apps {
-		_ = a.Shutdown()
+		a.close()
 	}
 }
 
@@ -162,7 +200,7 @@ func closeAll(apps map[string]*handlers.App) {
 func (m *Mirror) Close() error {
 	m.mu.Lock()
 	old := m.apps
-	m.apps = map[string]*handlers.App{}
+	m.apps = map[string]*proxy{}
 	m.mu.Unlock()
 	closeAll(old)
 	return nil
@@ -196,10 +234,7 @@ func DirSize(dir string) int64 {
 	var n int64
 	_ = filepath.WalkDir(dir, func(_ string, d fs.DirEntry, err error) error {
 		if err != nil {
-			if errors.Is(err, fs.ErrNotExist) {
-				return nil
-			}
-			return nil
+			return nil // a file that vanished while counting is not an error
 		}
 		if !d.IsDir() {
 			if info, err := d.Info(); err == nil {

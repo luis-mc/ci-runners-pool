@@ -51,8 +51,8 @@ func NormalizeUpstream(u string) (string, error) {
 }
 
 // Validate checks the settings and returns them with upstreams normalised, with
-// no duplicate, and with the defaults filled in (folder is left for the caller,
-// which knows the data directory).
+// and with no duplicate (the folder is left for the caller, which knows the data
+// directory).
 func Validate(s registry.MirrorSettings) (registry.MirrorSettings, error) {
 	seen := map[string]bool{}
 	ups := make([]string, 0, len(s.Upstreams))
@@ -72,9 +72,6 @@ func Validate(s registry.MirrorSettings) (registry.MirrorSettings, error) {
 	}
 	if s.BudgetBytes < 0 {
 		return s, fmt.Errorf("%w: the budget cannot be negative", ErrInvalid)
-	}
-	if s.TagRecheck <= 0 {
-		s.TagRecheck = DefaultTagRecheck
 	}
 	if s.TagRecheck < time.Minute || s.TagRecheck > MaxTagRecheck {
 		return s, fmt.Errorf("%w: the tag re-check time is 1 minute to 7 days", ErrInvalid)

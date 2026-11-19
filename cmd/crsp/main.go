@@ -33,6 +33,7 @@ import (
 	"github.com/luis-mc/ci-runners-shared-pool/internal/listenaddr"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/logging"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/machines"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/registry/mirror"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/scheduler"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/secrets"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/store"
@@ -251,8 +252,14 @@ func runController() error {
 		Links: setupOrConsole{auth: ctl.Auth, console: console, next: authLinks{svc: ctl.Auth, console: console}},
 	})
 
+	// The pull-through mirror of upstream bases, under its own route prefix (registry R5.63).
+	mirrorSvc, mirrorProxy := startRegistryMirror(ctx, logger, cfg.DataDir, db, audit.New(db), nil)
+	defer func() { _ = mirrorProxy.Close() }()
+	ctl.Options.RegistryMirror = mirrorSvc
+
 	mux := http.NewServeMux()
 	api.Register(mux, ctl.Options)
+	mux.Handle(mirror.PathPrefix, mirrorProxy.Handler())
 	mux.Handle("/", webui.Handler())
 
 	handler := api.Recover(logger, mux)
