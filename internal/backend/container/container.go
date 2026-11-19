@@ -84,6 +84,15 @@ type Config struct {
 	IDs backend.IDSource
 	// StopGrace is the time `docker stop` gives the idle container.
 	StopGrace time.Duration
+	// Controller is the agent link for the image registry (registry R5.13).
+	// Nil uses Link, which the agent sets; a controller that is not Available
+	// keeps the old behaviour (a local build, no push).
+	Controller Controller
+	// RegistryRequest tells the registry which key, arch and job an image is
+	// for; nil asks with the backend's own key.
+	RegistryRequest func(spec backend.ImageSpec) RegistryRequest
+	// Now is the clock of the wait and the progress lines; nil is time.Now.
+	Now func() time.Time
 }
 
 // Backend is the container backend. One pool container per repository holds
@@ -97,7 +106,8 @@ type Backend struct {
 	draining  map[string]bool   // pool name -> a swap waits for idle
 	dbRunners map[string]string // runner ref -> runner id, for runners that got a database
 	owners    runners.MemoryRoleOwners
-	cpus      *CPUAllocator // nil when the config has no CPU budget
+	cpus      *CPUAllocator  // nil when the config has no CPU budget
+	pushWG    sync.WaitGroup // background pushes to staging (registry R5.16)
 }
 
 var _ backend.Backend = (*Backend)(nil)
