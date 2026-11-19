@@ -295,15 +295,16 @@ func wireRegistry(ctx context.Context, d controllerDeps, c *controller, gh *gith
 
 	// Background work: pull metrics from the registry events, the retention
 	// tick, and the end of what is running when the controller stops.
+	loopCtx, stopLoop := context.WithCancel(ctx)
 	done := make(chan struct{})
 	if core.Registry != nil {
-		go func() { rs.Consume(ctx, core.Registry.Events()) }()
+		go func() { rs.Consume(loopCtx, core.Registry.Events()) }()
 	}
 	go func() {
 		defer close(done)
-		retentionLoop(ctx, logger, ret, realClock{})
+		retentionLoop(loopCtx, logger, ret, realClock{})
 	}()
-	c.closers = append(c.closers, func() { <-done; ret.Wait() })
+	c.closers = append(c.closers, func() { stopLoop(); <-done; ret.Wait() })
 	return w, nil
 }
 

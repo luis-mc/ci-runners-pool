@@ -130,12 +130,12 @@ func TestEnsureFoundBusyAndNotFoundWithStaging(t *testing.T) {
 
 	s.Locator = fakeLocator{}
 	a = s.EnsureImage(ctx, "m1", req)
-	if a.GetOutcome() != agentv1.EnsureImageAnswer_OUTCOME_NOT_FOUND || a.GetTargetName() != "crsp/std/node-web" || a.GetStagingName() != "crsp/_incoming/m1/std/node-web" {
+	if a.GetOutcome() != agentv1.EnsureImageAnswer_OUTCOME_NOT_FOUND || a.GetTargetName() != "crsp/std/node-web" || a.GetStagingName() != "crsp/incoming/m1/std/node-web" {
 		t.Fatalf("standard %+v", a)
 	}
 	custom := strings.Replace(keyJSON, "node-web", "mine", 1)
 	a = s.EnsureImage(ctx, "m1", &agentv1.EnsureImage{Key: goodKey, Arch: "amd64", KeyInputJson: custom, Repository: "Acme/Docs"})
-	if a.GetTargetName() != "crsp/custom/acme-docs/mine" || a.GetStagingName() != "crsp/_incoming/m1/custom/acme-docs/mine" {
+	if a.GetTargetName() != "crsp/custom/acme-docs/mine" || a.GetStagingName() != "crsp/incoming/m1/custom/acme-docs/mine" {
 		t.Fatalf("custom %+v", a)
 	}
 	// A bad key is never answered with a staging name.
@@ -147,11 +147,11 @@ func TestEnsureFoundBusyAndNotFoundWithStaging(t *testing.T) {
 func TestTokenScopesAndRefusal(t *testing.T) {
 	tokens := &fakeTokens{}
 	s := &Sink{Tokens: tokens}
-	tok := s.RegistryToken(context.Background(), "m1", &agentv1.RegistryTokenRequest{Action: agentv1.RegistryTokenRequest_ACTION_PUSH, Names: []string{"crsp/_incoming/m1/std/x"}})
+	tok := s.RegistryToken(context.Background(), "m1", &agentv1.RegistryTokenRequest{Action: agentv1.RegistryTokenRequest_ACTION_PUSH, Names: []string{"crsp/incoming/m1/std/x"}})
 	if tok.GetToken() != "tok" || tok.GetExpiresAtUnixMs() != 1_700_000_600_000 || tokens.for_ != "m1" {
 		t.Fatalf("token %+v", tok)
 	}
-	if len(tokens.got) != 1 || tokens.got[0].Name != "crsp/_incoming/m1/std/x" || tokens.got[0].Actions[0] != "push" {
+	if len(tokens.got) != 1 || tokens.got[0].Name != "crsp/incoming/m1/std/x" || tokens.got[0].Actions[0] != "push" {
 		t.Fatalf("scopes %+v", tokens.got)
 	}
 	tokens.err = errors.New("a machine pushes only to its own staging name")
@@ -166,7 +166,7 @@ func TestTokenScopesAndRefusal(t *testing.T) {
 func TestPushedReportPromotesAndTellsTheRecords(t *testing.T) {
 	rec, prom, out := &fakeRecorder{}, &fakePromoter{}, &fakeOutcomes{}
 	s := &Sink{Recorder: rec, Promoter: prom, Outcomes: out, Profiles: fakeProfiles{"node-web": {ID: "node-web", Kind: registry.KindStandard, BaseName: "ubuntu:24.04"}}}
-	rep := &agentv1.PushReport{PushId: "ps1", Key: goodKey, StagingName: "crsp/_incoming/m1/std/node-web", TargetName: "crsp/std/node-web",
+	rep := &agentv1.PushReport{PushId: "ps1", Key: goodKey, StagingName: "crsp/incoming/m1/std/node-web", TargetName: "crsp/std/node-web",
 		ManifestDigest: "sha256:aa", State: agentv1.PushReport_STATE_PUSHED, KeyInputJson: keyJSON, Repository: "acme/docs", CommitSha: "c0ffee", Branch: "main"}
 	s.PushReport(context.Background(), "m1", rep)
 	if len(rec.pushes) != 1 || rec.pushes[0].State != "pushed" || rec.pushes[0].MachineID != "m1" {

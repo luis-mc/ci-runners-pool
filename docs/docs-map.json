@@ -64,6 +64,9 @@
     "internal/backend/container/buildstream.go": [
       "docs/features/registry/spec.md"
     ],
+    "internal/backend/container/engineca.go": [
+      "docs/features/registry/spec.md"
+    ],
     "internal/backend/container/ensure.go": [
       "docs/features/registry/spec.md"
     ],
@@ -149,6 +152,9 @@
     "internal/regcreds/**": [
       "docs/features/runners/spec.md"
     ],
+    "internal/regcreds/engineca.go": [
+      "docs/features/registry/spec.md"
+    ],
     "internal/registry/**": [
       "docs/features/registry/spec.md"
     ],
@@ -178,6 +184,9 @@
       "docs/features/registry/spec.md"
     ],
     "internal/store/queries/registry_*.sql": [
+      "docs/features/registry/spec.md"
+    ],
+    "internal/store/registry_core.go": [
       "docs/features/registry/spec.md"
     ],
     "internal/store/schedstore.go": [

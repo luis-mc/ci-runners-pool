@@ -170,7 +170,7 @@ func TestOpenCore(t *testing.T) {
 	defer rc.close()
 
 	get := func(h http.Handler, token string) int {
-		req := httptest.NewRequest(http.MethodGet, "/v2/", nil)
+		req := httptest.NewRequestWithContext(ctx, http.MethodGet, "/v2/", nil)
 		req.RemoteAddr = "192.168.1.30:5000"
 		if token != "" {
 			req.Header.Set("Authorization", "Bearer "+token)
