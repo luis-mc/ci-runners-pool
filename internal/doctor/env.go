@@ -107,6 +107,21 @@ type Fleet interface {
 	Repositories(ctx context.Context) ([]Repository, error)
 }
 
+// LightStop is a light runner the controller gave up on after its tries failed
+// (scheduling R5.65): the repository, the OS and the one reason.
+type LightStop struct {
+	RepoID int64
+	OS     string
+	Tries  int
+	Reason string
+}
+
+// LightFleet is the optional part of Fleet that lists the light runners the
+// controller no longer tries. A Fleet without it adds nothing to the finding.
+type LightFleet interface {
+	LightStops(ctx context.Context) ([]LightStop, error)
+}
+
 // CacheUsage is what an agent measured of one runner's cache folder: the bytes
 // it holds and its declared cap (0 when it has none).
 type CacheUsage struct {

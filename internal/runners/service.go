@@ -94,8 +94,9 @@ type Service struct {
 
 	lightTry map[string]lightTry // repository and OS -> tries of the failed light runner
 
-	mu      sync.Mutex // one plan apply at a time
-	lightMu sync.Mutex // one light-runner change at a time
+	mu         sync.Mutex // one plan apply at a time
+	lightMu    sync.Mutex // one light-runner change at a time
+	lightTryMu sync.Mutex // guards lightTry, which a removal also resets
 
 	stopMu  sync.Mutex
 	stops   map[string]bool // plan id -> a stop was asked while it applies
@@ -773,6 +774,9 @@ func (s *Service) BeginRemove(ctx context.Context, id string, confirm bool, acto
 	}
 	if r.Scope.Kind == ScopePool {
 		return s.beginRemovePool(ctx, r, confirm, actor)
+	}
+	if confirm && r.State == Failed && IsLightRecord(r) {
+		s.ResetLightTries(r.Scope.RepositoryID) // the owner asked: the loop may try again
 	}
 	if !confirm {
 		items := []ConfirmItem{

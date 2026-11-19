@@ -323,6 +323,19 @@ type doctorFleet struct {
 	runners  runners.Store
 	repos    repos.Store
 	rsvc     *repos.Service
+	light    *runners.Service // its LightStops show in the light runner finding
+}
+
+// LightStops implements doctor.LightFleet.
+func (f doctorFleet) LightStops(context.Context) ([]doctor.LightStop, error) {
+	if f.light == nil {
+		return nil, nil
+	}
+	var out []doctor.LightStop
+	for _, s := range f.light.LightStops() {
+		out = append(out, doctor.LightStop{RepoID: s.RepoID, OS: s.OS, Tries: s.Tries, Reason: s.Reason})
+	}
+	return out, nil
 }
 
 func (f doctorFleet) Machines(ctx context.Context) ([]doctor.Machine, error) {

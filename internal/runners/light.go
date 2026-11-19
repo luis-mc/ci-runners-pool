@@ -7,6 +7,8 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/luis-mc/ci-runners-shared-pool/internal/backend"
 )
 
 // LightLabel is the label of a light runner (scheduling R5.65). A job that
@@ -70,9 +72,95 @@ const LightMaxTries = 5
 
 // lightTry is what the loop remembers about the failed light runner of one
 // repository and OS.
+//
+// It is kept when an attempt is rolled back and leaves no failed record, so
+// the count survives the ticks: a light runner that cannot start is tried
+// LightMaxTries times and then left alone (scheduling R5.65).
 type lightTry struct {
-	tries int
-	next  time.Time
+	repoID int64
+	os     string
+	tries  int
+	next   time.Time
+	reason string // why the last try failed
+	hosts  string // the machines that had a light slot at the last try
+}
+
+// LightStop is a light runner the loop gave up on: LightMaxTries tries failed.
+// The doctor and the Runners note show Reason.
+type LightStop struct {
+	RepoID int64
+	OS     string
+	Tries  int
+	Reason string
+}
+
+// LightStops lists the repository and OS pairs whose light runner the loop no
+// longer tries.
+func (s *Service) LightStops() []LightStop {
+	s.lightTryMu.Lock()
+	defer s.lightTryMu.Unlock()
+	var out []LightStop
+	for _, t := range s.lightTry {
+		if t.tries >= LightMaxTries {
+			out = append(out, LightStop{RepoID: t.repoID, OS: t.os, Tries: t.tries, Reason: t.reason})
+		}
+	}
+	sort.Slice(out, func(i, j int) bool {
+		if out[i].RepoID != out[j].RepoID {
+			return out[i].RepoID < out[j].RepoID
+		}
+		return out[i].OS < out[j].OS
+	})
+	return out
+}
+
+// ResetLightTries makes the loop try the light runner of a repository again
+// at the next check: a person removed the failed runner or asked to try again.
+func (s *Service) ResetLightTries(repoID int64) {
+	s.lightTryMu.Lock()
+	defer s.lightTryMu.Unlock()
+	for k, t := range s.lightTry {
+		if t.repoID == repoID {
+			delete(s.lightTry, k)
+		}
+	}
+}
+
+func (s *Service) getTry(key string) lightTry {
+	s.lightTryMu.Lock()
+	defer s.lightTryMu.Unlock()
+	return s.lightTry[key]
+}
+
+// setTry stores the tries of a key; nil forgets them.
+func (s *Service) setTry(key string, t *lightTry) {
+	s.lightTryMu.Lock()
+	defer s.lightTryMu.Unlock()
+	if t == nil {
+		delete(s.lightTry, key)
+		return
+	}
+	if s.lightTry == nil {
+		s.lightTry = map[string]lightTry{}
+	}
+	s.lightTry[key] = *t
+}
+
+// lightHostsKey names the machines that offer a light slot for the OS, so a
+// change of machines (one came, one left) starts the count again.
+func (s *Service) lightHostsKey(ctx context.Context, os string) string {
+	hosts, err := s.Light.LightHosts(ctx, os)
+	if err != nil {
+		return ""
+	}
+	ids := make([]string, 0, len(hosts))
+	for _, h := range hosts {
+		if h.LightSlots > 0 {
+			ids = append(ids, h.MachineID)
+		}
+	}
+	sort.Strings(ids)
+	return strings.Join(ids, ",")
 }
 
 func lightKey(repoID int64, os string) string { return fmt.Sprintf("%d|%s", repoID, os) }
@@ -108,9 +196,6 @@ func (s *Service) EnsureLight(ctx context.Context, repoID int64, repoName string
 	if err != nil {
 		return nil, err
 	}
-	if s.lightTry == nil {
-		s.lightTry = map[string]lightTry{}
-	}
 	var out []LightResult
 	var errs []error
 	for _, os := range oses {
@@ -141,7 +226,7 @@ func (s *Service) ensureLightOS(ctx context.Context, have []Record, repoID int64
 	if len(live) > 0 {
 		// A working runner is all the repository needs: failed leftovers go.
 		res.Runner = live[0].Name
-		delete(s.lightTry, key)
+		s.setTry(key, nil)
 		for _, f := range failed {
 			if err := s.discardFailed(ctx, f, actor, "light.failed_removed"); err != nil {
 				errs = append(errs, err)
@@ -149,26 +234,39 @@ func (s *Service) ensureLightOS(ctx context.Context, have []Record, repoID int64
 		}
 		return res, errors.Join(errs...)
 	}
-	if len(failed) == 0 {
-		delete(s.lightTry, key) // nothing failed (or a person removed it): start counting again
+	hosts := s.lightHostsKey(ctx, os)
+	t := s.getTry(key)
+	if t.tries > 0 && t.hosts != hosts {
+		s.setTry(key, nil) // the machines changed: start counting again
+		t = lightTry{}
 	}
 	for _, f := range failed[min(1, len(failed)):] {
 		if err := s.discardFailed(ctx, f, actor, "light.failed_removed"); err != nil {
 			errs = append(errs, err)
 		}
 	}
+	// The reason of the failure: the failed record's, or the one kept from an
+	// attempt that was rolled back and left no record.
+	reason := t.reason
+	if len(failed) > 0 && failed[0].Reason != "" {
+		reason = failed[0].Reason
+	}
+	what := "the light runner of " + OSName(os)
 	if len(failed) > 0 {
-		f, t := failed[0], s.lightTry[key]
-		if t.tries >= LightMaxTries {
-			res.Why = fmt.Sprintf("light runner %s failed %d times, so it is not tried again. Remove it to try again. Reason: %s",
-				f.Name, t.tries, f.Reason)
-			return res, errors.Join(errs...)
-		}
-		if t.tries > 0 && s.now().Before(t.next) {
-			res.Why = fmt.Sprintf("light runner %s failed (try %d of %d); next try at %s. Reason: %s",
-				f.Name, t.tries, LightMaxTries, t.next.UTC().Format("15:04 UTC"), f.Reason)
-			return res, errors.Join(errs...)
-		}
+		what = "light runner " + failed[0].Name
+	}
+	if t.tries >= LightMaxTries {
+		res.Why = fmt.Sprintf("%s failed %d times, so it is not tried again. Remove it, or change the machines, to try again. Reason: %s",
+			what, t.tries, reason)
+		return res, errors.Join(errs...)
+	}
+	if t.tries > 0 && s.now().Before(t.next) {
+		res.Why = fmt.Sprintf("%s failed (try %d of %d); next try at %s. Reason: %s",
+			what, t.tries, LightMaxTries, t.next.UTC().Format("15:04 UTC"), reason)
+		return res, errors.Join(errs...)
+	}
+	if len(failed) > 0 {
+		f := failed[0]
 		if err := s.discardFailed(ctx, f, actor, "light.failed_removed"); err != nil {
 			res.Why = fmt.Sprintf("light runner %s failed and could not be cleaned up: %v", f.Name, err)
 			return res, errors.Join(append(errs, err)...)
@@ -177,10 +275,10 @@ func (s *Service) ensureLightOS(ctx context.Context, have []Record, repoID int64
 	name, why, err := s.addLight(ctx, repoID, repoName, os, actor)
 	switch {
 	case err != nil:
-		t := s.lightTry[key]
+		t.repoID, t.os, t.hosts, t.reason = repoID, os, hosts, err.Error()
 		t.tries++
 		t.next = s.now().Add(lightBackoff(t.tries))
-		s.lightTry[key] = t
+		s.setTry(key, &t)
 		res.Why = err.Error()
 		errs = append(errs, err)
 	case why != "":
@@ -227,7 +325,7 @@ func (s *Service) discardFailed(ctx context.Context, r Record, actor, action str
 	}
 	if service != "" {
 		if err := s.Agent.CleanUp(ctx, r.MachineID, service); err != nil {
-			return fmt.Errorf("clean up the service %s: %w", service, err)
+			return fmt.Errorf("clean up the %s %s: %w", cleanUpNoun(r), service, err)
 		}
 	}
 	if err := s.Store.DeleteRunner(ctx, r.ID); err != nil {
@@ -235,6 +333,15 @@ func (s *Service) discardFailed(ctx context.Context, r Record, actor, action str
 	}
 	s.audit(ctx, actor, action, r.MachineID, r.ID, r.Name)
 	return nil
+}
+
+// cleanUpNoun says what a runner's clean-up target is: a container runner has
+// a container, not a service.
+func cleanUpNoun(r Record) string {
+	if r.Backend == string(backend.Docker) {
+		return "container"
+	}
+	return "service"
 }
 
 // addLight places and adds the light runner of one OS. A non-empty why means

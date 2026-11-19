@@ -10,6 +10,8 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backend/sys"
 )
@@ -61,60 +63,91 @@ type Engine interface {
 // ErrNoEngine is returned when Run or Command is called with no usable engine.
 var ErrNoEngine = errors.New("no usable container engine")
 
+// NoEngineError is ErrNoEngine with the reason detection gave, so a failed
+// add or clean-up says why ("the docker command is installed but the engine
+// does not answer") and not only that there is no engine. errors.Is(err,
+// ErrNoEngine) is true for it.
+type NoEngineError struct{ Reason string }
+
+// Error implements error.
+func (e *NoEngineError) Error() string {
+	if e.Reason == "" {
+		return ErrNoEngine.Error()
+	}
+	return e.Reason
+}
+
+// Is makes errors.Is(err, ErrNoEngine) true.
+func (e *NoEngineError) Is(target error) bool { return target == ErrNoEngine }
+
+// detectTimeout bounds the detection that Command and Run start themselves.
+const detectTimeout = 60 * time.Second
+
 // Docker is the Docker engine. GOOS is runtime.GOOS in the product; tests set
-// it.
+// it. Command and Run detect the engine themselves when no Detect has found it
+// yet, and again when an engine was not there at the last look, so nothing has
+// to prime the instance and an engine started later is found.
 type Docker struct {
 	Cmd  sys.Commands
 	GOOS string
 
-	route Route
+	mu     sync.Mutex // guards route and reason
+	route  Route
+	reason string // why the last detection found no usable engine
 }
 
 const serverVersionFormat = "{{.Server.Version}}"
 
 // Detect implements Engine.
 func (d *Docker) Detect(ctx context.Context) (Status, error) {
-	d.route = RouteNone
+	st := d.find(ctx)
+	d.mu.Lock()
+	d.route, d.reason = RouteNone, st.Reason
+	if st.Usable {
+		d.route = st.Route
+	}
+	d.mu.Unlock()
+	return st, nil
+}
+
+// find probes the engine. It writes no field of d.
+func (d *Docker) find(ctx context.Context) Status {
 	if d.GOOS != "windows" {
 		return d.detectNative(ctx)
 	}
 	st := d.wslState(ctx)
 	// 1. The Windows docker CLI, which talks to the engine in WSL2.
 	if v, present, why := d.probe(ctx, "docker"); v != "" {
-		d.route = RouteWindowsCLI
-		return Status{Present: true, Usable: true, Route: RouteWindowsCLI, Version: v, WSL2: st}, nil
+		return Status{Present: true, Usable: true, Route: RouteWindowsCLI, Version: v, WSL2: st}
 	} else if present {
 		// Installed, engine silent: try WSL before giving up.
 		if v2, _, _ := d.probe(ctx, "wsl", "docker"); v2 != "" {
-			d.route = RouteWSL
-			return Status{Present: true, Usable: true, Route: RouteWSL, Version: v2, WSL2: st}, nil
+			return Status{Present: true, Usable: true, Route: RouteWSL, Version: v2, WSL2: st}
 		}
-		return Status{Present: true, Route: RouteWindowsCLI, WSL2: st, Reason: ReasonEngineDown + " (" + why + ")"}, nil
+		return Status{Present: true, Route: RouteWindowsCLI, WSL2: st, Reason: ReasonEngineDown + " (" + why + ")"}
 	}
 	// 2. The CLI cannot run at all: `wsl docker`.
 	if v, present, _ := d.probe(ctx, "wsl", "docker"); v != "" {
-		d.route = RouteWSL
-		return Status{Present: true, Usable: true, Route: RouteWSL, Version: v, WSL2: st}, nil
+		return Status{Present: true, Usable: true, Route: RouteWSL, Version: v, WSL2: st}
 	} else if present {
-		return Status{Present: true, Route: RouteWSL, WSL2: st, Reason: ReasonWSLNoDocker}, nil
+		return Status{Present: true, Route: RouteWSL, WSL2: st, Reason: ReasonWSLNoDocker}
 	}
 	reason := ReasonNoEngineWinOS
 	if st == "missing" {
 		reason = ReasonCLIMissing + "; " + ReasonWSLMissing
 	}
-	return Status{WSL2: st, Reason: reason}, nil
+	return Status{WSL2: st, Reason: reason}
 }
 
-func (d *Docker) detectNative(ctx context.Context) (Status, error) {
+func (d *Docker) detectNative(ctx context.Context) Status {
 	v, present, why := d.probe(ctx, "docker")
 	switch {
 	case v != "":
-		d.route = RouteNative
-		return Status{Present: true, Usable: true, Route: RouteNative, Version: v}, nil
+		return Status{Present: true, Usable: true, Route: RouteNative, Version: v}
 	case present:
-		return Status{Present: true, Route: RouteNative, Reason: ReasonEngineDown + " (" + why + ")"}, nil
+		return Status{Present: true, Route: RouteNative, Reason: ReasonEngineDown + " (" + why + ")"}
 	}
-	return Status{Reason: ReasonCLIMissing}, nil
+	return Status{Reason: ReasonCLIMissing}
 }
 
 // probe runs `<prog> [pre...] version --format ...`. It returns the server
@@ -142,24 +175,51 @@ func (d *Docker) wslState(ctx context.Context) string {
 	return "ok"
 }
 
+// current returns the route. With none it detects once more, so an engine that
+// came up after the last look is found, and a refusal carries the reason.
+func (d *Docker) current(ctx context.Context) (Route, error) {
+	d.mu.Lock()
+	r := d.route
+	d.mu.Unlock()
+	if r != RouteNone {
+		return r, nil
+	}
+	if _, err := d.Detect(ctx); err != nil {
+		return RouteNone, err
+	}
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	if d.route == RouteNone {
+		return RouteNone, &NoEngineError{Reason: d.reason}
+	}
+	return d.route, nil
+}
+
+func buildCommand(r Route, args []string) sys.Command {
+	if r == RouteWSL {
+		return sys.Command{Name: "wsl", Args: append([]string{"docker"}, args...)}
+	}
+	return sys.Command{Name: "docker", Args: args}
+}
+
 // Command implements Engine.
 func (d *Docker) Command(args ...string) (sys.Command, error) {
-	switch d.route {
-	case RouteWindowsCLI, RouteNative:
-		return sys.Command{Name: "docker", Args: args}, nil
-	case RouteWSL:
-		return sys.Command{Name: "wsl", Args: append([]string{"docker"}, args...)}, nil
+	ctx, cancel := context.WithTimeout(context.Background(), detectTimeout)
+	defer cancel()
+	r, err := d.current(ctx)
+	if err != nil {
+		return sys.Command{}, err
 	}
-	return sys.Command{}, ErrNoEngine
+	return buildCommand(r, args), nil
 }
 
 // Run implements Engine.
 func (d *Docker) Run(ctx context.Context, args ...string) (sys.Result, error) {
-	c, err := d.Command(args...)
+	r, err := d.current(ctx)
 	if err != nil {
 		return sys.Result{}, err
 	}
-	return d.Cmd.Run(ctx, c)
+	return d.Cmd.Run(ctx, buildCommand(r, args))
 }
 
 func firstLine(s, def string) string {

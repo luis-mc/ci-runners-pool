@@ -1,6 +1,7 @@
 package checks
 
 import (
+	"context"
 	"strings"
 	"testing"
 
@@ -59,5 +60,21 @@ func TestRepoLight(t *testing.T) { // scheduling R5.65
 	r.LightRunner = false
 	if fs := run(t, doctor.Env{GitHub: g, Fleet: &fleet{repos: []doctor.Repository{r}}}, "repo.light"); len(fs) != 0 {
 		t.Fatalf("off: %+v", fs)
+	}
+}
+
+type stoppedFleet struct {
+	*fleet
+	stops []doctor.LightStop
+}
+
+func (s stoppedFleet) LightStops(context.Context) ([]doctor.LightStop, error) { return s.stops, nil }
+
+func TestRepoLightSaysWhyTheLoopStopped(t *testing.T) { // scheduling R5.65
+	f := stoppedFleet{fleet: &fleet{repos: []doctor.Repository{lightRepo()}},
+		stops: []doctor.LightStop{{RepoID: 1, OS: "linux", Tries: 5, Reason: "the docker command is installed but the engine does not answer"}}}
+	fs := run(t, doctor.Env{GitHub: newGH(), Fleet: f}, "repo.light")
+	if len(fs) != 1 || fs[0].Severity != doctor.Warn || !strings.Contains(fs[0].Detail, "failed 5 times") || !strings.Contains(fs[0].Detail, "engine does not answer") {
+		t.Fatalf("%+v", fs)
 	}
 }

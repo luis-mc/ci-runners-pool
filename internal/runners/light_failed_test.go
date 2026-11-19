@@ -186,3 +186,64 @@ func TestRemoveFailedRunnerCleansUpWithoutDeregistering(t *testing.T) { // UX-6
 		t.Fatalf("%v removed %d folders %v", err, len(r.ag.removed), r.ag.folders)
 	}
 }
+
+// The owner's bug: an attempt that is rolled back leaves no failed record, so
+// the count started again every tick and a failed row came back every 10 minutes.
+func TestEnsureLightCountsRolledBackAttempts(t *testing.T) { // scheduling R5.65, UX-19
+	r := lightRig(t)
+	r.ag.addErr = errors.New("no usable container engine")
+	ctx := context.Background()
+	rollBack := func() {
+		recs, _ := r.svc.LightRunners(ctx, 1)
+		for _, x := range recs {
+			_ = r.svc.Store.DeleteRunner(ctx, x.ID)
+		}
+	}
+	for round := 0; round < 40; round++ {
+		if _, err := r.svc.EnsureLight(ctx, 1, "demo", []string{"linux"}, "luis-mc"); round >= LightMaxTries && err != nil {
+			t.Fatalf("round %d: tries again: %v", round, err)
+		}
+		rollBack()
+		r.clock = r.clock.Add(10 * time.Minute)
+	}
+	if got := len(r.ag.added); got != LightMaxTries {
+		t.Fatalf("tried %d times, the cap is %d", got, LightMaxTries)
+	}
+	res, err := r.svc.EnsureLight(ctx, 1, "demo", []string{"linux"}, "luis-mc")
+	if err != nil || !strings.Contains(res[0].Why, "no usable container engine") || !strings.Contains(res[0].Why, "not tried again") {
+		t.Fatalf("one clear reason: %+v %v", res, err)
+	}
+	stops := r.svc.LightStops()
+	if len(stops) != 1 || stops[0].RepoID != 1 || stops[0].OS != "linux" || stops[0].Tries != LightMaxTries || !strings.Contains(stops[0].Reason, "container engine") {
+		t.Fatalf("stops %+v", stops)
+	}
+
+	// A change of machines starts the count again.
+	r.svc.Light = fakeLightPlacer{"linux": {{MachineID: "m1", LightSlots: 1}, {MachineID: "m2", LightSlots: 1}}}
+	r.svc.EnsureLight(ctx, 1, "demo", []string{"linux"}, "luis-mc") //nolint:errcheck // the add fails again
+	if got := len(r.ag.added); got != LightMaxTries+1 {
+		t.Fatalf("a new machine is tried: %d", got)
+	}
+
+	// The owner removes the failed runner: the loop may try again.
+	r.svc.ResetLightTries(1)
+	if len(r.svc.LightStops()) != 0 {
+		t.Fatal("the stop was not cleared")
+	}
+}
+
+func TestDiscardFailedContainerSaysContainer(t *testing.T) { // runners R5.10
+	r := lightRig(t)
+	ctx := context.Background()
+	rec := Record{ID: "f1", Name: "crsp-light-demo-linux", MachineID: "m1", OS: "linux", Kind: "persistent", Backend: "docker", Managed: true,
+		Route: Route{Queue: QueueLight}, Scope: Scope{Kind: "repository", RepositoryID: 1}, State: Failed, Reason: "x",
+		ServiceName: "crsp-persistent-pool:crsp-light-demo-linux", CreatedAt: r.clock}
+	if err := r.store.InsertRunner(ctx, rec); err != nil {
+		t.Fatal(err)
+	}
+	r.ag.cleanErr = errors.New("the docker command is installed but the engine does not answer")
+	err := r.svc.discardFailed(ctx, rec, "x", "light.failed_removed")
+	if err == nil || !strings.Contains(err.Error(), "clean up the container crsp-persistent-pool") || strings.Contains(err.Error(), "service") {
+		t.Fatalf("wording: %v", err)
+	}
+}

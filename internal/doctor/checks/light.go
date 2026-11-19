@@ -52,8 +52,14 @@ func repoLight(ctx context.Context, env doctor.Env) []doctor.Finding {
 			out = append(out, skipFor("repo.light", repoSubject(r), "The runners", err))
 			continue
 		}
+		var stops []doctor.LightStop
+		if lf, ok := env.Fleet.(doctor.LightFleet); ok {
+			stops, _ = lf.LightStops(ctx)
+		}
 		for _, os := range oses {
-			out = append(out, lightFinding(r, os, list, machines, managed))
+			f := lightFinding(r, os, list, machines, managed)
+			lightStopped(&f, r, os, stops)
+			out = append(out, f)
 		}
 	}
 	return out
@@ -85,6 +91,22 @@ func lightFinding(r doctor.Repository, os string, list []github.Runner, machines
 	}
 	f.Detail = "No online " + osTitle(os) + " machine has a light slot, so there is nowhere to place it. RUNS_ON_LIGHT is not written until one is placed."
 	return f
+}
+
+// lightStopped says why the loop stopped trying: the one reason, and what to
+// do. It replaces the line that promises a new try at the next check.
+func lightStopped(f *doctor.Finding, r doctor.Repository, os string, stops []doctor.LightStop) {
+	if f.Severity == doctor.OK {
+		return
+	}
+	for _, s := range stops {
+		if s.RepoID != r.ID || s.OS != os {
+			continue
+		}
+		f.Detail = fmt.Sprintf("The light runner failed %d times, so it is not tried again. Reason: %s", s.Tries, s.Reason)
+		f.Fix = doctor.Fix{Text: "Fix the cause on the machine, then remove the failed light runner (or add a machine) and the next check tries again.", Link: "/runners"}
+		return
+	}
 }
 
 func hasLabel(labels []string, want string) bool {

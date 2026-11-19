@@ -322,7 +322,7 @@ func buildController(ctx context.Context, d controllerDeps) (*controller, error)
 
 	// Doctor: the M1 check registry over the controller's own data.
 	_, docSvc := wire.NewDoctor(wire.DoctorDeps{
-		Fleet: doctorFleet{machines: d.Machines, runners: rstore, repos: repoStore, rsvc: rsvc},
+		Fleet: doctorFleet{machines: d.Machines, runners: rstore, repos: repoStore, rsvc: rsvc, light: runnerSvc},
 		GitHub: func(context.Context) (doctor.GitHub, error) {
 			if gh.AppID() == 0 {
 				return nil, nil
