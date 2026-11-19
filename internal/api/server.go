@@ -8,6 +8,7 @@ package api
 
 import (
 	"context"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/jobsdata"
 	"log/slog"
 	"net/http"
 	"time"
@@ -61,6 +62,10 @@ type Options struct {
 	// Jobs and Slots serve the jobs and slot routes (handlers_jobs.go).
 	Jobs  slots.Jobs
 	Slots scheduler.SlotQueue
+	// JobsData serves the Jobs section: runs, jobs, steps, forecasts, groups, stats and summaries (handlers_jobs.go,
+	// handlers_runs.go, handlers_jobstats.go). With it listJobs, getJob and exportJobs read from it, not from Jobs. Nil
+	// answers 501 on the new routes.
+	JobsData jobsdata.Reader
 	// Live serves the overview and the event stream (handlers_live.go). Nil
 	// answers 501 like an unbuilt operation.
 	Live LiveService

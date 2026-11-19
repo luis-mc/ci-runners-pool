@@ -5,11 +5,9 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
-	"errors"
 	"io"
 	"net/http"
 	"strings"
-	"time"
 )
 
 // MaxWebhookBody is the largest delivery accepted (R6.5).
@@ -110,7 +108,8 @@ func (h *WebhookHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	switch event {
 	case "workflow_job":
-		job, err := ParseWorkflowJobEvent(body)
+		detail, err := ParseWorkflowJobDetail(body)
+		job := detail.Job
 		if err != nil {
 			if h.OnDelivery != nil {
 				h.OnDelivery(bodyRepository(body), 0, false)
@@ -119,6 +118,9 @@ func (h *WebhookHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		h.Events.Job(job)
+		if de, ok := h.Events.(JobDetailEvents); ok {
+			de.JobDetail(detail)
+		}
 		if h.OnDelivery != nil {
 			h.OnDelivery(job.Repository, job.ID, true)
 		}
@@ -182,27 +184,6 @@ func bodyRepository(body []byte) string {
 
 // ParseWorkflowJobEvent reads a workflow_job webhook body.
 func ParseWorkflowJobEvent(body []byte) (Job, error) {
-	var ev struct {
-		Action      string `json:"action"`
-		WorkflowJob struct {
-			apiJob
-		} `json:"workflow_job"`
-		Repository struct {
-			FullName string `json:"full_name"`
-		} `json:"repository"`
-	}
-	if err := json.Unmarshal(body, &ev); err != nil {
-		return Job{}, err
-	}
-	if ev.WorkflowJob.ID == 0 || ev.Repository.FullName == "" {
-		return Job{}, errors.New("workflow_job: missing job or repository")
-	}
-	j := ev.WorkflowJob.job(ev.Repository.FullName, apiRun{})
-	// Fork and event come from the run, which the event omits; the poller and
-	// reconcile fill them in. A webhook never claims "not from a fork".
-	j.FromFork, j.Partial = false, true
-	if j.CreatedAt.IsZero() {
-		j.CreatedAt = time.Now().UTC()
-	}
-	return j, nil
+	ev, err := ParseWorkflowJobDetail(body)
+	return ev.Job, err
 }

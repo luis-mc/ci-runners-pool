@@ -285,6 +285,8 @@ Source paths are in github.com/luis-mc/dev-standards, under `claude/plugins/deli
 
 **R5.71** (built, OPS28; runners R5.91) — **A runner that is not clean takes no new job.** When the last clean-up of a persistent runner failed, the gate holds a job for that runner with the wait reason paused and the text "this runner is not clean yet: <reason>", until the runner is clean again.
 
+**R5.72** (OPS34, owner decision 8) — **Start range of a queued job.** For every queued job the controller computes a start range and shows it with the queue order and the wait reason. The model: each running job frees its slot at its forecast end (observability R5.40); a queued job takes the first free slot in the order of service (R5.8) and holds it for one median run time. The range runs from the lows to the highs of the jobs ahead. A job passed over by R5.10 or held by R5.68 shows the reason and no start range. With no forecast for the jobs ahead the range is "not enough history yet". The range is informative: it never changes the order of service.
+
 ## 6. Non-functional requirements
 
 **R6.1** — With a free slot and a machine under budget, the job-started hook returns within 2 s. No measurement sleeps. M1. Built. Source: `load.py` `measure_now`.
@@ -458,6 +460,7 @@ A test with a path in backticks exists; one marked planned is NOT YET IMPLEMENTE
 | R5.69 | `internal/scheduler/weights_test.go` TestAdmissionByWeight, TestHeavyWeightBlocksWhileSlotNumberFree, TestUnknownClassDefaultWeight, TestWeightAboveBudgetRunsAlone, TestWeightFitsButLoadNotMeasured, TestWaitWordsNameTheWeight; `internal/scheduler/slots/weights_test.go` | new |
 | R5.70 | `internal/scheduler/gate_test.go` TestRenewKeepsTheSlot, TestRenewJobsKeepsListedJobsOnly, TestExpiredLeaseReclaimsTheSlot, TestRenewAfterExpiryIsLost, TestReusedPidCannotStealASlot, TestCrashedHolderSlotIsReclaimedForTheQueue, TestRetriedGateRenewsTheLease; `internal/store/slot_lease_migration_test.go` TestIntegrationSlotLeaseMigrationKeepsHeldSlots | new (dev-standards lesson 4, rule D3) |
 | R5.71 | `internal/scheduler/unclean_test.go` TestGateHoldsJobsOfAnUncleanRunner |
+| R5.72 | `internal/forecast/forecast_test.go` TestQueueStartRange, TestPassedOverJobHasNoRange, TestRangeDoesNotChangeOrder |
 | R6.1 | `internal/hooks/hooks_test.go` TestQuietGateUnderTwoSeconds | `test_load.py` Cache `test_no_sleep_and_delta_from_saved_raw` |
 | R6.2 | `internal/scheduler/gate_test.go` TestTwoTakersNeverShareASlot | `test_machine.py` Slots `test_race_two_processes_never_share_one_slot` |
 | R6.3 | `internal/scheduler/guard_test.go` TestQueriesHaveDeadline | new |

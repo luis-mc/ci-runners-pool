@@ -112,6 +112,27 @@ func (e Arch) Valid() bool {
 	}
 }
 
+// Defines values for AttemptRefState.
+const (
+	AttemptRefStateDone    AttemptRefState = "done"
+	AttemptRefStateQueued  AttemptRefState = "queued"
+	AttemptRefStateRunning AttemptRefState = "running"
+)
+
+// Valid indicates whether the value is a known member of the AttemptRefState enum.
+func (e AttemptRefState) Valid() bool {
+	switch e {
+	case AttemptRefStateDone:
+		return true
+	case AttemptRefStateQueued:
+		return true
+	case AttemptRefStateRunning:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for AuditEventResult.
 const (
 	AuditEventResultDone    AuditEventResult = "done"
@@ -424,6 +445,30 @@ func (e DoctorRunTrigger) Valid() bool {
 	}
 }
 
+// Defines values for ForecastBasis.
+const (
+	ForecastBasisJobKey           ForecastBasis = "job_key"
+	ForecastBasisNotEnoughHistory ForecastBasis = "not_enough_history"
+	ForecastBasisRepository       ForecastBasis = "repository"
+	ForecastBasisWorkflow         ForecastBasis = "workflow"
+)
+
+// Valid indicates whether the value is a known member of the ForecastBasis enum.
+func (e ForecastBasis) Valid() bool {
+	switch e {
+	case ForecastBasisJobKey:
+		return true
+	case ForecastBasisNotEnoughHistory:
+		return true
+	case ForecastBasisRepository:
+		return true
+	case ForecastBasisWorkflow:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for FreeSlotsRequestSlotsKind.
 const (
 	FreeSlotsRequestSlotsKindCi    FreeSlotsRequestSlotsKind = "ci"
@@ -604,6 +649,27 @@ func (e Isolation) Valid() bool {
 	}
 }
 
+// Defines values for JobJobType.
+const (
+	JobJobTypeHeavy    JobJobType = "heavy"
+	JobJobTypeLight    JobJobType = "light"
+	JobJobTypeStandard JobJobType = "standard"
+)
+
+// Valid indicates whether the value is a known member of the JobJobType enum.
+func (e JobJobType) Valid() bool {
+	switch e {
+	case JobJobTypeHeavy:
+		return true
+	case JobJobTypeLight:
+		return true
+	case JobJobTypeStandard:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for JobState.
 const (
 	JobStateDone    JobState = "done"
@@ -619,6 +685,48 @@ func (e JobState) Valid() bool {
 	case JobStateQueued:
 		return true
 	case JobStateRunning:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for JobDetailJobType.
+const (
+	JobDetailJobTypeHeavy    JobDetailJobType = "heavy"
+	JobDetailJobTypeLight    JobDetailJobType = "light"
+	JobDetailJobTypeStandard JobDetailJobType = "standard"
+)
+
+// Valid indicates whether the value is a known member of the JobDetailJobType enum.
+func (e JobDetailJobType) Valid() bool {
+	switch e {
+	case JobDetailJobTypeHeavy:
+		return true
+	case JobDetailJobTypeLight:
+		return true
+	case JobDetailJobTypeStandard:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for JobDetailState.
+const (
+	JobDetailStateDone    JobDetailState = "done"
+	JobDetailStateQueued  JobDetailState = "queued"
+	JobDetailStateRunning JobDetailState = "running"
+)
+
+// Valid indicates whether the value is a known member of the JobDetailState enum.
+func (e JobDetailState) Valid() bool {
+	switch e {
+	case JobDetailStateDone:
+		return true
+	case JobDetailStateQueued:
+		return true
+	case JobDetailStateRunning:
 		return true
 	default:
 		return false
@@ -1624,6 +1732,66 @@ func (e Role) Valid() bool {
 	}
 }
 
+// Defines values for RunGraphSource.
+const (
+	TimingOverlap RunGraphSource = "timing_overlap"
+	WorkflowFile  RunGraphSource = "workflow_file"
+)
+
+// Valid indicates whether the value is a known member of the RunGraphSource enum.
+func (e RunGraphSource) Valid() bool {
+	switch e {
+	case TimingOverlap:
+		return true
+	case WorkflowFile:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RunItemState.
+const (
+	RunItemStateDone    RunItemState = "done"
+	RunItemStateQueued  RunItemState = "queued"
+	RunItemStateRunning RunItemState = "running"
+)
+
+// Valid indicates whether the value is a known member of the RunItemState enum.
+func (e RunItemState) Valid() bool {
+	switch e {
+	case RunItemStateDone:
+		return true
+	case RunItemStateQueued:
+		return true
+	case RunItemStateRunning:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RunSummaryState.
+const (
+	RunSummaryStateDone    RunSummaryState = "done"
+	RunSummaryStateQueued  RunSummaryState = "queued"
+	RunSummaryStateRunning RunSummaryState = "running"
+)
+
+// Valid indicates whether the value is a known member of the RunSummaryState enum.
+func (e RunSummaryState) Valid() bool {
+	switch e {
+	case RunSummaryStateDone:
+		return true
+	case RunSummaryStateQueued:
+		return true
+	case RunSummaryStateRunning:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for RunnerKind.
 const (
 	RunnerKindEphemeral  RunnerKind = "ephemeral"
@@ -1636,6 +1804,24 @@ func (e RunnerKind) Valid() bool {
 	case RunnerKindEphemeral:
 		return true
 	case RunnerKindPersistent:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RunnerRefCache.
+const (
+	Cold RunnerRefCache = "cold"
+	Warm RunnerRefCache = "warm"
+)
+
+// Valid indicates whether the value is a known member of the RunnerRefCache enum.
+func (e RunnerRefCache) Valid() bool {
+	switch e {
+	case Cold:
+		return true
+	case Warm:
 		return true
 	default:
 		return false
@@ -1891,6 +2077,54 @@ func (e StartAppManifestRequestAccountType) Valid() bool {
 	case StartAppManifestRequestAccountTypeOrganization:
 		return true
 	case StartAppManifestRequestAccountTypeUser:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for StepItemResult.
+const (
+	StepItemResultCancelled StepItemResult = "cancelled"
+	StepItemResultFailure   StepItemResult = "failure"
+	StepItemResultSkipped   StepItemResult = "skipped"
+	StepItemResultSuccess   StepItemResult = "success"
+)
+
+// Valid indicates whether the value is a known member of the StepItemResult enum.
+func (e StepItemResult) Valid() bool {
+	switch e {
+	case StepItemResultCancelled:
+		return true
+	case StepItemResultFailure:
+		return true
+	case StepItemResultSkipped:
+		return true
+	case StepItemResultSuccess:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for StepItemState.
+const (
+	StepItemStateDone    StepItemState = "done"
+	StepItemStateQueued  StepItemState = "queued"
+	StepItemStateRunning StepItemState = "running"
+	StepItemStateSkipped StepItemState = "skipped"
+)
+
+// Valid indicates whether the value is a known member of the StepItemState enum.
+func (e StepItemState) Valid() bool {
+	switch e {
+	case StepItemStateDone:
+		return true
+	case StepItemStateQueued:
+		return true
+	case StepItemStateRunning:
+		return true
+	case StepItemStateSkipped:
 		return true
 	default:
 		return false
@@ -2269,6 +2503,75 @@ func (e ListJobsParamsState) Valid() bool {
 	}
 }
 
+// Defines values for ListJobGroupsParamsBy.
+const (
+	ListJobGroupsParamsByJobType    ListJobGroupsParamsBy = "job-type"
+	ListJobGroupsParamsByMachine    ListJobGroupsParamsBy = "machine"
+	ListJobGroupsParamsByRepository ListJobGroupsParamsBy = "repository"
+	ListJobGroupsParamsByRunner     ListJobGroupsParamsBy = "runner"
+	ListJobGroupsParamsByRunnerType ListJobGroupsParamsBy = "runner-type"
+)
+
+// Valid indicates whether the value is a known member of the ListJobGroupsParamsBy enum.
+func (e ListJobGroupsParamsBy) Valid() bool {
+	switch e {
+	case ListJobGroupsParamsByJobType:
+		return true
+	case ListJobGroupsParamsByMachine:
+		return true
+	case ListJobGroupsParamsByRepository:
+		return true
+	case ListJobGroupsParamsByRunner:
+		return true
+	case ListJobGroupsParamsByRunnerType:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for GetJobStatsParamsDays.
+const (
+	N14 GetJobStatsParamsDays = 14
+	N30 GetJobStatsParamsDays = 30
+	N7  GetJobStatsParamsDays = 7
+)
+
+// Valid indicates whether the value is a known member of the GetJobStatsParamsDays enum.
+func (e GetJobStatsParamsDays) Valid() bool {
+	switch e {
+	case N14:
+		return true
+	case N30:
+		return true
+	case N7:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for GetJobStatsParamsState.
+const (
+	GetJobStatsParamsStateDone    GetJobStatsParamsState = "done"
+	GetJobStatsParamsStateQueued  GetJobStatsParamsState = "queued"
+	GetJobStatsParamsStateRunning GetJobStatsParamsState = "running"
+)
+
+// Valid indicates whether the value is a known member of the GetJobStatsParamsState enum.
+func (e GetJobStatsParamsState) Valid() bool {
+	switch e {
+	case GetJobStatsParamsStateDone:
+		return true
+	case GetJobStatsParamsStateQueued:
+		return true
+	case GetJobStatsParamsStateRunning:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for DeleteRegistryLoginParamsKind.
 const (
 	DeleteRegistryLoginParamsKindContainer  DeleteRegistryLoginParamsKind = "container"
@@ -2284,6 +2587,27 @@ func (e DeleteRegistryLoginParamsKind) Valid() bool {
 	case DeleteRegistryLoginParamsKindPersistent:
 		return true
 	case DeleteRegistryLoginParamsKindVm:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ListRunsParamsState.
+const (
+	ListRunsParamsStateDone    ListRunsParamsState = "done"
+	ListRunsParamsStateQueued  ListRunsParamsState = "queued"
+	ListRunsParamsStateRunning ListRunsParamsState = "running"
+)
+
+// Valid indicates whether the value is a known member of the ListRunsParamsState enum.
+func (e ListRunsParamsState) Valid() bool {
+	switch e {
+	case ListRunsParamsStateDone:
+		return true
+	case ListRunsParamsStateQueued:
+		return true
+	case ListRunsParamsStateRunning:
 		return true
 	default:
 		return false
@@ -2400,6 +2724,17 @@ type ApplyPlanRequest struct {
 
 // Arch defines model for Arch.
 type Arch string
+
+// AttemptRef defines model for AttemptRef.
+type AttemptRef struct {
+	Attempt int             `json:"attempt"`
+	JobId   int64           `json:"job_id"`
+	Result  *JobResult      `json:"result,omitempty"`
+	State   AttemptRefState `json:"state"`
+}
+
+// AttemptRefState defines model for AttemptRef.State.
+type AttemptRefState string
 
 // AuditEvent observability R5.24.
 type AuditEvent struct {
@@ -2587,6 +2922,18 @@ type CreateJoinFileRequest struct {
 // CreateJoinFileRequestOs defines model for CreateJoinFileRequest.Os.
 type CreateJoinFileRequestOs string
 
+// DayStat defines model for DayStat.
+type DayStat struct {
+	// Day UTC date, such as 2026-11-18.
+	Day     string  `json:"day"`
+	Failed  int     `json:"failed"`
+	Jobs    int     `json:"jobs"`
+	RunP50  float32 `json:"run_p50"`
+	RunP90  float32 `json:"run_p90"`
+	WaitP50 float32 `json:"wait_p50"`
+	WaitP90 float32 `json:"wait_p90"`
+}
+
 // DockerCompactMode The automatic compact of Docker's disk file. auto (default) is on for a Windows machine with a Docker Desktop disk file and off elsewhere (caches R5.51 to R5.54).
 type DockerCompactMode string
 
@@ -2740,6 +3087,13 @@ type ErrorEnvelope struct {
 	Error ErrorBody `json:"error"`
 }
 
+// Eta Seconds from now, with a range. When a queued job starts, or when a run ends.
+type Eta struct {
+	Hi  float32 `json:"hi"`
+	Lo  float32 `json:"lo"`
+	P50 float32 `json:"p50"`
+}
+
 // ExchangeCliTokenRequest defines model for ExchangeCliTokenRequest.
 type ExchangeCliTokenRequest struct {
 	// GithubCredential The device-flow user token. Checked once and dropped.
@@ -2762,6 +3116,49 @@ type ExtraPackages struct {
 type ExtraPackagesUpdate struct {
 	// Text The whole list, one name per line. Blank lines and lines that start with
 	Text string `json:"text"`
+}
+
+// Forecast A duration in seconds with a range and the basis it rests on (OPS34 D4). The range is p25 to p90, at least 10 percent either way.
+type Forecast struct {
+	// Basis Where a forecast came from. The job key, else its workflow, else its repository, else nothing (5 samples needed).
+	Basis ForecastBasis `json:"basis"`
+
+	// ChangedLately The median of the last 10 moved by more than a quarter against the 20 before; the last 10 are used.
+	ChangedLately *bool   `json:"changed_lately,omitempty"`
+	Hi            float32 `json:"hi"`
+	Lo            float32 `json:"lo"`
+
+	// Machine Set when only samples of this machine were used.
+	Machine *string  `json:"machine,omitempty"`
+	P25     *float32 `json:"p25,omitempty"`
+	P50     float32  `json:"p50"`
+	P75     *float32 `json:"p75,omitempty"`
+	Samples int      `json:"samples"`
+}
+
+// ForecastAnswer defines model for ForecastAnswer.
+type ForecastAnswer struct {
+	// Forecast A duration in seconds with a range and the basis it rests on (OPS34 D4). The range is p25 to p90, at least 10 percent either way.
+	Forecast Forecast       `json:"forecast"`
+	History  []HistoryPoint `json:"history"`
+	JobIdent string         `json:"job_ident"`
+	Steps    []StepForecast `json:"steps"`
+}
+
+// ForecastBasis Where a forecast came from. The job key, else its workflow, else its repository, else nothing (5 samples needed).
+type ForecastBasis string
+
+// ForecastPoint defines model for ForecastPoint.
+type ForecastPoint struct {
+	ActualSeconds   float32 `json:"actual_seconds"`
+	Basis           string  `json:"basis"`
+	ForecastSeconds float32 `json:"forecast_seconds"`
+	Hi              float32 `json:"hi"`
+	JobId           int64   `json:"job_id"`
+	Lo              float32 `json:"lo"`
+
+	// Note What the forecast rested on, in words.
+	Note *string `json:"note,omitempty"`
 }
 
 // FreeSlotsRequest defines model for FreeSlotsRequest.
@@ -2848,6 +3245,15 @@ type Health struct {
 // HealthStatus defines model for Health.Status.
 type HealthStatus string
 
+// HistoryPoint One earlier run of a job key.
+type HistoryPoint struct {
+	At      time.Time  `json:"at"`
+	Branch  string     `json:"branch"`
+	Machine *string    `json:"machine,omitempty"`
+	Result  *JobResult `json:"result,omitempty"`
+	Seconds float32    `json:"seconds"`
+}
+
 // HostCommandRequest defines model for HostCommandRequest.
 type HostCommandRequest struct {
 	// Command The program and its arguments; run without a shell.
@@ -2866,6 +3272,17 @@ type HostCommandResult struct {
 
 	// Output The last 64 KiB of the combined output, redacted.
 	Output string `json:"output"`
+}
+
+// HourStat defines model for HourStat.
+type HourStat struct {
+	Count int `json:"count"`
+
+	// Hour UTC.
+	Hour int `json:"hour"`
+
+	// Weekday 0 is Sunday.
+	Weekday int `json:"weekday"`
 }
 
 // Image One image on one machine (runners R5.32 and R5.33).
@@ -2976,32 +3393,61 @@ type Isolation string
 
 // Job One job attempt (observability R5.7, R5.8).
 type Job struct {
-	Backend           *string    `json:"backend,omitempty"`
-	CompletedAt       *time.Time `json:"completed_at,omitempty"`
-	CreatedAt         *time.Time `json:"created_at,omitempty"`
+	Backend        *string    `json:"backend,omitempty"`
+	Branch         *string    `json:"branch,omitempty"`
+	CleanupSeconds *int       `json:"cleanup_seconds,omitempty"`
+	CompletedAt    *time.Time `json:"completed_at,omitempty"`
+	CreatedAt      *time.Time `json:"created_at,omitempty"`
+
+	// Forecast A duration in seconds with a range and the basis it rests on (OPS34 D4). The range is p25 to p90, at least 10 percent either way.
+	Forecast          *Forecast  `json:"forecast,omitempty"`
 	GithubJobId       int64      `json:"github_job_id"`
 	GithubWaitSeconds *int       `json:"github_wait_seconds,omitempty"`
 	HeadSha           *string    `json:"head_sha,omitempty"`
 	HtmlUrl           *string    `json:"html_url,omitempty"`
 	Id                int64      `json:"id"`
 	Isolation         *Isolation `json:"isolation,omitempty"`
-	JobName           string     `json:"job_name"`
-	Labels            []string   `json:"labels"`
-	MachineId         *string    `json:"machine_id,omitempty"`
-	QueuedAt          *time.Time `json:"queued_at,omitempty"`
-	Repository        string     `json:"repository"`
-	RepositoryId      *int64     `json:"repository_id,omitempty"`
-	Result            *JobResult `json:"result,omitempty"`
-	RunAttempt        int        `json:"run_attempt"`
-	RunId             int64      `json:"run_id"`
-	RunSeconds        *int       `json:"run_seconds,omitempty"`
-	RunnerId          *string    `json:"runner_id,omitempty"`
-	RunnerName        *string    `json:"runner_name,omitempty"`
-	SlotAt            *time.Time `json:"slot_at,omitempty"`
-	SlotWaitSeconds   *int       `json:"slot_wait_seconds,omitempty"`
-	StartedAt         *time.Time `json:"started_at,omitempty"`
-	State             JobState   `json:"state"`
-	Trigger           *string    `json:"trigger,omitempty"`
+
+	// JobIdent Repository, workflow, job name with matrix values. The same job of another run has the same key (OPS34).
+	JobIdent *string `json:"job_ident,omitempty"`
+	JobName  string  `json:"job_name"`
+
+	// JobType The scheduler class of the job. Not the job name; filter by name with the `job_type` query.
+	JobType   *JobJobType `json:"job_type,omitempty"`
+	Labels    []string    `json:"labels"`
+	MachineId *string     `json:"machine_id,omitempty"`
+	Matrix    *[]string   `json:"matrix,omitempty"`
+
+	// Needs node_id of the jobs this one needs.
+	Needs *[]string `json:"needs,omitempty"`
+
+	// NodeId The id of the job inside its run (its name with matrix values). Edges and `needs` use it.
+	NodeId      *string `json:"node_id,omitempty"`
+	PullRequest *int    `json:"pull_request,omitempty"`
+
+	// QueueEta Seconds from now, with a range. When a queued job starts, or when a run ends.
+	QueueEta *Eta `json:"queue_eta,omitempty"`
+
+	// QueuePosition 1-based place in the queue, queued jobs only.
+	QueuePosition   *int       `json:"queue_position,omitempty"`
+	QueuedAt        *time.Time `json:"queued_at,omitempty"`
+	Repository      string     `json:"repository"`
+	RepositoryId    *int64     `json:"repository_id,omitempty"`
+	Result          *JobResult `json:"result,omitempty"`
+	RunAttempt      int        `json:"run_attempt"`
+	RunId           int64      `json:"run_id"`
+	RunSeconds      *int       `json:"run_seconds,omitempty"`
+	Runner          *RunnerRef `json:"runner,omitempty"`
+	RunnerId        *string    `json:"runner_id,omitempty"`
+	RunnerName      *string    `json:"runner_name,omitempty"`
+	SlotAt          *time.Time `json:"slot_at,omitempty"`
+	SlotWaitSeconds *int       `json:"slot_wait_seconds,omitempty"`
+	StartedAt       *time.Time `json:"started_at,omitempty"`
+	State           JobState   `json:"state"`
+
+	// TaskId The task id the branch starts with, when it does.
+	TaskId  *string `json:"task_id,omitempty"`
+	Trigger *string `json:"trigger,omitempty"`
 
 	// WaitReason observability R5.5.
 	WaitReason *WaitReason `json:"wait_reason,omitempty"`
@@ -3009,10 +3455,126 @@ type Job struct {
 	// WaitText The reason with its machine, numbers or labels.
 	WaitText *string `json:"wait_text,omitempty"`
 	Workflow *string `json:"workflow,omitempty"`
+
+	// Worktree Only when the job reported it.
+	Worktree *string `json:"worktree,omitempty"`
 }
+
+// JobJobType The scheduler class of the job. Not the job name; filter by name with the `job_type` query.
+type JobJobType string
 
 // JobState defines model for Job.State.
 type JobState string
+
+// JobDetail A job with its steps, the last 30 runs of its key, its attempts and the ETA of its run (OPS34).
+type JobDetail struct {
+	Attempts       []AttemptRef `json:"attempts"`
+	Backend        *string      `json:"backend,omitempty"`
+	Branch         *string      `json:"branch,omitempty"`
+	CleanupSeconds *int         `json:"cleanup_seconds,omitempty"`
+	CompletedAt    *time.Time   `json:"completed_at,omitempty"`
+	CreatedAt      *time.Time   `json:"created_at,omitempty"`
+
+	// Forecast A duration in seconds with a range and the basis it rests on (OPS34 D4). The range is p25 to p90, at least 10 percent either way.
+	Forecast          *Forecast `json:"forecast,omitempty"`
+	GithubJobId       int64     `json:"github_job_id"`
+	GithubWaitSeconds *int      `json:"github_wait_seconds,omitempty"`
+	HeadSha           *string   `json:"head_sha,omitempty"`
+
+	// History The last 30 durations of this job key, oldest first.
+	History   []HistoryPoint `json:"history"`
+	HtmlUrl   *string        `json:"html_url,omitempty"`
+	Id        int64          `json:"id"`
+	Isolation *Isolation     `json:"isolation,omitempty"`
+
+	// JobIdent Repository, workflow, job name with matrix values. The same job of another run has the same key (OPS34).
+	JobIdent *string `json:"job_ident,omitempty"`
+	JobName  string  `json:"job_name"`
+
+	// JobType The scheduler class of the job. Not the job name; filter by name with the `job_type` query.
+	JobType   *JobDetailJobType `json:"job_type,omitempty"`
+	Labels    []string          `json:"labels"`
+	MachineId *string           `json:"machine_id,omitempty"`
+	Matrix    *[]string         `json:"matrix,omitempty"`
+
+	// Needs node_id of the jobs this one needs.
+	Needs *[]string `json:"needs,omitempty"`
+
+	// NodeId The id of the job inside its run (its name with matrix values). Edges and `needs` use it.
+	NodeId      *string `json:"node_id,omitempty"`
+	PullRequest *int    `json:"pull_request,omitempty"`
+
+	// QueueEta Seconds from now, with a range. When a queued job starts, or when a run ends.
+	QueueEta *Eta `json:"queue_eta,omitempty"`
+
+	// QueuePosition 1-based place in the queue, queued jobs only.
+	QueuePosition *int       `json:"queue_position,omitempty"`
+	QueuedAt      *time.Time `json:"queued_at,omitempty"`
+	Repository    string     `json:"repository"`
+	RepositoryId  *int64     `json:"repository_id,omitempty"`
+	Result        *JobResult `json:"result,omitempty"`
+	RunAttempt    int        `json:"run_attempt"`
+
+	// RunEta Seconds from now, with a range. When a queued job starts, or when a run ends.
+	RunEta          *Eta           `json:"run_eta,omitempty"`
+	RunId           int64          `json:"run_id"`
+	RunSeconds      *int           `json:"run_seconds,omitempty"`
+	Runner          *RunnerRef     `json:"runner,omitempty"`
+	RunnerId        *string        `json:"runner_id,omitempty"`
+	RunnerName      *string        `json:"runner_name,omitempty"`
+	SlotAt          *time.Time     `json:"slot_at,omitempty"`
+	SlotWaitSeconds *int           `json:"slot_wait_seconds,omitempty"`
+	StartedAt       *time.Time     `json:"started_at,omitempty"`
+	State           JobDetailState `json:"state"`
+	Steps           []StepItem     `json:"steps"`
+
+	// TaskId The task id the branch starts with, when it does.
+	TaskId  *string `json:"task_id,omitempty"`
+	Trigger *string `json:"trigger,omitempty"`
+
+	// WaitReason observability R5.5.
+	WaitReason *WaitReason `json:"wait_reason,omitempty"`
+
+	// WaitText The reason with its machine, numbers or labels.
+	WaitText *string `json:"wait_text,omitempty"`
+	Workflow *string `json:"workflow,omitempty"`
+
+	// Worktree Only when the job reported it.
+	Worktree *string `json:"worktree,omitempty"`
+}
+
+// JobDetailJobType The scheduler class of the job. Not the job name; filter by name with the `job_type` query.
+type JobDetailJobType string
+
+// JobDetailState defines model for JobDetail.State.
+type JobDetailState string
+
+// JobGroupList defines model for JobGroupList.
+type JobGroupList struct {
+	Items []JobGroupRow `json:"items"`
+}
+
+// JobGroupRow defines model for JobGroupRow.
+type JobGroupRow struct {
+	Done   int `json:"done"`
+	Failed int `json:"failed"`
+
+	// Filter The query that lists this group's jobs, such as `repository=owner/name`.
+	Filter string `json:"filter"`
+
+	// Light Job type groups only.
+	Light   *bool   `json:"light,omitempty"`
+	Name    string  `json:"name"`
+	Queued  int     `json:"queued"`
+	RunP50  float32 `json:"run_p50"`
+	RunP90  float32 `json:"run_p90"`
+	Running int     `json:"running"`
+
+	// Trend The last run times in seconds, oldest first, at most 20.
+	Trend   []float32 `json:"trend"`
+	WaitP50 float32   `json:"wait_p50"`
+	WaitP90 float32   `json:"wait_p90"`
+}
 
 // JobPage defines model for JobPage.
 type JobPage struct {
@@ -3021,10 +3583,38 @@ type JobPage struct {
 
 	// Stale Set when GitHub did not answer and the last copy is shown (UX-53).
 	Stale Staleness `json:"stale"`
+
+	// Total The count of the filter without paging.
+	Total *int `json:"total,omitempty"`
 }
 
 // JobResult defines model for JobResult.
 type JobResult string
+
+// JobStats defines model for JobStats.
+type JobStats struct {
+	Days           []DayStat       `json:"days"`
+	ForecastPoints []ForecastPoint `json:"forecast_points"`
+	Hours          []HourStat      `json:"hours"`
+}
+
+// JobSummary One job type of one repository on one day (OPS34 D2).
+type JobSummary struct {
+	Day        string `json:"day"`
+	Failed     int    `json:"failed"`
+	JobType    string `json:"job_type"`
+	Jobs       int    `json:"jobs"`
+	Repository string `json:"repository"`
+	RunP50Ms   int64  `json:"run_p50_ms"`
+	RunP90Ms   int64  `json:"run_p90_ms"`
+	WaitP50Ms  int64  `json:"wait_p50_ms"`
+	WaitP90Ms  int64  `json:"wait_p90_ms"`
+}
+
+// JobSummaryList defines model for JobSummaryList.
+type JobSummaryList struct {
+	Items []JobSummary `json:"items"`
+}
 
 // JoinCode defines model for JoinCode.
 type JoinCode struct {
@@ -4051,6 +4641,101 @@ type ResolvedEnvVar struct {
 // Role defines model for Role.
 type Role string
 
+// RunGraph Where the edges of a run come from (OPS34 D3).
+type RunGraph struct {
+	// DynamicNodes node_id of the jobs a matrix or a reusable workflow expands at run time.
+	DynamicNodes []string `json:"dynamic_nodes"`
+
+	// Note A sentence for the screen, such as "the matrix expands at run time".
+	Note   *string        `json:"note,omitempty"`
+	Source RunGraphSource `json:"source"`
+}
+
+// RunGraphSource defines model for RunGraph.Source.
+type RunGraphSource string
+
+// RunItem A run attempt with its jobs and needs graph.
+type RunItem struct {
+	Attempt     int        `json:"attempt"`
+	Attempts    []int      `json:"attempts"`
+	Branch      string     `json:"branch"`
+	CompletedAt *time.Time `json:"completed_at,omitempty"`
+	CreatedAt   time.Time  `json:"created_at"`
+
+	// CriticalPath Node ids on the critical path.
+	CriticalPath []string `json:"critical_path"`
+
+	// Edges [a, b]: b needs a. Node ids.
+	Edges [][]string `json:"edges"`
+
+	// Eta Seconds from now, with a range. When a queued job starts, or when a run ends.
+	Eta *Eta `json:"eta,omitempty"`
+
+	// Graph Where the edges of a run come from (OPS34 D3).
+	Graph        RunGraph     `json:"graph"`
+	HeadSha      string       `json:"head_sha"`
+	HtmlUrl      string       `json:"html_url"`
+	Id           int64        `json:"id"`
+	Jobs         []Job        `json:"jobs"`
+	PullRequest  *int         `json:"pull_request,omitempty"`
+	Repository   string       `json:"repository"`
+	RepositoryId *int64       `json:"repository_id,omitempty"`
+	Result       *JobResult   `json:"result,omitempty"`
+	State        RunItemState `json:"state"`
+	TaskId       *string      `json:"task_id,omitempty"`
+	Trigger      string       `json:"trigger"`
+	Workflow     string       `json:"workflow"`
+	Worktree     *string      `json:"worktree,omitempty"`
+}
+
+// RunItemState defines model for RunItem.State.
+type RunItemState string
+
+// RunPage defines model for RunPage.
+type RunPage struct {
+	Items      []RunSummary `json:"items"`
+	NextCursor *string      `json:"next_cursor,omitempty"`
+
+	// Stale Set when GitHub did not answer and the last copy is shown (UX-53).
+	Stale Staleness `json:"stale"`
+	Total int       `json:"total"`
+}
+
+// RunSummary One run attempt in a list.
+type RunSummary struct {
+	Attempt     int        `json:"attempt"`
+	Attempts    *[]int     `json:"attempts,omitempty"`
+	Branch      string     `json:"branch"`
+	CompletedAt *time.Time `json:"completed_at,omitempty"`
+	CreatedAt   time.Time  `json:"created_at"`
+
+	// Eta Seconds from now, with a range. When a queued job starts, or when a run ends.
+	Eta     *Eta   `json:"eta,omitempty"`
+	HeadSha string `json:"head_sha"`
+	HtmlUrl string `json:"html_url"`
+
+	// Id The GitHub run id.
+	Id           int64           `json:"id"`
+	JobsDone     int             `json:"jobs_done"`
+	JobsFailed   int             `json:"jobs_failed"`
+	JobsTotal    int             `json:"jobs_total"`
+	PullRequest  *int            `json:"pull_request,omitempty"`
+	Repository   string          `json:"repository"`
+	RepositoryId *int64          `json:"repository_id,omitempty"`
+	Result       *JobResult      `json:"result,omitempty"`
+	State        RunSummaryState `json:"state"`
+	TaskId       *string         `json:"task_id,omitempty"`
+
+	// TotalSeconds Wall time from created to completed, or to now while open.
+	TotalSeconds *int    `json:"total_seconds,omitempty"`
+	Trigger      string  `json:"trigger"`
+	Workflow     string  `json:"workflow"`
+	Worktree     *string `json:"worktree,omitempty"`
+}
+
+// RunSummaryState defines model for RunSummary.State.
+type RunSummaryState string
+
 // Runner defines model for Runner.
 type Runner struct {
 	Arch      Arch        `json:"arch"`
@@ -4117,6 +4802,21 @@ type RunnerKind string
 type RunnerList struct {
 	Items []Runner `json:"items"`
 }
+
+// RunnerRef defines model for RunnerRef.
+type RunnerRef struct {
+	Backend     *string         `json:"backend,omitempty"`
+	Cache       *RunnerRefCache `json:"cache,omitempty"`
+	Id          string          `json:"id"`
+	Isolation   *Isolation      `json:"isolation,omitempty"`
+	Kind        RunnerKind      `json:"kind"`
+	MachineId   *string         `json:"machine_id,omitempty"`
+	MachineName *string         `json:"machine_name,omitempty"`
+	Name        string          `json:"name"`
+}
+
+// RunnerRefCache defines model for RunnerRef.Cache.
+type RunnerRefCache string
 
 // RunnerScope defines model for RunnerScope.
 type RunnerScope struct {
@@ -4363,6 +5063,33 @@ type StartAppManifestRequest struct {
 
 // StartAppManifestRequestAccountType defines model for StartAppManifestRequest.AccountType.
 type StartAppManifestRequestAccountType string
+
+// StepForecast defines model for StepForecast.
+type StepForecast struct {
+	// Forecast A duration in seconds with a range and the basis it rests on (OPS34 D4). The range is p25 to p90, at least 10 percent either way.
+	Forecast Forecast `json:"forecast"`
+	Name     string   `json:"name"`
+}
+
+// StepItem defines model for StepItem.
+type StepItem struct {
+	CompletedAt *time.Time `json:"completed_at,omitempty"`
+
+	// Forecast A duration in seconds with a range and the basis it rests on (OPS34 D4). The range is p25 to p90, at least 10 percent either way.
+	Forecast   *Forecast       `json:"forecast,omitempty"`
+	Name       string          `json:"name"`
+	Number     int             `json:"number"`
+	Result     *StepItemResult `json:"result,omitempty"`
+	RunSeconds *float32        `json:"run_seconds,omitempty"`
+	StartedAt  *time.Time      `json:"started_at,omitempty"`
+	State      StepItemState   `json:"state"`
+}
+
+// StepItemResult defines model for StepItem.Result.
+type StepItemResult string
+
+// StepItemState defines model for StepItem.State.
+type StepItemState string
 
 // Theme defines model for Theme.
 type Theme string
@@ -4615,8 +5342,29 @@ type From = time.Time
 // ImageId defines model for ImageId.
 type ImageId = string
 
+// JobBranchFilter defines model for JobBranchFilter.
+type JobBranchFilter = string
+
 // JobId defines model for JobId.
 type JobId = int64
+
+// JobKeyFilter defines model for JobKeyFilter.
+type JobKeyFilter = string
+
+// JobRunIdFilter defines model for JobRunIdFilter.
+type JobRunIdFilter = int64
+
+// JobRunner defines model for JobRunner.
+type JobRunner = string
+
+// JobRunnerKind defines model for JobRunnerKind.
+type JobRunnerKind = RunnerKind
+
+// JobTypeFilter defines model for JobTypeFilter.
+type JobTypeFilter = string
+
+// JobsLimit defines model for JobsLimit.
+type JobsLimit = int
 
 // JoinCodeId defines model for JoinCodeId.
 type JoinCodeId = string
@@ -4729,6 +5477,12 @@ type ExportAuditEventsParams struct {
 // ExportAuditEventsParamsFormat defines parameters for ExportAuditEvents.
 type ExportAuditEventsParamsFormat string
 
+// ExportJobSummariesParams defines parameters for ExportJobSummaries.
+type ExportJobSummariesParams struct {
+	From *From `form:"from,omitempty" json:"from,omitempty"`
+	To   *To   `form:"to,omitempty" json:"to,omitempty"`
+}
+
 // ExportJobsParams defines parameters for ExportJobs.
 type ExportJobsParams struct {
 	Format       *ExportJobsParamsFormat `form:"format,omitempty" json:"format,omitempty"`
@@ -4737,8 +5491,18 @@ type ExportJobsParams struct {
 	MachineId    *string                 `form:"machine_id,omitempty" json:"machine_id,omitempty"`
 	Backend      *string                 `form:"backend,omitempty" json:"backend,omitempty"`
 	Result       *JobResult              `form:"result,omitempty" json:"result,omitempty"`
-	From         *From                   `form:"from,omitempty" json:"from,omitempty"`
-	To           *To                     `form:"to,omitempty" json:"to,omitempty"`
+
+	// Runner The runner name (OPS34 D9).
+	Runner     *JobRunner     `form:"runner,omitempty" json:"runner,omitempty"`
+	RunnerKind *JobRunnerKind `form:"runner_kind,omitempty" json:"runner_kind,omitempty"`
+
+	// JobType The job name without its matrix values, such as `test` (OPS34 D10).
+	JobType  *JobTypeFilter   `form:"job_type,omitempty" json:"job_type,omitempty"`
+	JobIdent *JobKeyFilter    `form:"job_ident,omitempty" json:"job_ident,omitempty"`
+	Branch   *JobBranchFilter `form:"branch,omitempty" json:"branch,omitempty"`
+	RunId    *JobRunIdFilter  `form:"run_id,omitempty" json:"run_id,omitempty"`
+	From     *From            `form:"from,omitempty" json:"from,omitempty"`
+	To       *To              `form:"to,omitempty" json:"to,omitempty"`
 }
 
 // ExportJobsParamsFormat defines parameters for ExportJobs.
@@ -4746,6 +5510,15 @@ type ExportJobsParamsFormat string
 
 // ExportJobsParamsState defines parameters for ExportJobs.
 type ExportJobsParamsState string
+
+// GetForecastParams defines parameters for GetForecast.
+type GetForecastParams struct {
+	// JobIdent Required; the handler answers 400 when it is missing.
+	JobIdent *string `form:"job_ident,omitempty" json:"job_ident,omitempty"`
+
+	// RepositoryId Required; the handler answers 400 when it is missing.
+	RepositoryId *int64 `form:"repository_id,omitempty" json:"repository_id,omitempty"`
+}
 
 // GetGithubGrantParams defines parameters for GetGithubGrant.
 type GetGithubGrantParams struct {
@@ -4790,16 +5563,69 @@ type ListJobsParams struct {
 	MachineId    *string              `form:"machine_id,omitempty" json:"machine_id,omitempty"`
 	Backend      *string              `form:"backend,omitempty" json:"backend,omitempty"`
 	Result       *JobResult           `form:"result,omitempty" json:"result,omitempty"`
-	From         *From                `form:"from,omitempty" json:"from,omitempty"`
-	To           *To                  `form:"to,omitempty" json:"to,omitempty"`
+
+	// Runner The runner name (OPS34 D9).
+	Runner     *JobRunner     `form:"runner,omitempty" json:"runner,omitempty"`
+	RunnerKind *JobRunnerKind `form:"runner_kind,omitempty" json:"runner_kind,omitempty"`
+
+	// JobType The job name without its matrix values, such as `test` (OPS34 D10).
+	JobType  *JobTypeFilter   `form:"job_type,omitempty" json:"job_type,omitempty"`
+	JobIdent *JobKeyFilter    `form:"job_ident,omitempty" json:"job_ident,omitempty"`
+	Branch   *JobBranchFilter `form:"branch,omitempty" json:"branch,omitempty"`
+	RunId    *JobRunIdFilter  `form:"run_id,omitempty" json:"run_id,omitempty"`
+	From     *From            `form:"from,omitempty" json:"from,omitempty"`
+	To       *To              `form:"to,omitempty" json:"to,omitempty"`
 
 	// Cursor Opaque cursor from the previous page's `next_cursor`.
 	Cursor *Cursor `form:"cursor,omitempty" json:"cursor,omitempty"`
-	Limit  *Limit  `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// Limit Page size of the Jobs section; 25 when absent, at most 100.
+	Limit *JobsLimit `form:"limit,omitempty" json:"limit,omitempty"`
 }
 
 // ListJobsParamsState defines parameters for ListJobs.
 type ListJobsParamsState string
+
+// ListJobGroupsParams defines parameters for ListJobGroups.
+type ListJobGroupsParams struct {
+	// By The grouping. The handler answers 400 when it is missing or not one of these.
+	By *ListJobGroupsParamsBy `form:"by,omitempty" json:"by,omitempty"`
+}
+
+// ListJobGroupsParamsBy defines parameters for ListJobGroups.
+type ListJobGroupsParamsBy string
+
+// GetJobStatsParams defines parameters for GetJobStats.
+type GetJobStatsParams struct {
+	Days         *GetJobStatsParamsDays  `form:"days,omitempty" json:"days,omitempty"`
+	State        *GetJobStatsParamsState `form:"state,omitempty" json:"state,omitempty"`
+	RepositoryId *int64                  `form:"repository_id,omitempty" json:"repository_id,omitempty"`
+	MachineId    *string                 `form:"machine_id,omitempty" json:"machine_id,omitempty"`
+	Backend      *string                 `form:"backend,omitempty" json:"backend,omitempty"`
+	Result       *JobResult              `form:"result,omitempty" json:"result,omitempty"`
+
+	// Runner The runner name (OPS34 D9).
+	Runner     *JobRunner     `form:"runner,omitempty" json:"runner,omitempty"`
+	RunnerKind *JobRunnerKind `form:"runner_kind,omitempty" json:"runner_kind,omitempty"`
+
+	// JobType The job name without its matrix values, such as `test` (OPS34 D10).
+	JobType  *JobTypeFilter   `form:"job_type,omitempty" json:"job_type,omitempty"`
+	JobIdent *JobKeyFilter    `form:"job_ident,omitempty" json:"job_ident,omitempty"`
+	Branch   *JobBranchFilter `form:"branch,omitempty" json:"branch,omitempty"`
+	RunId    *JobRunIdFilter  `form:"run_id,omitempty" json:"run_id,omitempty"`
+}
+
+// GetJobStatsParamsDays defines parameters for GetJobStats.
+type GetJobStatsParamsDays int
+
+// GetJobStatsParamsState defines parameters for GetJobStats.
+type GetJobStatsParamsState string
+
+// ListJobSummariesParams defines parameters for ListJobSummaries.
+type ListJobSummariesParams struct {
+	From *From `form:"from,omitempty" json:"from,omitempty"`
+	To   *To   `form:"to,omitempty" json:"to,omitempty"`
+}
 
 // RemoveMachineParams defines parameters for RemoveMachine.
 type RemoveMachineParams struct {
@@ -4846,6 +5672,31 @@ type DeleteRunnerParams struct {
 type DeleteRunnerRegistrationParams struct {
 	// Confirm The yes to a question card that named what goes (UX-62).
 	Confirm *Confirm `form:"confirm,omitempty" json:"confirm,omitempty"`
+}
+
+// ListRunsParams defines parameters for ListRuns.
+type ListRunsParams struct {
+	State        *ListRunsParamsState `form:"state,omitempty" json:"state,omitempty"`
+	Result       *JobResult           `form:"result,omitempty" json:"result,omitempty"`
+	RepositoryId *int64               `form:"repository_id,omitempty" json:"repository_id,omitempty"`
+	Branch       *JobBranchFilter     `form:"branch,omitempty" json:"branch,omitempty"`
+	From         *From                `form:"from,omitempty" json:"from,omitempty"`
+	To           *To                  `form:"to,omitempty" json:"to,omitempty"`
+
+	// Cursor Opaque cursor from the previous page's `next_cursor`.
+	Cursor *Cursor `form:"cursor,omitempty" json:"cursor,omitempty"`
+
+	// Limit Page size of the Jobs section; 25 when absent, at most 100.
+	Limit *JobsLimit `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// ListRunsParamsState defines parameters for ListRuns.
+type ListRunsParamsState string
+
+// GetRunParams defines parameters for GetRun.
+type GetRunParams struct {
+	// Attempt The attempt; the newest when absent.
+	Attempt *int `form:"attempt,omitempty" json:"attempt,omitempty"`
 }
 
 // RestartServiceParams defines parameters for RestartService.
@@ -5379,12 +6230,26 @@ type ClientInterface interface {
 	// Corresponds with GET /api/v1/exports/config (the `ExportConfig` operationId).
 	ExportConfig(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// ExportJobSummaries Export the daily job summaries as a file
+	//
+	// OPS34 D2, D12. Holds every daily summary of the range (one job type of one repository per day, kept 400 days), oldest day first. Named `crsp-job-summaries-<stamp>.csv`; text that looks like a formula is neutralised in the CSV (UX-39).
+	//
+	// Corresponds with GET /api/v1/exports/job-summaries (the `ExportJobSummaries` operationId).
+	ExportJobSummaries(ctx context.Context, params *ExportJobSummariesParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// ExportJobs Export the job history as a file
 	//
 	// web-console R5.24, observability R5.7 to R5.11. Takes the filters of listJobs and holds every matching row (no paging), in the order the list shows. The file is named for what it holds then the stamp, such as `crsp-jobs-2026-11-14-1005.csv`, and says so in `Content-Disposition`.
 	//
 	// Corresponds with GET /api/v1/exports/jobs (the `ExportJobs` operationId).
 	ExportJobs(ctx context.Context, params *ExportJobsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetForecast The forecast of a job key with its steps and history
+	//
+	// OPS34 D4. One number with a range and the basis it rests on. Steps come from the newest finished job of the key and only when step samples exist.
+	//
+	// Corresponds with GET /api/v1/forecast (the `GetForecast` operationId).
+	GetForecast(ctx context.Context, params *GetForecastParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetAppHealth Whether the GitHub App and its key still exist
 	//
@@ -5496,6 +6361,27 @@ type ClientInterface interface {
 	//
 	// Corresponds with GET /api/v1/jobs (the `ListJobs` operationId).
 	ListJobs(ctx context.Context, params *ListJobsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListJobGroups Jobs grouped by repository, machine, runner, runner type or job type
+	//
+	// OPS34 D9, D10. One row per group with its counts, wait and run time percentiles and a trend of the last run times. `filter` is the query that lists the jobs of the group.
+	//
+	// Corresponds with GET /api/v1/jobs/groups (the `ListJobGroups` operationId).
+	ListJobGroups(ctx context.Context, params *ListJobGroupsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetJobStats Chart data of the last days
+	//
+	// OPS34 D2. Jobs, wait and run time per day, jobs per weekday and hour (UTC), and the forecasts next to the actual times. Takes the filters of listJobs.
+	//
+	// Corresponds with GET /api/v1/jobs/stats (the `GetJobStats` operationId).
+	GetJobStats(ctx context.Context, params *GetJobStatsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListJobSummaries Daily summaries kept after the jobs are pruned
+	//
+	// OPS34 D2, D12. One row per day, repository and job type, kept 400 days. Oldest day first.
+	//
+	// Corresponds with GET /api/v1/jobs/summaries (the `ListJobSummaries` operationId).
+	ListJobSummaries(ctx context.Context, params *ListJobSummariesParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetJob One job attempt with its timing
 	//
@@ -6178,6 +7064,20 @@ type ClientInterface interface {
 	//
 	// Corresponds with PATCH /api/v1/runners/{runnerId}/settings (the `UpdateRunnerSettings` operationId).
 	UpdateRunnerSettings(ctx context.Context, runnerId RunnerId, body UpdateRunnerSettingsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListRuns Workflow runs, newest first
+	//
+	// OPS34 D3, D6. One row per run attempt with its job counts, total time and, for an open run, the ETA of the run.
+	//
+	// Corresponds with GET /api/v1/runs (the `ListRuns` operationId).
+	ListRuns(ctx context.Context, params *ListRunsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetRun One run attempt with its jobs, needs graph and ETA
+	//
+	// OPS34 D3, D4. The jobs carry their forecast and, when queued, their place and ETA. `edges` come from the workflow file when it was read, else from timing overlap (`graph.source`).
+	//
+	// Corresponds with GET /api/v1/runs/{runId} (the `GetRun` operationId).
+	GetRun(ctx context.Context, runId int64, params *GetRunParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// RestartService Restart the service after a drain
 	//
@@ -7139,6 +8039,23 @@ func (c *Client) ExportConfig(ctx context.Context, reqEditors ...RequestEditorFn
 	return c.Client.Do(req)
 }
 
+// ExportJobSummaries Export the daily job summaries as a file
+//
+// OPS34 D2, D12. Holds every daily summary of the range (one job type of one repository per day, kept 400 days), oldest day first. Named `crsp-job-summaries-<stamp>.csv`; text that looks like a formula is neutralised in the CSV (UX-39).
+//
+// Corresponds with GET /api/v1/exports/job-summaries (the `ExportJobSummaries` operationId).
+func (c *Client) ExportJobSummaries(ctx context.Context, params *ExportJobSummariesParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewExportJobSummariesRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 // ExportJobs Export the job history as a file
 //
 // web-console R5.24, observability R5.7 to R5.11. Takes the filters of listJobs and holds every matching row (no paging), in the order the list shows. The file is named for what it holds then the stamp, such as `crsp-jobs-2026-11-14-1005.csv`, and says so in `Content-Disposition`.
@@ -7146,6 +8063,23 @@ func (c *Client) ExportConfig(ctx context.Context, reqEditors ...RequestEditorFn
 // Corresponds with GET /api/v1/exports/jobs (the `ExportJobs` operationId).
 func (c *Client) ExportJobs(ctx context.Context, params *ExportJobsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewExportJobsRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GetForecast The forecast of a job key with its steps and history
+//
+// OPS34 D4. One number with a range and the basis it rests on. Steps come from the newest finished job of the key and only when step samples exist.
+//
+// Corresponds with GET /api/v1/forecast (the `GetForecast` operationId).
+func (c *Client) GetForecast(ctx context.Context, params *GetForecastParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetForecastRequest(c.Server, params)
 	if err != nil {
 		return nil, err
 	}
@@ -7407,6 +8341,57 @@ func (c *Client) GetInstallCommand(ctx context.Context, reqEditors ...RequestEdi
 // Corresponds with GET /api/v1/jobs (the `ListJobs` operationId).
 func (c *Client) ListJobs(ctx context.Context, params *ListJobsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewListJobsRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ListJobGroups Jobs grouped by repository, machine, runner, runner type or job type
+//
+// OPS34 D9, D10. One row per group with its counts, wait and run time percentiles and a trend of the last run times. `filter` is the query that lists the jobs of the group.
+//
+// Corresponds with GET /api/v1/jobs/groups (the `ListJobGroups` operationId).
+func (c *Client) ListJobGroups(ctx context.Context, params *ListJobGroupsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListJobGroupsRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GetJobStats Chart data of the last days
+//
+// OPS34 D2. Jobs, wait and run time per day, jobs per weekday and hour (UTC), and the forecasts next to the actual times. Takes the filters of listJobs.
+//
+// Corresponds with GET /api/v1/jobs/stats (the `GetJobStats` operationId).
+func (c *Client) GetJobStats(ctx context.Context, params *GetJobStatsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetJobStatsRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ListJobSummaries Daily summaries kept after the jobs are pruned
+//
+// OPS34 D2, D12. One row per day, repository and job type, kept 400 days. Oldest day first.
+//
+// Corresponds with GET /api/v1/jobs/summaries (the `ListJobSummaries` operationId).
+func (c *Client) ListJobSummaries(ctx context.Context, params *ListJobSummariesParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListJobSummariesRequest(c.Server, params)
 	if err != nil {
 		return nil, err
 	}
@@ -8949,6 +9934,40 @@ func (c *Client) UpdateRunnerSettingsWithBody(ctx context.Context, runnerId Runn
 // Corresponds with PATCH /api/v1/runners/{runnerId}/settings (the `UpdateRunnerSettings` operationId).
 func (c *Client) UpdateRunnerSettings(ctx context.Context, runnerId RunnerId, body UpdateRunnerSettingsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewUpdateRunnerSettingsRequest(c.Server, runnerId, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ListRuns Workflow runs, newest first
+//
+// OPS34 D3, D6. One row per run attempt with its job counts, total time and, for an open run, the ETA of the run.
+//
+// Corresponds with GET /api/v1/runs (the `ListRuns` operationId).
+func (c *Client) ListRuns(ctx context.Context, params *ListRunsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListRunsRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GetRun One run attempt with its jobs, needs graph and ETA
+//
+// OPS34 D3, D4. The jobs carry their forecast and, when queued, their place and ETA. `edges` come from the workflow file when it was read, else from timing overlap (`graph.source`).
+//
+// Corresponds with GET /api/v1/runs/{runId} (the `GetRun` operationId).
+func (c *Client) GetRun(ctx context.Context, runId int64, params *GetRunParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetRunRequest(c.Server, runId, params)
 	if err != nil {
 		return nil, err
 	}
@@ -11033,6 +12052,72 @@ func NewExportConfigRequest(server string) (*http.Request, error) {
 	return req, nil
 }
 
+// NewExportJobSummariesRequest constructs an http.Request for the ExportJobSummaries method
+func NewExportJobSummariesRequest(server string, params *ExportJobSummariesParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/exports/job-summaries")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.From != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "from", *params.From, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: "date-time"}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.To != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "to", *params.To, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: "date-time"}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewExportJobsRequest constructs an http.Request for the ExportJobs method
 func NewExportJobsRequest(server string, params *ExportJobsParams) (*http.Request, error) {
 	var err error
@@ -11133,6 +12218,78 @@ func NewExportJobsRequest(server string, params *ExportJobsParams) (*http.Reques
 
 		}
 
+		if params.Runner != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "runner", *params.Runner, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.RunnerKind != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "runner_kind", *params.RunnerKind, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.JobType != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "job_type", *params.JobType, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.JobIdent != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "job_ident", *params.JobIdent, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Branch != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "branch", *params.Branch, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.RunId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "run_id", *params.RunId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: "int64"}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
 		if params.From != nil {
 
 			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "from", *params.From, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: "date-time"}); err != nil {
@@ -11148,6 +12305,72 @@ func NewExportJobsRequest(server string, params *ExportJobsParams) (*http.Reques
 		if params.To != nil {
 
 			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "to", *params.To, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: "date-time"}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetForecastRequest constructs an http.Request for the GetForecast method
+func NewGetForecastRequest(server string, params *GetForecastParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/forecast")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.JobIdent != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "job_ident", *params.JobIdent, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.RepositoryId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "repository_id", *params.RepositoryId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: "int64"}); err != nil {
 				return nil, err
 			} else {
 				for _, qp := range strings.Split(queryFrag, "&") {
@@ -11829,6 +13052,78 @@ func NewListJobsRequest(server string, params *ListJobsParams) (*http.Request, e
 
 		}
 
+		if params.Runner != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "runner", *params.Runner, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.RunnerKind != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "runner_kind", *params.RunnerKind, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.JobType != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "job_type", *params.JobType, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.JobIdent != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "job_ident", *params.JobIdent, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Branch != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "branch", *params.Branch, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.RunId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "run_id", *params.RunId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: "int64"}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
 		if params.From != nil {
 
 			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "from", *params.From, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: "date-time"}); err != nil {
@@ -11868,6 +13163,312 @@ func NewListJobsRequest(server string, params *ListJobsParams) (*http.Request, e
 		if params.Limit != nil {
 
 			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "limit", *params.Limit, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewListJobGroupsRequest constructs an http.Request for the ListJobGroups method
+func NewListJobGroupsRequest(server string, params *ListJobGroupsParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/jobs/groups")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.By != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "by", *params.By, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetJobStatsRequest constructs an http.Request for the GetJobStats method
+func NewGetJobStatsRequest(server string, params *GetJobStatsParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/jobs/stats")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.Days != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "days", *params.Days, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.State != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "state", *params.State, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.RepositoryId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "repository_id", *params.RepositoryId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: "int64"}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.MachineId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "machine_id", *params.MachineId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Backend != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "backend", *params.Backend, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Result != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "result", *params.Result, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Runner != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "runner", *params.Runner, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.RunnerKind != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "runner_kind", *params.RunnerKind, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.JobType != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "job_type", *params.JobType, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.JobIdent != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "job_ident", *params.JobIdent, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Branch != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "branch", *params.Branch, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.RunId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "run_id", *params.RunId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: "int64"}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewListJobSummariesRequest constructs an http.Request for the ListJobSummaries method
+func NewListJobSummariesRequest(server string, params *ListJobSummariesParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/jobs/summaries")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.From != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "from", *params.From, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: "date-time"}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.To != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "to", *params.To, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: "date-time"}); err != nil {
 				return nil, err
 			} else {
 				for _, qp := range strings.Split(queryFrag, "&") {
@@ -14443,6 +16044,205 @@ func NewUpdateRunnerSettingsRequestWithBody(server string, runnerId RunnerId, co
 	return req, nil
 }
 
+// NewListRunsRequest constructs an http.Request for the ListRuns method
+func NewListRunsRequest(server string, params *ListRunsParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/runs")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.State != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "state", *params.State, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Result != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "result", *params.Result, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.RepositoryId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "repository_id", *params.RepositoryId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: "int64"}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Branch != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "branch", *params.Branch, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.From != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "from", *params.From, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: "date-time"}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.To != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "to", *params.To, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: "date-time"}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Cursor != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "cursor", *params.Cursor, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Limit != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "limit", *params.Limit, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetRunRequest constructs an http.Request for the GetRun method
+func NewGetRunRequest(server string, runId int64, params *GetRunParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "runId", runId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "integer", Format: "int64"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/runs/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.Attempt != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "attempt", *params.Attempt, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewRestartServiceRequest constructs an http.Request for the RestartService method
 func NewRestartServiceRequest(server string, params *RestartServiceParams) (*http.Request, error) {
 	var err error
@@ -15992,6 +17792,15 @@ type ClientWithResponsesInterface interface {
 	// Corresponds with GET /api/v1/exports/config (the `ExportConfig` operationId).
 	ExportConfigWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*ExportConfigResponse, error)
 
+	// ExportJobSummariesWithResponse Export the daily job summaries as a file
+	//
+	// OPS34 D2, D12. Holds every daily summary of the range (one job type of one repository per day, kept 400 days), oldest day first. Named `crsp-job-summaries-<stamp>.csv`; text that looks like a formula is neutralised in the CSV (UX-39).
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/v1/exports/job-summaries (the `ExportJobSummaries` operationId).
+	ExportJobSummariesWithResponse(ctx context.Context, params *ExportJobSummariesParams, reqEditors ...RequestEditorFn) (*ExportJobSummariesResponse, error)
+
 	// ExportJobsWithResponse Export the job history as a file
 	//
 	// web-console R5.24, observability R5.7 to R5.11. Takes the filters of listJobs and holds every matching row (no paging), in the order the list shows. The file is named for what it holds then the stamp, such as `crsp-jobs-2026-11-14-1005.csv`, and says so in `Content-Disposition`.
@@ -16000,6 +17809,15 @@ type ClientWithResponsesInterface interface {
 	//
 	// Corresponds with GET /api/v1/exports/jobs (the `ExportJobs` operationId).
 	ExportJobsWithResponse(ctx context.Context, params *ExportJobsParams, reqEditors ...RequestEditorFn) (*ExportJobsResponse, error)
+
+	// GetForecastWithResponse The forecast of a job key with its steps and history
+	//
+	// OPS34 D4. One number with a range and the basis it rests on. Steps come from the newest finished job of the key and only when step samples exist.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/v1/forecast (the `GetForecast` operationId).
+	GetForecastWithResponse(ctx context.Context, params *GetForecastParams, reqEditors ...RequestEditorFn) (*GetForecastResponse, error)
 
 	// GetAppHealthWithResponse Whether the GitHub App and its key still exist
 	//
@@ -16133,6 +17951,33 @@ type ClientWithResponsesInterface interface {
 	//
 	// Corresponds with GET /api/v1/jobs (the `ListJobs` operationId).
 	ListJobsWithResponse(ctx context.Context, params *ListJobsParams, reqEditors ...RequestEditorFn) (*ListJobsResponse, error)
+
+	// ListJobGroupsWithResponse Jobs grouped by repository, machine, runner, runner type or job type
+	//
+	// OPS34 D9, D10. One row per group with its counts, wait and run time percentiles and a trend of the last run times. `filter` is the query that lists the jobs of the group.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/v1/jobs/groups (the `ListJobGroups` operationId).
+	ListJobGroupsWithResponse(ctx context.Context, params *ListJobGroupsParams, reqEditors ...RequestEditorFn) (*ListJobGroupsResponse, error)
+
+	// GetJobStatsWithResponse Chart data of the last days
+	//
+	// OPS34 D2. Jobs, wait and run time per day, jobs per weekday and hour (UTC), and the forecasts next to the actual times. Takes the filters of listJobs.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/v1/jobs/stats (the `GetJobStats` operationId).
+	GetJobStatsWithResponse(ctx context.Context, params *GetJobStatsParams, reqEditors ...RequestEditorFn) (*GetJobStatsResponse, error)
+
+	// ListJobSummariesWithResponse Daily summaries kept after the jobs are pruned
+	//
+	// OPS34 D2, D12. One row per day, repository and job type, kept 400 days. Oldest day first.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/v1/jobs/summaries (the `ListJobSummaries` operationId).
+	ListJobSummariesWithResponse(ctx context.Context, params *ListJobSummariesParams, reqEditors ...RequestEditorFn) (*ListJobSummariesResponse, error)
 
 	// GetJobWithResponse One job attempt with its timing
 	//
@@ -16891,6 +18736,24 @@ type ClientWithResponsesInterface interface {
 	//
 	// Corresponds with PATCH /api/v1/runners/{runnerId}/settings (the `UpdateRunnerSettings` operationId).
 	UpdateRunnerSettingsWithResponse(ctx context.Context, runnerId RunnerId, body UpdateRunnerSettingsJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateRunnerSettingsResponse, error)
+
+	// ListRunsWithResponse Workflow runs, newest first
+	//
+	// OPS34 D3, D6. One row per run attempt with its job counts, total time and, for an open run, the ETA of the run.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/v1/runs (the `ListRuns` operationId).
+	ListRunsWithResponse(ctx context.Context, params *ListRunsParams, reqEditors ...RequestEditorFn) (*ListRunsResponse, error)
+
+	// GetRunWithResponse One run attempt with its jobs, needs graph and ETA
+	//
+	// OPS34 D3, D4. The jobs carry their forecast and, when queued, their place and ETA. `edges` come from the workflow file when it was read, else from timing overlap (`graph.source`).
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/v1/runs/{runId} (the `GetRun` operationId).
+	GetRunWithResponse(ctx context.Context, runId int64, params *GetRunParams, reqEditors ...RequestEditorFn) (*GetRunResponse, error)
 
 	// RestartServiceWithResponse Restart the service after a drain
 	//
@@ -18710,6 +20573,68 @@ func (r ExportConfigResponse) ContentType() string {
 	return ""
 }
 
+// ExportJobSummariesResponse200Headers the declared response headers of an HTTP 200 response for ExportJobSummaries
+type ExportJobSummariesResponse200Headers struct {
+	ContentDisposition string
+}
+
+type ExportJobSummariesResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *ExportFile
+	// YAML200 the response for an HTTP 200 `application/yaml` response
+	YAML200 *string
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+	// Headers200 the parsed response headers for an HTTP 200 response
+	Headers200 *ExportJobSummariesResponse200Headers
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r ExportJobSummariesResponse) GetJSON200() *ExportFile {
+	return r.JSON200
+}
+
+// GetYAML200 returns the response for an HTTP 200 `application/yaml` response
+func (r ExportJobSummariesResponse) GetYAML200() *string {
+	return r.YAML200
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r ExportJobSummariesResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r ExportJobSummariesResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ExportJobSummariesResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ExportJobSummariesResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ExportJobSummariesResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 // ExportJobsResponse200Headers the declared response headers of an HTTP 200 response for ExportJobs
 type ExportJobsResponse200Headers struct {
 	ContentDisposition string
@@ -18766,6 +20691,54 @@ func (r ExportJobsResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r ExportJobsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type GetForecastResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *ForecastAnswer
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetForecastResponse) GetJSON200() *ForecastAnswer {
+	return r.JSON200
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r GetForecastResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r GetForecastResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetForecastResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetForecastResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetForecastResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -19396,17 +21369,161 @@ func (r ListJobsResponse) ContentType() string {
 	return ""
 }
 
-type GetJobResponse struct {
+type ListJobGroupsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	// JSON200 the response for an HTTP 200 `application/json` response
-	JSON200 *Job
+	JSON200 *JobGroupList
 	// JSONDefault the response for an HTTP default `application/json` response
 	JSONDefault *Error
 }
 
 // GetJSON200 returns the response for an HTTP 200 `application/json` response
-func (r GetJobResponse) GetJSON200() *Job {
+func (r ListJobGroupsResponse) GetJSON200() *JobGroupList {
+	return r.JSON200
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r ListJobGroupsResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r ListJobGroupsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ListJobGroupsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListJobGroupsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ListJobGroupsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type GetJobStatsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *JobStats
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetJobStatsResponse) GetJSON200() *JobStats {
+	return r.JSON200
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r GetJobStatsResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r GetJobStatsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetJobStatsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetJobStatsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetJobStatsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type ListJobSummariesResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *JobSummaryList
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r ListJobSummariesResponse) GetJSON200() *JobSummaryList {
+	return r.JSON200
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r ListJobSummariesResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r ListJobSummariesResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ListJobSummariesResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListJobSummariesResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ListJobSummariesResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type GetJobResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *JobDetail
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetJobResponse) GetJSON200() *JobDetail {
 	return r.JSON200
 }
 
@@ -22331,6 +24448,102 @@ func (r UpdateRunnerSettingsResponse) ContentType() string {
 	return ""
 }
 
+type ListRunsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *RunPage
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r ListRunsResponse) GetJSON200() *RunPage {
+	return r.JSON200
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r ListRunsResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r ListRunsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ListRunsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListRunsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ListRunsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type GetRunResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *RunItem
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetRunResponse) GetJSON200() *RunItem {
+	return r.JSON200
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r GetRunResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r GetRunResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetRunResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetRunResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetRunResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 type RestartServiceResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -24268,6 +26481,21 @@ func (c *ClientWithResponses) ExportConfigWithResponse(ctx context.Context, reqE
 	return ParseExportConfigResponse(rsp)
 }
 
+// ExportJobSummariesWithResponse Export the daily job summaries as a file
+//
+// OPS34 D2, D12. Holds every daily summary of the range (one job type of one repository per day, kept 400 days), oldest day first. Named `crsp-job-summaries-<stamp>.csv`; text that looks like a formula is neutralised in the CSV (UX-39).
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/v1/exports/job-summaries (the `ExportJobSummaries` operationId).
+func (c *ClientWithResponses) ExportJobSummariesWithResponse(ctx context.Context, params *ExportJobSummariesParams, reqEditors ...RequestEditorFn) (*ExportJobSummariesResponse, error) {
+	rsp, err := c.ExportJobSummaries(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseExportJobSummariesResponse(rsp)
+}
+
 // ExportJobsWithResponse Export the job history as a file
 //
 // web-console R5.24, observability R5.7 to R5.11. Takes the filters of listJobs and holds every matching row (no paging), in the order the list shows. The file is named for what it holds then the stamp, such as `crsp-jobs-2026-11-14-1005.csv`, and says so in `Content-Disposition`.
@@ -24281,6 +26509,21 @@ func (c *ClientWithResponses) ExportJobsWithResponse(ctx context.Context, params
 		return nil, err
 	}
 	return ParseExportJobsResponse(rsp)
+}
+
+// GetForecastWithResponse The forecast of a job key with its steps and history
+//
+// OPS34 D4. One number with a range and the basis it rests on. Steps come from the newest finished job of the key and only when step samples exist.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/v1/forecast (the `GetForecast` operationId).
+func (c *ClientWithResponses) GetForecastWithResponse(ctx context.Context, params *GetForecastParams, reqEditors ...RequestEditorFn) (*GetForecastResponse, error) {
+	rsp, err := c.GetForecast(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetForecastResponse(rsp)
 }
 
 // GetAppHealthWithResponse Whether the GitHub App and its key still exist
@@ -24504,6 +26747,51 @@ func (c *ClientWithResponses) ListJobsWithResponse(ctx context.Context, params *
 		return nil, err
 	}
 	return ParseListJobsResponse(rsp)
+}
+
+// ListJobGroupsWithResponse Jobs grouped by repository, machine, runner, runner type or job type
+//
+// OPS34 D9, D10. One row per group with its counts, wait and run time percentiles and a trend of the last run times. `filter` is the query that lists the jobs of the group.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/v1/jobs/groups (the `ListJobGroups` operationId).
+func (c *ClientWithResponses) ListJobGroupsWithResponse(ctx context.Context, params *ListJobGroupsParams, reqEditors ...RequestEditorFn) (*ListJobGroupsResponse, error) {
+	rsp, err := c.ListJobGroups(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListJobGroupsResponse(rsp)
+}
+
+// GetJobStatsWithResponse Chart data of the last days
+//
+// OPS34 D2. Jobs, wait and run time per day, jobs per weekday and hour (UTC), and the forecasts next to the actual times. Takes the filters of listJobs.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/v1/jobs/stats (the `GetJobStats` operationId).
+func (c *ClientWithResponses) GetJobStatsWithResponse(ctx context.Context, params *GetJobStatsParams, reqEditors ...RequestEditorFn) (*GetJobStatsResponse, error) {
+	rsp, err := c.GetJobStats(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetJobStatsResponse(rsp)
+}
+
+// ListJobSummariesWithResponse Daily summaries kept after the jobs are pruned
+//
+// OPS34 D2, D12. One row per day, repository and job type, kept 400 days. Oldest day first.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/v1/jobs/summaries (the `ListJobSummaries` operationId).
+func (c *ClientWithResponses) ListJobSummariesWithResponse(ctx context.Context, params *ListJobSummariesParams, reqEditors ...RequestEditorFn) (*ListJobSummariesResponse, error) {
+	rsp, err := c.ListJobSummaries(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListJobSummariesResponse(rsp)
 }
 
 // GetJobWithResponse One job attempt with its timing
@@ -25778,6 +28066,36 @@ func (c *ClientWithResponses) UpdateRunnerSettingsWithResponse(ctx context.Conte
 		return nil, err
 	}
 	return ParseUpdateRunnerSettingsResponse(rsp)
+}
+
+// ListRunsWithResponse Workflow runs, newest first
+//
+// OPS34 D3, D6. One row per run attempt with its job counts, total time and, for an open run, the ETA of the run.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/v1/runs (the `ListRuns` operationId).
+func (c *ClientWithResponses) ListRunsWithResponse(ctx context.Context, params *ListRunsParams, reqEditors ...RequestEditorFn) (*ListRunsResponse, error) {
+	rsp, err := c.ListRuns(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListRunsResponse(rsp)
+}
+
+// GetRunWithResponse One run attempt with its jobs, needs graph and ETA
+//
+// OPS34 D3, D4. The jobs carry their forecast and, when queued, their place and ETA. `edges` come from the workflow file when it was read, else from timing overlap (`graph.source`).
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/v1/runs/{runId} (the `GetRun` operationId).
+func (c *ClientWithResponses) GetRunWithResponse(ctx context.Context, runId int64, params *GetRunParams, reqEditors ...RequestEditorFn) (*GetRunResponse, error) {
+	rsp, err := c.GetRun(ctx, runId, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetRunResponse(rsp)
 }
 
 // RestartServiceWithResponse Restart the service after a drain
@@ -27405,6 +29723,62 @@ func ParseExportConfigResponse(rsp *http.Response) (*ExportConfigResponse, error
 	return response, nil
 }
 
+// ParseExportJobSummariesResponse parses an HTTP response from a ExportJobSummariesWithResponse call
+func ParseExportJobSummariesResponse(rsp *http.Response) (*ExportJobSummariesResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ExportJobSummariesResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest ExportFile
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "yaml") && rsp.StatusCode == 200:
+		var dest string
+		if err := yaml.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.YAML200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	case rsp.StatusCode == 200:
+		// Content-type (text/csv) unsupported
+
+	}
+
+	switch {
+	case rsp.StatusCode == 200:
+		var headers ExportJobSummariesResponse200Headers
+		if values := rsp.Header.Values("Content-Disposition"); len(values) > 0 {
+			var value string
+			if err := runtime.BindStyledParameterWithOptions("simple", "Content-Disposition", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: true, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.ContentDisposition = value
+		}
+		response.Headers200 = &headers
+	}
+
+	return response, nil
+}
+
 // ParseExportJobsResponse parses an HTTP response from a ExportJobsWithResponse call
 func ParseExportJobsResponse(rsp *http.Response) (*ExportJobsResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -27456,6 +29830,39 @@ func ParseExportJobsResponse(rsp *http.Response) (*ExportJobsResponse, error) {
 			headers.ContentDisposition = value
 		}
 		response.Headers200 = &headers
+	}
+
+	return response, nil
+}
+
+// ParseGetForecastResponse parses an HTTP response from a GetForecastWithResponse call
+func ParseGetForecastResponse(rsp *http.Response) (*GetForecastResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetForecastResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest ForecastAnswer
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
 	}
 
 	return response, nil
@@ -27890,6 +30297,105 @@ func ParseListJobsResponse(rsp *http.Response) (*ListJobsResponse, error) {
 	return response, nil
 }
 
+// ParseListJobGroupsResponse parses an HTTP response from a ListJobGroupsWithResponse call
+func ParseListJobGroupsResponse(rsp *http.Response) (*ListJobGroupsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListJobGroupsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest JobGroupList
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetJobStatsResponse parses an HTTP response from a GetJobStatsWithResponse call
+func ParseGetJobStatsResponse(rsp *http.Response) (*GetJobStatsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetJobStatsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest JobStats
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListJobSummariesResponse parses an HTTP response from a ListJobSummariesWithResponse call
+func ParseListJobSummariesResponse(rsp *http.Response) (*ListJobSummariesResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListJobSummariesResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest JobSummaryList
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParseGetJobResponse parses an HTTP response from a GetJobWithResponse call
 func ParseGetJobResponse(rsp *http.Response) (*GetJobResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -27905,7 +30411,7 @@ func ParseGetJobResponse(rsp *http.Response) (*GetJobResponse, error) {
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest Job
+		var dest JobDetail
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -29908,6 +32414,72 @@ func ParseUpdateRunnerSettingsResponse(rsp *http.Response) (*UpdateRunnerSetting
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest Runner
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListRunsResponse parses an HTTP response from a ListRunsWithResponse call
+func ParseListRunsResponse(rsp *http.Response) (*ListRunsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListRunsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest RunPage
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetRunResponse parses an HTTP response from a GetRunWithResponse call
+func ParseGetRunResponse(rsp *http.Response) (*GetRunResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetRunResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest RunItem
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}

@@ -161,6 +161,9 @@ func buildController(ctx context.Context, d controllerDeps) (*controller, error)
 		return err == nil && len(b) > 0
 	}
 	appHealth := &github.AppHealth{Client: gh, AppID: gh.AppID, Now: d.Now}
+	// The Jobs section: every job event ends in one recorder (observability R5.7 to R5.12).
+	jobsIngest := newJobsWiring(ctx, logger, d.DB.Jobs(), gh, repoStore, d.Now)
+	c.closers = append(c.closers, jobsIngest.Close)
 	hook := &github.WebhookHandler{
 		Verifier: func() (github.WebhookVerifier, error) {
 			app := gh.AppID()
@@ -174,7 +177,7 @@ func buildController(ctx context.Context, d controllerDeps) (*controller, error)
 			return github.NewWebhookVerifier(b), nil
 		},
 		FirstDelivery: newDeliveryLog(4096).first,
-		Events:        webhookEvents{ctx: ctx, logger: logger, repos: rsvc, appGone: appHealth.Gone},
+		Events:        webhookEvents{ctx: ctx, logger: logger, repos: rsvc, appGone: appHealth.Gone, jobs: jobsIngest},
 		OnDelivery: func(repo string, jobID int64, used bool) {
 			if used {
 				health.Delivered(repo, jobID)
@@ -306,7 +309,9 @@ func buildController(ctx context.Context, d controllerDeps) (*controller, error)
 	// Demand: poll queued jobs of the repositories with the pool on and start one
 	// ephemeral container runner per job on a machine whose allow list names
 	// the container backend (github-integration R5.37, runners R5.27, R5.31).
-	stopDemand, quietDemand := startDemand(ctx, logger, gh, demandEnv{repos: repoStore, machines: d.Machines, appGone: appHealth.Gone}, runnerSvc, pool, d.Cfg.DemandQuiet, d.Cfg.ScaleSetDemand, health.PollSawQueued)
+	stopDemand, quietDemand := startDemand(ctx, logger, gh, demandEnv{repos: repoStore, machines: d.Machines, appGone: appHealth.Gone}, runnerSvc, pool, d.Cfg.DemandQuiet, d.Cfg.ScaleSetDemand, health.PollSawQueued, jobsIngest.Job)
+	// crsp's own facts about each job: wait reason, slot, machine, runner (observability R5.7).
+	jobsIngest.attach(d.Queue, runnerSvc, d.Machines)
 	startSweep(ctx, logger, runnerSvc, d.Cfg.RunnerSweepDays)
 	c.closers = append(c.closers, stopDemand)
 
@@ -336,6 +341,7 @@ func buildController(ctx context.Context, d controllerDeps) (*controller, error)
 		c.Options.Listen = d.Listen
 	}
 	c.Options.Jobs, c.Options.Slots, c.Options.Live = d.DB, d.Queue, live
+	c.Options.JobsData = d.DB.Jobs()
 	c.Options.Runners, c.Options.Doctor = runnerSvc, docSvc
 	c.Options.Caches, c.Options.Events = d.Caches, hub
 	c.Options.Trial = newTrial(d.DB, rsvc, gh, machineCapacity{svc: d.Machines, pool: pool})
@@ -518,10 +524,28 @@ type webhookEvents struct {
 	repos  *repos.Service
 	// appGone stops the reconcile while the App or its key is gone (R5.6).
 	appGone func() bool
+	// jobs records the job and its steps for the Jobs section; nil records nothing.
+	jobs jobSink
+}
+
+// jobSink takes job events without blocking.
+type jobSink interface {
+	Job(github.Job)
+	JobDetail(github.JobEvent)
 }
 
 func (w webhookEvents) Job(j github.Job) {
 	w.logger.Debug("workflow_job event", "repository", j.Repository, "job", j.ID, "status", j.Status)
+	if w.jobs != nil {
+		w.jobs.Job(j)
+	}
+}
+
+// JobDetail gets the steps and run fields of the same event, after Job.
+func (w webhookEvents) JobDetail(ev github.JobEvent) {
+	if w.jobs != nil {
+		w.jobs.JobDetail(ev)
+	}
 }
 
 // Repository stops serving a repository that turned public (CRSP82). The

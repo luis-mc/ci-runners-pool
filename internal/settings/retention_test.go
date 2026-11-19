@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/audit"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/jobsdata"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/store"
 )
 
@@ -169,5 +170,29 @@ func TestRunRepeats(t *testing.T) {
 	await(3)
 	if _, err := os.Stat(old); !os.IsNotExist(err) {
 		t.Fatalf("retention did not delete the old file: %v", err)
+	}
+}
+
+func TestRetentionPrunesJobsSection(t *testing.T) {
+	ctx := context.Background()
+	r, _, _ := retention(t)
+	jobs := r.DB.Jobs()
+	now := time.Now().UTC()
+	old := now.Add(-100 * 24 * time.Hour)
+	if err := jobs.UpsertJob(ctx, jobsdata.Job{
+		ID: 1, RepositoryID: 1, RunID: 1, Attempt: 1, Name: "t", JobType: "t", State: jobsdata.Done, Result: jobsdata.Success,
+		CreatedAt: old, StartedAt: old.Add(time.Second), CompletedAt: old.Add(time.Minute),
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.RunOnce(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if _, ok, _ := jobs.GetJob(ctx, 1); ok {
+		t.Error("a job past 90 days stayed")
+	}
+	sum, err := jobs.Summaries(ctx, old.Add(-48*time.Hour), now)
+	if err != nil || len(sum) != 1 || sum[0].Jobs != 1 {
+		t.Errorf("summary after prune: %v %+v", err, sum)
 	}
 }

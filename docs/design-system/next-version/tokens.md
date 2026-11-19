@@ -342,6 +342,8 @@ These tokens take a different value at each width. The gutter is the space at th
 |---|---|---|
 | `--ds-control-height` | `44px` | a button, a field and a select. Never below `--ds-target-min` |
 | `--ds-control-height-large` | `52px` | the one primary action on a small screen |
+| `--ds-row-action-width` | `8rem` | the width of the row-action column of a table (UX-72); the label never wraps |
+| `--ds-cell-max` | `12ch` | the widest a table cell grows in a one-line table before its text is cut with an ellipsis (UX-72) |
 
 ## Border widths
 

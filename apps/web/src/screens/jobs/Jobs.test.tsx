@@ -1,470 +1,258 @@
-// R5.24: the queue with each job's wait reason (UX-29), the history on a time axis with filters, the detail with a
-// link to the run on GitHub, and Export of every row of the filter (UX-39). R5.31: loading, empty, could not load.
-import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { Schemas } from '../../api/api';
-import {
-  FakeEventSource,
-  apiError,
-  machine,
-  renderApp,
-  signedIn,
-} from '../../testing/mock';
-import { jobStatus, waitWords } from './Jobs';
+// R5.104, R5.105, R5.111, R5.116 (OPS34): Queue, Running and Done as one row for each run with a Runs | Jobs switch,
+// the wait reason and start range of the queue, the Done range, paging and both exports, and loading, empty and
+// error states. Fed by the mocked Jobs API; no fake data reaches the console.
+import { cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
+import { afterEach, describe, expect, it } from 'vitest';
+import { apiError, renderApp } from '../../testing/mock';
+import { job, jobsApi, runSummary } from '../../testing/jobsData';
 
-afterEach(() => {
-  cleanup();
-  vi.restoreAllMocks();
-});
+afterEach(cleanup);
 
-type Job = Schemas['Job'];
-
-function job(over: Partial<Job> = {}): Job {
-  return {
-    id: 1,
-    repository: 'octo/app',
-    repository_id: 7,
-    run_id: 100,
-    run_attempt: 1,
-    github_job_id: 1,
-    workflow: 'ci.yml',
-    job_name: 'test',
-    labels: ['self-hosted', 'linux'],
-    state: 'done',
-    result: 'success',
-    machine_id: 'm1',
-    backend: 'docker',
-    created_at: '2026-11-13T09:00:00Z',
-    started_at: '2026-11-13T09:00:30Z',
-    completed_at: '2026-11-13T09:05:00Z',
-    github_wait_seconds: 30,
-    run_seconds: 270,
-    html_url: 'https://github.com/octo/app/actions/runs/100/job/1',
+const queued = (id: number, place: number, over: Parameters<typeof job>[0] = {}) =>
+  job({
+    id,
+    run_id: 200,
+    state: 'queued',
+    result: undefined,
+    job_name: `e2e-${id}`,
+    queued_at: new Date(Date.now() - 125_000).toISOString(),
+    started_at: undefined,
+    completed_at: undefined,
+    run_seconds: undefined,
+    runner: undefined,
+    wait_reason: 'free_slot',
+    wait_text: 'waits for a free slot on build-1',
+    queue_position: place,
+    queue_eta: { p50: 300, lo: 240, hi: 420 },
     ...over,
-  };
-}
-
-const queued: Job = job({
-  id: 5,
-  state: 'queued',
-  job_name: 'e2e',
-  wait_reason: 'free_slot',
-  wait_text: 'waits for a free slot on any Linux machine',
-  queued_at: new Date(Date.now() - 125_000).toISOString(),
-});
-
-/** True when a `from` bound is under five days back: a day range shows nothing, a week shows the job. */
-function recent(from: string | null): boolean {
-  return from !== null && Date.now() - new Date(from).getTime() < 5 * 86_400_000;
-}
-
-function jobsApi(items: { queue?: Job[]; history?: Job[]; next?: string } = {}) {
-  return signedIn()
-    .on('GET', '/api/v1/machines', { items: [machine()] })
-    .on('GET', '/api/v1/github/repositories', {
-      items: [
-        {
-          id: 7,
-          full_name: 'octo/app',
-          owner: 'octo',
-          name: 'app',
-          installation_id: 1,
-          visibility: 'private',
-          pool_on: true,
-          user_is_github_admin: true,
-          user_admin_known: true,
-          variables: [],
-          policy: {
-            priority: 10,
-            max_parallel_jobs: 2,
-            allow_fork_pull_requests: false,
-            light_runner: true,
-            labels: [],
-            runner_groups: [],
-          },
-        },
-      ],
-      stale: { stale: false },
-    })
-    .on('GET', '/api/v1/jobs', (call) => {
-      if (call.query.get('state') === 'queued')
-        return { items: items.queue ?? [], stale: { stale: false } };
-      return {
-        items: items.history ?? [],
-        ...(items.next && !call.query.get('cursor') ? { next_cursor: items.next } : {}),
-        stale: { stale: false },
-      };
-    });
-}
-
-describe('wait reasons and results in words', () => {
-  it('shows a long wait reason as one line with a Details button that opens it', async () => {
-    const text =
-      'waits for a free slot on any Linux machine that carries the labels self-hosted and arm64';
-    renderApp(
-      jobsApi({ queue: [{ ...queued, wait_text: text }], history: [job()] }),
-      '/jobs',
-    );
-    const table = await screen.findByRole('table', { name: 'Queued jobs' });
-    const button = within(table).getByRole('button', { name: 'Details' });
-    expect(button.getAttribute('aria-expanded')).toBe('false');
-    fireEvent.click(button);
-    expect(within(table).getByRole('region', { name: /Details/ }).textContent).toBe(text);
-    expect(button.getAttribute('aria-expanded')).toBe('true');
   });
 
-  it('says why a queued job waits (UX-29), preferring the server line', () => {
-    expect(waitWords({ wait_reason: 'free_slot', wait_text: 'waits on box-1' })).toBe(
-      'waits on box-1',
-    );
-    expect(waitWords({ wait_reason: 'no_runner_with_labels' })).toBe(
-      'waits for a runner with its labels',
-    );
-    expect(waitWords({})).toBe('waits to be placed');
+describe('Queue', () => {
+  it('shows one row for a run with its place, start range and why it waits', async () => {
+    renderApp(jobsApi({ jobs: [queued(1, 1), queued(2, 2)] }), '/jobs');
+    const table = await screen.findByRole('table', { name: 'Queue runs' });
+    const rows = within(table).getAllByRole('row');
+    expect(rows).toHaveLength(2); // the head and one row for the run, not one for each job
+    expect(within(table).getByText('2')).toBeTruthy(); // jobs queued
+    expect(within(table).getByText('in about 4 to 7 min')).toBeTruthy();
+    expect(within(table).getByText('waits for a free slot on build-1')).toBeTruthy();
+    expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
   });
 
-  it('gives every result a word and a glyph kind (UX-58)', () => {
-    expect(jobStatus({ state: 'done', result: 'failure' })).toEqual({
-      kind: 'failed',
-      word: 'failure',
-    });
-    expect(jobStatus({ state: 'done', result: 'timed_out' }).word).toBe('timed out');
-    expect(jobStatus({ state: 'queued' }).kind).toBe('waiting');
-    expect(jobStatus({ state: 'running' }).kind).toBe('running');
+  it('says what a run row opens to with the one word of every list, Open run', async () => {
+    renderApp(jobsApi({ jobs: [queued(1, 1)] }), '/jobs');
+    const table = await screen.findByRole('table', { name: 'Queue runs' });
+    expect(within(table).getByRole('button', { name: 'Open run' })).toBeTruthy();
   });
-});
 
-describe('Jobs screen', () => {
+  it('lists every waiting job in order in the Jobs view, each with Open job', async () => {
+    renderApp(jobsApi({ jobs: [queued(1, 1), queued(2, 2)] }), '/jobs?view=jobs');
+    const table = await screen.findByRole('table', { name: 'Queue jobs' });
+    expect(within(table).getAllByRole('button', { name: /^Open job: / })).toHaveLength(2);
+    expect(
+      within(table).getAllByText('starts in about 4 to 7 min, 1st in line'),
+    ).toHaveLength(1);
+    expect(within(table).getAllByText('2 min 5 s', { exact: false })).toHaveLength(2);
+  });
+
+  it('says so when nothing waits', async () => {
+    renderApp(jobsApi(), '/jobs');
+    expect(
+      await screen.findByText('Nothing is waiting. Every job has a slot.'),
+    ).toBeTruthy();
+  });
+
+  it('says it could not load, with Try again', async () => {
+    const api = jobsApi().on(
+      'GET',
+      '/api/v1/jobs',
+      apiError(500, 'internal', 'The store is busy.'),
+    );
+    renderApp(api, '/jobs');
+    expect(await screen.findByText(/Could not load the queue/)).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Try again' })).toBeTruthy();
+  });
+
   it('shows the loading state first', async () => {
     renderApp(jobsApi(), '/jobs');
     expect(await screen.findByText('Loading the queue')).toBeTruthy();
   });
+});
 
-  it('shows the queue with each job and why it waits', async () => {
-    renderApp(jobsApi({ queue: [queued], history: [job()] }), '/jobs');
-    const table = await screen.findByRole('table', { name: 'Queued jobs' });
-    expect(within(table).getByText('e2e')).toBeTruthy();
-    expect(
-      within(table).getByText('waits for a free slot on any Linux machine'),
-    ).toBeTruthy();
-    expect(within(table).getByText('2 min 5 s')).toBeTruthy();
+describe('Running', () => {
+  const running = job({
+    id: 5,
+    run_id: 300,
+    state: 'running',
+    result: undefined,
+    job_name: 'build',
+    started_at: new Date(Date.now() - 60_000).toISOString(),
+    completed_at: undefined,
+    run_seconds: undefined,
   });
 
-  it('shows the history grouped by day with result, machine, backend, wait and run time', async () => {
+  it('shows a run with jobs done of all, what runs now and when it ends', async () => {
     renderApp(
       jobsApi({
-        queue: [],
-        history: [
-          job(),
-          job({
-            id: 2,
-            job_name: 'lint',
-            result: 'failure',
-            completed_at: '2026-11-12T10:00:00Z',
+        jobs: [running],
+        runs: [
+          runSummary({
+            id: 300,
+            state: 'running',
+            result: undefined,
+            jobs_done: 2,
+            jobs_total: 4,
+            completed_at: undefined,
+            total_seconds: undefined,
+            created_at: new Date(Date.now() - 90_000).toISOString(),
+            eta: { p50: 420, lo: 360, hi: 540 },
           }),
         ],
       }),
-      '/jobs',
+      '/jobs/running',
     );
-    const row = (await screen.findByText('ci.yml / test')).closest('li');
-    expect(row).toBeTruthy();
-    const r = within(row as HTMLElement);
-    expect(r.getByText('success')).toBeTruthy();
-    expect(r.getByText(/on build-1, docker/)).toBeTruthy();
-    expect(r.getByText('Waited 30 s')).toBeTruthy();
-    expect(r.getByText('Ran 4 min 30 s')).toBeTruthy();
-    expect(screen.getAllByRole('heading', { level: 3 }).length).toBe(2);
-    expect(screen.getByText('Showing all time')).toBeTruthy();
-    expect(screen.getByText('Nothing is waiting. Every job has a slot.')).toBeTruthy();
+    const table = await screen.findByRole('table', { name: 'Running runs' });
+    expect(within(table).getByText('2 of 4')).toBeTruthy();
+    expect(within(table).getByText('in about 7 min')).toBeTruthy();
+    await waitFor(() =>
+      expect(within(table).getAllByText('build').length).toBeGreaterThan(0),
+    );
+    expect(within(table).getByText('running')).toBeTruthy();
   });
 
-  it('filters by result, repository, machine and time range', async () => {
-    const api = jobsApi({ history: [job()] });
-    renderApp(api, '/jobs');
-    await screen.findByText('ci.yml / test');
-    fireEvent.click(screen.getByRole('button', { name: 'Failure' }));
-    await waitFor(() =>
-      expect(
-        api.calls.some(
-          (c) => c.path === '/api/v1/jobs' && c.query.get('result') === 'failure',
-        ),
-      ).toBe(true),
+  it('shows a running job against its forecast in the Jobs view', async () => {
+    renderApp(jobsApi({ jobs: [running] }), '/jobs/running?view=jobs');
+    const table = await screen.findByRole('table', { name: 'Running jobs' });
+    expect(within(table).getByRole('progressbar')).toBeTruthy();
+  });
+
+  it('says so when no run is in progress', async () => {
+    renderApp(jobsApi(), '/jobs/running');
+    expect(await screen.findByText('No run is in progress.')).toBeTruthy();
+  });
+});
+
+describe('Done', () => {
+  const many = (n: number) =>
+    Array.from({ length: n }, (_, i) =>
+      runSummary({ id: 1000 + i, completed_at: '2026-11-18T09:08:00Z' }),
     );
+
+  it('asks for the list once, not on every render', async () => {
+    const api = jobsApi({ runs: [runSummary()] });
+    renderApp(api, '/jobs/done');
+    await screen.findByRole('table', { name: 'Done runs' });
+    await new Promise((r) => setTimeout(r, 300));
+    expect(api.count('GET', '/api/v1/runs')).toBe(1);
+  });
+
+  it('lists runs with jobs done of all, total time, result and the retention words', async () => {
+    renderApp(jobsApi({ runs: [runSummary()] }), '/jobs/done');
+    const table = await screen.findByRole('table', { name: 'Done runs' });
+    expect(within(table).getByText('3 of 3')).toBeTruthy();
+    expect(within(table).getByText('8 min')).toBeTruthy();
+    expect(within(table).getByText('success')).toBeTruthy();
+    expect(screen.getByText(/Showing 1 of 1 runs in the last 90 days/)).toBeTruthy();
+    expect(
+      screen.getByText(/crsp keeps steps for 30 days, jobs for 90 days/),
+    ).toBeTruthy();
+  });
+
+  it('shows 25 first and adds 25 a time, up to 100', async () => {
+    const api = jobsApi({ runs: many(120) });
+    renderApp(api, '/jobs/done');
+    await screen.findByText(/Showing 25 of 120 runs/);
+    fireEvent.click(screen.getByRole('button', { name: 'Show 25 more' }));
+    await screen.findByText(/Showing 50 of 120 runs/);
+    for (let n = 75; n <= 100; n += 25) {
+      fireEvent.click(screen.getByRole('button', { name: 'Show 25 more' }));
+      await screen.findByText(new RegExp(`Showing ${n} of 120 runs`));
+    }
+    expect(screen.queryByRole('button', { name: 'Show 25 more' })).toBeNull();
+    expect(screen.getByText(/A page holds at most 100/)).toBeTruthy();
+  });
+
+  it('asks for the range chosen, as a from date', async () => {
+    const api = jobsApi({ runs: [runSummary()] });
+    renderApp(api, '/jobs/done');
+    await screen.findByRole('table', { name: 'Done runs' });
     fireEvent.click(screen.getByRole('button', { name: 'Last 7 days' }));
-    await waitFor(() =>
-      expect(
-        api.calls.some(
-          (c) => c.query.get('result') === 'failure' && c.query.get('from') !== null,
-        ),
-      ).toBe(true),
-    );
-    fireEvent.click(await screen.findByRole('radio', { name: 'build-1' }));
-    await waitFor(() =>
-      expect(api.calls.some((c) => c.query.get('machine_id') === 'm1')).toBe(true),
-    );
-    const repo = await screen.findByRole('radio', { name: 'octo/app' });
-    fireEvent.click(repo);
-    await waitFor(() =>
-      expect(api.calls.some((c) => c.query.get('repository_id') === '7')).toBe(true),
-    );
-    expect(
-      screen.getByText(/Showing \d{4}-\d{2}-\d{2} to \d{4}-\d{2}-\d{2}/),
-    ).toBeTruthy();
+    await waitFor(() => {
+      const last = api.calls.filter((c) => c.path === '/api/v1/runs').at(-1);
+      const from = Date.parse(last?.query.get('from') ?? '');
+      expect(Date.now() - from).toBeLessThan(7.1 * 86_400_000);
+    });
   });
 
-  it('offers to widen the range when the period is empty (component 24)', async () => {
-    renderApp(jobsApi({ history: [] }), '/jobs');
-    // Nothing at all: the page says so.
+  it('opens a run in place to its jobs', async () => {
+    renderApp(jobsApi({ runs: [runSummary()] }), '/jobs/done');
+    const table = await screen.findByRole('table', { name: 'Done runs' });
+    fireEvent.click(within(table).getByRole('button', { name: 'Open run' }));
+    expect(await screen.findByText(/queue wait is the light part of a bar/)).toBeTruthy();
+    expect(await screen.findByText('Open run page')).toBeTruthy();
+  });
+
+  it('shows the jobs view with a filter from the address, by repository name', async () => {
+    const api = jobsApi({ jobs: [job()], runs: [runSummary()] });
+    renderApp(api, '/jobs/done?repository=octo%2Fapp');
+    await screen.findByRole('table', { name: 'Done runs' });
     expect(
-      await screen.findByText(
-        'No jobs yet. Jobs show here when a workflow runs on the pool.',
+      screen.getByText('Showing only what belongs to repository octo/app.'),
+    ).toBeTruthy();
+    expect(
+      api.calls.some(
+        (c) => c.path === '/api/v1/runs' && c.query.get('repository_id') === '7',
       ),
-    ).toBeTruthy();
+    ).toBe(true);
   });
 
-  it('says a filtered range is empty and widens it', async () => {
-    const api = jobsApi({ queue: [queued] }).on('GET', '/api/v1/jobs', (call) =>
-      call.query.get('state') === 'queued'
-        ? { items: [queued], stale: { stale: false } }
-        : {
-            items: recent(call.query.get('from')) ? [] : [job()],
-            stale: { stale: false },
-          },
-    );
-    renderApp(api, '/jobs');
-    await screen.findByText('ci.yml / test');
-    fireEvent.click(screen.getByRole('button', { name: 'Last day' }));
+  it('shows the jobs view for a runner filter, asking the jobs API for that runner', async () => {
+    const api = jobsApi({ jobs: [job()] });
+    renderApp(api, '/jobs/done?runner=runner-1&view=jobs');
+    await screen.findByRole('table', { name: 'Done jobs' });
     expect(
-      await screen.findByText('No jobs match the filters in this range.'),
-    ).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'Widen the range' }));
-    expect(await screen.findByText('ci.yml / test')).toBeTruthy();
+      api.calls.some(
+        (c) => c.path === '/api/v1/jobs' && c.query.get('runner') === 'runner-1',
+      ),
+    ).toBe(true);
   });
 
-  it('keeps the last 100 finished jobs and pages in the rest with See all (D34)', async () => {
-    const api = jobsApi({ history: [job()], next: 'j1' });
-    renderApp(api, '/jobs');
-    await screen.findByText('ci.yml / test');
-    expect(screen.getByText('Showing the last 100 finished jobs.')).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'See all' })).toBeTruthy();
-    expect(
-      api.calls.filter(
-        (c) => c.query.get('state') === 'done' && c.query.get('limit') === '100',
-      ).length,
-    ).toBeGreaterThan(0);
-    expect(api.calls.some((c) => c.query.get('cursor'))).toBe(false);
+  it('says a repository that is not listed has no run', async () => {
+    renderApp(jobsApi(), '/jobs/done?repository=nobody%2Fnothing');
+    expect(await screen.findByText(/is not on the list of repositories/)).toBeTruthy();
   });
 
-  it('has no See all when every finished job is already shown (D34)', async () => {
-    renderApp(jobsApi({ history: [job()] }), '/jobs');
-    await screen.findByText('ci.yml / test');
-    expect(screen.queryByRole('button', { name: 'See all' })).toBeNull();
-  });
-
-  it('loads earlier jobs with See all and keeps the rows when that fails', async () => {
-    let calls = 0;
-    const api = jobsApi({ history: [job()], next: 'j1' }).on(
-      'GET',
-      '/api/v1/jobs',
-      (call) => {
-        if (call.query.get('state') === 'queued')
-          return { items: [], stale: { stale: false } };
-        if (call.query.get('cursor')) {
-          calls += 1;
-          return calls === 1
-            ? apiError(500, 'internal', 'internal error')
-            : { items: [job({ id: 0, job_name: 'older' })], stale: { stale: false } };
-        }
-        return { items: [job()], next_cursor: 'j1', stale: { stale: false } };
-      },
-    );
-    renderApp(api, '/jobs');
-    await screen.findByText('ci.yml / test');
-    fireEvent.click(screen.getByRole('button', { name: 'See all' }));
-    expect(await screen.findByText(/Could not load earlier jobs/)).toBeTruthy();
-    expect(screen.getByText('ci.yml / test')).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
-    expect(await screen.findByText('ci.yml / older')).toBeTruthy();
-  });
-
-  it('says what failed when the history could not load, and tries again (UX-28)', async () => {
-    let n = 0;
-    const api = jobsApi({}).on('GET', '/api/v1/jobs', (call) => {
-      if (call.query.get('state') === 'queued')
-        return { items: [queued], stale: { stale: false } };
-      n += 1;
-      return n === 1
-        ? apiError(500, 'internal', 'internal error')
-        : { items: [job()], stale: { stale: false } };
-    });
-    renderApp(api, '/jobs');
-    expect(await screen.findByText('Could not load the job history.')).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
-    expect(await screen.findByText('ci.yml / test')).toBeTruthy();
-  });
-
-  it('reloads when a job event arrives (live)', async () => {
-    let n = 0;
-    const api = jobsApi({}).on('GET', '/api/v1/jobs', (call) => {
-      if (call.query.get('state') === 'queued')
-        return { items: [], stale: { stale: false } };
-      n += 1;
-      return {
-        items: n === 1 ? [job()] : [job(), job({ id: 3, job_name: 'fresh' })],
-        stale: { stale: false },
-      };
-    });
-    renderApp(api, '/jobs');
-    await screen.findByText('ci.yml / test');
-    act(() =>
-      FakeEventSource.latest().emit({
-        id: '2',
-        type: 'job.finished',
-        at: 'x',
-        job: job(),
-      }),
-    );
-    expect(await screen.findByText('ci.yml / fresh')).toBeTruthy();
-  });
-});
-
-describe('Export (component 29, UX-39)', () => {
-  beforeEach(() => {
-    URL.createObjectURL = vi.fn(() => 'blob:x');
-    URL.revokeObjectURL = vi.fn();
-  });
-
-  it('exports every row of the filter and names the file as the server did', async () => {
-    const downloads: string[] = [];
-    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (
-      this: HTMLAnchorElement,
-    ) {
-      downloads.push(this.download);
-    });
-    const api = jobsApi({ history: [job()] }).on(
-      'GET',
-      '/api/v1/exports/jobs',
-      () =>
-        new Response('id,repository\n1,octo/app\n', {
-          headers: {
-            'Content-Type': 'text/csv',
-            'Content-Disposition': 'attachment; filename="crsp-jobs-2026-11-14-1005.csv"',
-          },
-        }),
-    );
-    renderApp(api, '/jobs');
-    await screen.findByText('ci.yml / test');
-    fireEvent.click(screen.getByRole('button', { name: 'Failure' }));
-    await waitFor(() =>
-      expect(api.calls.some((c) => c.query.get('result') === 'failure')).toBe(true),
-    );
-    await screen.findByText('ci.yml / test');
-    fireEvent.click(screen.getByRole('button', { name: 'Export' }));
-    await waitFor(() => expect(downloads).toEqual(['crsp-jobs-2026-11-14-1005.csv']));
+  it('exports the filtered jobs with the same filter, and the runs as a file made here', async () => {
+    const api = jobsApi({ jobs: [job()], runs: [runSummary()] });
+    renderApp(api, '/jobs/done?view=jobs');
+    await screen.findByRole('table', { name: 'Done jobs' });
+    URL.createObjectURL = () => 'blob:x';
+    URL.revokeObjectURL = () => undefined;
+    fireEvent.click(screen.getByRole('button', { name: 'Export CSV' }));
+    await waitFor(() => expect(api.count('GET', '/api/v1/exports/jobs')).toBe(1));
     const call = api.calls.find((c) => c.path === '/api/v1/exports/jobs');
-    expect(call?.query.get('result')).toBe('failure');
     expect(call?.query.get('state')).toBe('done');
-    expect(call?.query.get('limit')).toBeNull(); // no paging: the server holds every row
+    expect(call?.query.get('format')).toBe('csv');
+    expect(call?.query.get('limit')).toBeNull();
   });
 
-  it('says in one line when the export fails, and keeps the button usable', async () => {
-    const api = jobsApi({ history: [job()] }).on(
-      'GET',
-      '/api/v1/exports/jobs',
-      apiError(500, 'internal', 'The file could not be written.'),
+  it('says so when there are no finished runs yet', async () => {
+    renderApp(jobsApi(), '/jobs/done');
+    expect(await screen.findByText(/No finished runs yet/)).toBeTruthy();
+  });
+});
+
+describe('the Runs | Jobs switch', () => {
+  it('keeps the filter and puts the choice in the address', async () => {
+    renderApp(
+      jobsApi({ jobs: [job()], runs: [runSummary()] }),
+      '/jobs/done?repository=octo%2Fapp',
     );
-    renderApp(api, '/jobs');
-    await screen.findByText('ci.yml / test');
-    fireEvent.click(screen.getByRole('button', { name: 'Export' }));
+    await screen.findByRole('table', { name: 'Done runs' });
+    fireEvent.click(screen.getByRole('button', { name: 'Jobs' }));
+    await screen.findByRole('table', { name: 'Done jobs' });
     expect(
-      await screen.findByText(/Could not export jobs\. The file could not be written\./),
+      screen.getByText('Showing only what belongs to repository octo/app.'),
     ).toBeTruthy();
-    expect(
-      screen.getByRole<HTMLButtonElement>('button', { name: 'Export' }).disabled,
-    ).toBe(false);
-  });
-});
-
-describe('Jobs panes and states (UX-4, UX-6, UX-10, UX-17)', () => {
-  const paneNames = () =>
-    Array.from(document.querySelectorAll('section.ds-pane')).map((e) =>
-      e.getAttribute('aria-label'),
-    );
-
-  it('puts the queue, the filters and the history each in a pane, with the filters outside the list pane', async () => {
-    renderApp(jobsApi({ queue: [queued], history: [job()] }), '/jobs');
-    await screen.findByText('ci.yml / test');
-    expect(paneNames()).toEqual(['Queue', 'Filters', 'History']);
-    const filters = screen.getByRole('region', { name: 'Filters' });
-    expect(within(filters).getByRole('group', { name: 'Result' })).toBeTruthy();
-    expect(within(filters).getByText('Repository')).toBeTruthy();
-    const bar = screen.getByRole('region', { name: 'Actions' });
-    expect(within(bar).getByRole('button', { name: /Export/ })).toBeTruthy();
-  });
-
-  it('offers Add runners once, as the one primary, when there are no jobs', async () => {
-    renderApp(jobsApi(), '/jobs');
-    const add = await screen.findByRole('button', { name: 'Add runners' });
-    expect(add.getAttribute('href')).toBe('/pool/runners/add');
-    expect(screen.getAllByRole('button', { name: 'Add runners' })).toHaveLength(1);
-    expect(
-      screen
-        .getAllByRole('button')
-        .filter((b) => b.getAttribute('data-kind') === 'primary'),
-    ).toHaveLength(1);
-    expect(screen.getByRole('heading', { level: 1, name: 'Jobs' })).toBeTruthy();
-    expect(paneNames()).toEqual(['Jobs']);
-  });
-
-  it('keeps the h1 when the history could not load', async () => {
-    const api = jobsApi({}).on('GET', '/api/v1/jobs', (call) =>
-      call.query.get('state') === 'queued'
-        ? { items: [queued], stale: { stale: false } }
-        : apiError(500, 'internal', 'internal error'),
-    );
-    renderApp(api, '/jobs');
-    await screen.findByText('Could not load the job history.');
-    expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
-  });
-
-  it('draws the queue rows as list rows the cursor reaches (reverse video row)', async () => {
-    renderApp(jobsApi({ queue: [queued] }), '/jobs');
-    await screen.findByText('e2e');
-    const queue = screen.getByRole('region', { name: 'Queue' });
-    const rows = within(queue).getAllByRole('row').slice(1);
-    expect(rows.length).toBe(1);
-    expect(rows.every((r) => r.hasAttribute('data-list-row') && r.tabIndex === 0)).toBe(
-      true,
-    );
-  });
-});
-
-describe('Job detail', () => {
-  it('shows the placement and times with a link to the run on GitHub', async () => {
-    const api = jobsApi().on('GET', '/api/v1/jobs/:id', job());
-    renderApp(api, '/jobs/1');
-    expect(await screen.findByRole('heading', { level: 1, name: 'test' })).toBeTruthy();
-    const open = vi.spyOn(window, 'open').mockReturnValue(null);
-    fireEvent.click(screen.getByRole('button', { name: 'Open the run on GitHub' }));
-    expect(open).toHaveBeenCalledWith(
-      'https://github.com/octo/app/actions/runs/100/job/1',
-      '_blank',
-      'noopener,noreferrer',
-    );
-    open.mockRestore();
-    expect(screen.getByText('2026-11-13 09:05')).toBeTruthy();
-    expect(screen.getByText('4 min 30 s')).toBeTruthy();
-    expect(screen.getByText('docker')).toBeTruthy();
-  });
-
-  it('says so when the job is not found', async () => {
-    const api = jobsApi().on(
-      'GET',
-      '/api/v1/jobs/:id',
-      apiError(404, 'not_found', 'no such job'),
-    );
-    renderApp(api, '/jobs/99');
-    expect(await screen.findByText('Could not load the job.')).toBeTruthy();
-    expect(screen.getByRole('heading', { level: 1, name: 'Job' })).toBeTruthy();
   });
 });

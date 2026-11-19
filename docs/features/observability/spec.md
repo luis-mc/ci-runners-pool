@@ -146,13 +146,41 @@ Milestone numbers are those of the product brief.
 
 **R5.10** — (M1) The result is one of: success, failure, cancelled, timed out, lost (the runner or machine went away). `startup_failure` and `timed_out` count as failure in totals, as in `ci_runs.py`.
 
-**R5.11** — (M1) History lists newest first, filters by repository, machine, backend and result, and pages through any range. The CLI gives the same rows (`crsp history --json`).
+**R5.11** — (M1; the Jobs screens of OPS34 show it as runs and jobs, R5.35 to R5.46) History lists newest first, filters by repository, machine, backend and result, and pages through any range. The CLI gives the same rows (`crsp history --json`).
 
 **R5.12** — (M1) A finished history row never changes after its job completes and is never fetched again from GitHub (the cache rule of `ci_runs.py`). A failed GitHub read keeps the stored rows and says the data is stale.
 
 **R5.13** — (M2) A commit view lists every workflow run and job of one head commit. It says "all runs done" only when every run on that commit has finished, including runs started on demand (product brief, learning 8). It names the slowest job, its share of the wall time, and its two slowest steps (ported from `summary_lines` in `ci_watch.py`). Bookkeeping steps (set up job, complete job, post steps) are left out of "now running", as in `ci_runs.py`.
 
-**R5.14** — (M8) History exports to CSV with every row of the filter, in the order shown (design system UX-39).
+**R5.14** — (M8) History exports to CSV with every row of the filter, in the order shown (design system UX-39). The daily summaries export is R5.45.
+
+### The Jobs section data and forecast (OPS34)
+
+Owner decisions of 2026-11-18 (RES15 review). Web screens: `web-console` section 4.6. Ingest: `github-integration` R5.96 to R5.99. Queue start range: `scheduling` R5.72.
+
+**R5.35** (OPS34) — **What is stored.** The controller stores runs, attempts, jobs, steps, needs edges, daily summaries and the forecast made when a job started: `job_history` (one row per job attempt, R5.7, with the added columns job key, job type, matrix values, branch, event, pull request, runner kind, clean-up time, cache state, task id, worktree as reported, attempt), `job_steps` (job, number, name, started, completed, result), `job_needs` (repository, run, job name, needed job name), `job_key_daily` (job key, day, count, median and p90 run time, median wait, failures) and `forecast_log` (job, low, middle, high, basis, samples). Package `internal/jobsdata`; the SQLite store is in `internal/store`.
+
+**R5.36** (OPS34, decisions 6, 9, 10) — **Derived fields.** The job key is repository + workflow + job name with matrix values. The job type is the job name without matrix values. The task id is parsed from a branch that starts with one (`<TASK>-<slug>`); the worktree is stored only when the job reported it. The runner kind is persistent or ephemeral. A job is light or heavy by the scheduler's class.
+
+**R5.37** (OPS34, decisions 1, 2) — **Retention.** Job rows (with their runs and attempts) are kept 90 days, step rows 30 days, daily summaries 400 days (R6.8). Rows leave in that order: the daily summary of a job key is written before its raw rows are deleted. The Done list shows 25 rows, *Show more* adds 25 up to 100 per page, and older rows are reached by filter and time range, within the retention. This replaces the "last 100 finished jobs" rule of the earlier Jobs screen (web-console D34).
+
+**R5.38** (OPS34) — **Privacy.** Stored: repository, workflow file name, job name, matrix values, step names, branch name, commit sha, pull request number, timings, runner and machine names. Never stored: logs, environment values, secrets, commit messages, actor email. Step and job names are shown as text and never as markup. Everything stays on the owner's machines (R6.7).
+
+**R5.39** (OPS34) — **Read-only API.** `listJobs` (filters: repository, machine, runner, runner kind, job key, branch, result, range, cursor), `getJob` (steps, attempts, needs, history, critical path), `getRun`, `getJobStats` (daily waits and run times, weekday by hour counts, forecast-against-actual points, filtered like `listJobs`) and `getForecast` are viewer role (R6.4).
+
+**R5.40** (OPS34, decisions 4, 7) — **Forecast key, sample, point and range.** One explainable rule, no model. The key of a job is its job key; the key of a step is the job key plus the step name. The sample is the last 30 successful attempts of the key, no older than 90 days; cancelled, failed-early and lost attempts are left out, and a timeout is stored apart and never lowers the forecast. The same machine class is preferred when it has at least 5 samples, else all. The point is the median run time. The range is p25 to p90 of the same sample, never narrower than plus or minus 10 percent of the median, said as "about 6 to 9 min". The basis is shown with it ("median of the last 20").
+
+**R5.41** (OPS34, decision 7) — **Fallback chain.** The job key with 5 or more samples; else the median of the workflow for the same job name; else the median of the repository; else "not enough history yet" and no number. Under 5 runs the screens say "not enough history yet" and show the workflow's or repository's typical time, labelled.
+
+**R5.42** (OPS34) — **Run ETA and drift.** The run ETA is the longest path over the needs graph using each job's forecast; its range is the sum of the p25 values to the sum of the p75 values along the path, marked "about". If the median of the last 10 runs differs from the median of the 20 before by a ratio above 1.25 or below 0.8, and by more than 3 MAD of the older window, the forecast is marked "changed lately" and uses the last 10. A dynamic matrix or a reusable workflow is not forecast beyond what ran ("expands at run time").
+
+**R5.43** (OPS34, decision 8) — **Queue ETA.** The start range of a queued job comes from scheduling R5.72 with the forecasts of R5.40.
+
+**R5.44** (OPS34) — **Forecast against actual.** The forecast made when a job starts is stored in `forecast_log`. Charts show how many finished jobs landed inside their range; the aim is about 80 percent. The page says "not enough finished jobs yet" instead of a percentage below 20 jobs.
+
+**R5.45** (OPS34, decision 12) — **Exports.** The filtered job list exports to CSV in the order shown (R5.14), and the daily summaries (`job_key_daily`) export to CSV. Both are viewer role and carry only fields of R5.38.
+
+**R5.46** (OPS34) — **Steps and needs may be missing.** A job without stored steps or needs edges is shown without them and says why (older than the step retention, not reported, workflow file not read); no number is invented.
 
 ### Minutes saved
 
@@ -227,7 +255,9 @@ Milestone numbers are those of the product brief.
 | Event replay buffer (memory) | 2,000 events or 10 min | n/a | 10,000 events |
 | Raw load samples (5 s) | 24 hours | 1 hour | 7 days |
 | Load per minute (median) | 30 days | 1 day | 400 days |
-| Job history rows | 90 days | 7 days | 400 days, and at most 1,000,000 rows |
+| Job history rows (jobs, runs, attempts, forecast log) | 90 days | 7 days | 400 days, and at most 1,000,000 rows |
+| Job step rows | 30 days | 7 days | 90 days |
+| Job daily summaries | 400 days | 90 days | 400 days |
 | Runner setup and agent logs (controller) | 14 days and 512 MiB per machine | 1 day, 64 MiB | 90 days, 10 GiB per machine |
 | Agent disk buffer while offline | 64 MiB | 8 MiB | 1 GiB |
 | Audit log | 400 days | 90 days | 5 years |
@@ -341,6 +371,18 @@ Rows that name a file without "planned" are built (CRSP18, CRSP23). Planned rows
 | R5.32 | internal/settings/retention_test.go TestHourlyJobDeletesPastLimit, TestRetentionUsesSettings; internal/settings/settings_test.go TestOutOfRangeRefusedWithRange, TestEveryRangeMatchesFloorAndCeiling |
 | R5.33 | planned: internal/bench/compare_test.go TestRunsBothOnTheSameCommit, TestNothingShownWhenARunFails, TestNeverStartsByItself (CRSP92) |
 | R5.34 | internal/compare/compare_test.go TestMatchingByNameAcrossKinds, TestMedianAndP95, TestRowStatsAndMinutesSaved, TestCostMath, TestPublicRepositoryExcluded, TestAPISourceEndToEnd; internal/api/handlers_compare_test.go TestSpeedComparisonJSON, TestSpeedComparisonIsReadOnly; internal/cli/resources_test.go TestCompareTableAndJSON |
+| R5.35 | internal/store/jobsdata_test.go TestMigrationTables, TestWriteAndReadRunJobSteps; internal/jobsdata/ingest/recorder_test.go TestWorkflowJobWritesRows |
+| R5.36 | internal/jobsdata/types_test.go TestJobTypeStripsMatrix, TestTaskIDFromBranch; internal/jobsdata/ingest/recorder_test.go TestWorktreeOnlyWhenReported |
+| R5.37 | internal/store/jobsdata_test.go TestRetention90_30_400, TestSummaryWrittenBeforeRawRowsLeave, TestListPagesTo100 |
+| R5.38 | internal/jobsdata/ingest/recorder_test.go TestNothingSecretStored; internal/store/jobsdata_test.go TestNoForbiddenColumns |
+| R5.39 | internal/api/handlers_jobsdata_test.go TestListJobsFilters, TestGetJobSteps, TestGetRun, TestGetJobStats, TestGetForecast, TestViewerRole |
+| R5.40 | internal/forecast/forecast_test.go TestSampleLast30Within90Days, TestMedianPoint, TestRangeP25P90WithTenPercentFloor, TestTimeoutNotInSample |
+| R5.41 | internal/forecast/forecast_test.go TestFallbackChain, TestNotEnoughHistoryUnderFive |
+| R5.42 | internal/forecast/forecast_test.go TestCriticalPathRange, TestDriftChangedLately |
+| R5.43 | internal/forecast/forecast_test.go TestQueueStartRange |
+| R5.44 | internal/forecast/forecast_test.go TestForecastLogHitRate; internal/api/handlers_jobsdata_test.go TestGetJobStatsForecastPoints |
+| R5.45 | internal/api/handlers_jobsdata_test.go TestExportJobsCSV, TestExportDailyCSV |
+| R5.46 | internal/api/handlers_jobsdata_test.go TestJobWithoutStepsSaysWhy; apps/web/src/screens/jobs/JobPage.test.tsx |
 | R6.1 | planned: internal/events/latency_test.go TestP95UnderTwoSeconds |
 | R6.2 | internal/events/hub_test.go TestLoadThrottlePerMachine (the median of three is the machines feature) |
 | R6.3 | internal/events/hub_test.go TestSSEFormatAndServe (heartbeat), TestSlowSubscriberIsClosedAndNeverBlocksPublisher, TestStreamCap; internal/api/handlers_live_test.go TestStreamEventsTooManyStreams |

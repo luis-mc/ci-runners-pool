@@ -231,7 +231,7 @@ func (j apiJob) job(repo string, run apiRun) Job {
 	out := Job{ID: j.ID, RunID: j.RunID, RunAttempt: j.RunAttempt, Repository: repo, Workflow: j.WorkflowName,
 		Name: j.Name, HeadSHA: j.HeadSHA, HeadBranch: j.HeadBranch, Labels: j.Labels, Status: j.Status,
 		Conclusion: j.Conclusion, RunnerName: j.RunnerName, CreatedAt: j.CreatedAt, HTMLURL: j.HTMLURL,
-		Event: run.Event, FromFork: run.HeadRepository.FullName != "" && run.HeadRepository.FullName != repo}
+		Event: run.Event, WorkflowPath: workflowFilePath(run.Path), FromFork: run.HeadRepository.FullName != "" && run.HeadRepository.FullName != repo}
 	if j.StartedAt != nil {
 		out.StartedAt = *j.StartedAt
 	}
@@ -244,6 +244,7 @@ func (j apiJob) job(repo string, run apiRun) Job {
 type apiRun struct {
 	ID             int64  `json:"id"`
 	Event          string `json:"event"`
+	Path           string `json:"path"`
 	HeadRepository struct {
 		FullName string `json:"full_name"`
 	} `json:"head_repository"`

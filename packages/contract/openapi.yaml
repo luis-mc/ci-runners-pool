@@ -2490,13 +2490,19 @@ paths:
           required: false
           schema:
             $ref: '#/components/schemas/JobResult'
+        - $ref: '#/components/parameters/JobRunner'
+        - $ref: '#/components/parameters/JobRunnerKind'
+        - $ref: '#/components/parameters/JobTypeFilter'
+        - $ref: '#/components/parameters/JobKeyFilter'
+        - $ref: '#/components/parameters/JobBranchFilter'
+        - $ref: '#/components/parameters/JobRunIdFilter'
         - $ref: '#/components/parameters/From'
         - $ref: '#/components/parameters/To'
         - $ref: '#/components/parameters/Cursor'
-        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/JobsLimit'
       responses:
         '200':
-          description: One page of jobs.
+          description: One page of jobs, with the total of the filter, each job's forecast and, for a queued job, its place and ETA.
           content:
             application/json:
               schema:
@@ -2542,6 +2548,238 @@ paths:
                 $ref: '#/components/schemas/SpeedComparison'
         default:
           $ref: '#/components/responses/Error'
+  /api/v1/jobs/groups:
+    get:
+      operationId: listJobGroups
+      x-cli: none
+      x-cli-reason: 'Later: remaining console screens get commands in their own task (cli open question 7).'
+      tags: [jobs]
+      summary: Jobs grouped by repository, machine, runner, runner type or job type
+      description: >-
+        OPS34 D9, D10. One row per group with its counts, wait and run time
+        percentiles and a trend of the last run times. `filter` is the query
+        that lists the jobs of the group.
+      x-auth: user
+      x-rate-limit: 600/minute/user
+      parameters:
+        - name: by
+          in: query
+          required: false
+          description: The grouping. The handler answers 400 when it is missing or not one of these.
+          schema:
+            type: string
+            enum: [repository, machine, runner, runner-type, job-type]
+      responses:
+        '200':
+          description: The groups.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobGroupList'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/jobs/stats:
+    get:
+      operationId: getJobStats
+      x-cli: none
+      x-cli-reason: 'Later: remaining console screens get commands in their own task (cli open question 7).'
+      tags: [jobs]
+      summary: Chart data of the last days
+      description: >-
+        OPS34 D2. Jobs, wait and run time per day, jobs per weekday and hour
+        (UTC), and the forecasts next to the actual times. Takes the filters of
+        listJobs.
+      x-auth: user
+      x-rate-limit: 600/minute/user
+      parameters:
+        - name: days
+          in: query
+          required: false
+          schema:
+            type: integer
+            enum: [7, 14, 30]
+            default: 14
+        - name: state
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [queued, running, done]
+        - name: repository_id
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int64
+        - name: machine_id
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: backend
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: result
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/JobResult'
+        - $ref: '#/components/parameters/JobRunner'
+        - $ref: '#/components/parameters/JobRunnerKind'
+        - $ref: '#/components/parameters/JobTypeFilter'
+        - $ref: '#/components/parameters/JobKeyFilter'
+        - $ref: '#/components/parameters/JobBranchFilter'
+        - $ref: '#/components/parameters/JobRunIdFilter'
+      responses:
+        '200':
+          description: The chart data.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobStats'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/jobs/summaries:
+    get:
+      operationId: listJobSummaries
+      x-cli: none
+      x-cli-reason: 'Later: remaining console screens get commands in their own task (cli open question 7).'
+      tags: [jobs]
+      summary: Daily summaries kept after the jobs are pruned
+      description: >-
+        OPS34 D2, D12. One row per day, repository and job type, kept 400 days.
+        Oldest day first.
+      x-auth: user
+      x-rate-limit: 600/minute/user
+      parameters:
+        - $ref: '#/components/parameters/From'
+        - $ref: '#/components/parameters/To'
+      responses:
+        '200':
+          description: The summaries of the range.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobSummaryList'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/runs:
+    get:
+      operationId: listRuns
+      x-cli: none
+      x-cli-reason: 'Later: remaining console screens get commands in their own task (cli open question 7).'
+      tags: [jobs]
+      summary: Workflow runs, newest first
+      description: >-
+        OPS34 D3, D6. One row per run attempt with its job counts, total time
+        and, for an open run, the ETA of the run.
+      x-auth: user
+      x-rate-limit: 600/minute/user
+      parameters:
+        - name: state
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [queued, running, done]
+        - name: result
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/JobResult'
+        - name: repository_id
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int64
+        - $ref: '#/components/parameters/JobBranchFilter'
+        - $ref: '#/components/parameters/From'
+        - $ref: '#/components/parameters/To'
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/JobsLimit'
+      responses:
+        '200':
+          description: One page of runs.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RunPage'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/runs/{runId}:
+    get:
+      operationId: getRun
+      x-cli: none
+      x-cli-reason: 'Later: remaining console screens get commands in their own task (cli open question 7).'
+      tags: [jobs]
+      summary: One run attempt with its jobs, needs graph and ETA
+      description: >-
+        OPS34 D3, D4. The jobs carry their forecast and, when queued, their
+        place and ETA. `edges` come from the workflow file when it was read,
+        else from timing overlap (`graph.source`).
+      x-auth: user
+      x-rate-limit: 600/minute/user
+      parameters:
+        - name: runId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: attempt
+          in: query
+          required: false
+          description: The attempt; the newest when absent.
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        '200':
+          description: The run.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RunItem'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/forecast:
+    get:
+      operationId: getForecast
+      x-cli: none
+      x-cli-reason: 'Later: remaining console screens get commands in their own task (cli open question 7).'
+      tags: [jobs]
+      summary: The forecast of a job key with its steps and history
+      description: >-
+        OPS34 D4. One number with a range and the basis it rests on. Steps come
+        from the newest finished job of the key and only when step samples exist.
+      x-auth: user
+      x-rate-limit: 600/minute/user
+      parameters:
+        - name: job_ident
+          in: query
+          required: false
+          description: Required; the handler answers 400 when it is missing.
+          schema:
+            type: string
+        - name: repository_id
+          in: query
+          required: false
+          description: Required; the handler answers 400 when it is missing.
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: The forecast.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForecastAnswer'
+        default:
+          $ref: '#/components/responses/Error'
   /api/v1/jobs/{jobId}:
     get:
       operationId: getJob
@@ -2555,11 +2793,11 @@ paths:
         - $ref: '#/components/parameters/JobId'
       responses:
         '200':
-          description: The job.
+          description: The job with its steps, history, attempts and the ETA of its run.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Job'
+                $ref: '#/components/schemas/JobDetail'
         default:
           $ref: '#/components/responses/Error'
   /api/v1/overview:
@@ -2976,6 +3214,34 @@ paths:
           required: false
           schema:
             $ref: '#/components/schemas/JobResult'
+        - $ref: '#/components/parameters/JobRunner'
+        - $ref: '#/components/parameters/JobRunnerKind'
+        - $ref: '#/components/parameters/JobTypeFilter'
+        - $ref: '#/components/parameters/JobKeyFilter'
+        - $ref: '#/components/parameters/JobBranchFilter'
+        - $ref: '#/components/parameters/JobRunIdFilter'
+        - $ref: '#/components/parameters/From'
+        - $ref: '#/components/parameters/To'
+      responses:
+        '200':
+          $ref: '#/components/responses/ExportFile'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/exports/job-summaries:
+    get:
+      operationId: exportJobSummaries
+      x-cli: none
+      x-cli-reason: 'Later: remaining console screens get commands in their own task (cli open question 7).'
+      tags: [jobs]
+      summary: Export the daily job summaries as a file
+      description: >-
+        OPS34 D2, D12. Holds every daily summary of the range (one job type of
+        one repository per day, kept 400 days), oldest day first. Named
+        `crsp-job-summaries-<stamp>.csv`; text that looks like a formula is
+        neutralised in the CSV (UX-39).
+      x-auth: user
+      x-rate-limit: 10/minute/user
+      parameters:
         - $ref: '#/components/parameters/From'
         - $ref: '#/components/parameters/To'
       responses:
@@ -3464,6 +3730,55 @@ components:
         minimum: 1
         maximum: 200
         default: 50
+    JobsLimit:
+      name: limit
+      in: query
+      required: false
+      description: Page size of the Jobs section; 25 when absent, at most 100.
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 25
+    JobRunner:
+      name: runner
+      in: query
+      required: false
+      description: The runner name (OPS34 D9).
+      schema:
+        type: string
+    JobRunnerKind:
+      name: runner_kind
+      in: query
+      required: false
+      schema:
+        $ref: '#/components/schemas/RunnerKind'
+    JobTypeFilter:
+      name: job_type
+      in: query
+      required: false
+      description: The job name without its matrix values, such as `test` (OPS34 D10).
+      schema:
+        type: string
+    JobKeyFilter:
+      name: job_ident
+      in: query
+      required: false
+      schema:
+        type: string
+    JobBranchFilter:
+      name: branch
+      in: query
+      required: false
+      schema:
+        type: string
+    JobRunIdFilter:
+      name: run_id
+      in: query
+      required: false
+      schema:
+        type: integer
+        format: int64
     From:
       name: from
       in: query
@@ -6368,6 +6683,46 @@ components:
           $ref: '#/components/schemas/JobResult'
         html_url:
           type: string
+        job_ident:
+          type: string
+          description: Repository, workflow, job name with matrix values. The same job of another run has the same key (OPS34).
+        node_id:
+          type: string
+          description: The id of the job inside its run (its name with matrix values). Edges and `needs` use it.
+        matrix:
+          type: array
+          items:
+            type: string
+        branch:
+          type: string
+        pull_request:
+          type: integer
+        task_id:
+          type: string
+          description: The task id the branch starts with, when it does.
+        worktree:
+          type: string
+          description: Only when the job reported it.
+        job_type:
+          type: string
+          enum: [light, standard, heavy]
+          description: The scheduler class of the job. Not the job name; filter by name with the `job_type` query.
+        needs:
+          type: array
+          items:
+            type: string
+          description: node_id of the jobs this one needs.
+        runner:
+          $ref: '#/components/schemas/RunnerRef'
+        cleanup_seconds:
+          type: integer
+        queue_position:
+          type: integer
+          description: 1-based place in the queue, queued jobs only.
+        queue_eta:
+          $ref: '#/components/schemas/Eta'
+        forecast:
+          $ref: '#/components/schemas/Forecast'
       example:
         id: 1
         repository: luis-mc/app
@@ -6391,8 +6746,527 @@ components:
             $ref: '#/components/schemas/Job'
         next_cursor:
           type: string
+        total:
+          type: integer
+          description: The count of the filter without paging.
         stale:
           $ref: '#/components/schemas/Staleness'
+    ForecastBasis:
+      type: string
+      description: Where a forecast came from. The job key, else its workflow, else its repository, else nothing (5 samples needed).
+      enum: [job_key, workflow, repository, not_enough_history]
+    Forecast:
+      type: object
+      description: A duration in seconds with a range and the basis it rests on (OPS34 D4). The range is p25 to p90, at least 10 percent either way.
+      required: [p50, lo, hi, basis, samples]
+      properties:
+        p50:
+          type: number
+        lo:
+          type: number
+        hi:
+          type: number
+        p25:
+          type: number
+        p75:
+          type: number
+        basis:
+          $ref: '#/components/schemas/ForecastBasis'
+        samples:
+          type: integer
+        machine:
+          type: string
+          description: Set when only samples of this machine were used.
+        changed_lately:
+          type: boolean
+          description: The median of the last 10 moved by more than a quarter against the 20 before; the last 10 are used.
+    Eta:
+      type: object
+      description: Seconds from now, with a range. When a queued job starts, or when a run ends.
+      required: [p50, lo, hi]
+      properties:
+        p50:
+          type: number
+        lo:
+          type: number
+        hi:
+          type: number
+    RunnerRef:
+      type: object
+      required: [id, name, kind]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        kind:
+          $ref: '#/components/schemas/RunnerKind'
+        machine_id:
+          type: string
+        machine_name:
+          type: string
+        backend:
+          type: string
+        isolation:
+          $ref: '#/components/schemas/Isolation'
+        cache:
+          type: string
+          enum: [warm, cold]
+    StepItem:
+      type: object
+      required: [number, name, state]
+      properties:
+        number:
+          type: integer
+        name:
+          type: string
+        state:
+          type: string
+          enum: [queued, running, done, skipped]
+        result:
+          type: string
+          enum: [success, failure, cancelled, skipped]
+        started_at:
+          type: string
+          format: date-time
+        completed_at:
+          type: string
+          format: date-time
+        run_seconds:
+          type: number
+        forecast:
+          $ref: '#/components/schemas/Forecast'
+    HistoryPoint:
+      type: object
+      description: One earlier run of a job key.
+      required: [at, seconds, branch]
+      properties:
+        at:
+          type: string
+          format: date-time
+        seconds:
+          type: number
+        result:
+          $ref: '#/components/schemas/JobResult'
+        branch:
+          type: string
+        machine:
+          type: string
+    AttemptRef:
+      type: object
+      required: [attempt, job_id, state]
+      properties:
+        attempt:
+          type: integer
+        job_id:
+          type: integer
+          format: int64
+        result:
+          $ref: '#/components/schemas/JobResult'
+        state:
+          type: string
+          enum: [queued, running, done]
+    JobDetail:
+      description: A job with its steps, the last 30 runs of its key, its attempts and the ETA of its run (OPS34).
+      allOf:
+        - $ref: '#/components/schemas/Job'
+        - type: object
+          required: [steps, history, attempts]
+          properties:
+            steps:
+              type: array
+              items:
+                $ref: '#/components/schemas/StepItem'
+            history:
+              type: array
+              description: The last 30 durations of this job key, oldest first.
+              items:
+                $ref: '#/components/schemas/HistoryPoint'
+            attempts:
+              type: array
+              items:
+                $ref: '#/components/schemas/AttemptRef'
+            run_eta:
+              $ref: '#/components/schemas/Eta'
+    RunSummary:
+      type: object
+      description: One run attempt in a list.
+      required:
+        [
+          id,
+          attempt,
+          repository,
+          workflow,
+          branch,
+          head_sha,
+          trigger,
+          html_url,
+          state,
+          created_at,
+          jobs_total,
+          jobs_done,
+          jobs_failed,
+        ]
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: The GitHub run id.
+        attempt:
+          type: integer
+        attempts:
+          type: array
+          items:
+            type: integer
+        repository:
+          type: string
+        repository_id:
+          type: integer
+          format: int64
+        workflow:
+          type: string
+        branch:
+          type: string
+        head_sha:
+          type: string
+        pull_request:
+          type: integer
+        task_id:
+          type: string
+        worktree:
+          type: string
+        trigger:
+          type: string
+        html_url:
+          type: string
+        state:
+          type: string
+          enum: [queued, running, done]
+        result:
+          $ref: '#/components/schemas/JobResult'
+        created_at:
+          type: string
+          format: date-time
+        completed_at:
+          type: string
+          format: date-time
+        jobs_total:
+          type: integer
+        jobs_done:
+          type: integer
+        jobs_failed:
+          type: integer
+        total_seconds:
+          type: integer
+          description: Wall time from created to completed, or to now while open.
+        eta:
+          $ref: '#/components/schemas/Eta'
+    RunPage:
+      type: object
+      required: [items, total, stale]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/RunSummary'
+        next_cursor:
+          type: string
+        total:
+          type: integer
+        stale:
+          $ref: '#/components/schemas/Staleness'
+    RunGraph:
+      type: object
+      description: Where the edges of a run come from (OPS34 D3).
+      required: [source, dynamic_nodes]
+      properties:
+        source:
+          type: string
+          enum: [workflow_file, timing_overlap]
+        note:
+          type: string
+          description: A sentence for the screen, such as "the matrix expands at run time".
+        dynamic_nodes:
+          type: array
+          description: node_id of the jobs a matrix or a reusable workflow expands at run time.
+          items:
+            type: string
+    RunItem:
+      type: object
+      description: A run attempt with its jobs and needs graph.
+      required:
+        [
+          id,
+          attempt,
+          attempts,
+          repository,
+          workflow,
+          branch,
+          head_sha,
+          trigger,
+          html_url,
+          state,
+          created_at,
+          jobs,
+          edges,
+          critical_path,
+          graph,
+        ]
+      properties:
+        id:
+          type: integer
+          format: int64
+        attempt:
+          type: integer
+        attempts:
+          type: array
+          items:
+            type: integer
+        repository:
+          type: string
+        repository_id:
+          type: integer
+          format: int64
+        workflow:
+          type: string
+        branch:
+          type: string
+        head_sha:
+          type: string
+        pull_request:
+          type: integer
+        task_id:
+          type: string
+        worktree:
+          type: string
+        trigger:
+          type: string
+        html_url:
+          type: string
+        state:
+          type: string
+          enum: [queued, running, done]
+        result:
+          $ref: '#/components/schemas/JobResult'
+        created_at:
+          type: string
+          format: date-time
+        completed_at:
+          type: string
+          format: date-time
+        jobs:
+          type: array
+          items:
+            $ref: '#/components/schemas/Job'
+        edges:
+          type: array
+          description: '[a, b]: b needs a. Node ids.'
+          items:
+            type: array
+            minItems: 2
+            maxItems: 2
+            items:
+              type: string
+        critical_path:
+          type: array
+          description: Node ids on the critical path.
+          items:
+            type: string
+        eta:
+          $ref: '#/components/schemas/Eta'
+        graph:
+          $ref: '#/components/schemas/RunGraph'
+    JobGroupRow:
+      type: object
+      required:
+        [
+          name,
+          filter,
+          running,
+          queued,
+          done,
+          failed,
+          wait_p50,
+          wait_p90,
+          run_p50,
+          run_p90,
+          trend,
+        ]
+      properties:
+        name:
+          type: string
+        filter:
+          type: string
+          description: The query that lists this group's jobs, such as `repository=owner/name`.
+        running:
+          type: integer
+        queued:
+          type: integer
+        done:
+          type: integer
+        failed:
+          type: integer
+        wait_p50:
+          type: number
+        wait_p90:
+          type: number
+        run_p50:
+          type: number
+        run_p90:
+          type: number
+        trend:
+          type: array
+          description: The last run times in seconds, oldest first, at most 20.
+          items:
+            type: number
+        light:
+          type: boolean
+          description: Job type groups only.
+    JobGroupList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/JobGroupRow'
+    DayStat:
+      type: object
+      required: [day, jobs, failed, wait_p50, wait_p90, run_p50, run_p90]
+      properties:
+        day:
+          type: string
+          description: UTC date, such as 2026-11-18.
+        jobs:
+          type: integer
+        failed:
+          type: integer
+        wait_p50:
+          type: number
+        wait_p90:
+          type: number
+        run_p50:
+          type: number
+        run_p90:
+          type: number
+    HourStat:
+      type: object
+      required: [weekday, hour, count]
+      properties:
+        weekday:
+          type: integer
+          description: 0 is Sunday.
+        hour:
+          type: integer
+          description: UTC.
+        count:
+          type: integer
+    ForecastPoint:
+      type: object
+      required: [job_id, forecast_seconds, actual_seconds, lo, hi, basis]
+      properties:
+        job_id:
+          type: integer
+          format: int64
+        forecast_seconds:
+          type: number
+        actual_seconds:
+          type: number
+        lo:
+          type: number
+        hi:
+          type: number
+        basis:
+          type: string
+        note:
+          type: string
+          description: What the forecast rested on, in words.
+    JobStats:
+      type: object
+      required: [days, hours, forecast_points]
+      properties:
+        days:
+          type: array
+          items:
+            $ref: '#/components/schemas/DayStat'
+        hours:
+          type: array
+          items:
+            $ref: '#/components/schemas/HourStat'
+        forecast_points:
+          type: array
+          items:
+            $ref: '#/components/schemas/ForecastPoint'
+    JobSummary:
+      type: object
+      description: One job type of one repository on one day (OPS34 D2).
+      required:
+        [
+          day,
+          repository,
+          job_type,
+          jobs,
+          failed,
+          wait_p50_ms,
+          wait_p90_ms,
+          run_p50_ms,
+          run_p90_ms,
+        ]
+      properties:
+        day:
+          type: string
+        repository:
+          type: string
+        job_type:
+          type: string
+        jobs:
+          type: integer
+        failed:
+          type: integer
+        wait_p50_ms:
+          type: integer
+          format: int64
+        wait_p90_ms:
+          type: integer
+          format: int64
+        run_p50_ms:
+          type: integer
+          format: int64
+        run_p90_ms:
+          type: integer
+          format: int64
+    JobSummaryList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/JobSummary'
+    StepForecast:
+      type: object
+      required: [name, forecast]
+      properties:
+        name:
+          type: string
+        forecast:
+          $ref: '#/components/schemas/Forecast'
+    ForecastAnswer:
+      type: object
+      required: [job_ident, forecast, steps, history]
+      properties:
+        job_ident:
+          type: string
+        forecast:
+          $ref: '#/components/schemas/Forecast'
+        steps:
+          type: array
+          items:
+            $ref: '#/components/schemas/StepForecast'
+        history:
+          type: array
+          items:
+            $ref: '#/components/schemas/HistoryPoint'
     Slot:
       type: object
       required: [kind, number, taken_at, repository, run_id, run_attempt, job]

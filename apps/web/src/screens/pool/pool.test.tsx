@@ -3,9 +3,8 @@
 import { cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { machine, renderApp, repository, runner, signedIn } from '../../testing/mock';
+import { renderApp, repository, runner, signedIn } from '../../testing/mock';
 import { groupByMachine, runnerTotals } from '../runners/Runners';
-import { groupJobs, byDay } from '../jobs/JobsGrouped';
 import { showStrip, STRIP_STORE_NAME } from '../overview/HowCrspWorks';
 import { poolTotals } from './PoolSummary';
 
@@ -108,14 +107,18 @@ describe('the six areas and the old addresses (D24)', () => {
     expect(document.activeElement).toBe(links[1]);
   });
 
-  it('the Jobs tabs keep the detail page without tabs', async () => {
+  it('the old Wait and duration tab opens Charts, and the Jobs tabs stay a row', async () => {
     renderApp(
-      ready().on('GET', '/api/v1/jobs', { items: [], stale: { stale: false } }),
+      ready().on('GET', '/api/v1/jobs/stats', {
+        days: [],
+        hours: [],
+        forecast_points: [],
+      }),
       '/jobs/trends',
     );
     expect(await screen.findByRole('tablist', { name: 'Jobs sections' })).toBeTruthy();
     expect(
-      screen.getByRole('tab', { name: 'Wait and duration', selected: true }),
+      await screen.findByRole('tab', { name: 'Charts', selected: true }),
     ).toBeTruthy();
   });
 });
@@ -237,96 +240,5 @@ describe('How crsp works strip (D33)', () => {
     const api = ready().on('GET', '/api/v1/github/repositories', repos([]));
     renderApp(api, '/');
     expect(await screen.findByText(/How crsp works:/)).toBeTruthy();
-  });
-});
-
-describe('Jobs grouped (D24)', () => {
-  const j = (over: Record<string, unknown>) =>
-    ({
-      id: 1,
-      repository: 'octo/app',
-      run_id: 1,
-      run_attempt: 1,
-      github_job_id: 1,
-      job_name: 't',
-      labels: ['self-hosted'],
-      state: 'done',
-      result: 'success',
-      github_wait_seconds: 10,
-      run_seconds: 100,
-      completed_at: '2026-11-17T10:00:00',
-      ...over,
-    }) as never;
-
-  it('counts by state and averages the finished jobs', () => {
-    const g = groupJobs(
-      [
-        j({ id: 1 }),
-        j({ id: 2, result: 'failure', github_wait_seconds: 30, run_seconds: 300 }),
-        j({ id: 3, state: 'queued', result: undefined }),
-        j({ id: 4, state: 'running', result: undefined, repository: 'octo/api' }),
-      ],
-      (x) => x.repository,
-    );
-    expect(g).toEqual([
-      {
-        name: 'octo/api',
-        running: 1,
-        queued: 0,
-        done: 0,
-        failed: 0,
-        waitS: undefined,
-        runS: undefined,
-      },
-      {
-        name: 'octo/app',
-        running: 0,
-        queued: 1,
-        done: 2,
-        failed: 1,
-        waitS: 20,
-        runS: 200,
-      },
-    ]);
-  });
-
-  it('groups finished jobs by the day they ended', () => {
-    const d = byDay([j({ id: 1 }), j({ id: 2, completed_at: '2026-11-16T09:00:00' })]);
-    expect(d.map((x) => [x.day, x.jobs])).toEqual([
-      ['2026-11-17', 1],
-      ['2026-11-16', 1],
-    ]);
-  });
-
-  it('shows the table by repository from the queue, running and finished jobs', async () => {
-    const api = ready().on('GET', '/api/v1/jobs', (c) => ({
-      items:
-        c.query.get('state') === 'done'
-          ? [j({ id: 1 }), j({ id: 2, result: 'failure' })]
-          : c.query.get('state') === 'queued'
-            ? [j({ id: 3, state: 'queued', result: undefined })]
-            : [],
-      stale: { stale: false },
-    }));
-    renderApp(api, '/jobs/repository');
-    const table = await screen.findByRole('table', { name: 'By repository' });
-    const row = within(table).getByText('octo/app').closest('tr')!;
-    expect(
-      within(row)
-        .getAllByRole('cell')
-        .map((c) => c.textContent),
-    ).toEqual(expect.arrayContaining(['1', '2']));
-  });
-
-  it('shows By machine with machine names', async () => {
-    const api = ready()
-      .on('GET', '/api/v1/machines', { items: [machine({ id: 'm1', name: 'build-1' })] })
-      .on('GET', '/api/v1/jobs', (c) => ({
-        items: c.query.get('state') === 'done' ? [j({ machine_id: 'm1' })] : [],
-        stale: { stale: false },
-      }));
-    renderApp(api, '/jobs/machine');
-    const table = await screen.findByRole('table', { name: 'By machine' });
-    await waitFor(() => expect(within(table).getByText('build-1')).toBeTruthy());
   });
 });

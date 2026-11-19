@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/api/gen"
-	"github.com/luis-mc/ci-runners-shared-pool/internal/scheduler/slots"
 )
 
 // The jobs export (web-console R5.24, UX-39): every row of the filter, in the order the list shows (newest
@@ -26,7 +25,7 @@ const exportPage = 200
 var jobsExportColumns = []string{
 	"id", "repository", "run_id", "run_attempt", "workflow", "job_name", "state", "result", "wait_reason", "machine",
 	"runner", "backend", "labels", "created_at", "started_at", "completed_at", "github_wait_seconds", "slot_wait_seconds",
-	"run_seconds", "url",
+	"run_seconds", "url", "job_ident", "branch", "runner_kind",
 }
 
 // jobsExportFile is an export answer: the bytes, their type and the file name.
@@ -81,16 +80,48 @@ func jobRow(j gen.Job) []string {
 	if j.WaitReason != nil {
 		reason = string(*j.WaitReason)
 	}
+	var kind string
+	if j.Runner != nil {
+		kind = string(j.Runner.Kind)
+	}
 	return []string{
 		strconv.FormatInt(j.Id, 10), j.Repository, strconv.FormatInt(j.RunId, 10), strconv.Itoa(j.RunAttempt), str(j.Workflow),
 		j.JobName, string(j.State), result, reason, str(j.MachineId), str(j.RunnerName), str(j.Backend), strings.Join(j.Labels, " "),
 		timeText(j.CreatedAt), timeText(j.StartedAt), timeText(j.CompletedAt), intText(j.GithubWaitSeconds), intText(j.SlotWaitSeconds),
-		intText(j.RunSeconds), str(j.HtmlUrl),
+		intText(j.RunSeconds), str(j.HtmlUrl), str(j.JobIdent), str(j.Branch), kind,
 	}
 }
 
-// exportJobsAll reads every job of the filter, newest first.
-func (s *server) exportJobsAll(ctx context.Context, f slots.JobFilter) ([]gen.Job, error) {
+// exportJobsAll reads every job of the filter, newest first, from the Jobs section data when it is wired and
+// else from the scheduler's table.
+func (s *server) exportJobsAll(ctx context.Context, q jobQuery) ([]gen.Job, error) {
+	if s.opts.JobsData == nil {
+		return s.exportJobsLegacy(ctx, q)
+	}
+	f, _ := q.jobFilter()
+	f.Limit = exportPage
+	var out []gen.Job
+	for {
+		rows, _, err := s.opts.JobsData.ListJobs(ctx, f)
+		if err != nil {
+			return nil, err
+		}
+		more := len(rows) > f.Limit
+		if more {
+			rows = rows[:f.Limit]
+		}
+		for _, r := range rows {
+			out = append(out, toJobItem(r))
+		}
+		if !more {
+			return out, nil
+		}
+		f.After = rows[len(rows)-1].ID
+	}
+}
+
+func (s *server) exportJobsLegacy(ctx context.Context, q jobQuery) ([]gen.Job, error) {
+	f, _ := q.legacy()
 	f.Limit = exportPage
 	var out []gen.Job
 	for {
@@ -117,36 +148,23 @@ func (s *server) ExportJobs(ctx context.Context, req gen.ExportJobsRequestObject
 	bad := func(msg string) (gen.ExportJobsResponseObject, error) {
 		return gen.ExportJobsdefaultJSONResponse{StatusCode: http.StatusBadRequest, Body: errBody(CodeBadRequest, msg)}, nil
 	}
-	if s.opts.Jobs == nil {
+	if s.opts.Jobs == nil && s.opts.JobsData == nil {
 		return gen.ExportJobsdefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notWired()}, nil
 	}
 	p := req.Params
-	var f slots.JobFilter
+	q := jobQuery{RepositoryID: p.RepositoryId, MachineID: p.MachineId, Backend: p.Backend, Runner: p.Runner, JobType: p.JobType, JobKey: p.JobIdent,
+		Branch: p.Branch, RunID: p.RunId, From: p.From, To: p.To}
 	if p.State != nil {
-		switch slots.JobState(*p.State) {
-		case slots.JobQueued, slots.JobRunning, slots.JobDone:
-			f.State = slots.JobState(*p.State)
-		default:
-			return bad("state must be queued, running or done")
-		}
-	}
-	if p.RepositoryId != nil {
-		f.RepositoryID = *p.RepositoryId
-	}
-	if p.MachineId != nil {
-		f.MachineID = *p.MachineId
-	}
-	if p.Backend != nil {
-		f.Backend = *p.Backend
+		q.State = ptrOf(string(*p.State))
 	}
 	if p.Result != nil {
-		f.Result = string(*p.Result)
+		q.Result = ptrOf(string(*p.Result))
 	}
-	if p.From != nil {
-		f.From = *p.From
+	if p.RunnerKind != nil {
+		q.RunnerKind = ptrOf(string(*p.RunnerKind))
 	}
-	if p.To != nil {
-		f.To = *p.To
+	if _, msg := q.jobFilter(); msg != "" {
+		return bad(msg)
 	}
 	format := gen.ExportJobsParamsFormat("csv")
 	if p.Format != nil {
@@ -155,12 +173,12 @@ func (s *server) ExportJobs(ctx context.Context, req gen.ExportJobsRequestObject
 	if format != "csv" && format != "json" {
 		return bad("format must be csv or json")
 	}
-	jobs, err := s.exportJobsAll(ctx, f)
+	jobs, err := s.exportJobsAll(ctx, q)
 	if err != nil {
 		s.opts.Logger.Error("export jobs", "err", err)
 		return gen.ExportJobsdefaultJSONResponse{StatusCode: http.StatusInternalServerError, Body: errBody(CodeInternal, "internal error")}, nil
 	}
-	name := "crsp-jobs-" + time.Now().Format("2006-01-02-1504") + "." + string(format)
+	name := "crsp-jobs-" + s.now().Format(fileStamp) + "." + string(format)
 	if format == "json" {
 		if jobs == nil {
 			jobs = []gen.Job{}
@@ -186,4 +204,48 @@ func (s *server) ExportJobs(ctx context.Context, req gen.ExportJobsRequestObject
 		return nil, err
 	}
 	return jobsExportFile{contentType: "text/csv", filename: name, body: buf.Bytes()}, nil
+}
+
+// jobSummaryColumns are the CSV columns of the daily summaries, in order.
+var jobSummaryColumns = []string{"day", "repository", "job_type", "jobs", "failed", "wait_p50_ms", "wait_p90_ms", "run_p50_ms", "run_p90_ms"}
+
+type jobSummariesExportAnswer struct{ exportFile }
+
+func (a jobSummariesExportAnswer) VisitExportJobSummariesResponse(w http.ResponseWriter) error {
+	return a.write(w)
+}
+
+// ExportJobSummaries implements GET /api/v1/exports/job-summaries: every daily summary of the range as csv.
+func (s *server) ExportJobSummaries(ctx context.Context, req gen.ExportJobSummariesRequestObject) (gen.ExportJobSummariesResponseObject, error) {
+	if s.opts.JobsData == nil {
+		return gen.ExportJobSummariesdefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notWired()}, nil
+	}
+	rows, err := s.opts.JobsData.Summaries(ctx, timeOf(req.Params.From), timeOf(req.Params.To))
+	if err != nil {
+		s.opts.Logger.Error("export job summaries", "err", err)
+		return gen.ExportJobSummariesdefaultJSONResponse{StatusCode: http.StatusInternalServerError, Body: errBody(CodeInternal, "internal error")}, nil
+	}
+	var buf bytes.Buffer
+	w := csv.NewWriter(&buf)
+	_ = w.Write(jobSummaryColumns)
+	for _, r := range rows {
+		row := []string{r.Day, r.Repository, r.JobType, strconv.Itoa(r.Jobs), strconv.Itoa(r.Failed), strconv.FormatInt(r.WaitP50MS, 10),
+			strconv.FormatInt(r.WaitP90MS, 10), strconv.FormatInt(r.RunP50MS, 10), strconv.FormatInt(r.RunP90MS, 10)}
+		for i := range row {
+			row[i] = neutralise(row[i])
+		}
+		_ = w.Write(row)
+	}
+	w.Flush()
+	if err := w.Error(); err != nil {
+		return nil, err
+	}
+	return jobSummariesExportAnswer{exportFile{name: "crsp-job-summaries-" + s.now().Format(fileStamp) + ".csv", contentType: "text/csv", body: buf.Bytes()}}, nil
+}
+
+func timeOf(t *time.Time) time.Time {
+	if t == nil {
+		return time.Time{}
+	}
+	return *t
 }
