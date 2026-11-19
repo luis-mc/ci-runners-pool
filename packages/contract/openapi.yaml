@@ -5215,13 +5215,7 @@ components:
     RepositoryPolicy:
       type: object
       required:
-        [
-          priority,
-          max_parallel_jobs,
-          allow_fork_pull_requests,
-          labels,
-          runner_groups,
-        ]
+        [priority, max_parallel_jobs, allow_fork_pull_requests, labels, runner_groups]
       properties:
         priority:
           type: integer
