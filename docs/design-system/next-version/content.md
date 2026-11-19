@@ -150,6 +150,7 @@ A message is one or two short sentences in plain words. It names the thing, neve
 | Date | Year-month-day. | 2026-11-02 |
 | Time | 24-hour, local time. | 14:30 |
 | Date and time | Date, a space, then time. | 2026-11-02 14:30 |
+| Short date and time | Day, month name, time; only in a one-line table cell (UX-72). The detail shows the full form above. | 18 Nov 13:28 |
 | Number | Digits, with a space for thousands. A dot for decimals. | 12 345.5 |
 | Count | A number before the noun. The noun agrees with the count. | 1 item, 3 items |
 | Size | A number and a unit, with a space. | 4.2 MB |
@@ -827,6 +828,24 @@ The words of the Repositories screen when the list is grouped by owner and hides
 | Hide them | Link in that line: lists private repositories only again. |
 | {n} private repositories | Count beside the toolbar; `{n} private & public repositories` when public is active or listed. |
 
+## Chart words
+
+The fixed words of the waterfall, job graph and charts (components 50 to 55, RES15). Every other word comes in through props.
+
+| Word | Where |
+|---|---|
+| Show as table | The folded section under every chart that holds its text alternative. |
+| now | Waterfall: the line and its legend ("now: 4 min"). |
+| critical path | Waterfall and job graph: said in words for a job on the critical path. |
+| Name, Detail | Waterfall table heads. |
+| Job, Stage, after, Detail | Job graph: table heads; "Stage {n}" heads a stage; "after: a, b" under a job. |
+| Series, When, Value, Range, Note | Trend chart table heads. |
+| Day, Total, Busiest hour | Heatmap table heads. |
+| forecast, actual, forecast = actual | Forecast chart axes and the diagonal's legend; table heads. |
+| inside the forecast range, outside the forecast range, no range | Forecast chart: said for each job. |
+| lowest, highest, last, values | Chart and sparkline text alternatives ("5 values, last 4 s"). |
+| no data yet | A sparkline, heatmap or forecast chart with nothing to draw. |
+
 ## Ordered list words
 
 | Word | Where |
@@ -994,3 +1013,96 @@ The words of Add runners step 1, the Runners list, the runner page and the Repos
 | Ephemeral only (default) | Value while the owner has not chosen; the default is Ephemeral only for a public repository, Any runner for a private one. |
 | Jobs from a public repository can then run on a persistent runner, which keeps files between jobs. Anyone who can open a pull request may reach it. | Warning under the field when a public repository is set to Any runner, and the body line of the question card Let public jobs use persistent runners? (answer Allow). |
 | No ephemeral runner capacity: jobs would wait. | Line in the Runner kind column and a Problem on the repository page with the button Add runners, while the pool has no machine that can make an ephemeral runner. |
+
+## Jobs section words
+
+The words of the new Jobs section (web-console 4.6, proposed). A wait names what is happening (UX-29); a status is a word, a glyph and a colour (UX-58); a chart has a text equivalent (UX-41, UX-17).
+
+| Word | Where and meaning |
+|---|---|
+| Queue, Running, Done | Tabs and pane titles of the three lists. |
+| One row per run, One row per job | The count slot of the Jobs list toolbar: says what a row is in the chosen view. |
+| By repository, By machine, By runner, By runner type, By job type, Charts | The sub-section tabs. |
+| Order | Column: the job's place in the queue, 1 is next. |
+| Workflow and job, Branch, Runner and machine, Waited, Ran, Forecast, Starts, Doing now, Progress | Column heads. |
+| Why it waits | Column: the wait reason in words (UX-29), a long one behind Details. |
+| not placed yet | A queued job has no runner. |
+| (worktree {name}) | After the branch, only when the job reported a worktree or task. |
+| not reported | Fact value when the job did not report a worktree or task. |
+| Show 25 more | Button of the Done pane; adds 25 jobs up to 100. |
+| Only the last 100 done jobs are kept. Older ones are not shown. | Note under the Done list at the limit. |
+| Showing {n} of {m} kept done jobs. | Note under the Done list. |
+| Showing only jobs of {filter}. / Show every job | Note and button when a group row opened a filtered list. |
+| about 6 to 9 min, about 40 to 55 s | A forecast or ETA range. |
+| not enough history yet | No forecast: fewer than 5 runs. No number is made up. |
+| median of the last {n} runs on {machine} | The basis of a forecast; also "of the jobs of this workflow" and "of this repository". |
+| changed lately, so the last 10 runs count | Added to the basis when the median moved by more than a quarter. |
+| in about 3 to 4 min / now | When a queued job should start; "(a forecast, not a promise)" on the job page. |
+| Open the run on GitHub | The one primary of the job and run pages. |
+| Open the commit, Open the pull request | Secondary buttons on the job page. |
+| Open the whole run | Button to the run page. |
+| Project and code, Run and attempts, Steps, Runner, Times, Forecast, History of this job | Pane titles of the job page. |
+| Job graph, Timeline | Pane titles of the run page. |
+| persistent, state kept between jobs / ephemeral, fresh for every job | Runner type (UX-61). |
+| warm, the caches were ready / cold, the caches were rebuilt | Cache state of a job. |
+| Run time and wait per day, Jobs per day, Forecast against actual, Busiest hours | Chart pane titles. |
+| {n}% of {m} finished jobs ran inside their forecast range. The aim is about 80%. | Line over Forecast against actual. |
+| Median wait, Median run, Slow end of run, Jobs failed, Weight, Light, Heavy, Backend, Runner type | Column heads of the grouped tables and the Done runs list; the slow end is the run time 9 in 10 jobs stay under. |
+| Steps are no longer kept for a job this old. / This job reported no steps. | Steps pane of the Job page: older than 30 days, or GitHub sent none. |
+| This repository is not on the list of repositories, so no run belongs to it. | A list filtered by a repository the controller does not know. |
+
+### Runs first (RES16, owner decisions of 18 Nov 2026)
+
+| Word | Where and meaning |
+|---|---|
+| Runs, Jobs | Switch above Queue, Running and Done: one row for each workflow run, or the flat job list for filtering by runner, machine and kind. |
+| Place, Starts | Queue run row: the smallest place of its queued jobs, and the start range ("in about 4 to 7 min"). |
+| starts in about 4 to 7 min, 3rd in line | Start range and place of a queued job; the reason it waits (UX-29) is beside it. |
+| Jobs done, Jobs queued | Column: "7 of 9". |
+| Total time, Time so far, Ends | Columns of a done run, of a running run, and the end forecast of a running run (one number: "in about 7 min"). |
+| Slowest job, Running now | Columns: the job that took longest, the job that runs now. |
+| Commit, Event | Columns of a run: the 7-character commit ("a1b2c3d"), and what started it ("push", "PR #52", "schedule"). The Run page keeps one line, Commit and event. |
+| Result | Column of a run: success, failure, timed out, cancelled, running or waiting. |
+| (task RES15) | After the branch, when the branch starts with a task id. A worktree shows as "(worktree {name})" only when the job reported it, otherwise "not reported". |
+| Task, Worktree | Facts of the Job and Run pages. "none in the branch name" and "not reported" are their empty words. |
+| Open run page | Button under an opened run row, to the Run page. |
+| Last 7 days, Last 30 days, Last 90 days | Range switch of Done. |
+| Show 25 more | Adds 25 runs or jobs up to 100 a page; older ones by range and filter. |
+| Export CSV, Export daily summaries (CSV) | Buttons of Done and of Charts. |
+| crsp keeps steps for 30 days, jobs for 90 days and daily summaries for 400 days. | Footer of Done, Charts and the group tables. |
+| 7 days, 14 days, 30 days | Range switch of Charts; 14 is the first. |
+| Backend, Weight | Columns of By runner type (docker, wsl2, hyperv) and By job type (Light, Standard, Heavy badge). |
+| about 7 min | One number in a table. A range ("about 6 to 9 min") with its basis ("median of the last 20 runs") is for the Job and Run pages. |
+| not enough history yet (workflow typical about 4 min) | A job with fewer than 5 runs: no number is made up; the workflow's or the repository's typical time is named and labelled. |
+| Step times are from GitHub. | Hint of the Steps pane. |
+| expands at run time | Marks a matrix job or a reusable workflow in the job graph. |
+| Arrows come from the workflow file at commit {sha} (read once per commit and kept). | Line over the job graph. When the file cannot be read: "no arrows are drawn: jobs that ran at the same time are shown side by side. This is a guess from timing, not from the workflow." |
+
+### Row action words (RES17, UX-72)
+
+One word set for the button at the end of a table row. The guard reads this table: a label not listed here fails the review layout spec.
+
+| Word | Where and meaning |
+|---|---|
+| Open run | Row action of a run row (Queue, Running, Done): opens the run in place, as a waterfall of its jobs. |
+| Open | Row action of a group row (By repository, machine, runner, runner type, job type). The group's name is already in the row. |
+| Open job | Row action of a job row (Jobs view of Queue, Running, Done): opens the Job page. |
+| Open run page | Button inside an opened run, to the Run page. |
+| Why, Details | Button inside a cell that has a long text, to read it whole. Not a row action. |
+
+## Runner leftover words
+
+The words of the Doctor finding that lists runner services, folders, accounts and downloads no controller owns, and removes them (doctor R5.48, web-console 4.8, OPS33). Here Remove takes the leftover off the machine for good, and the card says so.
+
+| Word | Where and meaning |
+|---|---|
+| Remove | The one button of the finding, and the action of its question card. Admin only (busy word: Removing). |
+| Remove these leftovers from {machine}? | The title of the question card. |
+| Each item below is removed from this machine. This cannot be undone. | The line above the items of the card: what happens. |
+| Service, Folder, Account, Download | The kind word that starts each leftover. |
+| {kind} {name} ({size}) | One leftover in the card: its kind, its name and its size when it has one. |
+| {kind} {name} ({size}), account {account}. {why} | One leftover in the finding. |
+| Removed, Already gone, Refused, Failed | The result word of each item after the call. A reason follows Refused and Failed. |
+| {kind} {name}: {result}. {reason} | One line of the result list in the finding. |
+| Runner leftovers on {machine}: {kind} {name} removed, ... | Done message when every item went and the finding is gone. |
+| The agent has no administrator rights. Run it as a service with rights. | The reason beside a disabled Remove when the finding says the agent needs rights. |

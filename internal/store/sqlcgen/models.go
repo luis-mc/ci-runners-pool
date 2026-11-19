@@ -141,6 +141,68 @@ type Installation struct {
 	UpdatedAt           string
 }
 
+type Job struct {
+	ID           int64
+	RepositoryID int64
+	Repository   string
+	RunID        int64
+	RunAttempt   int64
+	Workflow     string
+	Name         string
+	JobType      string
+	Matrix       string
+	JobIdent     string
+	Branch       string
+	HeadSha      string
+	Event        string
+	Labels       string
+	State        string
+	Result       string
+	HtmlUrl      string
+	CreatedAt    string
+	QueuedAt     string
+	SlotAt       string
+	StartedAt    string
+	CompletedAt  string
+	CleanupMs    int64
+	MachineID    string
+	MachineName  string
+	RunnerID     string
+	RunnerName   string
+	RunnerKind   string
+	Backend      string
+	Isolation    string
+	Cache        string
+	WaitReason   string
+	WaitText     string
+	Worktree     string
+	Light        int64
+	FcLoMs       int64
+	FcMidMs      int64
+	FcHiMs       int64
+	FcBasis      string
+	FcSamples    int64
+	UpdatedAt    string
+}
+
+type JobDaily struct {
+	Day        string
+	Repository string
+	JobType    string
+	Jobs       int64
+	Failed     int64
+	WaitP50Ms  int64
+	WaitP90Ms  int64
+	RunP50Ms   int64
+	RunP90Ms   int64
+}
+
+type JobFactsPending struct {
+	JobID     int64
+	Json      string
+	UpdatedAt string
+}
+
 type JobHistory struct {
 	ID           int64
 	RepositoryID int64
@@ -184,6 +246,16 @@ type JobQueue struct {
 	LockedAt    sql.NullString
 	LastError   sql.NullString
 	CreatedAt   string
+}
+
+type JobStep struct {
+	JobID       int64
+	Number      int64
+	Name        string
+	State       string
+	Result      string
+	StartedAt   string
+	CompletedAt string
 }
 
 type JoinCode struct {
@@ -358,6 +430,27 @@ type RestoreDrill struct {
 	FinishedAt sql.NullString
 	State      string
 	Detail     string
+}
+
+type Run struct {
+	RepositoryID int64
+	RunID        int64
+	RunAttempt   int64
+	Repository   string
+	Workflow     string
+	WorkflowName string
+	Event        string
+	HeadBranch   string
+	HeadSha      string
+	PullRequest  int64
+	TaskID       string
+	Worktree     string
+	HtmlUrl      string
+	CreatedAt    string
+	StartedAt    string
+	CompletedAt  string
+	Conclusion   string
+	UpdatedAt    string
 }
 
 type Runner struct {
@@ -549,4 +642,14 @@ type WebhookDelivery struct {
 	DeliveryID string
 	Event      string
 	ReceivedAt string
+}
+
+type WorkflowGraph struct {
+	RepositoryID int64
+	Workflow     string
+	HeadSha      string
+	Ok           int64
+	Needs        string
+	Dynamic      string
+	FetchedAt    string
 }

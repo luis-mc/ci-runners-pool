@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 
+	"github.com/luis-mc/ci-runners-shared-pool/internal/jobsdata"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/scheduler/slots"
 )
 
@@ -99,6 +100,10 @@ func (e *Engine) Place(ctx context.Context, machineID string, job JobRef) (Place
 	e.notifyFreed(freed)
 	if err != nil {
 		return Placement{}, err
+	}
+	if !out.Existing {
+		light := false
+		e.emit(job, "go", out.Grant.TakenAt.String(), jobsdata.Facts{MachineID: machineID, SlotAt: out.Grant.TakenAt, Light: &light})
 	}
 	return out, nil
 }

@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"errors"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/addresses"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -75,7 +76,7 @@ func New(store Store, cfg Config) *Service {
 		cfg.Now = time.Now
 	}
 	if cfg.WebBase == "" {
-		cfg.WebBase = github.DefaultWebBase
+		cfg.WebBase = addresses.DefaultGitHubURL
 	}
 	if cfg.ConsoleURLs == nil {
 		cfg.ConsoleURLs = func() []string { return nil }

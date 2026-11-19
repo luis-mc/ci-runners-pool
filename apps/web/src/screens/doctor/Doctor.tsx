@@ -3,6 +3,7 @@
 // and shows its progress (UX-13, UX-29); the busy state is the server's run state, not a timer (UX-19).
 import {
   Badge,
+  BulletList,
   Button,
   CodeBlock,
   Cluster,
@@ -19,6 +20,7 @@ import {
   Text,
   formatCount,
   formatPast,
+  formatSize,
   useNow,
   type Column,
   type StatusKind,
@@ -26,14 +28,123 @@ import {
 } from '@crsp/ui';
 import { useEffect, useState } from 'react';
 import { unwrap, useClient, type Schemas } from '../../api/api';
-import { useCommand, useLoad } from '../../api/hooks';
+import { useCommand, useLoad, useQuestion } from '../../api/hooks';
 import { useSession } from '../../auth/session';
 import { useVersion } from '../../live/LiveProvider';
-import { Load } from '../common';
+import { Ask, Load } from '../common';
 
 type Finding = Schemas['DoctorFinding'];
 type Run = Schemas['DoctorRun'];
 type Severity = Schemas['Severity'];
+type Leftover = Schemas['RunnerLeftover'];
+type LeftoverResult = Schemas['RemoveRunnerLeftoversResult']['results'][number];
+
+const KIND_WORD: Record<Leftover['kind'], string> = {
+  service: 'Service',
+  folder: 'Folder',
+  account: 'Account',
+  download: 'Download',
+};
+
+const OUTCOME_WORD: Record<LeftoverResult['outcome'], string> = {
+  removed: 'Removed',
+  already_gone: 'Already gone',
+  refused: 'Refused',
+  failed: 'Failed',
+};
+
+/** What the question card and the list say of one leftover: its kind, its name and its size. */
+export function leftoverText(i: Pick<Leftover, 'kind' | 'name' | 'size_bytes'>): string {
+  const size = i.size_bytes === undefined ? '' : ` (${formatSize(i.size_bytes)})`;
+  return `${KIND_WORD[i.kind]} ${i.name}${size}`;
+}
+
+/** The list of leftovers inside a finding row (doctor R5.48): kind, name, size, account and why. */
+function LeftoverList({ items }: { items: readonly Leftover[] }) {
+  return (
+    <BulletList
+      label="Runner leftovers"
+      items={items.map(
+        (i) => `${leftoverText(i)}${i.account ? `, account ${i.account}` : ''}. ${i.why}`,
+      )}
+    />
+  );
+}
+
+/** The Remove button of a runner-leftovers finding, its question card (UX-9, UX-62) and the result per item. */
+function RemoveLeftovers({
+  finding,
+  results,
+  onResults,
+  onRemoved,
+}: {
+  finding: Finding;
+  results: readonly LeftoverResult[];
+  onResults: (machineId: string, name: string, r: LeftoverResult[]) => void;
+  onRemoved: (machineId: string) => void;
+}) {
+  const client = useClient();
+  const session = useSession();
+  const machineId = finding.subject.id;
+  const items = finding.items ?? [];
+  const noRights = finding.needs_admin;
+  const admin = session.can('admin');
+  const ask = useQuestion(
+    async () => {
+      const r = await unwrap(
+        client.POST('/api/v1/machines/{machineId}/runner-leftovers/remove', {
+          params: { path: { machineId } },
+          body: { items: items.map((i) => ({ kind: i.kind, name: i.name })) },
+        }),
+      );
+      onResults(machineId, finding.subject.name, r.results);
+    },
+    () => onRemoved(machineId),
+  );
+  const reason = noRights
+    ? 'The agent has no administrator rights. Run it as a service with rights.'
+    : !admin
+      ? session.whyNot('admin')
+      : undefined;
+  return (
+    <Stack gap="tight">
+      <Button
+        onPress={() =>
+          ask.ask(
+            items.map((i) => leftoverText(i)),
+            [],
+          )
+        }
+        busy={ask.busy}
+        busyLabel="Removing"
+        disabled={noRights || !admin}
+        reason={reason}
+      >
+        {finding.action?.label ?? 'Remove'}
+      </Button>
+      {results.length > 0 ? (
+        <BulletList
+          label="Removal results"
+          items={results.map(
+            (r) =>
+              `${KIND_WORD[r.kind]} ${r.name}: ${OUTCOME_WORD[r.outcome]}${r.error ? `. ${r.error}` : ''}`,
+          )}
+        />
+      ) : null}
+      <Ask
+        title={`Remove these leftovers from ${finding.subject.name}?`}
+        intro="Each item below is removed from this machine. This cannot be undone."
+        action="Remove"
+        busyLabel="Removing"
+        q={ask.question}
+        busy={ask.busy}
+        error={ask.error}
+        onCancel={ask.cancel}
+        onConfirm={() => void ask.confirm()}
+      />
+    </Stack>
+  );
+}
 
 /** The one-click fix of `runner.logon` (runners R5.89, doctor R5.45): the agent gives the account the right to log
  * on as a service again and starts the service. It is the call the Problem banner makes. */
@@ -133,11 +244,17 @@ export function DoctorScreen() {
     [v],
   );
   const [run, setRun] = useState<Run | undefined>(undefined);
-  const start = useCommand(async () => {
-    const r = await unwrap(client.POST('/api/v1/doctor/runs', { body: {} }));
+  const start = useCommand(async (scope?: Schemas['DoctorScope']) => {
+    const r = await unwrap(
+      client.POST('/api/v1/doctor/runs', { body: scope ? { scope } : {} }),
+    );
     setRun(r);
     return r;
   });
+  // The result of each removal of runner leftovers, by machine, until the next removal on that machine.
+  const [removals, setRemovals] = useState<
+    Record<string, { name: string; results: LeftoverResult[] }>
+  >({});
   const running = run?.state === 'running';
   const hasRun = result.state === 'ready' && Boolean(result.data.last_run_at);
 
@@ -180,6 +297,7 @@ export function DoctorScreen() {
         <Stack gap="tight">
           <span>{f.title}</span>
           <Text tone="muted">{f.subject.name}</Text>
+          {f.items && f.items.length > 0 ? <LeftoverList items={f.items} /> : null}
         </Stack>
       ),
       long: (f) => (f.detail ? { full: f.detail } : null),
@@ -190,6 +308,18 @@ export function DoctorScreen() {
       cell: (f) => (
         <Stack gap="tight">
           <span>{f.fix.text}</span>
+          {f.action?.id === 'remove_runner_leftovers' && f.items ? (
+            <RemoveLeftovers
+              finding={f}
+              results={removals[f.subject.id]?.results ?? []}
+              onResults={(m, name, results) =>
+                setRemovals((prev) => ({ ...prev, [m]: { name, results } }))
+              }
+              onRemoved={(m) =>
+                void start.run({ machines: [m], checks: ['machine.runner_leftovers'] })
+              }
+            />
+          ) : null}
           {f.fix.command ? <CodeBlock text={f.fix.command} label="Fix command" /> : null}
           {f.fix.link?.startsWith('/') ? (
             <Cluster>
@@ -255,6 +385,21 @@ export function DoctorScreen() {
                   {`${formatCount(problems.length, 'problem')} found. Each one has its fix below.`}
                 </Message>
               )}
+              {Object.entries(removals)
+                .filter(
+                  ([m]) =>
+                    !data.items.some((f) => f.subject.id === m && f.action !== undefined),
+                )
+                .map(([m, { name, results }]) => (
+                  <Message key={m} tone="done">
+                    {`Runner leftovers on ${name}: ${results
+                      .map(
+                        (r) =>
+                          `${KIND_WORD[r.kind]} ${r.name} ${OUTCOME_WORD[r.outcome].toLowerCase()}`,
+                      )
+                      .join(', ')}.`}
+                  </Message>
+                ))}
               {groups.map((g) => (
                 <Section key={g.area} title={g.area}>
                   <Table

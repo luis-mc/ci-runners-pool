@@ -26,6 +26,8 @@ const LISTS = [
   '/api/v1/caches',
   '/api/v1/users',
   '/api/v1/jobs',
+  '/api/v1/runs',
+  '/api/v1/jobs/groups',
   '/api/v1/github/repositories',
   '/api/v1/doctor/findings',
 ];
@@ -51,6 +53,7 @@ export async function openRoute(
       failure(404, 'not_found', 'No such repository.'),
     );
     mock.on('GET', '/api/v1/jobs/:id', failure(404, 'not_found', 'No such job.'));
+    mock.on('GET', '/api/v1/runs/:id', failure(404, 'not_found', 'No such run.'));
   }
   await mock.install(page);
   if (state === 'failed')

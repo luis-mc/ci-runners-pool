@@ -30,7 +30,7 @@ func newAgentUpdater(cfg agent.Config, g *agent.Gate, logger *slog.Logger) agent
 	mgr = update.New(update.Options{
 		Current:  cfg.Version,
 		Source:   &update.PinnedSource{},
-		Attester: update.SigstoreAttester{},
+		Attester: update.SigstoreAttester{APIBase: envAddresses().GitHubAPIURL},
 		Drainer:  drain,
 		Dir:      filepath.Join(cfg.DataDir, "updates"),
 		Service:  service,

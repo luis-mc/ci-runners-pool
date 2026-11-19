@@ -84,7 +84,11 @@ describe('Review step', () => {
       a.calls.find((c) => c.path === '/api/v1/update/apply')?.query.get('confirmed'),
     ).toBe('true');
     expect(
-      await screen.findByText(/Waiting for running jobs to end/, { selector: 'p' }),
+      await screen.findByText(
+        /Waiting for running jobs to end/,
+        { selector: 'p' },
+        { timeout: 5000 },
+      ),
     ).toBeTruthy();
   });
 

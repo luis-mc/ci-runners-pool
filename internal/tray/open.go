@@ -3,6 +3,8 @@ package tray
 import (
 	"context"
 	"fmt"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/addresses"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/update"
 	"os/exec"
 	"runtime"
 	"sync/atomic"
@@ -53,8 +55,10 @@ type Opener struct {
 	// Ask shows the update dialog and Installer starts the install after Install now (CRSP147); nil: a notice only.
 	Ask       Asker
 	Installer UpdateInstaller
-	Version   string // this tray's own version, for the "up to date" notice
-	Browser   Launcher
+	// RepoURL is the repository page that Open on GitHub opens; empty takes the github.com page.
+	RepoURL string
+	Version string // this tray's own version, for the "up to date" notice
+	Browser Launcher
 	// Window opens a URL in a small app-style window (TRAY4); nil: the update is asked with Ask.
 	Window Launcher
 	// Native opens the native update window (Windows, TRAY5); nil: the console page opens instead.
@@ -126,8 +130,12 @@ var errNoWindow = fmt.Errorf("no update window")
 
 // OpenGitHub opens the repository page.
 func (o *Opener) OpenGitHub() error {
-	if err := o.Browser(RepoURL); err != nil {
-		o.notify("No browser found", "Paste this address into a browser: "+RepoURL)
+	page := o.RepoURL
+	if page == "" {
+		page = addresses.Defaults().RepoPage(update.Repo)
+	}
+	if err := o.Browser(page); err != nil {
+		o.notify("No browser found", "Paste this address into a browser: "+page)
 		return err
 	}
 	return nil

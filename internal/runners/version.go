@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/addresses"
 	"io"
 	"os"
 	"regexp"
@@ -140,7 +141,12 @@ func PinFor(os, arch string) (Pin, error) {
 }
 
 // DownloadURL is the release asset for a pin.
-func (p Pin) DownloadURL() string {
+// The base comes from CRSP_RUNNER_DOWNLOAD_URL (addresses.Set); a zero
+// Addresses takes the github.com default.
+func (p Pin) DownloadURL(a addresses.Set) string {
+	if a.RunnerDownloadURL == "" {
+		a = addresses.Defaults()
+	}
 	ext := "tar.gz"
 	osName := p.OS
 	if p.OS == "windows" {
@@ -150,8 +156,7 @@ func (p Pin) DownloadURL() string {
 	if p.OS == "macos" {
 		osName = "osx"
 	}
-	return fmt.Sprintf("https://github.com/actions/runner/releases/download/v%s/actions-runner-%s-%s-%s.%s",
-		p.Version, osName, p.Arch, p.Version, ext)
+	return a.RunnerAsset(p.Version, osName, p.Arch, ext)
 }
 
 // VerifyFile checks the file against want. A file that does not match is

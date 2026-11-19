@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/api/gen"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/leftovers"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/machines"
 )
 
@@ -24,6 +25,7 @@ type MachinesService interface {
 	Remove(ctx context.Context, actor, id string, confirm bool) (machines.Change, error)
 	Redetect(ctx context.Context, actor, id string) error
 	RunHostCommand(ctx context.Context, actor, id string, argv []string, timeout time.Duration) (machines.HostOutcome, error)
+	RemoveRunnerLeftovers(ctx context.Context, actor, machineID string, refs []leftovers.Ref) ([]leftovers.Result, error)
 	ArmRecovery(ctx context.Context, actor, id string) error
 	LoadHistory(ctx context.Context, id string, from, to time.Time) ([]machines.LoadPoint, error)
 	GetChange(ctx context.Context, machineID, id string) (machines.Change, error)
@@ -722,4 +724,45 @@ func (s *server) JoinMachineOverSsh(ctx context.Context, r gen.JoinMachineOverSs
 		return fail[gen.JoinMachineOverSshdefaultJSONResponse](s, err), nil
 	}
 	return gen.JoinMachineOverSsh201JSONResponse(codeToAPI(c.JoinCode, c.JoinCode.State(time.Now()))), nil
+}
+
+// RemoveRunnerLeftovers implements POST /api/v1/machines/{machineId}/runner-leftovers/remove
+// (doctor R5.48, OPS33).
+func (s *server) RemoveRunnerLeftovers(ctx context.Context, r gen.RemoveRunnerLeftoversRequestObject) (gen.RemoveRunnerLeftoversResponseObject, error) {
+	if s.machinesOff() {
+		return machinesUnavailable[gen.RemoveRunnerLeftoversdefaultJSONResponse](), nil
+	}
+	if r.Body == nil {
+		return fail[gen.RemoveRunnerLeftoversdefaultJSONResponse](s, machines.ErrInvalid), nil
+	}
+	refs := make([]leftovers.Ref, 0, len(r.Body.Items))
+	for _, it := range r.Body.Items {
+		refs = append(refs, leftovers.Ref{Kind: leftovers.Kind(it.Kind), Name: it.Name})
+	}
+	res, err := s.opts.Machines.RemoveRunnerLeftovers(ctx, s.actor(ctx), r.MachineId, refs)
+	if err != nil {
+		return fail[gen.RemoveRunnerLeftoversdefaultJSONResponse](s, err), nil
+	}
+	out := gen.RemoveRunnerLeftoversResult{Results: make([]leftoverResultRow, 0, len(res))}
+	for _, x := range res {
+		row := leftoverResultRow{
+			Kind: gen.RunnerLeftoverKind(x.Kind), Name: x.Name, Outcome: gen.RemoveRunnerLeftoversResultResultsOutcome(x.Outcome),
+			Steps: append([]string{}, x.Steps...),
+		}
+		if x.Error != "" {
+			e := x.Error
+			row.Error = &e
+		}
+		out.Results = append(out.Results, row)
+	}
+	return gen.RemoveRunnerLeftovers200JSONResponse(out), nil
+}
+
+// leftoverResultRow is one element of the generated RemoveRunnerLeftoversResult.
+type leftoverResultRow = struct {
+	Error   *string                                       `json:"error,omitempty"`
+	Kind    gen.RunnerLeftoverKind                        `json:"kind"`
+	Name    string                                        `json:"name"`
+	Outcome gen.RemoveRunnerLeftoversResultResultsOutcome `json:"outcome"`
+	Steps   []string                                      `json:"steps"`
 }

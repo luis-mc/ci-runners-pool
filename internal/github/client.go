@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/addresses"
 	"io"
 	"log/slog"
 	"math/rand/v2"
@@ -22,8 +23,6 @@ import (
 
 // Defaults.
 const (
-	DefaultAPIBase = "https://api.github.com"
-	DefaultWebBase = "https://github.com"
 	// CallDeadline bounds every REST call (R6.7).
 	CallDeadline = 10 * time.Second
 	// MaxWriteAttempts is the most tries a write gets (R6.7).
@@ -34,8 +33,8 @@ const (
 
 // Config builds a Client.
 type Config struct {
-	APIBase string // default https://api.github.com
-	WebBase string // default https://github.com (OAuth pages)
+	APIBase string // default addresses.DefaultGitHubAPIURL
+	WebBase string // default addresses.DefaultGitHubURL (OAuth pages)
 	HTTP    *http.Client
 	Secrets secrets.Store
 	Logger  *slog.Logger
@@ -68,10 +67,10 @@ type cachedToken struct {
 // New returns a REST client with no App yet; call UseApp once the App is known.
 func New(cfg Config) *REST {
 	if cfg.APIBase == "" {
-		cfg.APIBase = DefaultAPIBase
+		cfg.APIBase = addresses.DefaultGitHubAPIURL
 	}
 	if cfg.WebBase == "" {
-		cfg.WebBase = DefaultWebBase
+		cfg.WebBase = addresses.DefaultGitHubURL
 	}
 	cfg.APIBase = strings.TrimRight(cfg.APIBase, "/")
 	cfg.WebBase = strings.TrimRight(cfg.WebBase, "/")
@@ -421,7 +420,7 @@ func (c *REST) APIBase() string {
 	if c.cfg.APIBase != "" {
 		return c.cfg.APIBase
 	}
-	return DefaultAPIBase
+	return addresses.DefaultGitHubAPIURL
 }
 
 // WebBase is the web address in use.
@@ -429,5 +428,5 @@ func (c *REST) WebBase() string {
 	if c.cfg.WebBase != "" {
 		return c.cfg.WebBase
 	}
-	return DefaultWebBase
+	return addresses.DefaultGitHubURL
 }

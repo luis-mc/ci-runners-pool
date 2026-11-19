@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/addresses"
 	"io"
 	"net/http"
 	"strings"
@@ -26,7 +27,7 @@ import (
 var trustedRootJSON []byte
 
 // SignerIssuer is the OIDC issuer of GitHub Actions certificates.
-const SignerIssuer = "https://token.actions.githubusercontent.com"
+const SignerIssuer = addresses.ActionsOIDCIssuer
 
 // BundleSource finds the Sigstore bundles that attest a file by its SHA-256.
 type BundleSource interface {
@@ -39,8 +40,10 @@ type BundleSource interface {
 // and its signing certificate must name this repository's release workflow
 // (operations R5.12). Any failure refuses the file (fail closed).
 type SigstoreAttester struct {
-	// Source fetches the bundles; nil uses the GitHub attestations API.
+	// Source fetches the bundles; nil uses the GitHub attestations API at APIBase.
 	Source BundleSource
+	// APIBase is the GitHub REST address of the default Source; empty takes addresses.DefaultGitHubAPIURL.
+	APIBase string
 	// Trusted is the trust material; nil uses the embedded public-good root.
 	Trusted root.TrustedMaterial
 	// SANRegex is the certificate identity (the workflow ref); empty means the release workflow of Repo.
@@ -52,7 +55,7 @@ type SigstoreAttester struct {
 
 // signerSAN matches the release workflow at any ref of this repository.
 func signerSAN() string {
-	return "^https://github\\.com/" + strings.ReplaceAll(SignerWorkflow[:len(SignerWorkflow)-len("/.github/workflows/release.yml")], ".", "\\.") +
+	return addresses.ReleaseSignerSANPrefix + strings.ReplaceAll(SignerWorkflow[:len(SignerWorkflow)-len("/.github/workflows/release.yml")], ".", "\\.") +
 		"/\\.github/workflows/release\\.yml@refs/.+$"
 }
 
@@ -68,7 +71,7 @@ func (s SigstoreAttester) Verify(ctx context.Context, file string) error {
 	}
 	src := s.Source
 	if src == nil {
-		src = GitHubBundles{}
+		src = GitHubBundles{Base: s.APIBase}
 	}
 	ents, err := src.Bundles(ctx, sum)
 	if err != nil {
@@ -129,7 +132,7 @@ type GitHubBundles struct {
 func (g GitHubBundles) Bundles(ctx context.Context, sum string) ([]verify.SignedEntity, error) {
 	base, repo, c := g.Base, g.Repo, g.Client
 	if base == "" {
-		base = "https://api.github.com"
+		base = addresses.DefaultGitHubAPIURL
 	}
 	if repo == "" {
 		repo = Repo

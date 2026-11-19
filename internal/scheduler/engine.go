@@ -33,6 +33,8 @@ type Engine struct {
 	// them when a real job needs the budget (scheduling R5.66). Both nil: no warm pool.
 	warm        func(machineID string) []WarmRunner
 	warmRelease func(machineID string, names []string)
+	// factsState reports job facts to the Jobs section (SetFacts).
+	factsState
 }
 
 // Option configures an Engine.
@@ -239,6 +241,7 @@ func (e *Engine) staleSlots(tx slots.Tx, machine string, now time.Time) ([]Freed
 }
 
 func (e *Engine) notifyFreed(freed []Freed) {
+	e.emitFreed(freed)
 	seen := map[string]bool{}
 	for _, f := range freed {
 		if f.Number > 0 && !seen[f.MachineID] {

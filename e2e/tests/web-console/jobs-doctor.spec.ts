@@ -4,7 +4,7 @@ import { expect, test } from '@playwright/test';
 import { signedIn } from './fixtures';
 import { doneJob, finding, jobsAndDoctor } from './jobs-doctor-fixtures';
 
-test('Jobs: the queue says why each job waits, the history lists finished jobs', async ({
+test('Jobs: the queue says why a run waits and when it should start, Done lists finished runs', async ({
   page,
 }) => {
   await jobsAndDoctor(signedIn())
@@ -12,80 +12,91 @@ test('Jobs: the queue says why each job waits, the history lists finished jobs',
     .install(page);
   await page.goto('/jobs');
   await expect(page.getByRole('heading', { level: 1, name: 'Jobs' })).toBeVisible();
-  const queue = page.getByRole('table', { name: 'Queued jobs' });
+  const queue = page.getByRole('table', { name: 'Queue runs' });
   await expect(
     queue.getByText('waits for a free slot on any Linux machine'),
   ).toBeVisible();
-  await expect(page.getByText('ci.yml / test-1')).toBeVisible();
-  await expect(page.getByText('Showing all time')).toBeVisible();
+  await expect(queue.getByText('in about 4 to 7 min')).toBeVisible();
+  await page.getByRole('tab', { name: 'Done' }).click();
+  const done = page.getByRole('table', { name: 'Done runs' });
+  await expect(done.getByRole('button', { name: 'Open run' })).toHaveCount(3);
+  await expect(page.getByText(/Showing 3 of 3 runs in the last 90 days/)).toBeVisible();
 });
 
-test('Jobs: a filter narrows the history, and Export holds the same filter', async ({
+test('Jobs: the Done range asks for a from date, and Export holds the same filter', async ({
   page,
 }) => {
   const mock = jobsAndDoctor(signedIn()).on('GET', '/api/v1/machines', { items: [] });
   await mock.install(page);
-  await page.route('**/api/v1/exports/jobs**', (route) =>
-    route.fulfill({
+  let exportedUrl = '';
+  await page.route('**/api/v1/exports/jobs**', (route) => {
+    exportedUrl = route.request().url();
+    return route.fulfill({
       status: 200,
       headers: {
         'content-type': 'text/csv',
         'content-disposition': 'attachment; filename="crsp-jobs-2026-11-14-1005.csv"',
       },
       body: 'id,repository\n1,octo/app\n',
-    }),
-  );
-  await page.goto('/jobs');
-  await expect(page.getByText('ci.yml / test-1')).toBeVisible();
-  await page.getByRole('button', { name: 'Failure' }).click();
+    });
+  });
+  await page.goto('/jobs/done?view=jobs');
+  await expect(page.getByRole('table', { name: 'Done jobs' })).toBeVisible();
   await page.getByRole('button', { name: 'Last 7 days' }).click();
-  await expect(
-    page.getByText(/Showing \d{4}-\d{2}-\d{2} to \d{4}-\d{2}-\d{2}/),
-  ).toBeVisible();
+  await expect
+    .poll(() =>
+      mock.calls.some(
+        (c) =>
+          c.path === '/api/v1/jobs' &&
+          c.query.get('state') === 'done' &&
+          Date.now() - Date.parse(c.query.get('from') ?? '') < 7.1 * 86_400_000,
+      ),
+    )
+    .toBe(true);
   const download = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Export' }).click();
+  await page.getByRole('button', { name: 'Export CSV' }).click();
   expect((await download).suggestedFilename()).toBe('crsp-jobs-2026-11-14-1005.csv');
-  const history = mock.calls.filter(
-    (c) => c.path === '/api/v1/jobs' && c.query.get('result') === 'failure',
-  );
-  expect(history.length).toBeGreaterThan(0);
+  const exported = new URL(exportedUrl);
+  expect(exported.searchParams.get('state')).toBe('done');
+  expect(exported.searchParams.get('format')).toBe('csv');
+  expect(exported.searchParams.get('from')).not.toBeNull();
 });
 
-test('Jobs: a row opens the detail with a link to the run on GitHub', async ({
+test('Jobs: a job row opens the Job page with a link to the run on GitHub', async ({
   page,
 }) => {
   await jobsAndDoctor(signedIn())
     .on('GET', '/api/v1/machines', { items: [] })
     .install(page);
-  await page.addInitScript(() => {
-    (window as unknown as { opened: unknown[] }).opened = [];
-    window.open = (...a: unknown[]) => {
-      (window as unknown as { opened: unknown[] }).opened.push(a);
-      return null;
-    };
-  });
-  await page.goto('/jobs');
-  await page
-    .locator('li', { hasText: 'ci.yml / test-2' })
-    .getByRole('button', { name: 'Open' })
-    .click();
+  await page.goto('/jobs/done?view=jobs');
+  await page.getByRole('button', { name: 'Open job: test-2' }).click();
   await expect(page.getByRole('heading', { level: 1, name: 'test-2' })).toBeVisible();
-  await page.getByRole('button', { name: 'Open the run on GitHub' }).click();
-  expect(
-    await page.evaluate(() => (window as unknown as { opened: unknown[][] }).opened[0]),
-  ).toEqual([
-    'https://github.com/octo/app/actions/runs/102/job/2',
-    '_blank',
-    'noopener,noreferrer',
-  ]);
+  await expect(
+    page.getByRole('button', { name: 'Open the run on GitHub' }),
+  ).toHaveAttribute('href', 'https://github.com/octo/app/actions/runs/102/job/2');
+});
+
+test('Jobs: a run row opens in place to its jobs and then to the Run page', async ({
+  page,
+}) => {
+  await jobsAndDoctor(signedIn())
+    .on('GET', '/api/v1/machines', { items: [] })
+    .install(page);
+  await page.goto('/jobs/done');
+  await page.getByRole('button', { name: 'Open run' }).first().click();
+  await expect(page.getByText(/queue wait is the light part of a bar/)).toBeVisible();
+  await page.getByText('Open run page').click();
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('ci.yml on');
+  await expect(page.getByRole('region', { name: 'Job graph' })).toBeVisible();
 });
 
 test('Jobs: an empty pool says so', async ({ page }) => {
   await jobsAndDoctor(signedIn(), [])
-    .on('GET', '/api/v1/jobs', { items: [], stale: { stale: false } })
+    .on('GET', '/api/v1/jobs', { items: [], total: 0, stale: { stale: false } })
+    .on('GET', '/api/v1/jobs/groups', { items: [] })
     .on('GET', '/api/v1/machines', { items: [] })
     .install(page);
-  await page.goto('/jobs');
+  await page.goto('/jobs/repository');
   await expect(
     page.getByText('No jobs yet. Jobs show here when a workflow runs on the pool.'),
   ).toBeVisible();

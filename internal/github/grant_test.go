@@ -47,11 +47,11 @@ func TestDiffGrantStates(t *testing.T) { // R5.86
 }
 
 func TestGrantPagesForAUserAndAnOrganization(t *testing.T) { // R5.86
-	app, ins := GrantPages(App{Slug: "crsp", OwnerType: "User", OwnerLogin: "alice"}, Installation{ID: 10, AccountType: "User", AccountLogin: "alice"})
+	app, ins := GrantPages("https://github.com", App{Slug: "crsp", OwnerType: "User", OwnerLogin: "alice"}, Installation{ID: 10, AccountType: "User", AccountLogin: "alice"})
 	if app != "https://github.com/settings/apps/crsp/permissions" || ins != "https://github.com/settings/installations/10" {
 		t.Fatalf("%s %s", app, ins)
 	}
-	app, ins = GrantPages(App{Slug: "crsp", OwnerType: "Organization", OwnerLogin: "acme"}, Installation{ID: 7, AccountType: "Organization", AccountLogin: "acme"})
+	app, ins = GrantPages("https://github.com", App{Slug: "crsp", OwnerType: "Organization", OwnerLogin: "acme"}, Installation{ID: 7, AccountType: "Organization", AccountLogin: "acme"})
 	if app != "https://github.com/organizations/acme/settings/apps/crsp/permissions" || ins != "https://github.com/organizations/acme/settings/installations/7" {
 		t.Fatalf("%s %s", app, ins)
 	}

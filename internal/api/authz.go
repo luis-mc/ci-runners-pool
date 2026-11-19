@@ -32,6 +32,8 @@ var otherAreaAuth = map[string]string{
 	"getQueueSettings": authUser, "getRunner": authUser, "getRunnerEnv": authUser, "listEnvSets": authUser, "getRunnerPlan": authUser, "getSettings": authUser,
 	"listAuditEvents": authUser, "listDoctorFindings": authUser, "listJobs": authUser, "listMachines": authUser,
 	"listRunners": authUser, "listSlots": authUser, "streamEvents": authUser,
+	"listRuns": authUser, "getRun": authUser, "listJobGroups": authUser, "getJobStats": authUser, "listJobSummaries": authUser, "getForecast": authUser,
+	"exportJobSummaries": authUser,
 
 	"applyUpdate": authAdmin, "checkForUpdate": authAdmin, "exportConfig": authAdmin, "rebuildImage": authAdmin,
 	"restartService": authAdmin, "getListenAddress": authAdmin, "putListenAddress": authAdmin, "stopRunnerPlan": authAdmin, "updateImageLayers": authAdmin, "wipeCache": authAdmin,
@@ -43,7 +45,7 @@ var otherAreaAuth = map[string]string{
 	"updateQueueSettings": authAdmin, "putEnvSet": authAdmin, "deleteEnvSet": authAdmin, "getRegistrySettings": authAdmin,
 	"putRegistryLogin": authAdmin, "deleteRegistryLogin": authAdmin, "putRegistryCaBundle": authAdmin, "deleteRegistryCaBundle": authAdmin,
 
-	"restoreBackup": authOwner, "runMachineCommand": authOwner, "updateSettings": authOwner,
+	"restoreBackup": authOwner, "runMachineCommand": authOwner, "removeRunnerLeftovers": authAdmin, "updateSettings": authOwner,
 }
 
 // roleFor returns the role an operation needs (public, user, admin or owner).
