@@ -5,6 +5,7 @@ import {
   CappedList,
   Table,
   columnKind,
+  columnWeight,
   splitMiddle,
   summarize,
   type Column,
@@ -166,6 +167,39 @@ describe('column kinds (UX-72)', () => {
       />,
     );
     expect(container.querySelector('[data-kind]')).toBeNull();
+  });
+  it('a grow weight defaults to 1, makes the column grow and is ignored on a fit column (D102)', () => {
+    expect(columnWeight({ kind: 'grow' })).toBe(1);
+    expect(columnWeight({ kind: 'grow', grow: 2 })).toBe(2);
+    expect(columnWeight({ grow: 3 })).toBe(3);
+    expect(columnKind({ grow: 2 })).toBe('grow');
+    expect(columnWeight({ kind: 'fit', grow: 2 })).toBe(1);
+    expect(columnWeight({ kind: 'grow', grow: 0 })).toBe(1);
+    expect(columnWeight({})).toBe(1);
+  });
+  it('a one-line table gives each weighted grow column its share and the others none', () => {
+    const cols: Column<{ a: string }>[] = [
+      { id: 'a', header: 'Short', cell: (r) => r.a },
+      { id: 'b', header: 'Repository', cell: (r) => r.a, kind: 'grow', grow: 2 },
+      { id: 'c', header: 'Branch', cell: (r) => r.a, kind: 'grow' },
+    ];
+    const { container } = render(
+      <Table
+        caption="t"
+        columns={cols}
+        rows={[{ a: 'x' }]}
+        rowKey={(r) => r.a}
+        oneLine
+      />,
+    );
+    const heads = [...container.querySelectorAll('th')].map((h) =>
+      h.style.getPropertyValue('--ds-grow'),
+    );
+    expect(heads).toEqual(['', '2', '']);
+    const cells = [...container.querySelectorAll('td')].map((c) =>
+      c.style.getPropertyValue('--ds-grow'),
+    );
+    expect(cells).toEqual(['', '2', '']);
   });
   it('a middle cut keeps the start and the last characters', () => {
     expect(splitMiddle('RES18-column-widths')).toEqual(['RES18-column-', 'widths']);

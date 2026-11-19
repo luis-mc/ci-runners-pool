@@ -1,7 +1,14 @@
 // Component 15: tables and list rows. Use a table only to compare three or more facts (UX-25). Column heads
 // sort. A table never scrolls sideways, nor does the page: cells wrap and a row folds to a stack at phone width (UX-49). j and k move the
 // active row, Enter opens it (UX-57): the shell sets `data-list-row` and the handler reads it.
-import { Fragment, useId, useMemo, useState, type ReactNode } from 'react';
+import {
+  Fragment,
+  useId,
+  useMemo,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from 'react';
 import { Button } from './Button';
 import { RowAction } from './RowAction';
 import { useKeyHints } from './KeyHints';
@@ -29,6 +36,11 @@ export interface Column<T> {
    * Without one: `grow` for a column with `long` text, else `fit`.
    */
   kind?: ColumnKind | undefined;
+  /**
+   * The share of the free width a grow column takes (D102): `2` takes twice what a column with `1` takes. Default 1.
+   * Giving it makes the column `grow`. Long names (a repository, a workflow) get a bigger share than a branch.
+   */
+  grow?: number | undefined;
   /** A grow column whose text is cut in the middle (a branch): the start and the last characters stay. */
   middle?: ((row: T) => string) | undefined;
 }
@@ -36,8 +48,19 @@ export interface Column<T> {
 export type ColumnKind = 'fit' | 'grow';
 
 /** The kind of a column: its own, else `grow` for long text and `fit` for everything else. */
-export function columnKind<T>(c: Pick<Column<T>, 'kind' | 'long'>): ColumnKind {
-  return c.kind ?? (c.long ? 'grow' : 'fit');
+export function columnKind<T>(c: Pick<Column<T>, 'kind' | 'long' | 'grow'>): ColumnKind {
+  return c.kind ?? (c.long || c.grow !== undefined ? 'grow' : 'fit');
+}
+
+/** The share of the free width of a grow column: its `grow` weight when it is a positive number, else 1. */
+export function columnWeight<T>(c: Pick<Column<T>, 'kind' | 'long' | 'grow'>): number {
+  return columnKind(c) === 'grow' && c.grow !== undefined && c.grow > 0 ? c.grow : 1;
+}
+
+/** The weight as the custom property the one-line CSS reads; only a grow column that is not 1 sets it. */
+function weightStyle<T>(c: Column<T>, oneLine: boolean): CSSProperties | undefined {
+  const w = columnWeight(c);
+  return oneLine && w !== 1 ? ({ '--ds-grow': w } as CSSProperties) : undefined;
 }
 
 const MIDDLE_TAIL = 6;
@@ -219,6 +242,7 @@ export function Table<T>({
                 key={c.id}
                 scope="col"
                 data-kind={oneLine ? columnKind(c) : undefined}
+                style={weightStyle(c, oneLine)}
                 aria-sort={
                   sortBy?.id === c.id
                     ? sortBy.dir === 1
@@ -295,6 +319,7 @@ export function Table<T>({
                       key={c.id}
                       data-label={c.header}
                       data-kind={oneLine ? columnKind(c) : undefined}
+                      style={weightStyle(c, oneLine)}
                       data-lead={i === 0 || undefined}
                       data-secondary={(i > 0 && c.secondary) || undefined}
                     >

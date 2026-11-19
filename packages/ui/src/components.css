@@ -2475,7 +2475,8 @@ button.ds-jobgraph__node:hover {
   text-decoration: none;
 }
 /* One line a row (UX-72): wide screens only. A fit column is as wide as its widest value and never cut; a grow
-   column shares the width that is left, with a minimum from --ds-cell-grow-min, and is cut with an ellipsis. Every
+   column shares the width that is left by its weight (--ds-grow, default 1, D102), with a minimum from
+   --ds-cell-grow-min, and is cut with an ellipsis. Every
    row of the table has the height of a button plus padding. */
 @media (min-width: 600px) {
   .ds-table[data-one-line] {
@@ -2496,6 +2497,7 @@ button.ds-jobgraph__node:hover {
   .ds-table[data-one-line] th[data-kind='grow'],
   .ds-table[data-one-line] td[data-kind='grow'] {
     min-inline-size: var(--ds-cell-grow-min);
+    inline-size: calc(var(--ds-grow, 1) * 10%);
   }
   .ds-table[data-one-line] .ds-table__expanded td {
     white-space: normal;
