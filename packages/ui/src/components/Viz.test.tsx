@@ -33,6 +33,48 @@ const rows: WaterfallRow[] = [
   },
 ];
 
+describe('shared text alternative (altTable)', () => {
+  const nodes: JobGraphNode[] = [
+    { id: 'a', label: 'lint', status: 'ok' },
+    { id: 'b', label: 'test', status: 'ok' },
+  ];
+  it('Waterfall draws no table of its own and points to the table on the page', () => {
+    render(
+      <>
+        <Waterfall label="Jobs" rows={rows} emptyText="none" altTable="jobs-table" />
+        <div id="jobs-table">the table</div>
+      </>,
+    );
+    expect(screen.queryByText('Show as table')).toBeNull();
+    expect(screen.getByRole('img').getAttribute('aria-describedby')).toBe('jobs-table');
+    expect(screen.getByRole('img').getAttribute('aria-label')).toContain('Jobs');
+  });
+  it('JobGraph draws no table of its own and points to the table on the page', () => {
+    render(
+      <JobGraph
+        label="Jobs"
+        nodes={nodes}
+        edges={[['a', 'b']]}
+        emptyText="none"
+        altTable="jobs-table"
+      />,
+    );
+    expect(screen.queryByText('Show as table')).toBeNull();
+    expect(screen.getByRole('img').getAttribute('aria-describedby')).toBe('jobs-table');
+  });
+  it('without it both keep their own table and point to nothing', () => {
+    render(
+      <>
+        <Waterfall label="Jobs" rows={rows} emptyText="none" />
+        <JobGraph label="Jobs" nodes={nodes} edges={[]} emptyText="none" />
+      </>,
+    );
+    expect(screen.getAllByText('Show as table')).toHaveLength(2);
+    for (const img of screen.getAllByRole('img'))
+      expect(img.getAttribute('aria-describedby')).toBeNull();
+  });
+});
+
 describe('Waterfall', () => {
   it('has a label and a table with every row', () => {
     render(

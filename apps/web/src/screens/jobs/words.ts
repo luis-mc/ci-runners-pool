@@ -141,14 +141,13 @@ export function taskOf(x: { task_id?: string | undefined }): string {
   return x.task_id ?? 'none in the branch name';
 }
 
-/** "a1b2c3d, PR #52" or "a1b2c3d, push". */
+/** The commit and the event word, never the pull request number (the facts list it on its own line): "a1b2c3d, push". */
 export function sourceWords(r: {
   head_sha?: string | undefined;
   trigger?: string | undefined;
-  pull_request?: number | undefined;
 }): string {
   const sha = r.head_sha ? r.head_sha.slice(0, 7) : 'no commit';
-  return `${sha}, ${r.pull_request ? `PR #${r.pull_request}` : (r.trigger ?? 'push')}`;
+  return `${sha}, ${r.trigger ?? 'push'}`;
 }
 
 /** The commit of a run: its first 7 characters. */
