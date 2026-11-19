@@ -4,9 +4,13 @@ name: Release
 #                  The owner installs edge on their own pool first (staging).
 # tag v*        -> a stable release with the same assets (production).
 #
-# Assets: crsp-<os>-<arch>.tar.gz (linux, darwin) or .zip (windows),
-# crsp-windows-<arch>.msi (the Windows installer, WiX v5, built on windows-latest),
-# crsp-darwin-<arch>.pkg, crsp-linux-<arch>.deb and crsp-linux-<arch>.rpm (OPS1),
+# Assets: crsp-<os>-<arch>_<version>.tar.gz (linux, darwin) or .zip (windows),
+# crsp-windows-<arch>_<version>.msi (the Windows installer, WiX v5, built on windows-latest),
+# crsp-darwin-<arch>_<version>.pkg, crsp-linux-<arch>_<version>.deb and
+# crsp-linux-<arch>_<version>.rpm (OPS1). The version has no leading v (OPS40, DL-96;
+# an edge build carries edge-<sha>). Only these release assets carry the version: the
+# CI artifacts and the files the build scripts write keep their stable names (DL-22),
+# and the publish job renames the files when it fills dist/.
 # crsp-sbom-go.spdx.json and crsp-sbom-web.spdx.json (SPDX SBOMs, CRSP90),
 # SHA256SUMS (covers every other asset), and a build provenance attestation for
 # each asset and for SHA256SUMS itself.
@@ -218,7 +222,7 @@ jobs:
 
   publish:
     name: publish
-    needs: [guard, build, msi, installers-unix]
+    needs: [guard, version, build, msi, installers-unix]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -228,6 +232,8 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
+      # OPS40: the version in every installer and archive name (no leading v).
+      VERSION: ${{ needs.version.outputs.value }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -254,13 +260,15 @@ jobs:
             cp LICENSE README.md "$stage/"
             chmod +x "$stage"/crsp* || true
             case "$target" in
-              windows-*) (cd stage && zip -qr "../dist/crsp-${target}.zip" "crsp-${target}") ;;
-              *)         tar -C stage -czf "dist/crsp-${target}.tar.gz" "crsp-${target}" ;;
+              windows-*) (cd stage && zip -qr "../dist/crsp-${target}_${VERSION}.zip" "crsp-${target}") ;;
+              *)         tar -C stage -czf "dist/crsp-${target}_${VERSION}.tar.gz" "crsp-${target}" ;;
             esac
           done
           # Installer assets join the archives here. One line per installer kind:
           # the Windows MSIs here; pkg, deb and rpm (OPS1) in the next step.
-          cp msi/crsp-windows-amd64.msi msi/crsp-windows-arm64.msi dist/
+          for arch in amd64 arm64; do
+            cp "msi/crsp-windows-${arch}.msi" "dist/crsp-windows-${arch}_${VERSION}.msi"
+          done
           count=$(find dist -type f | wc -l)
           [ "$count" -eq 8 ] || { echo "::error::expected 6 archives and 2 MSIs, found $count"; exit 1; }
 
@@ -273,7 +281,11 @@ jobs:
       - name: Add native installers and checksum
         run: |
           set -euo pipefail
-          cp pkgs/*/crsp-* dist/
+          # The build scripts write the stable names; the release names carry the version.
+          for f in pkgs/*/crsp-*; do
+            base="$(basename "$f")"
+            cp "$f" "dist/${base%.*}_${VERSION}.${base##*.}"
+          done
           native=$(find dist -type f \( -name '*.pkg' -o -name '*.deb' -o -name '*.rpm' \) | wc -l)
           [ "$native" -eq 6 ] || { echo "::error::expected 6 native installers, found $native"; exit 1; }
           # 6 archives + 2 MSIs + 6 native installers
@@ -297,6 +309,9 @@ jobs:
           # 14 installers and archives + 2 SBOMs
           count=$(find dist -type f | wc -l)
           [ "$count" -eq 16 ] || { echo "::error::expected 16 assets, found $count"; exit 1; }
+          # Every installer and archive name carries the version (OPS40).
+          unversioned=$(find dist -type f \( -name 'crsp-*.msi' -o -name 'crsp-*.pkg' -o -name 'crsp-*.deb' -o -name 'crsp-*.rpm' -o -name 'crsp-*.tar.gz' -o -name 'crsp-*.zip' \) ! -name "*_${VERSION}.*" | wc -l)
+          [ "$unversioned" -eq 0 ] || { echo "::error::$unversioned installers or archives lack _${VERSION} in the name"; exit 1; }
           (cd dist && sha256sum crsp-* > SHA256SUMS)
           lines=$(wc -l < dist/SHA256SUMS)
           [ "$lines" -eq 16 ] || { echo "::error::SHA256SUMS has $lines lines, expected 16"; exit 1; }

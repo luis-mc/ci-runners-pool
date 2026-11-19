@@ -94,7 +94,7 @@ func TestManagerWritesTheStagesOfAnUpdate(t *testing.T) {
 	var seen []string
 	h.m.o.Fetch = func(ctx context.Context, url, dst string) error {
 		if strings.HasSuffix(url, "SHA256SUMS") {
-			return os.WriteFile(dst, []byte(sum([]byte("payload"))+"  "+AssetName("linux", "amd64")+"\n"), 0o600)
+			return os.WriteFile(dst, []byte(sum([]byte("payload"))+"  "+VersionedName(AssetName("linux", "amd64"), "1.5.0")+"\n"), 0o600)
 		}
 		reportProgress(ctx, 50, 100)
 		if s, ok := ReadStage(dir); ok {

@@ -369,7 +369,7 @@ Built in CRSP26: the tray process and everything it runs in the user's session. 
 Seams that will change:
 
 - M3 adds the agent-only path (R5.11). Restart and Update (R5.15 to R5.18) are built in CRSP19 for the controller's machine; an agent-only machine updates to the controller's version over the agent link (operations R5.39 to R5.41, CRSP19).
-- The Windows install of an update needs the MSI assets of CRSP18 (`crsp-windows-<arch>.msi`, in SHA256SUMS and attested). The MSI must also bring the tray back after an upgrade; until it does, the tray relaunches itself only when it survives the install.
+- The Windows install of an update needs the MSI assets of CRSP18 (`crsp-windows-<arch>_<version>.msi`, in SHA256SUMS and attested). The MSI must also bring the tray back after an upgrade; until it does, the tray relaunches itself only when it survives the install.
 - M8 adds notices (R5.19, R5.20); the channel gains `notices`.
 
 Open owner questions:
