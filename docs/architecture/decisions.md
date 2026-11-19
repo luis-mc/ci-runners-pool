@@ -126,7 +126,7 @@ Feature decisions come from each feature's `decisions.json` (and the Decisions t
 | registry | D11 | [Controller offline](../features/registry/spec.md) | The job waits; local build only when the controller answers "not in registry" | decided | 2026-11-19 |
 | registry | D12 | [Screens](../features/registry/spec.md) | The RES20 REG-5 screens and words, approved as shown | decided | 2026-11-19 |
 | registry | D13 | [Key format](../features/registry/spec.md) | Section 7.2 and R5.21, R5.22 (REG10) | decided | 2026-11-19 |
-| registry | D2 | [Who pushes where](../features/registry/spec.md) | A machine pushes only to `crsp/_incoming/<machine id>/`; the controller promotes by manifest copy; tags immutable | decided | 2026-11-19 |
+| registry | D2 | [Who pushes where](../features/registry/spec.md) | A machine pushes only to `crsp/incoming/<machine id>/`; the controller promotes by manifest copy; tags immutable | decided | 2026-11-19 |
 | registry | D3 | [Auth](../features/registry/spec.md) | Controller-issued tokens over the agent link, 10 min, pull std and custom, push own staging only | decided | 2026-11-19 |
 | registry | D4 | [Standard images](../features/registry/spec.md) | The first machine builds and pushes; no import from CI | decided | 2026-11-19 |
 | registry | D5 | [Budgets](../features/registry/spec.md) | 40 GB standard, 30 GB custom, never above half the free disk; folder `<data_dir>/registry`, editable | decided | 2026-11-19 |

@@ -7,7 +7,7 @@ status: building
 version: 0.1.0
 owner: owner
 type: reference
-code: ["internal/registry/**", "internal/agentlink/registry.go", "internal/agent/registry.go", "internal/backend/container/ensure.go", "internal/backend/container/buildstream.go", "internal/store/imagebuilds.go", "internal/api/handlers_registry*.go", "internal/api/stubs_registry_*.go", "internal/store/queries/registry_*.sql", "internal/store/queries/image_builds.sql", "internal/store/migrations/00019_registry.sql", "apps/web/src/screens/registry/**"]
+code: ["internal/registry/**", "internal/agentlink/registry.go", "internal/agent/registry.go", "internal/backend/container/ensure.go", "internal/backend/container/buildstream.go", "internal/store/imagebuilds.go", "internal/api/handlers_registry*.go", "internal/api/stubs_registry_*.go", "internal/store/registry_core.go", "internal/regcreds/engineca.go", "internal/backend/container/engineca.go", "cmd/crsp/registry_wiring.go", "internal/store/queries/registry_*.sql", "internal/store/queries/image_builds.sql", "internal/store/migrations/00019_registry.sql", "apps/web/src/screens/registry/**"]
 design_system: [UX-4, UX-5, UX-13, UX-16, UX-19, UX-25, UX-28, UX-29, UX-30, UX-34, UX-38, UX-41, UX-49, UX-54, UX-58, UX-62, UX-71, UX-72, UX-73]
 last_verified: 2026-11-19
 artifact:
@@ -18,6 +18,8 @@ generator: luismc-docs 2.6.1
 The top half (sections 1 to 4) is for every reader. The bottom half (5 to 12) is for engineers.
 
 **CONTRACT ONLY (REG10).** The shared contract is built: the image key (`internal/registry/key.go`, R5.21, R5.22), the Go types and interfaces, the store tables and queries (migration 00019), the agent link messages (protocol version 3) and the API under `/api/v1/registry/*`, which answers 501 "not built yet". The agent side is built too (REG2, R5.13 to R5.20). IMG1 (build truth, R5.68 to R5.72) is built, except the link from an agent to the controller's recorder (see IMG1 below). Every other requirement below is **NOT YET IMPLEMENTED**; the owning task of each group is named in its heading.
+
+**BUILT (REG1).** R5.1 to R5.12 (registry core) are implemented: Distribution v3 under `/v2/` on the controller's private listener, tokens, staging and promotion, the agent sink and the engine CA step. The staging root is `crsp/incoming/` (REG1 changed it from `crsp/_incoming/`, which is not a valid OCI name).
 
 **BUILT (REG6).** R5.41 to R5.52 (retention) are implemented: budgets and settings, the recommendations engine, safe delete, the weekly cleanup and **Clean up now**.
 
@@ -90,7 +92,7 @@ The REG-5 screens of the RES20 review build are approved as shown (owner, 19 Nov
 
 Every group names the task that owns it. "Must" is binding.
 
-### REG1: registry core (R5.1 to R5.12)
+### REG1: registry core (R5.1 to R5.12) — built
 
 **R5.1** — The controller embeds the Distribution v3 library and serves the OCI Distribution Spec v1.1 (push, pull, delete, referrers) under `/v2/` on its existing HTTPS listener, with filesystem storage in `<data_dir>/registry` (or the folder of R5.42).
 
@@ -115,6 +117,14 @@ Every group names the task that owns it. "Must" is binding.
 **R5.11** — Scopes: every machine may pull `crsp/std/*` and `crsp/custom/*`; a machine may push only to `crsp/incoming/<its own id>/*`. People get no token.
 
 **R5.12** — The agent installs the controller CA for the engine as a host step (`/etc/docker/certs.d/<host:port>/ca.crt`, `/etc/containers/certs.d/<host:port>/ca.crt` for Podman, the Docker Desktop setting on Windows) through the `regcreds` CA mechanism.
+
+**Built by REG1:** R5.1 to R5.12, in `internal/registry/core/` (mount, door, tokens, promotion, sink, disk gate), `internal/store/registry_core.go` over `queries/registry_core.sql` (migration 00022 is unused), `internal/regcreds/engineca.go` and `internal/backend/container/engineca.go` (the engine CA step), and `cmd/crsp/registry_wiring.go` (the controller hook).
+
+- **Mount (R5.1 to R5.3).** `core.New` runs `handlers.NewApp` of Distribution v3.1.2 on filesystem storage in the registry folder (the folder of the registry settings, else `<data_dir>/registry`) and a second in-process namespace on the same driver for promotion, delete and GC. The controller mounts it at `/v2/` on its console listener only when `core.CheckListen` (the lancache private LAN rule) accepts the listen address; a wildcard or public address leaves the controller with no registry and agents build locally. Every request must come from a private, loopback or link-local peer and carry a token (Bearer, or the password of a Basic login); anonymous reads get 401. The door checks the scope of the path (`manifests`, `blobs`, `blobs/uploads`, `tags/list`, `referrers`), refuses DELETE and the catalogue to machines, asks a pull scope on the `from` of a blob mount, and answers 503 to a push in the read-only window (`SetReadOnly`, R5.48). v3.1.2 has no referrers route, so `GET /v2/<name>/referrers/<digest>` is served by the door from the manifests of the repository whose `subject` is the digest (`artifactType` filter, `OCI-Filters-Applied`), and a manifest push with a subject answers `OCI-Subject`. Pull and push events carry the machine of the token (`Events()`); the controller logs them, and REG4's `Consume` takes the same channel when joined.
+- **Tokens (R5.10, R5.11).** `core.Issuer` signs `crsp1.<claims>.<hmac>` with a 32-byte key kept in the secret store (`crsp/registry/token-key`), 10 minutes, scopes as asked or refused: pull on `crsp/std/*` and `crsp/custom/*` (and the own staging), push (with pull) only on `crsp/incoming/<own machine id>/*`, never delete. The store keeps only the token id, the machine and the names (`registry_token_leases`); a deleted lease revokes. A push token first asks the `DiskGate` (R5.8): the free-disk guard of the runner hooks (`runnercache.Guard`, 10 percent) and, when the wiring gives it, the budget of the kind; `ErrOverBudget` refuses and `Refused` lets REG6 open its recommendation.
+- **Promotion (R5.5 to R5.7).** `core.Promoter` takes a `PushReport` with state pushed through `Sink.PushReport` (once per push id). It checks that the staging name is below the own root and follows from the target, that the target follows from the key input (standard or custom name), that `ComputeKey(key input)` equals the key, that the manifest tagged with the key in staging has the reported digest and hashes to it, that the eight labels of R5.7 are present on the image config (for an index, on the child of the arch, ignoring attestations) and agree with the key input, and that the tag is new in the store and in the registry. It then links the blobs into the target by mounts (no data moves), puts the manifest, tags it with the key and writes the tag row and state (`current`, or `variant` for a branch run) in one transaction. Any failed check is recorded as `refused` with the reason and returned as `ErrPromoteRefuse`. Promoted hooks (`OnPromoted`) run after the row is written; their errors are logged.
+- **Engine CA (R5.12).** `regcreds.InstallEngineCA` writes the CA into `/etc/docker/certs.d/<host:port>/ca.crt` and `/etc/containers/certs.d/<host:port>/ca.crt` (a folder only where its engine is), and into `~/.docker/certs.d/<host>/ca.crt` for Docker Desktop on macOS and Windows (`host_port` on Windows). The container backend runs it once per registry host before the first pull or push, from `Config.ControllerCA`; `container.FetchControllerCA(pin, client)` downloads `/api/v1/ca.pem` and keeps only the certificate whose SHA-256 is the pinned fingerprint. A failed step is logged and the pull goes on.
+- **Not yet:** the agent does not set `Config.ControllerCA` (REG2's backend wiring passes `FetchControllerCA(pin, nil)`); the engine CA step skips the `wsl docker` route; the join (REG11) sets `Sink.Locator`, `Sink.Recorder` and `Sink.Outcomes` from REG4 and calls `Promoter.OnPromoted` for REG3, REG4 and REG8, so until then an `EnsureImage` is answered "not in the registry" with no staging name; the `DiskGate` has no budget callback until REG6 is wired.
 
 ### REG2: ensure image on the agent (R5.13 to R5.20)
 
@@ -418,6 +428,11 @@ Built (REG10):
 - internal/registry/keys/ (REG3: Keyer, labels, pointer rules, Detector, similar) and internal/store/registry_keys.go (pointer and lineage store)
 - internal/registry/scan/ (REG8: `scanner.go`, `run.go`, `referrers.go`, `fetch.go`)
 - internal/api/stubs_registry_reg4.go, `_reg6.go`, `_reg9.go` (501 per owning task); IMG1's stub is replaced by `handlers_registry_img1.go`; REG7's stub is replaced by `handlers_registry_reg7.go`, `internal/registry/replace/` and `internal/store/registry_replace.go`
+
+Built (REG1):
+
+- internal/registry/core/ (`registry.go` mount, door, referrers, GC, `names.go`, `guard.go`, `token.go`, `promote.go`, `sink.go`, `gate.go`)
+- internal/store/registry_core.go (ledger and token leases over `queries/registry_core.sql`), internal/regcreds/engineca.go, internal/backend/container/engineca.go, cmd/crsp/registry_wiring.go (and its hook in `main.go`)
 
 Built (REG6):
 
