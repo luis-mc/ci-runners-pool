@@ -12,6 +12,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/luis-mc/ci-runners-shared-pool/internal/addresses"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/vmcheck"
 )
 
@@ -46,6 +47,13 @@ func VM(args []string, env Env) int {
 		_, _ = fmt.Fprintln(env.Stderr, "crsp vm:", err)
 		return ExitVMFail
 	}
+	// CRSP_VM_IMAGE_MIRROR moves every image download to the mirror (operations R5.96).
+	mirror, err := addresses.VMImageMirrorFrom(env.Getenv)
+	if err != nil {
+		_, _ = fmt.Fprintln(env.Stderr, "crsp vm:", err)
+		return ExitVMUsage
+	}
+	cat = cat.Mirrored(addresses.Set{VMImageMirror: mirror})
 	switch args[0] {
 	case "list":
 		for _, n := range cat.Names() {

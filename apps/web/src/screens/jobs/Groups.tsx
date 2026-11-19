@@ -75,6 +75,7 @@ export function GroupTab({ by }: { by: GroupBy }) {
       cell: (g) => (by === 'runner-type' ? splitKind(g.name).kind : g.name),
       sort: (g) => g.name,
       kind: 'grow',
+      grow: 2,
     },
     ...(by === 'runner-type'
       ? [

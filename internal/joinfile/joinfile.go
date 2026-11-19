@@ -14,6 +14,8 @@ import (
 	"strings"
 	"text/template"
 	"time"
+
+	"github.com/luis-mc/ci-runners-shared-pool/internal/update"
 )
 
 // Params are the values a file is made from.
@@ -54,6 +56,11 @@ var (
 
 // Sum is one package and its SHA-256.
 type Sum struct{ Name, SHA256 string }
+
+// Plain is the name without the version part: crsp-linux-amd64_0.1.15.deb is
+// crsp-linux-amd64.deb. The files below ask for a package by its plain name, so
+// they work for a release with versioned names and for one up to 0.1.14 (OPS40).
+func (s Sum) Plain() string { return update.PlainName(s.Name) }
 
 // ParseSums keeps the installer packages of a SHA256SUMS text.
 func ParseSums(text []byte) []Sum {

@@ -30,6 +30,7 @@ var operationCommands = map[string]string{
 	"removeMachine":              "machine remove",
 	"resumeMachine":              "machine resume, machine maintain",
 	"runMachineCommand":          "machine maintain",
+	"removeRunnerLeftovers":      "machine leftovers remove",
 	"listRunners":                "runner list",
 	"planRunners":                "runner add",
 	"getRunnerPlan":              "runner add",

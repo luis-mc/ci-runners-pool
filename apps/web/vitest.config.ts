@@ -7,6 +7,7 @@ export default defineConfig({
     name: 'web',
     include: ['src/**/*.test.{ts,tsx}'],
     environment: 'jsdom',
+    setupFiles: ['./src/testing/setup.ts'],
     // STACKSPEC 11.3: a suite that finds no tests fails.
     passWithNoTests: false,
   },

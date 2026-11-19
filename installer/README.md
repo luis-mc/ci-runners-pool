@@ -1,6 +1,6 @@
 # crsp Windows installer (MSI)
 
-`crsp-windows-amd64.msi` and `crsp-windows-arm64.msi`, built with WiX Toolset v5 (pinned to 5.0.2 in `dotnet-tools.json`; the UI, Util and Firewall extensions at the same version). The release workflow builds them on `windows-latest`; the feature spec is `docs/features/operations/spec.md` (R5.7, R5.35 to R5.41).
+`crsp-windows-amd64.msi` and `crsp-windows-arm64.msi`, built with WiX Toolset v5 (pinned to 5.0.2 in `dotnet-tools.json`; the UI, Util and Firewall extensions at the same version). The release workflow builds them on `windows-latest` and adds the version to the name of the published file (`crsp-windows-amd64_0.1.15.msi`, R5.119); the build script keeps the plain name; the feature spec is `docs/features/operations/spec.md` (R5.7, R5.35 to R5.41).
 
 ## Identity (never change)
 

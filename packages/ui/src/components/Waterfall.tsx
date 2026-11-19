@@ -2,7 +2,7 @@
 // long it waited before (a lighter, hatched segment), the forecast for its end (a bracket with end caps) and "now"
 // on a live chart. Status is the glyph and the words of `detail` as well as the colour; the critical path has a
 // thicker outline and the words "critical path" (UX-58). Labels sit beside the bar and stack above it on a phone
-// (UX-49). A row with `onOpen` is a real button (UX-57). The text alternative is a table under "Show as table".
+// (UX-49). A row with `onOpen` is a real button (UX-57). The text alternative is a table under "Show as table", or the table of `altTable` elsewhere on the page.
 import { Fragment } from 'react';
 import { formatDuration } from './format';
 import { STATUS_GLYPH } from './Status';
@@ -33,7 +33,14 @@ function rowText(row: WaterfallRow): string {
   return [row.label, row.sublabel, detailOf(row)].filter(Boolean).join(', ');
 }
 
-export function Waterfall({ label, rows, totalSec, nowSec, emptyText }: WaterfallProps) {
+export function Waterfall({
+  label,
+  rows,
+  totalSec,
+  nowSec,
+  emptyText,
+  altTable,
+}: WaterfallProps) {
   if (rows.length === 0) return <Empty title={emptyText} />;
   const total =
     totalSec ??
@@ -59,6 +66,7 @@ export function Waterfall({ label, rows, totalSec, nowSec, emptyText }: Waterfal
         // An image hides its children from assistive tech; rows that open are buttons, so that chart is a group.
         role={rows.some((r) => r.onOpen) ? 'group' : 'img'}
         aria-label={`${label}: ${rows.map(rowText).join('; ')}`}
+        aria-describedby={altTable}
         className="ds-waterfall__chart"
       >
         <ul className="ds-waterfall__rows">
@@ -147,14 +155,16 @@ export function Waterfall({ label, rows, totalSec, nowSec, emptyText }: Waterfal
           {WATERFALL_WORDS.now}: {formatDuration(nowSec)}
         </p>
       ) : null}
-      <VizAlt
-        caption={label}
-        head={[WATERFALL_WORDS.name, WATERFALL_WORDS.detail]}
-        rows={rows.map((r) => [
-          r.group ? `${r.group}: ${r.label}` : r.label,
-          detailOf(r),
-        ])}
-      />
+      {altTable ? null : (
+        <VizAlt
+          caption={label}
+          head={[WATERFALL_WORDS.name, WATERFALL_WORDS.detail]}
+          rows={rows.map((r) => [
+            r.group ? `${r.group}: ${r.label}` : r.label,
+            detailOf(r),
+          ])}
+        />
+      )}
     </div>
   );
 }

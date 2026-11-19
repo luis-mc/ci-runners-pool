@@ -3,6 +3,8 @@ package tray
 import (
 	"fmt"
 	"strings"
+
+	"github.com/luis-mc/ci-runners-shared-pool/internal/update"
 )
 
 // Menu item labels. Words come from docs/design-system/next-version/content.md (TRAY3).
@@ -110,7 +112,7 @@ func Header(version string, st Status) string {
 		base += " - update failed"
 	case st.Update.Updating():
 		base += " - updating…"
-	case st.Update.Available && st.Update.Latest != "":
+	case st.NewerFound():
 		// The Update to line below says which version; the header stays plain.
 	default:
 		base += " - up to date"
@@ -167,7 +169,17 @@ func plural(n int, noun string) string {
 // UpdateShown says whether the Update to line shows: a newer release exists
 // and no update is running.
 func (s Status) UpdateShown() bool {
-	return s.Update.Available && !s.Update.Updating() && s.Update.Latest != ""
+	return s.NewerFound() && !s.Update.Updating()
+}
+
+// NewerFound says a release newer than the one the service runs was found. The service
+// says Available; this also checks the versions, so a release that is not newer is never
+// offered (TRAY8). A service that does not say its version is trusted.
+func (s Status) NewerFound() bool {
+	if !s.Update.Available || s.Update.Latest == "" {
+		return false
+	}
+	return s.Version == "" || update.Newer(s.Version, s.Update.Latest)
 }
 
 // ResumeLabel is the pause item while the user holds a pause.

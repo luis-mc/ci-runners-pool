@@ -9,6 +9,8 @@ import (
 	"io"
 	"net"
 	"time"
+
+	"github.com/luis-mc/ci-runners-shared-pool/internal/update"
 )
 
 // Request is one JSON line sent over the local channel (spec section 7).
@@ -149,6 +151,9 @@ func (c *Client) call(ctx context.Context, req Request) (Response, error) {
 		return Response{}, fmt.Errorf("local channel: bad answer: %w", err)
 	}
 	if !r.OK {
+		if r.Error == update.ErrNoUpdate.Error() {
+			return r, update.ErrNoUpdate // a plain answer, not a failure: no internal prefix (TRAY8)
+		}
 		return r, fmt.Errorf("local channel: %s", r.Error)
 	}
 	return r, nil

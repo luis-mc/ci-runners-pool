@@ -5,6 +5,8 @@ import (
 	"errors"
 	"strings"
 	"testing"
+
+	"github.com/luis-mc/ci-runners-shared-pool/internal/update"
 )
 
 type fakeInstaller struct {
@@ -144,5 +146,40 @@ func TestOfferWhileDialogOpenAsksOnce(t *testing.T) {
 	_ = o.Offer(context.Background(), found)
 	if calls != 2 {
 		t.Fatalf("after the answer a new dialog may open: calls=%d", calls)
+	}
+}
+
+// TRAY8: a release that is not newer than the running one is never offered, whatever the service says.
+func TestOfferNeverOffersAVersionThatIsNotNewer(t *testing.T) {
+	for _, latest := range []string{"1.4.0", "1.3.9"} {
+		st := Status{Version: "1.4.0", Update: UpdateInfo{Latest: latest, Available: true}}
+		o, inst, n, asked := newOffer(true, nil, st)
+		if err := o.Offer(context.Background(), st); err != nil {
+			t.Fatal(err)
+		}
+		if len(*asked) != 0 || inst.calls != 0 || len(n.titles) != 1 || n.titles[0] != "Up to date" {
+			t.Fatalf("%s: asked=%d installs=%d notices=%v", latest, len(*asked), inst.calls, n.titles)
+		}
+		if st.UpdateShown() {
+			t.Fatalf("%s: the Update line must stay hidden", latest)
+		}
+		if h := Header("1.4.0", st); !strings.HasSuffix(h, "up to date") {
+			t.Fatalf("%s: header %q", latest, h)
+		}
+		if (&Offered{}).Due(Status{Version: "1.4.0", Update: UpdateInfo{Latest: latest, Available: true, AutoOff: true}}) {
+			t.Fatalf("%s: due", latest)
+		}
+	}
+}
+
+// TRAY8: the service answering "already the newest" is an Up to date notice, not a failure.
+func TestInstallAnsweredNoUpdateSaysUpToDate(t *testing.T) {
+	o, inst, n, _ := newOffer(true, nil, found)
+	inst.err = update.ErrNoUpdate
+	if err := o.Offer(context.Background(), found); err != nil {
+		t.Fatal(err)
+	}
+	if len(n.titles) == 0 || n.titles[len(n.titles)-1] != "Up to date" {
+		t.Fatalf("notices %v %v", n.titles, n.bodies)
 	}
 }

@@ -6,10 +6,11 @@ const (
 	WindowTitle = "Update - CI Runners Shared Pool"
 	ProductName = "CI Runners Shared Pool"
 
-	WordNotNow  = "Not now"
-	WordUpdate  = "Update now"
-	WordHide    = "Hide"
-	WordCancel  = "Cancel update"
-	WordClose   = "Close"
-	WordStarted = "Starting the update."
+	WordNotNow   = "Not now"
+	WordUpdate   = "Update now"
+	WordHide     = "Hide"
+	WordCancel   = "Cancel update"
+	WordClose    = "Close"
+	WordStarted  = "Starting the update."
+	WordUpToDate = "Up to date"
 )

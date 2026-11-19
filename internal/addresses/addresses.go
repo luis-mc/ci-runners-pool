@@ -17,12 +17,16 @@ const (
 	EnvGitHubURL         = "CRSP_GITHUB_URL"
 	EnvGitHubAPIURL      = "CRSP_GITHUB_API_URL"
 	EnvRunnerDownloadURL = "CRSP_RUNNER_DOWNLOAD_URL"
+	EnvVMImageMirror     = "CRSP_VM_IMAGE_MIRROR"
 )
 
 // The defaults for github.com.
 const (
 	DefaultGitHubURL    = "https://github.com"
 	DefaultGitHubAPIURL = "https://api.github.com"
+	// DefaultVMImageMirror is empty: the VM images are fetched from the hosts
+	// of the catalogue (internal/vmcheck/vm-images.json).
+	DefaultVMImageMirror = ""
 
 	// runnerReleasePath is where the GitHub Actions runner releases live under
 	// the GitHub address.
@@ -50,6 +54,11 @@ type Set struct {
 	// RunnerDownloadURL is the base the Actions runner release assets are
 	// fetched from: <base>/v<version>/actions-runner-<os>-<arch>-<version>.<ext>.
 	RunnerDownloadURL string
+	// VMImageMirror is the base of a mirror of the VM images, no trailing
+	// slash; empty means the hosts of the catalogue. The mirror holds one
+	// folder per distro (<base>/<distro>/) with the files of the upstream
+	// directory: the checksum file and the image.
+	VMImageMirror string
 }
 
 // Defaults are the addresses for github.com.
@@ -74,7 +83,8 @@ func Load(getenv func(string) string) (Set, error) {
 		return v
 	}
 	web, api, dl := read(EnvGitHubURL), read(EnvGitHubAPIURL), read(EnvRunnerDownloadURL)
-	a := Set{GitHubURL: web, GitHubAPIURL: api, RunnerDownloadURL: dl}
+	mirror := read(EnvVMImageMirror)
+	a := Set{GitHubURL: web, GitHubAPIURL: api, RunnerDownloadURL: dl, VMImageMirror: mirror}
 	switch {
 	case web == "":
 		a.GitHubURL = DefaultGitHubURL
@@ -94,6 +104,33 @@ func Load(getenv func(string) string) (Set, error) {
 		return Set{}, errors.Join(errs...)
 	}
 	return a, nil
+}
+
+// VMImageURL is the address of a file of a VM image distro: upstream when no
+// mirror is set, else <mirror>/<distro>/<last part of upstream>. An upstream
+// that ends with a slash (a directory) gives the mirror's folder of the distro.
+func (a Set) VMImageURL(distro, upstream string) string {
+	if a.VMImageMirror == "" {
+		return upstream
+	}
+	dir := a.VMImageMirror + "/" + url.PathEscape(distro) + "/"
+	if strings.HasSuffix(upstream, "/") {
+		return dir
+	}
+	return dir + upstream[strings.LastIndex(upstream, "/")+1:]
+}
+
+// VMImageMirrorFrom reads only CRSP_VM_IMAGE_MIRROR: the job process that
+// downloads VM images needs no other address. Empty means no mirror.
+func VMImageMirrorFrom(getenv func(string) string) (string, error) {
+	v := strings.TrimSpace(getenv(EnvVMImageMirror))
+	if v == "" {
+		return DefaultVMImageMirror, nil
+	}
+	if err := ValidateBaseURL(v); err != nil {
+		return "", fmt.Errorf("%s: %w", EnvVMImageMirror, err)
+	}
+	return v, nil
 }
 
 // ValidateBaseURL checks an address base: absolute, https (http only for

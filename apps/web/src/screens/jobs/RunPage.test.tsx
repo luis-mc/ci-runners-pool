@@ -104,4 +104,61 @@ describe('Run page', () => {
       0,
     );
   });
+
+  it('lists every job once in one Jobs table that the graph and the timeline point to', async () => {
+    renderApp(jobsApi({ run: runItem() }), '/jobs/run/100');
+    await screen.findByText('ci.yml on OPS34-jobs-section');
+    expect(screen.queryByText('Show as table')).toBeNull();
+    const jobs = screen.getByRole('region', { name: 'Jobs' });
+    const table = within(jobs).getByRole('table', { name: 'Jobs of run 100' });
+    const heads = within(table)
+      .getAllByRole('columnheader')
+      .map((h) => h.textContent);
+    expect(heads).toEqual(
+      expect.arrayContaining([
+        'Job',
+        'Stage',
+        'Needs',
+        'Status',
+        'Runner',
+        'Waited',
+        'Ran',
+        'Forecast',
+        'Critical path',
+      ]),
+    );
+    expect(within(table).getAllByRole('row')).toHaveLength(4); // head and 3 jobs
+    expect(within(table).getAllByText('critical path').length).toBeGreaterThan(0);
+    const holder = table.closest('[id]');
+    expect(holder?.id).toBeTruthy();
+    const charts = screen
+      .getAllByRole('group', { name: /^Jobs of run 100/ })
+      .filter((g) => g.getAttribute('aria-describedby') === holder?.id);
+    expect(charts).toHaveLength(2); // the graph and the timeline
+  });
+
+  it('says "1 job" for a run of one job', async () => {
+    const one = runItem();
+    renderApp(
+      jobsApi({
+        run: runItem({ jobs: [one.jobs[0] as (typeof one.jobs)[number]], edges: [] }),
+      }),
+      '/jobs/run/100',
+    );
+    expect(await screen.findByText(/This run has 1 job;/)).toBeTruthy();
+    expect(screen.queryByText(/1 jobs/)).toBeNull();
+  });
+
+  it('shows the pull request only under Pull request and hides a worktree equal to the branch', async () => {
+    renderApp(
+      jobsApi({
+        run: runItem({ pull_request: 52, worktree: 'OPS34-jobs-section' }),
+      }),
+      '/jobs/run/100',
+    );
+    await screen.findByText('ci.yml on OPS34-jobs-section');
+    expect(screen.getAllByText('#52')).toHaveLength(1);
+    expect(screen.getByText('a1b2c3d, push')).toBeTruthy();
+    expect(screen.queryByText('Worktree')).toBeNull();
+  });
 });

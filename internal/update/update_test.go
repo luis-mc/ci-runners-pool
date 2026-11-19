@@ -58,6 +58,58 @@ func TestAssetNamePerOS(t *testing.T) {
 	}
 }
 
+func TestVersionedAssetNames(t *testing.T) {
+	for plain, want := range map[string]string{
+		"crsp-windows-amd64.msi":  "crsp-windows-amd64_0.1.15.msi",
+		"crsp-windows-arm64.msi":  "crsp-windows-arm64_0.1.15.msi",
+		"crsp-darwin-arm64.pkg":   "crsp-darwin-arm64_0.1.15.pkg",
+		"crsp-linux-amd64.deb":    "crsp-linux-amd64_0.1.15.deb",
+		"crsp-linux-arm64.rpm":    "crsp-linux-arm64_0.1.15.rpm",
+		"crsp-linux-amd64.tar.gz": "crsp-linux-amd64_0.1.15.tar.gz",
+		"crsp-windows-amd64.zip":  "crsp-windows-amd64_0.1.15.zip",
+		"SHA256SUMS":              "SHA256SUMS",
+		"crsp-sbom-go.spdx.json":  "crsp-sbom-go.spdx.json",
+	} {
+		if got := VersionedName(plain, "0.1.15"); got != want {
+			t.Errorf("VersionedName(%q) = %q, want %q", plain, got, want)
+		}
+		if got := VersionedName(plain, "v0.1.15"); got != want {
+			t.Errorf("a leading v must not reach the name: %q", got)
+		}
+		if got := PlainName(want); got != plain {
+			t.Errorf("PlainName(%q) = %q, want %q", want, got, plain)
+		}
+	}
+	if VersionedName("crsp-linux-amd64.deb", "") != "crsp-linux-amd64.deb" {
+		t.Error("no version, no change")
+	}
+}
+
+func TestPickAssetPrefersTheVersionedName(t *testing.T) {
+	plain := "crsp-windows-amd64.msi"
+	versioned := "crsp-windows-amd64_0.1.15.msi"
+	both := Release{Version: "0.1.15", Assets: map[string]string{plain: "p", versioned: "v"}}
+	if got := PickAsset(both, plain); got != versioned {
+		t.Errorf("both present: %q", got)
+	}
+	old := Release{Version: "0.1.14", Assets: map[string]string{plain: "p"}}
+	if got := PickAsset(old, plain); got != plain {
+		t.Errorf("older release keeps the plain name: %q", got)
+	}
+	none := Release{Version: "0.1.15", Assets: map[string]string{}}
+	if got := PickAsset(none, plain); got != versioned {
+		t.Errorf("missing asset names the versioned one: %q", got)
+	}
+	sums := []byte(strings.Repeat("a", 64) + "  " + plain + "\n")
+	if got := PickFromSums(sums, plain, "0.1.15"); got != plain {
+		t.Errorf("sums with the plain line: %q", got)
+	}
+	sums = []byte(strings.Repeat("a", 64) + "  " + versioned + "\n")
+	if got := PickFromSums(sums, plain, "0.1.15"); got != versioned {
+		t.Errorf("sums with the versioned line: %q", got)
+	}
+}
+
 func TestGitHubSourceStableOnly(t *testing.T) {
 	body := `{"tag_name":"v1.5.0","draft":false,"prerelease":false,"html_url":"https://github.com/x/y/releases/tag/v1.5.0","assets":[{"name":"SHA256SUMS","browser_download_url":"https://github.com/s"}]}`
 	var path atomic.Value
@@ -244,8 +296,18 @@ type harness struct {
 
 func newHarness(t *testing.T, goos string, auto bool, payloadOK bool) *harness {
 	t.Helper()
+	return newHarnessNamed(t, goos, auto, payloadOK, true)
+}
+
+// newHarnessNamed makes a release whose assets carry the version in the name
+// (versioned) or the plain name of releases up to 0.1.14.
+func newHarnessNamed(t *testing.T, goos string, auto bool, payloadOK, versioned bool) *harness {
+	t.Helper()
 	h := &harness{d: &fakeDrainer{}, auto: &auto, dir: t.TempDir()}
 	asset := AssetName(goos, "amd64")
+	if versioned {
+		asset = VersionedName(asset, "1.5.0")
+	}
 	payload := []byte("payload")
 	sumLine := sum(payload)
 	if !payloadOK {
@@ -276,6 +338,33 @@ func newHarness(t *testing.T, goos string, auto bool, payloadOK bool) *harness {
 		},
 	})
 	return h
+}
+
+// A release up to 0.1.14 has the plain name; the update still finds it, and the
+// copy under the updates folder keeps that name.
+func TestOlderReleaseWithPlainNamesStillInstalls(t *testing.T) {
+	h := newHarnessNamed(t, "windows", false, true, false)
+	h.m.o.StartMSI = func(context.Context, string, string) (int, error) { return 77, nil }
+	h.m.o.MSILog = filepath.Join(h.dir, "logs", "msi-update.log")
+	if _, err := h.m.Apply(context.Background(), KindUpdate, true, "octo"); err != nil {
+		t.Fatal(err)
+	}
+	if len(h.dl) != 2 || !strings.HasSuffix(h.dl[0], "/crsp-windows-amd64.msi") {
+		t.Fatalf("plain name fallback: %v", h.dl)
+	}
+}
+
+func TestDownloadedCopyKeepsTheVersionedName(t *testing.T) {
+	h := newHarness(t, "windows", false, true)
+	h.m.o.StartMSI = func(context.Context, string, string) (int, error) { return 77, nil }
+	h.m.o.MSILog = filepath.Join(h.dir, "logs", "msi-update.log")
+	if _, err := h.m.Apply(context.Background(), KindUpdate, true, "octo"); err != nil {
+		t.Fatal(err)
+	}
+	want := filepath.Join(h.dir, "updates", "1.5.0", "crsp-windows-amd64_1.5.0.msi")
+	if _, err := os.Stat(want); err != nil {
+		t.Fatalf("the downloaded copy is not at %s: %v", want, err)
+	}
 }
 
 func TestApplyRefusedWithoutConfirmedListsJobs(t *testing.T) {
@@ -376,7 +465,7 @@ func TestManualYesDrainsAndWindowsStartsTheMSIItself(t *testing.T) {
 	if _, err := h.m.Apply(ctx, KindUpdate, true, "octo"); err != nil {
 		t.Fatal(err)
 	}
-	if len(h.dl) != 2 || !strings.HasSuffix(h.dl[0], "crsp-windows-amd64.msi") {
+	if len(h.dl) != 2 || !strings.HasSuffix(h.dl[0], "crsp-windows-amd64_1.5.0.msi") {
 		t.Fatalf("windows downloads the MSI: %v", h.dl)
 	}
 	if _, err := h.m.Apply(ctx, KindUpdate, true, "octo"); !errors.Is(err, ErrBusy) {
@@ -388,7 +477,7 @@ func TestManualYesDrainsAndWindowsStartsTheMSIItself(t *testing.T) {
 	if len(h.spawns) != 0 {
 		t.Fatal("windows needs no helper: the controller starts msiexec itself")
 	}
-	if !strings.HasSuffix(msi, "crsp-windows-amd64.msi") || log != h.m.o.MSILog {
+	if !strings.HasSuffix(msi, "crsp-windows-amd64_1.5.0.msi") || log != h.m.o.MSILog {
 		t.Fatalf("%s %s", msi, log)
 	}
 	if got := strings.Join(MSIArgs(msi, log), "|"); !strings.HasPrefix(got, "/i|") || !strings.HasSuffix(got, "|/qn|/norestart|/l*v|"+log) {

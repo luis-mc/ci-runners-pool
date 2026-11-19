@@ -1,10 +1,12 @@
 package updatewindow
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/tray"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/update"
 )
 
 // State is the one step the window shows (decision tray D12).
@@ -20,10 +22,11 @@ const (
 	StateDone        State = "done"
 	StateFailed      State = "failed"
 	StateCancelled   State = "cancelled"
+	StateUpToDate    State = "up_to_date" // the version offered is not newer than the one that runs (TRAY8)
 )
 
 // AllStates lists every state, in the order of an update.
-var AllStates = []State{StateReview, StateDownloading, StateWaiting, StateInstalling, StateRestarting, StateDone, StateFailed, StateCancelled}
+var AllStates = []State{StateReview, StateDownloading, StateWaiting, StateInstalling, StateRestarting, StateDone, StateFailed, StateCancelled, StateUpToDate}
 
 // Mode is how the window was opened.
 type Mode string
@@ -119,6 +122,7 @@ type Model struct {
 	returned    bool   // the service answered that request
 	startErr    string // the service refused the request
 	cancelled   bool
+	upToDate    bool // the service answered that this is already the newest release
 	seenInstall bool // installing or restarting was seen: the service goes down and comes back
 }
 
@@ -135,12 +139,16 @@ func (m *Model) Observe(s Snapshot) {
 
 // Requested says the person pressed Update now; the service has not answered yet.
 func (m *Model) Requested() {
-	m.requested, m.returned, m.startErr, m.cancelled = true, false, "", false
+	m.requested, m.returned, m.startErr, m.cancelled, m.upToDate = true, false, "", false, false
 }
 
 // RequestReturned says the service answered the request: err nil means the update runs.
 func (m *Model) RequestReturned(err error) {
 	m.returned = true
+	if err != nil && (errors.Is(err, update.ErrNoUpdate) || strings.Contains(err.Error(), update.ErrNoUpdate.Error())) {
+		m.upToDate = true // not a failure: nothing newer exists
+		return
+	}
 	if err != nil {
 		m.startErr = err.Error()
 	}
@@ -160,6 +168,9 @@ func Closable(State) bool { return true }
 func (m *Model) State() State {
 	if m.cancelled {
 		return StateCancelled
+	}
+	if m.upToDate {
+		return StateUpToDate
 	}
 	if m.startErr != "" {
 		return StateFailed
@@ -206,6 +217,9 @@ func (m *Model) State() State {
 	}
 	if m.requested {
 		return StateDownloading
+	}
+	if m.Mode == ModeReview && m.To != "" && m.From != "" && !update.Newer(m.running(), m.To) {
+		return StateUpToDate // never offer a version that is not newer than the running one
 	}
 	return StateReview
 }
@@ -281,6 +295,11 @@ func (m *Model) View() View {
 	case StateFailed:
 		v.Heading, v.Tone = "The update failed", ToneProblem
 		v.Body = m.failureLines()
+		v.Buttons = []Button{{BtnClose, WordClose, true}}
+		v.Default, v.EscapeIs = BtnClose, BtnClose
+	case StateUpToDate:
+		v.Heading = WordUpToDate
+		v.Body = []string{"Now running " + m.running() + ". This is the newest stable release."}
 		v.Buttons = []Button{{BtnClose, WordClose, true}}
 		v.Default, v.EscapeIs = BtnClose, BtnClose
 	case StateCancelled:
