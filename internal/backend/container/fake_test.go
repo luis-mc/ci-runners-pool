@@ -30,6 +30,7 @@ type fakeDocker struct {
 	wineLine    string // `wine --version` prints wine-<line>; empty: wine is not there
 	wineBoots   int
 	inspectFail string
+	engineDown  bool // `docker version` fails: the engine does not answer
 	now         time.Time
 }
 
@@ -93,6 +94,11 @@ func (f *fakeDocker) handle(cmd sys.Command) sys.Result {
 	f.stdins = append(f.stdins, cmd.Stdin)
 	a := cmd.Args
 	switch a[0] {
+	case "version":
+		if f.engineDown {
+			return fail1("error during connect: the engine does not answer")
+		}
+		return sys.Result{Stdout: "27.3.1\n"}
 	case "inspect":
 		name := a[len(a)-1]
 		if f.inspectFail != "" {

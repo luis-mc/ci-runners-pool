@@ -174,12 +174,13 @@ describe('Repositories after GitHub installed the App (finding 14)', () => {
 });
 
 describe('Runners explain themselves (findings 5, 6)', () => {
-  it('says the pool made the light runners, and why', async () => {
+  it('says nothing about light runners, even for an old runner that carries the label (OPS49)', async () => {
     const api = signedIn().on('GET', '/api/v1/runners', {
       items: [runner({ name: 'crsp-light-1', labels: ['self-hosted', 'crsp-light'] })],
     });
     renderApp(api, '/pool/runners');
-    expect(await screen.findByText(/light runners\. The pool made them/)).toBeTruthy();
+    await screen.findByRole('table', { name: /^Runners on/ });
+    expect(screen.queryByText(/light runners/)).toBeNull();
   });
 
   it('gives the next action for a failed runner', async () => {

@@ -48,9 +48,6 @@ type Policy struct {
 	RunnerGroups    []string
 	BudgetMemoryPct int // 0 means not set
 	BudgetCPUPct    int // 0 means not set
-	// LightRunner keeps one light runner per OS for the repository and writes
-	// RUNS_ON_LIGHT (scheduling R5.65). On by default.
-	LightRunner bool
 	// LegacyVars also writes CI_RUNS_ON and CI_RUNS_ON_WINDOWS, the old
 	// dev-standards names, while a repository moves off the old pool (R5.39).
 	// Off by default.
@@ -114,7 +111,7 @@ func (p Policy) EphemeralOnly(visibility string) bool {
 // DefaultPolicy is what a repository gets when the pool is first turned on:
 // normal priority, 2 parallel jobs, fork pull requests off (R5.25, R5.26).
 func DefaultPolicy() Policy {
-	return Policy{Priority: 0, MaxParallelJobs: 2, Labels: []string{}, RunnerGroups: []string{}, LightRunner: true}
+	return Policy{Priority: 0, MaxParallelJobs: 2, Labels: []string{}, RunnerGroups: []string{}}
 }
 
 // Variable statuses (R5.28).
@@ -125,9 +122,11 @@ const (
 	VarNotManaged = "not_managed"
 )
 
-// VarLight is the variable that names the light runner label (scheduling
-// R5.65). Its value is the plain label LightValue, not a JSON list, so a
-// workflow reads it as `runs-on: ${{ vars.RUNS_ON_LIGHT }}`.
+// VarLight is the variable an older version wrote for light jobs, with the
+// plain label LightValue (the light runner label), so a workflow reads it as
+// `runs-on: ${{ vars.RUNS_ON_LIGHT }}`. Light runners are gone (decision D110,
+// 19 Nov 2026): the reconcile rewrites a variable that still holds LightValue
+// to the pool's normal labels (github-integration R5.65).
 const (
 	VarLight   = "RUNS_ON_LIGHT"
 	LightValue = "crsp-light"
@@ -307,17 +306,6 @@ type GitHub interface {
 	SetRunnerGroupRepositories(ctx context.Context, installationID int64, org string, groupID int64, repoIDs []int64) error
 	SetForkApproval(ctx context.Context, installationID int64, owner, repo, policy string) error
 	ListOpenJobs(ctx context.Context, installationID int64, owner, repo string) ([]github.Job, error)
-}
-
-// LightRunners keeps the light runners of a repository (scheduling R5.65).
-// The runners service implements it through an adapter.
-type LightRunners interface {
-	// EnsureLight keeps one light runner for each OS in oses ("linux",
-	// "windows", "macos"). It returns how many OSes have one, and one note
-	// for each OS that has none, with the reason.
-	EnsureLight(ctx context.Context, r Repository, oses []string, actor string) (have int, notes []string, err error)
-	// RemoveLight removes the light runners of the repository after their jobs end.
-	RemoveLight(ctx context.Context, r Repository, actor string) error
 }
 
 // PoolRegistrar keeps the hidden GitHub registrations of the long-lived pool

@@ -151,8 +151,7 @@ func (e *Engine) evaluate(tx slots.Tx, req GateRequest, create bool, now time.Ti
 	measured := req.Load.MemoryKnown || req.Load.CPUKnown
 
 	// Light job: a free light slot at once, no ticket, when under budget (R5.24).
-	lightRunner := job.RunnerName != "" && e.light != nil && e.light(req.MachineID, job.RunnerName)
-	if lightRunner || slots.IsLight(names, set) {
+	if slots.IsLight(names, set) {
 		if _, tk, err := tx.Ticket(req.GateID); err != nil {
 			return Decision{}, err
 		} else if !tk {
@@ -171,10 +170,6 @@ func (e *Engine) evaluate(tx slots.Tx, req GateRequest, create bool, now time.Ti
 					return Decision{Go: []Grant{grantOf(s)}, SlotWait: 0}, nil
 				}
 				return Decision{Wait: []WaitReason{WaitLostRace}, WaitText: "lost the race for the slot"}, nil
-			}
-			if lightRunner {
-				// A light runner never takes a job slot (R5.65): it waits for a light slot.
-				return Decision{Wait: []WaitReason{WaitFreeSlot}, WaitText: "waiting for a free light slot"}, nil
 			}
 			// every light slot busy: fall through to the normal queue
 		}

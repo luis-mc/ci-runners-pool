@@ -20,8 +20,6 @@ type PolicyUpdate struct {
 	RunnerGroups    *[]string
 	BudgetMemoryPct *int
 	BudgetCPUPct    *int
-	// LightRunner turns the repository's light runner on or off (R5.65).
-	LightRunner *bool
 	// LegacyVars turns the old variable names on or off (github-integration R5.39).
 	LegacyVars *bool
 	// ExtraPackages is the whole list as text, one name per line (runners
@@ -87,9 +85,6 @@ func (u PolicyUpdate) Apply(p Policy) (Policy, error) {
 			}
 		}
 		p.RunnerGroups = normalizeList(*u.RunnerGroups)
-	}
-	if u.LightRunner != nil {
-		p.LightRunner = *u.LightRunner
 	}
 	if u.ExtraPackages != nil {
 		names, err := runners.ParseExtraPackages(*u.ExtraPackages)

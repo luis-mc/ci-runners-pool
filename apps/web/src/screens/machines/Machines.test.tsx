@@ -2,6 +2,7 @@
 import { cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 import { apiError, machine, renderApp, signedIn, viewer } from '../../testing/mock';
+import { currentChoice } from './PoolSize';
 
 afterEach(cleanup);
 
@@ -545,6 +546,56 @@ describe('Machine detail, the pool size', () => {
       screen.getByRole<HTMLInputElement>('radio', { name: /half of the free room/ })
         .checked,
     ).toBe(false);
+  });
+
+  const sized = (mem: number, cpus: number) =>
+    machine({
+      settings: { ...machine().settings, pool_memory_gib: mem, pool_cpus: cpus },
+    });
+  const radio = (name: RegExp) => screen.getByRole<HTMLInputElement>('radio', { name });
+
+  it('preselects half of the free room when it is the size now (OPS47)', async () => {
+    renderApp(
+      api({ ...fits, current_memory_gib: 9, current_cpus: 2 }, sized(9, 2)),
+      '/pool/machines/m1',
+    );
+    await waitFor(() => expect(radio(/half of the free room/).checked).toBe(true));
+    expect(radio(/three quarters/).checked).toBe(false);
+    expect(radio(/Custom/).checked).toBe(false);
+    expect(screen.queryByText('Unsaved changes (1)')).toBeNull();
+    expect(saveButton().disabled).toBe(true);
+  });
+
+  it('preselects three quarters when it is the size now (OPS47)', async () => {
+    renderApp(
+      api({ ...fits, current_memory_gib: 14, current_cpus: 3 }, sized(14, 3)),
+      '/pool/machines/m1',
+    );
+    await waitFor(() => expect(radio(/three quarters/).checked).toBe(true));
+    expect(radio(/half of the free room/).checked).toBe(false);
+  });
+
+  it('preselects Custom with the current values when no recommended size matches (OPS47)', async () => {
+    renderApp(
+      api({ ...fits, current_memory_gib: 12, current_cpus: 3 }, sized(12, 3)),
+      '/pool/machines/m1',
+    );
+    await waitFor(() => expect(radio(/Custom/).checked).toBe(true));
+    expect(radio(/half of the free room/).checked).toBe(false);
+    expect(radio(/three quarters/).checked).toBe(false);
+    expect(screen.getByRole('button', { name: /Pool memory/ }).textContent).toContain(
+      '12',
+    );
+    expect(screen.getByRole('button', { name: /Pool CPUs/ }).textContent).toContain('3');
+    expect(saveButton().disabled).toBe(true);
+  });
+
+  it('currentChoice: none when no size is set, Custom when the room is unknown', () => {
+    expect(currentChoice(fits, 0, 0)).toBeUndefined();
+    expect(currentChoice(fits, 9, 2)).toBe('half');
+    expect(currentChoice(fits, 14, 3)).toBe('three');
+    expect(currentChoice(undefined, 9, 2)).toBe('custom');
+    expect(currentChoice({ ...fits, known: false }, 9, 2)).toBe('custom');
   });
 
   it('lets a viewer read the section but not change it (UX-38)', async () => {

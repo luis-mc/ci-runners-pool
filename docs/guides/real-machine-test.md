@@ -83,7 +83,7 @@ Do this on a second PC (the Windows PC when you test Linux, and the reverse) or 
 ## 7. A repository opts in
 
 - [ ] **Repositories**: tick the test repository, then **Use pool**. The wizard **Turn on the pool** has **Review**, **Turning on** and **Done**. Done shows the repository's variables written.
-- [ ] Turning the pool on also makes one light runner per system on a machine that is up; they show in **Runners**.
+- [ ] Turning the pool on makes no light runner. Light jobs (smoke, prune, cleanup) run on the pool runners and take a light slot of the machine. After an upgrade from an older version no `crsp-light-*` row is left in **Runners**.
 - [ ] In GitHub the repository has the `RUNS_ON_*` variables.
 - Report if: the repository stays listed as off, a public repository is allowed while public repositories are off, or a variable is missing in GitHub.
 

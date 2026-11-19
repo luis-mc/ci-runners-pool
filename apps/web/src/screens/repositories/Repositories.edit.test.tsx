@@ -64,7 +64,7 @@ describe('Repository form edit bar', () => {
     expect(marks()).toBe(1);
     expect(labels.closest('[data-changed]')).toBeTruthy();
     expect(screen.getByLabelText(/Runner groups/).closest('[data-changed]')).toBeNull();
-    fireEvent.click(screen.getByRole('checkbox', { name: /light runner/ }));
+    fireEvent.click(screen.getByRole('checkbox', { name: /public forks/ }));
     expect(screen.getByText('Unsaved changes (2)')).toBeTruthy();
     expect(marks()).toBe(2);
     expect(button('Save').disabled).toBe(false);

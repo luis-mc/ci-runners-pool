@@ -316,7 +316,7 @@ func (s *Service) migrateToPool(ctx context.Context, actor string) error {
 	}
 	var errs []error
 	for _, r := range all {
-		if !r.Managed || r.Kind != "persistent" || IsPoolRunner(r) || IsRegistration(r) || IsLightRecord(r) ||
+		if !r.Managed || r.Kind != "persistent" || IsPoolRunner(r) || IsRegistration(r) || IsLegacyLight(r) ||
 			(r.Scope.Kind != "repository" && r.Scope.Kind != "organization") {
 			continue
 		}
