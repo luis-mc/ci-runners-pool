@@ -527,3 +527,17 @@ func TestDependencyFolderAndKeepSettingPerRunner(t *testing.T) {
 		t.Fatalf("settings file overwritten: %q", got)
 	}
 }
+
+func TestEnvCarriesTheVMImageMirror(t *testing.T) { // OPS37
+	r := newRig()
+	r.b.d.Addresses.VMImageMirror = "https://mirror.corp/vm"
+	if _, err := r.b.Start(context.Background(), r.spec(), backend.StartConfig{Registration: "REGTOKEN"}); err != nil {
+		t.Fatal(err)
+	}
+	if env := string(r.fs.Files["/var/lib/crsp/runners/box-1/.env"]); !strings.Contains(env, "CRSP_VM_IMAGE_MIRROR=https://mirror.corp/vm\n") {
+		t.Errorf(".env:\n%s", env)
+	}
+	if env := string(started(t).fs.Files["/var/lib/crsp/runners/box-1/.env"]); strings.Contains(env, "CRSP_VM_IMAGE_MIRROR") {
+		t.Errorf("default adds the variable:\n%s", env)
+	}
+}

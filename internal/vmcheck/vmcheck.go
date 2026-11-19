@@ -21,6 +21,8 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+
+	"github.com/luis-mc/ci-runners-shared-pool/internal/addresses"
 )
 
 //go:embed vm-images.json
@@ -83,6 +85,22 @@ func (d Distro) validate() error {
 		return fmt.Errorf("algo %q is not sha256 or sha512", d.Algo)
 	}
 	return nil
+}
+
+// Mirrored returns the catalogue with every download address moved to the VM
+// image mirror of a (CRSP_VM_IMAGE_MIRROR, operations R5.96). Without a mirror
+// it is c itself, so the default is unchanged. c is never modified.
+func (c Catalogue) Mirrored(a addresses.Set) Catalogue {
+	if a.VMImageMirror == "" {
+		return c
+	}
+	out := make(Catalogue, len(c))
+	for name, d := range c {
+		d.BaseURL = a.VMImageURL(name, d.BaseURL)
+		d.ChecksumURL = a.VMImageURL(name, d.ChecksumURL)
+		out[name] = d
+	}
+	return out
 }
 
 // Names lists the distros, sorted.
