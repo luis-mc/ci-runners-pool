@@ -149,7 +149,7 @@ func (b *Backend) psOK(ctx context.Context, step, script string, env, secret map
 func (b *Backend) accountSID(ctx context.Context, account string, env map[string]string) (string, error) {
 	res, err := b.ps(ctx, scriptAccountSID, env, nil)
 	if err != nil {
-		return "", &FolderResetError{Detail: fmt.Sprintf("read SID of %s: %v", account, err), Err: err}
+		return "", &FolderResetError{Detail: b.redact(fmt.Sprintf("read SID of %s: %v", account, err)), Err: err}
 	}
 	sid := strings.TrimSpace(res.Stdout)
 	if res.ExitCode != 0 || !strings.HasPrefix(sid, "S-1-") {

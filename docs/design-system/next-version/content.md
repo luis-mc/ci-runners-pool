@@ -1078,6 +1078,7 @@ One word set for the button at the end of a table row. The guard reads this tabl
 | Open run | Row action of a run row (Queue, Running, Done): opens the Run page. |
 | Open | Row action of a group row (By repository, machine, runner, runner type, job type). The group's name is already in the row. |
 | Open job | Row action of a job row (Jobs view of Queue, Running, Done): opens the Job page. |
+| Remove | Row action of a failed runner (Runners): removes it and does not open a page. A press, not a link. Admin only (busy word: Removing). |
 | Why, Details | Button inside a cell that has a long text, to read it whole. Not a row action. |
 
 ## Runner leftover words
