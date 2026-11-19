@@ -130,6 +130,30 @@ type GithubApp struct {
 	CreatedAt     string
 }
 
+type ImageBuild struct {
+	ID             string
+	MachineID      string
+	ProfileID      string
+	Arch           string
+	ImageTag       string
+	Reason         string
+	State          string
+	Step           int64
+	StepsTotal     int64
+	StepName       string
+	TypicalSeconds float64
+	SizeBytes      int64
+	FailureStep    string
+	FailureClass   string
+	FailureWhy     string
+	LogTail        string
+	PushState      string
+	QueuedAt       string
+	StartedAt      string
+	FinishedAt     string
+	UpdatedAt      string
+}
+
 type Installation struct {
 	ID                  int64
 	AccountLogin        string
@@ -387,6 +411,217 @@ type Plan struct {
 	CreatedBy string
 	CreatedAt string
 	UpdatedAt string
+}
+
+type RegistryCleanup struct {
+	ID         int64
+	Trigger    string
+	State      string
+	FreedBytes int64
+	Error      string
+	StartedBy  string
+	StartedAt  string
+	FinishedAt string
+}
+
+type RegistryImage struct {
+	ID               string
+	Kind             string
+	Name             string
+	ImageTag         string
+	ProfileID        string
+	Arch             string
+	State            string
+	ManifestDigest   string
+	StagedName       string
+	StackHash        string
+	BaseName         string
+	BaseDigest       string
+	KeyInput         string
+	SourceRepository string
+	CommitSha        string
+	Branch           string
+	BranchGoneAt     string
+	PushedBy         string
+	PushedAt         string
+	PromotedAt       string
+	RefusedWhy       string
+	ReplacesID       string
+	ReplacedByID     string
+	KeepUntil        string
+	SizeBytes        int64
+	UniqueBytes      int64
+	LastPullAt       string
+	ScanState        string
+	DeletedAt        string
+	DeletedBy        string
+	CreatedAt        string
+	UpdatedAt        string
+}
+
+type RegistryImageLayer struct {
+	ImageID     string
+	LayerDigest string
+	Position    int64
+}
+
+type RegistryImageTag struct {
+	Name           string
+	Tag            string
+	ImageID        string
+	ManifestDigest string
+	CreatedAt      string
+}
+
+type RegistryLayer struct {
+	Digest      string
+	SizeBytes   int64
+	MediaType   string
+	ChargedTo   string
+	FirstSeenAt string
+}
+
+type RegistryMirrorSetting struct {
+	ID                int64
+	Enabled           int64
+	Upstreams         string
+	Folder            string
+	BudgetBytes       int64
+	TagRecheckMinutes int64
+	UpdatedAt         string
+	UpdatedBy         string
+}
+
+type RegistryPointer struct {
+	Repository      string
+	ProfileID       string
+	Arch            string
+	ImageID         string
+	PreviousImageID string
+	MovedAt         string
+	MovedBy         string
+}
+
+type RegistryPull struct {
+	ID             int64
+	PullID         string
+	MachineID      string
+	ImageID        string
+	ImageTag       string
+	ManifestDigest string
+	Source         string
+	State          string
+	BytesDone      int64
+	BytesTotal     int64
+	Seconds        float64
+	SavedSeconds   float64
+	Repository     string
+	JobID          string
+	Error          string
+	StartedAt      string
+	FinishedAt     string
+	UpdatedAt      string
+}
+
+type RegistryPullDaily struct {
+	ImageID      string
+	Day          string
+	Pulls        int64
+	BuildsSaved  int64
+	SavedSeconds float64
+}
+
+type RegistryPush struct {
+	ID             int64
+	PushID         string
+	MachineID      string
+	ImageTag       string
+	StagedName     string
+	TargetName     string
+	ManifestDigest string
+	State          string
+	ImageID        string
+	Seconds        float64
+	Error          string
+	StartedAt      string
+	FinishedAt     string
+	UpdatedAt      string
+}
+
+type RegistryRecommendation struct {
+	ID           string
+	Rule         string
+	ImageID      string
+	OtherImageID string
+	Kind         string
+	FreesBytes   int64
+	Decider      string
+	DueAt        string
+	State        string
+	ClosedWhy    string
+	CreatedAt    string
+	UpdatedAt    string
+}
+
+type RegistryReplacePlan struct {
+	ID           string
+	NewImageID   string
+	OldImageID   string
+	KeepDays     int64
+	KeepUntil    string
+	Repositories string
+	Machines     string
+	State        string
+	StepsDone    int64
+	StepsTotal   int64
+	Error        string
+	CreatedBy    string
+	CreatedAt    string
+	StartedAt    string
+	FinishedAt   string
+	RolledBackBy string
+	RolledBackAt string
+}
+
+type RegistryScan struct {
+	ImageID      string
+	State        string
+	MachineID    string
+	ClaimedAt    string
+	Attempts     int64
+	Packages     int64
+	Critical     int64
+	High         int64
+	Medium       int64
+	Low          int64
+	SbomDigest   string
+	ReportDigest string
+	Error        string
+	QueuedAt     string
+	FinishedAt   string
+}
+
+type RegistrySetting struct {
+	ID                int64
+	Folder            string
+	StandardBudget    int64
+	CustomBudget      int64
+	UnusedDays        int64
+	KeepOldDays       int64
+	VariantGoneDays   int64
+	VariantUnusedDays int64
+	CleanupWeekday    int64
+	CleanupHour       int64
+	ReadOnly          int64
+	UpdatedAt         string
+	UpdatedBy         string
+}
+
+type RegistryTokenLease struct {
+	Jti       string
+	MachineID string
+	Names     string
+	ExpiresAt string
 }
 
 type RepoPolicy struct {
