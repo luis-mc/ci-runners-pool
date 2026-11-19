@@ -34,9 +34,34 @@ type Stage struct {
 	Error   string `json:"error,omitempty"`   // failed: what went wrong
 	LogPath string `json:"log_path,omitempty"`
 	// FailedAt is the stage that failed (failed only), so the page can mark the step.
-	FailedAt string    `json:"failed_at,omitempty"`
-	At       time.Time `json:"at"`
+	FailedAt string `json:"failed_at,omitempty"`
+	// StartedBy says who started this update: auto (nobody clicked), tray (the update window
+	// of the tray) or console (the console page or the command line). The new tray reads it
+	// after the restart: a window started it, so the window says Done; nobody did, so one toast does.
+	StartedBy string    `json:"started_by,omitempty"`
+	At        time.Time `json:"at"`
 }
+
+// Who started an update (Stage.StartedBy).
+const (
+	StartedByAuto    = "auto"
+	StartedByTray    = "tray"
+	StartedByConsole = "console"
+)
+
+// StartedByActor maps the actor of an apply request to Stage.StartedBy.
+func StartedByActor(actor string) string {
+	switch {
+	case autoActor(actor):
+		return StartedByAuto
+	case strings.HasPrefix(actor, "tray:"):
+		return StartedByTray
+	}
+	return StartedByConsole
+}
+
+// ClearStage removes the stage file: a cancelled update leaves nothing to show.
+func ClearStage(dir string) { _ = os.Remove(filepath.Join(dir, StageFile)) }
 
 // WriteStage stores the stage atomically.
 func WriteStage(dir string, s Stage) error {

@@ -9,6 +9,7 @@ import (
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/auth"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/github"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/runners"
 )
 
 // variableOrder is the fixed order of operating systems and their variable.
@@ -153,19 +154,19 @@ func sameLabels(a, b string) bool {
 // enables every OS that a runner serves. An OS not in the result has no
 // variable. Each value is a JSON list such as ["self-hosted","linux","crsp-home"].
 func (s *Service) Desired(ctx context.Context, pol Policy) (map[string]string, error) {
-	return s.desired(ctx, pol, nil)
+	return s.desired(ctx, pol, nil, pol.RunnerKinds == RunnerKindsEphemeralOnly)
 }
 
 // desiredFor is Desired for one repository: an OS the repository is on
 // hosted fallback for gets the hosted label instead of the crsp labels
 // (R5.43). Only a repository that opted in is ever changed.
 func (s *Service) desiredFor(ctx context.Context, r Repository, pol Policy) (map[string]string, error) {
-	return s.desired(ctx, pol, s.hostedNow(r, pol))
+	return s.desired(ctx, pol, s.hostedNow(r, pol), pol.EphemeralOnly(r.Visibility))
 }
 
 // desired builds the variables; hosted maps an OS to the hosted label that
 // replaces its crsp labels.
-func (s *Service) desired(ctx context.Context, pol Policy, hosted map[string]string) (map[string]string, error) {
+func (s *Service) desired(ctx context.Context, pol Policy, hosted map[string]string, ephemeral bool) (map[string]string, error) {
 	capy, err := s.osCapacity(ctx)
 	if err != nil {
 		return nil, err
@@ -184,7 +185,7 @@ func (s *Service) desired(ctx context.Context, pol Policy, hosted map[string]str
 			continue
 		}
 		base[v.OS] = true
-		list := labelList(v.OS, labels, pol.Labels)
+		list := withEphemeral(labelList(v.OS, labels, pol.Labels), ephemeral && hosted[v.OS] == "")
 		if h := hosted[v.OS]; h != "" {
 			list = []string{h}
 		}
@@ -192,7 +193,7 @@ func (s *Service) desired(ctx context.Context, pol Policy, hosted map[string]str
 		out[v.Var] = string(b)
 	}
 	// Size variables beside the plain ones (R5.67); the plain ones are unchanged.
-	sized, err := s.sizeVariables(ctx, pol, base, hosted)
+	sized, err := s.sizeVariables(ctx, pol, base, hosted, ephemeral)
 	if err != nil {
 		return nil, err
 	}
@@ -448,4 +449,15 @@ func (s *Service) ReconcileAllVariables(ctx context.Context) error {
 		}
 	}
 	return errors.Join(errs...)
+}
+
+// withEphemeral adds the ephemeral label to a RUNS_ON list when the
+// repository's jobs go to ephemeral runners only. GitHub offers a job only to a
+// runner that has every label of its runs-on, and no persistent runner carries
+// the label, so a persistent runner can never take the job (R5.60).
+func withEphemeral(list []string, on bool) []string {
+	if !on {
+		return list
+	}
+	return append(list, runners.EphemeralLabel)
 }

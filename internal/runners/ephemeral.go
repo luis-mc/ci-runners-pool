@@ -8,9 +8,12 @@ import (
 	"github.com/luis-mc/ci-runners-shared-pool/internal/github"
 )
 
-// EphemeralOnMachine counts the ephemeral runners of a machine that still
-// hold a slot: every state except failed. The demand loop uses it to keep
-// within the slot budget of the machine (scheduling R5.1, runners R5.27).
+// EphemeralOnMachine counts what holds a job slot of a machine now: the
+// ephemeral runners made for a job (every state except failed) and the
+// persistent Linux container runners of the pool (runners R5.93). The ceiling
+// slot records of an ephemeral pool request are not counted: they are the
+// limit, not a runner (R5.92). The demand loop uses it to keep within the slot
+// budget of the machine (scheduling R5.1, runners R5.27).
 func (s *Service) EphemeralOnMachine(ctx context.Context, machineID string) (int, error) {
 	rs, err := s.Store.ListRunners(ctx, Filter{MachineID: machineID})
 	if err != nil {
@@ -18,11 +21,61 @@ func (s *Service) EphemeralOnMachine(ctx context.Context, machineID string) (int
 	}
 	n := 0
 	for _, r := range rs {
-		if r.Kind == "ephemeral" && r.State != Failed {
+		switch {
+		case r.State == Failed, isCeilingSlot(r):
+		case r.Kind == "ephemeral":
+			n++
+		case IsPoolRunner(r) && r.Isolation == "container":
 			n++
 		}
 	}
 	return n, nil
+}
+
+// isCeilingSlot is the record an ephemeral pool request leaves for each
+// ephemeral runner that may run at once on a machine (runners R5.92).
+func isCeilingSlot(r Record) bool { return r.Kind == "ephemeral" && IsPoolRunner(r) }
+
+// EphemeralCeiling is how many ephemeral runners may run at once on a machine:
+// the number of ceiling slot records the owner added (runners R5.92). Zero
+// means no ephemeral runner starts there.
+func (s *Service) EphemeralCeiling(ctx context.Context, machineID string) (int, error) {
+	rs, err := s.Store.ListRunners(ctx, Filter{MachineID: machineID})
+	if err != nil {
+		return 0, err
+	}
+	n := 0
+	for _, r := range rs {
+		if isCeilingSlot(r) && r.State != Failed {
+			n++
+		}
+	}
+	return n, nil
+}
+
+// EphemeralCapacity is true when at least one ceiling slot exists on a machine
+// that is online, so jobs that ask for ephemeral runners can run (runners
+// R5.92). It reads the machine through the Machines lookup; a machine that
+// cannot be read does not count.
+func (s *Service) EphemeralCapacity(ctx context.Context) (bool, error) {
+	rs, err := s.Store.ListRunners(ctx, Filter{})
+	if err != nil {
+		return false, err
+	}
+	seen := map[string]bool{}
+	for _, r := range rs {
+		if !isCeilingSlot(r) || r.State == Failed || seen[r.MachineID] {
+			continue
+		}
+		seen[r.MachineID] = true
+		if s.Machines == nil {
+			return true, nil
+		}
+		if m, err := s.Machines.GetMachine(ctx, r.MachineID); err == nil && m.Online {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 // FinishJobRunner cleans up the runner of a job that ended: the agent removes

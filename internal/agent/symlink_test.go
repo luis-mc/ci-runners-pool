@@ -57,7 +57,9 @@ func TestProbeSymlinkWindows(t *testing.T) {
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			makeSymlink = old
+			// The probe's logic is tested with a fake link: the real one needs a
+			// privilege or Developer Mode that a normal developer PC may lack.
+			makeSymlink = func(string, string) error { return nil }
 			if c.refuse {
 				makeSymlink = func(string, string) error { return errors.New("A required privilege is not held by the client") }
 			}

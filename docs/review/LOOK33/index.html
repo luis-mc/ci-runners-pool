@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LOOK33 block caret</title>
+<style>
+:root { --bg:#fff; --fg:#1a1a1a; --mut:#555; --line:#ccc; }
+@media (prefers-color-scheme: dark) { :root { --bg:#111; --fg:#eee; --mut:#aaa; --line:#444; } }
+body { background:var(--bg); color:var(--fg); font:16px/1.5 system-ui,sans-serif; margin:0; padding:16px; max-width:1300px; }
+h1,h2 { font-weight:600 } h2 { margin-top:32px }
+p { color:var(--mut); max-width:70ch }
+.grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,360px),1fr)); gap:16px }
+figure { margin:0; border:1px solid var(--line); padding:8px }
+figcaption { font-size:14px; color:var(--mut); margin-top:4px }
+img { max-width:100%; height:auto; display:block }
+</style>
+</head>
+<body>
+<h1>LOOK33: blinking block caret</h1>
+<p>The Machines search and the command palette, focused, with "asd" typed and the caret moved one place left, so the block sits on the "d" and shows it inverted. Each pair is the two phases of the blink: on and off. Phosphor dark is the default theme; Gruvbox light is the light example.</p>
+<h2>Machines search</h2>
+<div class="grid">
+<figure><img src="machines-phosphor-dark-on.png" alt="Machines search, Phosphor dark, caret on"><figcaption>Phosphor dark, on</figcaption></figure>
+<figure><img src="machines-phosphor-dark-off.png" alt="Machines search, Phosphor dark, caret off"><figcaption>Phosphor dark, off</figcaption></figure>
+<figure><img src="machines-gruvbox-light-on.png" alt="Machines search, Gruvbox light, caret on"><figcaption>Gruvbox light, on</figcaption></figure>
+<figure><img src="machines-gruvbox-light-off.png" alt="Machines search, Gruvbox light, caret off"><figcaption>Gruvbox light, off</figcaption></figure>
+</div>
+<h2>Command palette</h2>
+<div class="grid">
+<figure><img src="palette-phosphor-dark-on.png" alt="Command palette, Phosphor dark, caret on"><figcaption>Phosphor dark, on</figcaption></figure>
+<figure><img src="palette-phosphor-dark-off.png" alt="Command palette, Phosphor dark, caret off"><figcaption>Phosphor dark, off</figcaption></figure>
+<figure><img src="palette-gruvbox-light-on.png" alt="Command palette, Gruvbox light, caret on"><figcaption>Gruvbox light, on</figcaption></figure>
+<figure><img src="palette-gruvbox-light-off.png" alt="Command palette, Gruvbox light, caret off"><figcaption>Gruvbox light, off</figcaption></figure>
+</div>
+</body>
+</html>

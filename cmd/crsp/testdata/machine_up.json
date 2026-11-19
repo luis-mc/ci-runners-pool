@@ -152,7 +152,7 @@
     ]
   },
   {
-    "name": "online but not accepting is down (paused)",
+    "name": "online but not accepting is down (over the budget)",
     "steps": [
       {
         "do": "heartbeat"
@@ -160,7 +160,7 @@
       {
         "do": "accepting",
         "accepting": false,
-        "reason": "paused"
+        "reason": "budget"
       },
       {
         "do": "expect_up",
@@ -174,7 +174,7 @@
       {
         "do": "accepting",
         "accepting": false,
-        "reason": "on_battery"
+        "reason": "quiet_hours"
       },
       {
         "do": "expect_up",
@@ -196,7 +196,7 @@
       {
         "do": "accepting",
         "accepting": false,
-        "reason": "paused"
+        "reason": "budget"
       },
       {
         "do": "second_machine"

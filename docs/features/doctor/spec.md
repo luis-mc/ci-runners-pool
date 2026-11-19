@@ -203,6 +203,10 @@ States:
 
 **R5.45** (M1, Built OPS24; runners R5.89) — **`runner.logon`: the account of a Windows runner can log on as a service.** For each persistent Windows runner of an online machine the check reads what the agent reported after it gave the account the right again: `ok` when the account holds `SeServiceLogonRight` and the service runs; `fail` when the account does not hold it (the finding names the account and the service, for example `.\crsp-gameroompc-1` and `actions.runner.<scope>.crsp-gameroompc-1`), and `fail` when the right is held but the service does not run (the detail gives the reason Windows gave). `skip` for an agent that did not report the service or could not read the rights; an offline machine is `skip`. A Linux or macOS runner has no finding. The fix is one click: the finding's fix text says Press Start and links to the machine, and the Doctor screen draws a **Start** button on it that asks that machine's agent to check again now, which gives the account the right and starts the service (it is the call of Redetect, admin only). The check only reads; the repair is the agent's own pass.
 
+**R5.46** (M1, Built by OPS28; runners R5.91; owner decision D95) — **`runner.unclean`: a persistent runner whose cleanup failed.** For each persistent runner of an online machine the check reads `unclean_reason` of the runner record. `ok` when it is empty; `fail` when it is set: the finding names the runner and the machine and gives the reason in words (for example the folder or the process that could not be removed), and says the runner **takes no new job until a cleanup passes**. `skip` for an offline machine and for an ephemeral runner (a fresh container has nothing left over). The fix text says that the agent tries again at the next idle moment and before every start, and links to the runner page; no one-click fix is offered because the cause is on the machine. The check clears by itself when the next cleanup passes. Reasoning: a runner that cannot clean takes no job (runners R5.91), so without a finding it would look like an idle runner that never gets work.
+
+**R5.47** (M1, Built by OPS28; github-integration R5.60; runners R5.92) — **`repo.ephemeral_capacity`: a public repository's jobs would wait for lack of an ephemeral runner.** For each repository that uses the pool, is public and has the runner kind `ephemeral_only` (the default for a public repository, github-integration R5.60), the check is `ok` when at least one online machine can run ephemeral runners (the container backend is allowed and usable and an ephemeral ceiling above zero was added, runners R5.92) and `fail` when none can: the finding names the repository and says its jobs would wait because no runner may take them. The fix is a link to **Add runners** with Ephemeral chosen, or, for the owner, setting the repository to Any runner (with the warning of github-integration R5.60). `skip` for a private repository and for a repository set to Any runner. The Repositories page shows the same state (`ephemeral_capacity: false`, web-console R5.102).
+
 ## 6. Non-functional requirements
 
 **R6.1** — Speed: a full run over 10 machines, 50 runners and 100 repositories ends within 60 s. Each check has a timeout: default 10 s, ceiling 60 s. A quick run ends within 10 s. NOT YET IMPLEMENTED.
@@ -337,6 +341,8 @@ Repositories and workflows:
 | `workflow.unresolved` | A `runs-on` expression the doctor cannot resolve | info | None needed; it says it was not checked | no | 1 |
 | `runner.labels.generic` | A runner carries a label that is not generic | warn | Remove the label; target by repository variable | no | 1 |
 | `runner.registrations` | A machine holds more than 20 runner registrations (pool runners have one hidden registration for each repository that uses the pool, runners R5.88) | warn | Remove long-lived runners from the machine, or stop using the pool for repositories that do not need them | no | 1 |
+| `runner.unclean` | A persistent runner whose cleanup failed, so it takes no new job (runners R5.91) | fail | Wait for the next cleanup, or fix the cause named in the finding on the machine | no | 1 |
+| `repo.ephemeral_capacity` | A public repository that is Ephemeral only uses the pool and no machine has ephemeral capacity, so its jobs would wait (github-integration R5.60) | fail | Add runners with Ephemeral, or set the repository to Any runner | no | 1 |
 
 Controller:
 
@@ -500,6 +506,8 @@ Rows that name a file without "planned" are built (CRSP23). Planned rows are NOT
 | R6.8 | internal/api/handlers_live_test.go TestDoctorRoutes (API); internal/doctor/cli/cli_test.go (CLI) |
 | R5.44 | internal/doctor/checks/dockercompact_test.go TestDockerCompactNeedsAdminRights, TestDockerCompactOfflineMachineIsSkipped |
 | R5.45 | internal/doctor/checks/checks_test.go TestRunnerLogon; apps/web/src/screens/doctor/Doctor.test.tsx (the logon right finding) |
+| R5.46 | internal/doctor/checks/runnerkind_test.go TestRunnerUnclean |
+| R5.47 | internal/doctor/checks/runnerkind_test.go TestRepoEphemeralCapacity |
 
 ## 10. Decisions
 

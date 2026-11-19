@@ -37,7 +37,7 @@ describe('Repositories list', () => {
         .getAllByRole('columnheader')
         .map((h) => (h.textContent ?? '').replace(/[ ▲▼]+$/, '').trim())
         .filter(Boolean),
-    ).toEqual(['Repository', 'Pool', 'Jobs go to', 'Last delivery']);
+    ).toEqual(['Repository', 'Pool', 'Jobs go to', 'Runner kind', 'Last delivery']);
     expect(within(table).getByText('on')).toBeTruthy();
     expect(within(table).getByText('off')).toBeTruthy();
     expect(

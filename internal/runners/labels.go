@@ -9,18 +9,25 @@ import (
 	"strings"
 )
 
+// EphemeralLabel is carried by every ephemeral runner (a fresh container made
+// for one job) and by no persistent runner. A repository set to "ephemeral
+// only" gets it in its RUNS_ON variables, so GitHub itself never offers its
+// jobs to a persistent runner (github-integration R5.60, runners R5.91).
+const EphemeralLabel = "ephemeral"
+
 // Fixed generic labels (runners R5.36).
 var fixedLabels = map[string]bool{
-	"self-hosted": true,
-	"linux":       true,
-	"windows":     true,
-	"macos":       true,
-	"x64":         true,
-	"arm64":       true,
-	"docker":      true,
-	"kvm":         true,
-	"gpu":         true,
-	LightLabel:    true,
+	"self-hosted":  true,
+	"linux":        true,
+	"windows":      true,
+	"macos":        true,
+	"x64":          true,
+	"arm64":        true,
+	"docker":       true,
+	"kvm":          true,
+	"gpu":          true,
+	LightLabel:     true,
+	EphemeralLabel: true,
 }
 
 // capabilityLabels are added only when the agent has checked they work.

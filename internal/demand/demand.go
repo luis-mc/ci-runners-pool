@@ -63,6 +63,10 @@ type Runners interface {
 	StartJobRunner(ctx context.Context, j runners.JobRunner, actor string) (runners.Record, error)
 	FinishJobRunner(ctx context.Context, runnerID, actor string) error
 	EphemeralOnMachine(ctx context.Context, machineID string) (int, error)
+	// EphemeralCeiling is how many ephemeral runners may run at once on the
+	// machine: the slot records an ephemeral pool request left (runners R5.92).
+	// Zero means none start there.
+	EphemeralCeiling(ctx context.Context, machineID string) (int, error)
 	// RemoveIdleRunner removes a runner that never got a job, after asking
 	// GitHub that it is not busy. It returns runners.ErrRunnerBusy when it is.
 	RemoveIdleRunner(ctx context.Context, runnerID, actor string) error
@@ -334,6 +338,7 @@ func (l *Loop) Dispatch(ctx context.Context) {
 		return
 	}
 	used := map[string]int{}
+	limit := map[string]int{}
 	for _, h := range hosts {
 		n, err := l.Runners.EphemeralOnMachine(ctx, h.MachineID)
 		if err != nil {
@@ -341,6 +346,16 @@ func (l *Loop) Dispatch(ctx context.Context) {
 			return
 		}
 		used[h.MachineID] = n
+		c, err := l.Runners.EphemeralCeiling(ctx, h.MachineID)
+		if err != nil {
+			l.Logger.Warn("read the ephemeral ceiling", "machine", h.MachineID, "err", err)
+			return
+		}
+		// The ceiling and the job slots both bound the runners at once (R5.92).
+		limit[h.MachineID] = min(c, h.Slots)
+		if c == 0 {
+			limit[h.MachineID] = -1
+		}
 	}
 	for _, id := range ids {
 		if ctx.Err() != nil {
@@ -353,11 +368,11 @@ func (l *Loop) Dispatch(ctx context.Context) {
 		if hold {
 			continue
 		}
-		l.try(ctx, j, w, hosts, used)
+		l.try(ctx, j, w, hosts, used, limit)
 	}
 }
 
-func (l *Loop) try(ctx context.Context, j github.Job, w *waiting, hosts []Host, used map[string]int) {
+func (l *Loop) try(ctx context.Context, j github.Job, w *waiting, hosts []Host, used map[string]int, limit map[string]int) {
 	repo, on, err := l.Env.Repo(ctx, j.Repository)
 	if err != nil {
 		l.Logger.Warn("read repository", "repository", j.Repository, "err", err)
@@ -381,8 +396,12 @@ func (l *Loop) try(ctx context.Context, j github.Job, w *waiting, hosts []Host, 
 			labelWhy = why
 			continue
 		}
-		if h.Slots < 1 || used[h.MachineID] >= h.Slots {
-			l.note(j, w, "every slot of the machine is in use")
+		if limit[h.MachineID] < 0 {
+			l.note(j, w, "no ephemeral runners are set up on the machine; add some in Runners")
+			continue
+		}
+		if h.Slots < 1 || used[h.MachineID] >= limit[h.MachineID] {
+			l.note(j, w, "every ephemeral runner of the machine is in use")
 			continue
 		}
 		if !l.stillQueued(ctx, j, repo) {
@@ -503,7 +522,7 @@ func Match(jobLabels []string, arch, pool string) ([]string, string) {
 	set := map[string]bool{arch: true}
 	for l := range have {
 		switch {
-		case l == "self-hosted", l == "linux", l == "x64", l == "arm64", l == "docker":
+		case l == "self-hosted", l == "linux", l == "x64", l == "arm64", l == "docker", l == runners.EphemeralLabel:
 			set[l] = true
 		case pool != "" && l == strings.ToLower(pool):
 			set[pool] = true

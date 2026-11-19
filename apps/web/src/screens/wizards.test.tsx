@@ -627,7 +627,7 @@ describe('wizard harness (UX-5, UX-30, UX-54, R5.19)', () => {
     renderApp(api, '/pool/runners/add');
     await screen.findByRole('textbox', { name: /Labels/ });
     await press('Next');
-    await screen.findByText(/1 runner on build-1/);
+    await screen.findByText(/1 persistent runner on build-1/);
     fireEvent.click(screen.getByRole('button', { name: /Runners$/ }));
     await press('Next');
     await waitFor(() => expect(api.count('POST', '/api/v1/runner-plans')).toBe(2));

@@ -1,0 +1,43 @@
+# The persistent Linux pool container of a machine (runners R5.93), as the model
+# of the dev-standards delivery runner pool: one long-lived container per pool,
+# restarted by the engine unless stopped, with the CPU and memory caps of the
+# machine's pool size. The agent starts it with `docker run` and the same
+# options (internal/backend/container PersistentRunArgs, checked by
+# CheckRunArgs); this file is the readable form of those options.
+#
+#   CRSP_IMAGE      the Linux base image (runners R5.49)
+#   CRSP_POOL_NAME  crsp-persistent-pool
+#   CRSP_UID        the pool's persistent uid (runners R5.72)
+#   CRSP_MEMORY     for example 8192m
+#   CRSP_CPUS       for example 4
+services:
+  pool:
+    image: ${CRSP_IMAGE}
+    container_name: ${CRSP_POOL_NAME:-crsp-persistent-pool}
+    hostname: ${CRSP_POOL_NAME:-crsp-persistent-pool}
+    restart: unless-stopped
+    init: true
+    user: '${CRSP_UID:-1001}:${CRSP_UID:-1001}'
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges]
+    pids_limit: 8192
+    mem_limit: ${CRSP_MEMORY:-8192m}
+    memswap_limit: ${CRSP_MEMORY:-8192m}
+    cpus: ${CRSP_CPUS:-4}
+    tmpfs:
+      - /home/runner:rw,nosuid,nodev,size=1g
+      - /tmp:rw,nosuid,nodev,size=4g,mode=1777
+      - /var/tmp:rw,nosuid,nodev,size=1g,mode=1777
+    volumes:
+      # the runner folders: registration, _work, hooks and the supervisor
+      - state:/state
+      # one folder per runner for its dependency caches (runners R5.90)
+      - deps:/deps
+    command:
+      - sh
+      - -c
+      - 'until [ -f /state/bin/pool-supervisor.sh ]; do sleep 1; done; exec sh /state/bin/pool-supervisor.sh'
+volumes:
+  state: {}
+  deps: {}

@@ -20,6 +20,8 @@ import (
 const (
 	CacheKindTool = "tool_cache"
 	CacheKindRust = "rust_cache"
+	// CacheKindDependency is the runner's own dependency folder (caches R5.56).
+	CacheKindDependency = "dependency_cache"
 )
 
 // CacheRunner is one runner whose cache folders the agent measures. The agent
@@ -38,6 +40,8 @@ type CacheSource interface {
 // FoundRunners reads the runners from the OS service list (runners R5.5).
 type FoundRunners struct {
 	Find func(ctx context.Context) ([]CacheRunner, error)
+	// Container is the persistent Linux runners in the pool container; nil on a machine without it.
+	Container ContainerRunners
 }
 
 // Runners implements CacheSource.
@@ -56,6 +60,8 @@ func cacheDir(folder, kind string) (string, bool) {
 		return d.Tools, true
 	case CacheKindRust:
 		return d.Rust, true
+	case CacheKindDependency:
+		return runnercache.DependencyRoot(folder, filepath.Join), true
 	}
 	return "", false
 }
@@ -108,6 +114,12 @@ func MeasureCaches(ctx context.Context, src CacheSource, fsys runnercache.FS) []
 			out = append(out, &agentv1.CacheStatus{
 				RunnerName: r.Name, ServiceName: r.Service, Kind: kind,
 				SizeBytes: runnercache.Total(es), CapBytes: quotas[kind], EntryCount: int32(len(es)), //nolint:gosec // small
+			})
+		}
+		// A persistent runner whose hooks clean has its own dependency folder: a line of its own.
+		if managesClean(r.Folder) {
+			out = append(out, &agentv1.CacheStatus{
+				RunnerName: r.Name, ServiceName: r.Service, Kind: CacheKindDependency, SizeBytes: dependencyBytes(fsys, r.Folder),
 			})
 		}
 	}

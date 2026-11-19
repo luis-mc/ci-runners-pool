@@ -11,6 +11,8 @@ on:
     paths:
       - 'installer/**'
       - 'internal/tray/**'
+      - 'internal/updatewindow/**'
+      - 'packages/ui/src/tokens.css'
       - 'cmd/crsp/service_*.go'
       - '.github/workflows/installer.yml'
   push:
@@ -18,6 +20,8 @@ on:
     paths:
       - 'installer/**'
       - 'internal/tray/**'
+      - 'internal/updatewindow/**'
+      - 'packages/ui/src/tokens.css'
       - 'cmd/crsp/service_*.go'
       - '.github/workflows/installer.yml'
   workflow_dispatch:

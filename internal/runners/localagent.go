@@ -69,6 +69,14 @@ func (l *LocalAgent) AddRunner(ctx context.Context, _ string, spec backend.Runne
 		}
 		return b.Start(ctx, spec, cfg)
 	}
+	if spec.Container {
+		// A persistent Linux runner on a Windows machine: one long-lived container (runners R5.93).
+		b, err := l.container()
+		if err != nil {
+			return backend.Handle{}, err
+		}
+		return b.Start(ctx, spec, cfg)
+	}
 	b, err := l.persistent()
 	if err != nil {
 		return backend.Handle{}, err
@@ -89,7 +97,7 @@ func (l *LocalAgent) StopService(ctx context.Context, _ string, service string) 
 // KeepFiles is set it then cleans up. A failed deregistration stops here and
 // leaves the runner as it was (runners R5.19).
 func (l *LocalAgent) RemoveRunner(ctx context.Context, _ string, req RemoveRequest) error {
-	b, err := l.persistent()
+	b, err := l.forRef(req.ServiceName)
 	if err != nil {
 		return err
 	}

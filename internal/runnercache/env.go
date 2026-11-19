@@ -108,3 +108,42 @@ func CapsFromEnv(getenv func(string) string) []Cap {
 	}
 	return out
 }
+
+// Names of the package-manager values a persistent runner points into its own
+// dependency folder (runners R5.90).
+const (
+	EnvRunnerToolCache = "RUNNER_TOOL_CACHE"
+	EnvAgentToolsDir   = "AGENT_TOOLSDIRECTORY"
+	EnvNpmCache        = "npm_config_cache"
+	EnvPnpmStore       = "npm_config_store_dir"
+	EnvGoModCache      = "GOMODCACHE"
+	EnvGoCache         = "GOCACHE"
+	EnvPipCache        = "PIP_CACHE_DIR"
+)
+
+// DependencyRoot is the one folder that holds every dependency cache of a
+// persistent runner. It is inside the runner's own folder: no other runner
+// reads or fills it (runners R5.90).
+func DependencyRoot(runnerFolder string, join func(...string) string) string {
+	return join(runnerFolder, "cache")
+}
+
+// DependencyEnvJoin is what a persistent runner's .env gets so every tool keeps
+// its downloads in the runner's own dependency folder: the Actions tool cache,
+// the npm and pnpm stores, the Go module and build caches, the pip cache and
+// the Playwright browsers. The cargo registry lives in CARGO_HOME, which
+// EnvJoin already puts inside the tool cache.
+func DependencyEnvJoin(runnerFolder string, join func(...string) string) map[string]string {
+	d := DirsJoin(runnerFolder, join)
+	root := DependencyRoot(runnerFolder, join)
+	return map[string]string{
+		EnvRunnerToolCache: d.Tools,
+		EnvAgentToolsDir:   d.Tools,
+		EnvNpmCache:        join(root, "npm"),
+		EnvPnpmStore:       join(root, "pnpm-store"),
+		EnvGoModCache:      join(root, "go", "mod"),
+		EnvGoCache:         join(root, "go", "build"),
+		EnvPipCache:        join(root, "pip"),
+		EnvBrowsersPath:    join(root, "playwright"),
+	}
+}

@@ -8,6 +8,8 @@ on:
     types: [opened, synchronize, reopened, ready_for_review]
     paths:
       - 'internal/tray/**'
+      - 'internal/updatewindow/**'
+      - 'packages/ui/src/tokens.css'
       - 'cmd/crsp/**'
       - 'packaging/autostart/**'
       - '.github/workflows/tray-smoke.yml'
@@ -15,6 +17,8 @@ on:
     branches: [main]
     paths:
       - 'internal/tray/**'
+      - 'internal/updatewindow/**'
+      - 'packages/ui/src/tokens.css'
       - 'cmd/crsp/**'
       - 'packaging/autostart/**'
       - '.github/workflows/tray-smoke.yml'
@@ -93,3 +97,30 @@ jobs:
           wait "$first"; firstc=$?
           echo "first=$firstc second=$second"
           [ "$firstc" = 0 ] && [ "$second" = 0 ]
+      # TRAY5: the native update window. The layout check builds the window off screen for every
+      # state at 100, 125, 150 and 200% with the real fonts and exits 1 when anything is clipped;
+      # it also draws a PNG of each (the same drawing code as the window).
+      - name: Update window layout check and screenshots (Windows)
+        if: runner.os == 'Windows'
+        run: ./out/crsp.exe update-window --layout-check --screenshots out/update-window-shots
+      # One window only: a second start focuses the first and ends at once.
+      - name: Update window opens once (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $args1 = 'update-window', '--mode', 'review', '--from', '0.1.12', '--to', '0.1.13'
+          $first = Start-Process ./out/crsp.exe -ArgumentList $args1 -PassThru
+          Start-Sleep -Seconds 5
+          if ($first.HasExited) { throw "the first update window ended with $($first.ExitCode)" }
+          $second = Start-Process ./out/crsp.exe -ArgumentList $args1 -PassThru
+          if (-not $second.WaitForExit(15000)) { $second.Kill(); throw 'the second update window did not end' }
+          if ($second.ExitCode -ne 0) { throw "the second update window ended with $($second.ExitCode)" }
+          if ($first.HasExited) { throw 'the first update window must still be open' }
+          $first.Kill()
+      - name: Upload the update window screenshots (Windows)
+        if: runner.os == 'Windows' && always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: update-window-screenshots
+          path: out/update-window-shots
+          if-no-files-found: ignore
