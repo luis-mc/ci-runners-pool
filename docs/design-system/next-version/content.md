@@ -1065,7 +1065,6 @@ The words of the new Jobs section (web-console 4.6, proposed). A wait names what
 | Result | Column of a run: success, failure, timed out, cancelled, running or waiting. |
 | (task RES15) | After the branch, when the branch starts with a task id. A worktree shows as "(worktree {name})" only when the job reported it, otherwise "not reported". |
 | Task, Worktree | Facts of the Job and Run pages. "none in the branch name" and "not reported" are their empty words. |
-| Open run page | Button under an opened run row, to the Run page. |
 | Last 7 days, Last 30 days, Last 90 days | Range switch of Done. |
 | Show 25 more | Adds 25 runs or jobs up to 100 a page; older ones by range and filter. |
 | Export CSV, Export daily summaries (CSV) | Buttons of Done and of Charts. |
@@ -1084,10 +1083,9 @@ One word set for the button at the end of a table row. The guard reads this tabl
 
 | Word | Where and meaning |
 |---|---|
-| Open run | Row action of a run row (Queue, Running, Done): opens the run in place, as a waterfall of its jobs. |
+| Open run | Row action of a run row (Queue, Running, Done): opens the Run page. |
 | Open | Row action of a group row (By repository, machine, runner, runner type, job type). The group's name is already in the row. |
 | Open job | Row action of a job row (Jobs view of Queue, Running, Done): opens the Job page. |
-| Open run page | Button inside an opened run, to the Run page. |
 | Why, Details | Button inside a cell that has a long text, to read it whole. Not a row action. |
 
 ## Runner leftover words

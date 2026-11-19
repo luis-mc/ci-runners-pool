@@ -76,16 +76,13 @@ test('Jobs: a job row opens the Job page with a link to the run on GitHub', asyn
   ).toHaveAttribute('href', 'https://github.com/octo/app/actions/runs/102/job/2');
 });
 
-test('Jobs: a run row opens in place to its jobs and then to the Run page', async ({
-  page,
-}) => {
+test('Jobs: Open run goes straight to the Run page', async ({ page }) => {
   await jobsAndDoctor(signedIn())
     .on('GET', '/api/v1/machines', { items: [] })
     .install(page);
   await page.goto('/jobs/done');
   await page.getByRole('button', { name: 'Open run' }).first().click();
-  await expect(page.getByText(/queue wait is the light part of a bar/)).toBeVisible();
-  await page.getByText('Open run page').click();
+  await expect(page.getByText('Open run page')).toHaveCount(0);
   await expect(page.getByRole('heading', { level: 1 })).toContainText('ci.yml on');
   await expect(page.getByRole('region', { name: 'Job graph' })).toBeVisible();
 });
