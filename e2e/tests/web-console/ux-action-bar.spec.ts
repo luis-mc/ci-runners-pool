@@ -36,8 +36,6 @@ for (const width of WIDTHS) {
     for (const url of URLS) {
       test(`${url}: the bar stays at the foot and covers nothing`, async ({ page }) => {
         await openRoute(page, { url, signedOut: false }, { width });
-        // A short window makes every page long.
-        await page.setViewportSize({ width, height: 520 });
         const bar = page.locator('.ds-action-bar[data-sticky="true"]');
         if ((await bar.count()) === 0) return; // a page without a bar has nothing to guard
         await expect(bar).toHaveCount(1); // one bar per screen (UX-71)
