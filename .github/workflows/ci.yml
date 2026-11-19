@@ -209,13 +209,14 @@ jobs:
   # runners R5.49: the Linux base job image builds. Build only, no push.
   # runners R5.43: the matrix lists amd64 and arm64. Every layer builds on
   # amd64; arm64 builds the base image and the llvm layer, the only layer with
-  # an arm64 pin (the others carry amd64-only tools).
+  # an arm64 pin (the others carry amd64-only tools). amd64 builds every layer and
+  # takes 15 to 18 min, so its limit is 35 (20 cancelled it twice on 19 Nov).
   image:
     name: base image ${{ matrix.arch }} (build only)
     needs: [decide, build]
     if: ${{ always() && needs.decide.outputs.skip != 'true' && needs.build.result == 'success' }}
     runs-on: ${{ matrix.runner }}
-    timeout-minutes: 20
+    timeout-minutes: 35
     strategy:
       fail-fast: false
       matrix:
