@@ -26,13 +26,17 @@ case "$(uname -m)" in
 esac
 
 target="${os}-${arch}"
-name="crsp-${target}.tar.gz"
 
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT INT TERM
 
-curl -fsSL "${BASE}/${name}" -o "${work}/${name}" || fail "download of ${name} failed"
+# The archive carries the release version in its name (crsp-<os>-<arch>_<version>.tar.gz,
+# OPS40). SHA256SUMS has a fixed name and lists it, so it says which file to fetch.
+# A release up to 0.1.14 lists the plain crsp-<os>-<arch>.tar.gz.
 curl -fsSL "${BASE}/SHA256SUMS" -o "${work}/SHA256SUMS" || fail "download of SHA256SUMS failed"
+name="$(awk -v t="$target" '{ f = $2; sub(/^\*/, "", f) } f ~ ("^crsp-" t "(_[0-9A-Za-z.+-]+)?[.]tar[.]gz$") { print f; exit }' "${work}/SHA256SUMS")"
+[ -n "$name" ] || fail "no archive for ${target} is in SHA256SUMS"
+curl -fsSL "${BASE}/${name}" -o "${work}/${name}" || fail "download of ${name} failed"
 
 # Step 1: the SHA-256 must match the line for this file.
 want="$(awk -v n="$name" '$2 == n || $2 == "*" n { print $1; exit }' "${work}/SHA256SUMS")"

@@ -103,7 +103,16 @@ die() { printf 'crsp join: %s\n' "$*" >&2; exit 1; }
 sum_for() {
   case "$1" in
 <<- range .Sums >>
-    '<<.Name>>') say '<<.SHA256>>' ;;
+    '<<.Plain>>') say '<<.SHA256>>' ;;
+<<- end >>
+    *) say '' ;;
+  esac
+}
+
+name_for() {
+  case "$1" in
+<<- range .Sums >>
+    '<<.Plain>>') say '<<.Name>>' ;;
 <<- end >>
     *) say '' ;;
   esac
@@ -136,24 +145,25 @@ trap 'rm -rf "$TMP"' EXIT INT TERM
 get_package() {
   want=$(sum_for "$1")
   [ -n "$want" ] || die "this controller has no package named $1."
-  say "Downloading $1 from the controller..."
-  fetch "$BASE/api/v1/packages/$1" "$TMP/$1" || die "could not download $1 from $BASE."
-  got=$(hash_of "$TMP/$1")
-  [ "$got" = "$want" ] || die "$1 does not match its SHA256SUMS entry. Nothing was installed."
-  say "Checked the SHA-256 of $1."
+  PKG=$(name_for "$1")
+  say "Downloading $PKG from the controller..."
+  fetch "$BASE/api/v1/packages/$PKG" "$TMP/$PKG" || die "could not download $PKG from $BASE."
+  got=$(hash_of "$TMP/$PKG")
+  [ "$got" = "$want" ] || die "$PKG does not match its SHA256SUMS entry. Nothing was installed."
+  say "Checked the SHA-256 of $PKG."
 }
 
 if ! command -v crsp >/dev/null 2>&1; then
   if command -v dpkg >/dev/null 2>&1; then
     get_package "crsp-linux-$ARCH.deb"
-    $SUDO dpkg -i "$TMP/crsp-linux-$ARCH.deb"
+    $SUDO dpkg -i "$TMP/$PKG"
   elif command -v rpm >/dev/null 2>&1; then
     get_package "crsp-linux-$ARCH.rpm"
-    $SUDO rpm -U "$TMP/crsp-linux-$ARCH.rpm"
+    $SUDO rpm -U "$TMP/$PKG"
   else
     get_package "crsp-linux-$ARCH.tar.gz"
     mkdir "$TMP/x"
-    tar -xzf "$TMP/crsp-linux-$ARCH.tar.gz" -C "$TMP/x"
+    tar -xzf "$TMP/$PKG" -C "$TMP/x"
     BIN=$(find "$TMP/x" -type f -name crsp | head -n 1)
     [ -n "$BIN" ] || die 'the archive holds no crsp program.'
     $SUDO install -m 0755 "$BIN" /usr/local/bin/crsp
@@ -182,7 +192,16 @@ die() { printf 'crsp join: %s\n' "$*" >&2; exit 1; }
 sum_for() {
   case "$1" in
 <<- range .Sums >>
-    '<<.Name>>') say '<<.SHA256>>' ;;
+    '<<.Plain>>') say '<<.SHA256>>' ;;
+<<- end >>
+    *) say '' ;;
+  esac
+}
+
+name_for() {
+  case "$1" in
+<<- range .Sums >>
+    '<<.Plain>>') say '<<.Name>>' ;;
 <<- end >>
     *) say '' ;;
   esac
@@ -199,9 +218,10 @@ trap 'rm -rf "$TMP"' EXIT INT TERM
 
 ` + shellPin + `
 if ! command -v crsp >/dev/null 2>&1 && [ ! -x /usr/local/bin/crsp ]; then
-  PKG="crsp-darwin-$ARCH.pkg"
-  want=$(sum_for "$PKG")
-  [ -n "$want" ] || die "this controller has no package named $PKG."
+  PLAIN="crsp-darwin-$ARCH.pkg"
+  want=$(sum_for "$PLAIN")
+  [ -n "$want" ] || die "this controller has no package named $PLAIN."
+  PKG=$(name_for "$PLAIN")
   say "Downloading $PKG from the controller..."
   fetch "$BASE/api/v1/packages/$PKG" "$TMP/$PKG" || die "could not download $PKG from $BASE."
   got=$(shasum -a 256 "$TMP/$PKG" | cut -d' ' -f1)
@@ -235,7 +255,12 @@ $Fingerprint = '<<.Fingerprint>>'
 $JoinCode = '<<.Code>>'
 $Sums = @{
 <<- range .Sums >>
-  '<<.Name>>' = '<<.SHA256>>'
+  '<<.Plain>>' = '<<.SHA256>>'
+<<- end >>
+}
+$Names = @{
+<<- range .Sums >>
+  '<<.Plain>>' = '<<.Name>>'
 <<- end >>
 }
 try {
@@ -254,9 +279,10 @@ try {
   if (-not $crsp) {
     $arch = 'amd64'
     if ($env:PROCESSOR_ARCHITECTURE -eq 'ARM64') { $arch = 'arm64' }
-    $name = 'crsp-windows-' + $arch + '.msi'
-    $want = $Sums[$name]
-    if (-not $want) { throw ('This controller has no package named ' + $name + '.') }
+    $plain = 'crsp-windows-' + $arch + '.msi'
+    $want = $Sums[$plain]
+    if (-not $want) { throw ('This controller has no package named ' + $plain + '.') }
+    $name = $Names[$plain]
     $dir = Join-Path $env:TEMP ('crsp-join-' + [guid]::NewGuid().ToString('N'))
     New-Item -ItemType Directory -Path $dir | Out-Null
     $msi = Join-Path $dir $name

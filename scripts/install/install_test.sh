@@ -11,7 +11,7 @@ failed=0
 case "$(uname -s)" in Linux) os=linux ;; Darwin) os=darwin ;; *) echo "skip: $(uname -s)"; exit 0 ;; esac
 case "$(uname -m)" in x86_64 | amd64) arch=amd64 ;; *) arch=arm64 ;; esac
 target="$os-$arch"
-name="crsp-$target.tar.gz"
+name="crsp-${target}_0.1.15.tar.gz" # OPS40: the release version is in the name
 
 sum() { if command -v sha256sum >/dev/null 2>&1; then sha256sum "$1" | awk '{ print $1 }'; else shasum -a 256 "$1" | awk '{ print $1 }'; fi; }
 
@@ -80,6 +80,22 @@ run "$bin:$nogh"
 rc=$?
 [ $rc -ne 0 ] && [ ! -e "$root/crsp-ran" ] && [ ! -e "$root/gh-calls" ] && grep -q "does not match" "$root/out"
 check "bad checksum: stops before gh and before install" $?
+
+# TestOlderReleaseWithPlainNameStillInstalls (releases up to 0.1.14)
+plain="crsp-$target.tar.gz"
+mv "$rel/$name" "$rel/$plain"
+printf '%s  %s\n' "$(sum "$rel/$plain")" "$plain" >"$rel/SHA256SUMS"
+run "$bin:$nogh" FAKE_GH_EXIT=0
+rc=$?
+[ $rc -eq 0 ] && [ -e "$root/crsp-ran" ] && grep -q "attestation verify .*$plain --repo" "$root/gh-calls" 2>/dev/null
+check "older release: the plain archive name is found in SHA256SUMS and installs" $?
+
+# TestNoArchiveInSumsStops
+printf '%s  %s\n' "$(sum "$rel/$plain")" "crsp-other-os_0.1.15.tar.gz" >"$rel/SHA256SUMS"
+run "$bin:$nogh"
+rc=$?
+[ $rc -ne 0 ] && [ ! -e "$root/crsp-ran" ] && grep -q "no archive for $target" "$root/out"
+check "no archive for this machine in SHA256SUMS: stops" $?
 
 echo "$pass passed, $failed failed"
 [ "$failed" -eq 0 ]

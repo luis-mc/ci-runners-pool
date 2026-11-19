@@ -11,10 +11,12 @@ The installers are **not signed** (no code-signing certificate yet; owner decisi
 
 ## What a release holds
 
+The version is in every installer and archive name, without the leading `v` (`crsp-windows-amd64_0.1.15.msi`). Open the release page and pick the file for your system; the links here go to the release page, not to a fixed file name. Releases up to 0.1.14 have the plain names, and a machine on 0.1.14 or older installs the first versioned release by hand once (operations R5.96).
+
 | Asset | What it is |
 |---|---|
-| `crsp-<os>-<arch>.tar.gz` or `.zip` | The binary (linux, darwin: tar.gz; windows: zip) |
-| `crsp-windows-<arch>.msi`, `crsp-darwin-<arch>.pkg`, `crsp-linux-<arch>.deb`, `crsp-linux-<arch>.rpm` | The installers |
+| `crsp-<os>-<arch>_<version>.tar.gz` or `.zip` | The binary (linux, darwin: tar.gz; windows: zip) |
+| `crsp-windows-<arch>_<version>.msi`, `crsp-darwin-<arch>_<version>.pkg`, `crsp-linux-<arch>_<version>.deb`, `crsp-linux-<arch>_<version>.rpm` | The installers |
 | `crsp-sbom-go.spdx.json`, `crsp-sbom-web.spdx.json` | The SBOMs (SPDX 2.3 JSON): Go modules in the binary, npm packages of the web console |
 | `SHA256SUMS` | SHA-256 of every asset above |
 
@@ -26,7 +28,7 @@ Linux: `sha256sum --check --ignore-missing SHA256SUMS`
 
 macOS: `shasum -a 256 --check --ignore-missing SHA256SUMS`
 
-Windows (PowerShell): `Get-FileHash -Algorithm SHA256 .\crsp-windows-amd64.msi`, then compare with the line for that file in `SHA256SUMS`.
+Windows (PowerShell): `Get-FileHash -Algorithm SHA256 .\crsp-windows-amd64_<version>.msi`, then compare with the line for that file in `SHA256SUMS`.
 
 Every line you checked must say `OK`. If one does not, do not install the file.
 
@@ -35,7 +37,7 @@ Every line you checked must say `OK`. If one does not, do not install the file.
 The attestation says the file was built by the release workflow of this repository, from a named commit. It needs the GitHub CLI (`gh`):
 
 ```
-gh attestation verify crsp-linux-amd64.tar.gz --repo luis-mc/ci-runners-shared-pool
+gh attestation verify crsp-linux-amd64_<version>.tar.gz --repo luis-mc/ci-runners-shared-pool
 ```
 
 It prints `Verification succeeded` and the workflow and commit. Do the same for `SHA256SUMS` and for each SBOM. A file with no valid attestation: do not install it.
@@ -48,4 +50,4 @@ The SBOMs are plain JSON. List the packages with `jq -r '.packages[].name' crsp-
 
 ## When signing is on
 
-When the owner has a certificate and sets the repository variable `SIGNING_ENABLED` to `true`, the MSI and the pkg are signed before they are checksummed and attested. Then also check the signature: Windows `Get-AuthenticodeSignature .\crsp-windows-amd64.msi`, macOS `pkgutil --check-signature crsp-darwin-arm64.pkg`.
+When the owner has a certificate and sets the repository variable `SIGNING_ENABLED` to `true`, the MSI and the pkg are signed before they are checksummed and attested. Then also check the signature: Windows `Get-AuthenticodeSignature .\crsp-windows-amd64_<version>.msi`, macOS `pkgutil --check-signature crsp-darwin-arm64.pkg`.
