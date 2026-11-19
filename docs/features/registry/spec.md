@@ -19,6 +19,8 @@ The top half (sections 1 to 4) is for every reader. The bottom half (5 to 12) is
 
 **CONTRACT ONLY (REG10).** The shared contract is built: the image key (`internal/registry/key.go`, R5.21, R5.22), the Go types and interfaces, the store tables and queries (migration 00019), the agent link messages (protocol version 3) and the API under `/api/v1/registry/*`, which answers 501 "not built yet". Every other requirement below is **NOT YET IMPLEMENTED**; the owning task of each group is named in its heading.
 
+**BUILT (REG6).** R5.41 to R5.52 (retention) are implemented: budgets and settings, the recommendations engine, safe delete, the weekly cleanup and **Clean up now**.
+
 ## 1. In one paragraph
 
 Today every machine builds its own job image, which takes 15 to 36 minutes. The registry keeps every built image once, inside the controller, so the next machine that needs the same image pulls it in a few minutes instead. An image is named by a content key: the same profile, stack files, arch, base and pins give the same key, so a branch with the same stack files reuses the default branch's image. The first machine that needs a key builds it and pushes it; the controller checks it and offers it to the others. The console shows what the registry holds, what it saves, and what may go; crsp deletes alone only what the owner already decided, and asks for everything else.
@@ -353,11 +355,11 @@ Rows for R5.21 and R5.22 (key) and R5.20 (agent link stub) are built and run in 
 | R5.29 to R5.32 | internal/registry/records/records_test.go |
 | R5.33 to R5.36 | internal/api/handlers_registry_read_test.go |
 | R5.37 to R5.40 | apps/web/src/screens/registry/*.test.tsx; e2e/registry/registry.spec.ts |
-| R5.41, R5.42 | internal/registry/retention/budget_test.go; internal/api/handlers_registry_retention_test.go |
-| R5.43 to R5.45, R5.49, R5.50 | internal/registry/retention/rules_test.go |
-| R5.46, R5.47 | internal/registry/retention/delete_test.go |
-| R5.48, R5.52 | internal/registry/retention/cleanup_test.go (pulls during the window) |
-| R5.51 | internal/api/handlers_registry_retention_test.go (audit entries) |
+| R5.41, R5.42 | internal/registry/retention/budget_test.go; internal/api/handlers_registry_retention_test.go (built, REG6) |
+| R5.43 to R5.45, R5.49, R5.50 | internal/registry/retention/rules_test.go (built, REG6) |
+| R5.46, R5.47 | internal/registry/retention/delete_test.go (built, REG6; the in-use refusal on SQLite in internal/store/registry_retention_test.go) |
+| R5.48, R5.52 | internal/registry/retention/cleanup_test.go (built, REG6; the fake registry stands for Distribution, so pulls during the window are proven by REG1's registry test) |
+| R5.51 | internal/api/handlers_registry_retention_test.go (built, REG6: audit entries; the store test checks each action is recorded) |
 | R5.53 to R5.58 | internal/registry/replace/replace_test.go; internal/api/handlers_registry_replace_test.go |
 | R5.59 to R5.62 | internal/registry/scan/scan_test.go |
 | R5.63 to R5.67 | internal/registry/mirror/mirror_test.go |
@@ -396,5 +398,11 @@ Built (REG10):
 - internal/agentlink/registry.go (controller side stub of the protocol version 3 calls)
 - internal/store/migrations/00019_registry.sql and the query files `registry_core.sql` (REG1), `registry_keys.sql` (REG3), `registry_records.sql` (REG4), `registry_retention.sql` (REG6), `registry_replace.sql` (REG7), `registry_scan.sql` (REG8), `registry_mirror.sql` (REG9), `image_builds.sql` (IMG1)
 - internal/api/stubs_registry_reg4.go, `_reg6.go`, `_reg7.go`, `_reg9.go`, `_img1.go` (501 per owning task)
+
+Built (REG6):
+
+- internal/registry/retention/ (budgets, settings, recommendations, safe delete, cleanup and its weekly `Tick`)
+- internal/store/registry_retention.go (the retention data adapter over `queries/registry_retention.sql`); internal/api/handlers_registry_reg6.go replaces `stubs_registry_reg6.go`
+- Not wired yet: `retention.New` and `retention.Service.Tick` in the controller's start-up (the owner of that wiring is the join), and the disk-full push refusal calling `PushRefused` (REG1).
 
 Migration numbers reserved for the wave, so parallel tasks never collide: 00020 IMG2, 00021 IMG3, 00022 REG1, 00023 REG3, 00024 REG4, 00025 REG6, 00026 REG7, 00027 REG8, 00028 REG9, 00029 IMG1. A task that needs no new column uses none.
