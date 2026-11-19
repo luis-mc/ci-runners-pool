@@ -627,32 +627,34 @@ function JobsListTab({ kind }: { kind: Kind }) {
   };
 
   return (
-    <Stack>
-      <FilterNote note={f.note} to={f.clearTo} />
-      <ListToolbar
-        label={TITLES[kind]}
-        count={view === 'runs' ? 'One row per run' : 'One row per job'}
-        filters={
-          <>
-            <ViewSwitch view={view} onChange={set} />
-            {kind === 'done' ? (
-              <Segmented
-                label="Range"
-                options={RANGES}
-                value={days}
-                onChange={(v) => {
-                  const next = new URLSearchParams(params);
-                  next.set('days', v || String(KEPT_DAYS));
-                  setParams(next, { replace: true });
-                  setShown(DONE_STEP);
-                }}
-                allLabel={null}
-              />
-            ) : null}
-          </>
-        }
-      />
-      {body()}
+    <>
+      <Stack>
+        <FilterNote note={f.note} to={f.clearTo} />
+        <ListToolbar
+          label={TITLES[kind]}
+          count={view === 'runs' ? 'One row per run' : 'One row per job'}
+          filters={
+            <>
+              <ViewSwitch view={view} onChange={set} />
+              {kind === 'done' ? (
+                <Segmented
+                  label="Range"
+                  options={RANGES}
+                  value={days}
+                  onChange={(v) => {
+                    const next = new URLSearchParams(params);
+                    next.set('days', v || String(KEPT_DAYS));
+                    setParams(next, { replace: true });
+                    setShown(DONE_STEP);
+                  }}
+                  allLabel={null}
+                />
+              ) : null}
+            </>
+          }
+        />
+        {body()}
+      </Stack>
       <ActionBar
         primary={
           kind === 'done' ? (
@@ -669,7 +671,7 @@ function JobsListTab({ kind }: { kind: Kind }) {
           )
         }
       />
-    </Stack>
+    </>
   );
 }
 
