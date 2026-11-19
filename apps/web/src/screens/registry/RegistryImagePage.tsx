@@ -26,7 +26,7 @@ import {
   type Column,
 } from '@crsp/ui';
 import { useNavigate, useParams } from 'react-router-dom';
-import { unwrap, useClient, type Schemas } from '../../api/api';
+import { ApiError, unwrap, useClient, type Schemas } from '../../api/api';
 import { useCommand } from '../../api/hooks';
 import { useLoad } from '../../api/hooks';
 import { Ask, Load } from '../common';
@@ -79,7 +79,19 @@ function ImageBody({ image }: { image: Image }) {
   const path = { params: { path: { registryImageId: image.id } } };
   const backToList = () => void navigate('/pool/images?tab=registry');
   const { ask, probe } = useAskFirst({
-    probe: () => unwrap(client.DELETE('/api/v1/registry/images/{registryImageId}', path)),
+    // An image a runner uses is refused with `conflict` and the job named: the question card opens all the same and
+    // names the job it waits for, and stays open (UX-73).
+    probe: async () => {
+      try {
+        return await unwrap(
+          client.DELETE('/api/v1/registry/images/{registryImageId}', path),
+        );
+      } catch (e) {
+        if (e instanceof ApiError && e.code === 'conflict')
+          throw new ApiError('needs_confirmation', e.message, e.status, e.details);
+        throw e;
+      }
+    },
     commit: () =>
       unwrap(
         client.DELETE('/api/v1/registry/images/{registryImageId}', {
@@ -384,13 +396,7 @@ function ImageBody({ image }: { image: Image }) {
         title="Delete"
         hint="Deleting removes the image from the registry. Machines that hold a copy keep it until their next sweep."
         actions={
-          <Button
-            onPress={() => void probe.run()}
-            busy={probe.busy}
-            busyLabel="Checking"
-            disabled={inUse}
-            reason={inUse ? REFUSED : undefined}
-          >
+          <Button onPress={() => void probe.run()} busy={probe.busy} busyLabel="Checking">
             Delete
           </Button>
         }

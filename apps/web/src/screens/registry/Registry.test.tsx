@@ -195,28 +195,35 @@ describe('Image page', () => {
     await waitFor(() => expect(calls).toEqual(['none', 'true']));
   });
 
-  it('refuses to delete an image a runner uses and says why', async () => {
+  it('refuses to delete an image a runner uses: the card stays open and names the job (UX-73)', async () => {
     renderApp(
-      api().on(
-        'GET',
-        '/api/v1/registry/images/:id',
-        detail(img(), {
-          machines: [
-            {
-              machine_id: 'm1',
-              machine_name: 'build-1',
-              holds: true,
-              in_use_by_runner: true,
-            },
-          ],
-        }),
-      ),
+      api()
+        .on(
+          'GET',
+          '/api/v1/registry/images/:id',
+          detail(img(), {
+            machines: [
+              {
+                machine_id: 'm1',
+                machine_name: 'build-1',
+                holds: true,
+                in_use_by_runner: true,
+              },
+            ],
+          }),
+        )
+        .on('DELETE', '/api/v1/registry/images/:id', () =>
+          apiError(409, 'conflict', 'A runner uses this image.', [
+            { kind: 'job', id: '8133', text: 'job 8133 of octo/app' },
+          ]),
+        ),
       '/pool/images/registry/img_a',
     );
-    expect(
-      (await screen.findByRole('button', { name: 'Delete' })).hasAttribute('disabled'),
-    ).toBe(true);
-    expect(screen.getAllByText(/A runner uses this image\./).length).toBeGreaterThan(0);
+    fireEvent.click(await screen.findByRole('button', { name: 'Delete' }));
+    expect(await screen.findByText(/job 8133 of octo\/app/)).toBeTruthy();
+    fireEvent.click(screen.getAllByRole('button', { name: 'Delete' }).at(-1)!);
+    expect(await screen.findByText(/Problem: A runner uses this image\./)).toBeTruthy();
+    expect(screen.getAllByText(/job 8133 of octo\/app/).length).toBeGreaterThan(0);
   });
 
   it('says not scanned yet', async () => {

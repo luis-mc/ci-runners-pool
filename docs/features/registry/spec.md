@@ -17,7 +17,7 @@ generator: luismc-docs 2.6.1
 
 The top half (sections 1 to 4) is for every reader. The bottom half (5 to 12) is for engineers.
 
-**CONTRACT ONLY (REG10).** The shared contract is built: the image key (`internal/registry/key.go`, R5.21, R5.22), the Go types and interfaces, the store tables and queries (migration 00019), the agent link messages (protocol version 3) and the API under `/api/v1/registry/*`, which answers 501 "not built yet". Every other requirement below is **NOT YET IMPLEMENTED**; the owning task of each group is named in its heading.
+**CONTRACT ONLY (REG10).** The shared contract is built: the image key (`internal/registry/key.go`, R5.21, R5.22), the Go types and interfaces, the store tables and queries (migration 00019), the agent link messages (protocol version 3) and the API under `/api/v1/registry/*`, which answers 501 "not built yet". The registry UI (REG5, R5.37 to R5.40) is built. Every other requirement below is **NOT YET IMPLEMENTED**; the owning task of each group is named in its heading.
 
 ## 1. In one paragraph
 
@@ -174,13 +174,13 @@ Canonical JSON (`registry.CanonicalJSON`): one object, no whitespace, keys in by
 
 ### REG5: registry UI (R5.37 to R5.40)
 
-**R5.37** — The approved RES20 REG-5 screens move from `origin/RES20-image-registry` `apps/web/src/screens/images-next` into the real console under `apps/web/src/screens/registry/`, reading the real API; review-only hooks and the mock API stay behind.
+**R5.37** (built) — The approved RES20 REG-5 screens move from `origin/RES20-image-registry` `apps/web/src/screens/images-next` into the real console under `apps/web/src/screens/registry/`, reading the real API; review-only hooks and the mock API stay behind.
 
-**R5.38** — The words come from `registryWords.ts` as approved and the "Registry words" section moves from `next-version` into the live content version with a `CHANGES` entry.
+**R5.38** (built) — The words come from `registryWords.ts` as approved and the "Registry words" section moves from `next-version` into the live content version with a `CHANGES` entry.
 
-**R5.39** — The Add runners wizard shows the pulling step (Review line and Work line of RES20 4.6) through the shared Wizard part.
+**R5.39** (built) — The Add runners wizard shows the pulling step (Review line and Work line of RES20 4.6) through the shared Wizard part.
 
-**R5.40** — Nothing on the registry screens deletes from a list; delete is on the image page behind a question card (UX-62).
+**R5.40** (built) — Nothing on the registry screens deletes from a list; delete is on the image page behind a question card (UX-62).
 
 ### REG6: retention (R5.41 to R5.52)
 
@@ -352,7 +352,7 @@ Rows for R5.21 and R5.22 (key) and R5.20 (agent link stub) are built and run in 
 | R5.24 to R5.28 | internal/registry/keys/pointers_test.go, update_test.go |
 | R5.29 to R5.32 | internal/registry/records/records_test.go |
 | R5.33 to R5.36 | internal/api/handlers_registry_read_test.go |
-| R5.37 to R5.40 | apps/web/src/screens/registry/*.test.tsx; e2e/registry/registry.spec.ts |
+| R5.37 to R5.40 | `apps/web/src/screens/registry/Registry.test.tsx`, `apps/web/src/screens/registry/PullingStep.test.tsx` (built); `e2e/tests/web-console/registry.spec.ts` (built: every screen at 360, 393 and 1300 px, delete asks first and refuses a used image, the replace wizard, budgets); `e2e/tests/web-console/ux-routes.spec.ts` (the routes and the Registry tab, dark and light) |
 | R5.41, R5.42 | internal/registry/retention/budget_test.go; internal/api/handlers_registry_retention_test.go |
 | R5.43 to R5.45, R5.49, R5.50 | internal/registry/retention/rules_test.go |
 | R5.46, R5.47 | internal/registry/retention/delete_test.go |
@@ -389,6 +389,8 @@ Rows for R5.21 and R5.22 (key) and R5.20 (agent link stub) are built and run in 
 Everything but the contract (key, types, interfaces, tables, queries, agent link messages and API stubs). Later, not in this wave: cosign signatures, a registry holder other than the controller, export of the registry.
 
 ## 12. Code map
+
+Built (REG5): `apps/web/src/screens/registry/` (`RegistryTab.tsx`, `RegistryImagePage.tsx`, `RegistryBudgetsPage.tsx`, `RegistryMirrorPage.tsx`, `RegistryReplacePage.tsx`, `PullingStep.tsx`, `words.ts`), the Registry tab in `screens/images/ImagesAndCaches.tsx`, the routes `/pool/images/registry/budgets`, `/mirror`, `/:id`, `/:id/replace` in `App.tsx`, the pulling lines in `screens/runners/AddRunners.tsx`, and the registry API of the e2e fixtures `e2e/tests/web-console/registry-fixtures.ts`.
 
 Built (REG10):
 

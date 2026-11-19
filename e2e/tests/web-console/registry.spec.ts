@@ -87,8 +87,13 @@ test('no row of the registry lists has a Delete button', async ({ page }) => {
 test('the registry refuses to delete an image a runner uses', async ({ page }) => {
   await jobsAndDoctor(signedIn()).install(page);
   await page.goto('/pool/images/registry/img_goold');
-  await expect(page.getByText(/A runner uses this image/).first()).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Delete', exact: true })).toBeDisabled();
+  await page.getByRole('button', { name: 'Delete', exact: true }).click();
+  const card = page.getByRole('dialog');
+  await expect(card.getByText(/job 8133 of octo\/app/)).toBeVisible();
+  await card.getByRole('button', { name: 'Delete', exact: true }).click();
+  await expect(card.getByText(/A runner uses this image/)).toBeVisible();
+  await expect(card).toBeVisible();
+  await expect(page.locator('h1')).toHaveText('Go, Node and Postgres');
 });
 
 test('the registry deletes an unused image after a yes and goes back to the tab', async ({

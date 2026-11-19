@@ -1097,3 +1097,35 @@ The words of the Doctor finding that lists runner services, folders, accounts an
 | {kind} {name}: {result}. {reason} | One line of the result list in the finding. |
 | Runner leftovers on {machine}: {kind} {name} removed, ... | Done message when every item went and the finding is gone. |
 | The agent has no administrator rights. Run it as a service with rights. | The reason beside a disabled Remove when the finding says the agent needs rights. |
+
+## Registry words (RES20, owner decision D18 of 19 Nov 2026; REG5)
+
+The words of the Registry tab under Images and caches: the registry of ready-made job images that is part of crsp and not public. A row action there is `Open` (Row action words).
+
+| Where | Word |
+|---|---|
+| Tab | Registry |
+| Sections | Disk, Recommendations, Images in the registry, Where it came from, Layers shared with other images, Pulls by day, Machines that hold it, What is in it, Delete, Registry budgets, Budgets, Cleanup rules |
+| Cards | Standard images, Custom images, Last 7 days, Where it runs |
+| Facts | Pulls, Builds avoided, Time saved, Machine, Folder, Free on the disk, Next cleanup, Shared layers, Only this image holds, Last pulled, Software, Known vulnerabilities, Signed by crsp |
+| Columns | Image, Key, Kind, Arch, Repos, Size, Pulls, Last pulled, State, Frees, Decided by |
+| Kinds | Standard, Custom |
+| States | in use, current, newer one found, superseded, unused {n} days, variant of {branch} |
+| Decided by | your yes, crsp on {date} |
+| Buttons | Edit budgets, Review the newer image, Review the unused image, Review the budget, Review the replacement, Replace the image, Delete |
+| Replace wizard | Replace an image; steps Compare, Review, Replacing, Done; Keep the old image for {n} days; Open the registry |
+| Budget fields | Standard images, Custom images, Suggest deleting an image unused for {n} days, Keep a replaced image for {n} days |
+| Delete question | Delete {profile} {key}?; {size} freed; the layers shared with other images stay |
+| Refusal | A runner uses this image. The registry refuses to delete it until that job ends. |
+| Add runners | Pulling the job image from the registry on {machine}, {done} of {total} GB, about {time} left; The registry has key {key}, signed by crsp |
+| Note words | crsp never deletes what you may still want without your yes. Layers two images share are stored once. |
+| Banners | The registry is not running. {reason}; The registry is cleaning up. Machines can pull; new images wait until it ends. |
+| Empty | Nothing to recommend. The registry is within its budgets.; No images yet. The first machine that builds a job image pushes it here. |
+| Image page | Repositories that use it, Shared layers, Time saved this week, Layer, Shared, only here, {n} other images, no copy, used now, holds a copy, Not scanned yet. The result shows here when the scan ends., Go back to this one, Going back, Open the image, Open the registry, Open the variant, Open the cleanup |
+| States (image page only) | staged, refused; The registry has not checked this image yet. It is offered to machines when it passes.; The registry refused this image. It stays in staging until the next cleanup. |
+| Recommendations | {image} is a newer version of an image the registry holds; {image} was replaced and its days to go back are over; {image} was made for a branch that is gone; {image} is unused; The {kind} images are over their budget; Layers no image uses; {image} belongs to a profile that was removed |
+| Budgets page | Together the two may be at most {size}, half the free disk.; Mirror of upstream images; Open the mirror |
+| Mirror page | Mirror of upstream images; Mirror upstream images; Upstreams; Budget; Check a tag again after {n} minutes; Separate registries with commas. |
+| Replace wizard (live) | Go back to the old image; Pointers already moved stay moved.; The base image changed too, so the new image is built on a newer base. |
+| Add runners, Review | The registry has key {key}, {size}. A machine without a job image pulls it instead of building. |
+| Add runners, pulling | Waiting for the controller to send the job image to {machine}. The pull goes on when it answers.; The job image could not be pulled, so no runner was added. Nothing was changed on {machine}.; Build it here instead |

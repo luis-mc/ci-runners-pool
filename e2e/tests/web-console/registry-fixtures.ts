@@ -1,6 +1,6 @@
 // The registry API of the console fixtures (REG5): one overview, three images (one with a newer one found, one
 // unused, one a runner uses), one replace plan, budgets, settings, mirror and pulls. Ids start with img_.
-import type { Mock } from './fixtures';
+import type { Call, Mock } from './fixtures';
 
 const GB = 1e9;
 const day = (n: number) =>
@@ -185,11 +185,11 @@ export function registryApi(mock: Mock, opts: { planAfterStart?: string } = {}):
   return mock
     .on('GET', '/api/v1/registry/overview', overview())
     .on('GET', '/api/v1/registry/images', { items: IMAGES })
-    .on('GET', '/api/v1/registry/images/:id', (_c, p) => {
+    .on('GET', '/api/v1/registry/images/:id', (_c: Call, p: Record<string, string>) => {
       const s = IMAGES.find((i) => i.id === p.id) ?? IMAGES[0]!;
       return detail(s, p.id === 'img_goold');
     })
-    .on('DELETE', '/api/v1/registry/images/:id', (c, p) => {
+    .on('DELETE', '/api/v1/registry/images/:id', (c: Call, p: Record<string, string>) => {
       if (p.id === 'img_goold')
         return {
           status: 409,
@@ -233,7 +233,7 @@ export function registryApi(mock: Mock, opts: { planAfterStart?: string } = {}):
       free_disk_bytes: 80 * GB,
       max_total_bytes: 50 * GB,
     })
-    .on('PUT', '/api/v1/registry/budgets', (c) => ({
+    .on('PUT', '/api/v1/registry/budgets', (c: Call) => ({
       ...(c.body as object),
       standard: overview().budgets[0],
       custom: overview().budgets[1],
@@ -250,9 +250,9 @@ export function registryApi(mock: Mock, opts: { planAfterStart?: string } = {}):
       cleanup_hour: 3,
       alone_rules: ['superseded', 'variant', 'dangling'],
     })
-    .on('PUT', '/api/v1/registry/settings', (c) => c.body)
+    .on('PUT', '/api/v1/registry/settings', (c: Call) => c.body)
     .on('POST', '/api/v1/registry/replace-plans', plan('draft'))
-    .on('GET', '/api/v1/registry/replace-plans/:id', () =>
+    .on('GET', '/api/v1/registry/replace-plans/:id', (_c: Call) =>
       plan(started ? (opts.planAfterStart ?? 'done') : 'draft'),
     )
     .on('POST', '/api/v1/registry/replace-plans/:id/start', () => {
@@ -269,6 +269,6 @@ export function registryApi(mock: Mock, opts: { planAfterStart?: string } = {}):
       tag_recheck_minutes: 60,
       used_bytes: 2.5 * GB,
     })
-    .on('PUT', '/api/v1/registry/mirror', (c) => c.body)
+    .on('PUT', '/api/v1/registry/mirror', (c: Call) => c.body)
     .on('GET', '/api/v1/registry/pulls', { items: [] });
 }
