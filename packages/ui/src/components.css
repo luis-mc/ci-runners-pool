@@ -163,7 +163,7 @@ body {
   font-size: var(--ds-size-2);
   border-block-start: var(--ds-border-thin) solid var(--ds-color-border);
   box-sizing: border-box;
-  min-block-size: var(--ds-keyhints-height);
+  min-block-size: var(--ds-target-min);
   display: grid;
   align-content: center;
 }
@@ -200,7 +200,7 @@ body {
 }
 .ds-action-bar {
   position: sticky;
-  inset-block-end: var(--ds-keyhints-height);
+  inset-block-end: var(--ds-keyhints-height, 0px);
   z-index: var(--ds-z-sticky);
   display: flex;
   flex-wrap: wrap;
@@ -209,6 +209,9 @@ body {
   padding-block: var(--ds-space-3);
   background: var(--ds-color-page);
   border-block-start: var(--ds-border-thin) solid var(--ds-color-border);
+}
+.ds-main > .ds-bar-slot {
+  display: contents;
 }
 .ds-action-bar[data-sticky='false'] {
   position: static;
@@ -229,22 +232,22 @@ body {
 .ds-action-bar > :first-child {
   margin-inline-start: auto;
 }
-/* A screen with a bar fills the window, and the bar sits at its foot even when the page is short: every
-   ancestor of the bar up to the frame becomes a column that grows, and the bar takes the free space above it. */
+/* A screen with a bar fills the window, and the bar sits at its foot even when the page is short: the
+   main column is a column that grows, and the bar (drawn in its slot, a direct child of the column) takes the free
+   space above it. */
 .ds-frame:has(.ds-action-bar) {
   display: flex;
   flex-direction: column;
   min-block-size: 100dvh;
 }
-.ds-main:has(.ds-action-bar),
-.ds-main :has(.ds-action-bar) {
+.ds-main:has(.ds-action-bar) {
   display: flex;
   flex-direction: column;
   flex: 1 1 auto;
   min-inline-size: 0;
 }
-.ds-main :has(.ds-action-bar) > .ds-action-bar,
-.ds-main > .ds-action-bar {
+.ds-main > .ds-action-bar,
+.ds-main > .ds-bar-slot > .ds-action-bar {
   margin-block-start: auto;
 }
 @media (max-width: 599px) {
@@ -569,7 +572,7 @@ body {
 }
 .ds-message__body {
   flex: 1 1 12rem;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 .ds-message[data-dismissible] .ds-message__body {
   flex-basis: 8rem;
@@ -1419,6 +1422,8 @@ legend > .ds-field__changed {
   border: var(--ds-border-thin) solid var(--ds-color-border);
   border-radius: var(--ds-radius-round);
   cursor: pointer;
+  max-inline-size: 100%;
+  white-space: nowrap;
 }
 .ds-chip[aria-pressed='true'] {
   font-weight: var(--ds-weight-bold);

@@ -198,9 +198,7 @@ describe('Turn on the pool in panes', () => {
         /No repository is free for you to turn on. One needs admin rights/,
       ),
     ).toBeTruthy();
-    expect(
-      screen.getByRole('button', { name: 'Install the App on a repository' }),
-    ).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Add a repository' })).toBeTruthy();
     expect(primaries()).toEqual(['Next']);
   });
 
@@ -232,8 +230,6 @@ describe('Turn on the pool in panes', () => {
   it('says the App must be installed when nothing is waiting', async () => {
     renderApp(wizard([]), '/repositories/turn-on');
     expect(await screen.findByText(/No repository is waiting/)).toBeTruthy();
-    expect(
-      screen.getByRole('button', { name: 'Install the App on a repository' }),
-    ).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Add a repository' })).toBeTruthy();
   });
 });

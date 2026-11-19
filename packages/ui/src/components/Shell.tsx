@@ -1,6 +1,7 @@
 // The frame of every signed-in screen (web-console spec 4.0): header, top menu (component 2), banner slot,
 // activity strip (component 27) and the page. Landmarks: header, nav, main (UX-17).
-import { useState, type ReactNode } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
+import { ActionBarSlotContext } from './ActionBar';
 import { Link, NavLink } from 'react-router-dom';
 import { Button } from './Button';
 import { KeyHintsProvider } from './KeyHints';
@@ -249,18 +250,23 @@ export function Frame({
   hints?: ReactNode | undefined;
   children: ReactNode;
 }) {
+  const [slot, setSlot] = useState<HTMLElement | null>(null);
+  const host = useMemo(() => ({ slot }), [slot]);
   return (
     <KeyHintsProvider>
-      <div className="ds-frame">
-        {header}
-        {menu}
-        {banner}
-        {strip}
-        <main className="ds-main ds-band" id="main" data-frame-band>
-          {children}
-        </main>
-        {hints}
-      </div>
+      <ActionBarSlotContext.Provider value={host}>
+        <div className="ds-frame">
+          {header}
+          {menu}
+          {banner}
+          {strip}
+          <main className="ds-main ds-band" id="main" data-frame-band>
+            {children}
+            <div className="ds-bar-slot" ref={setSlot} />
+          </main>
+          {hints}
+        </div>
+      </ActionBarSlotContext.Provider>
     </KeyHintsProvider>
   );
 }

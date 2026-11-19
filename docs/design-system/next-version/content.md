@@ -604,7 +604,7 @@ The words of the setting that lets the pool serve public repositories, and of th
 | {n} public repositories use the pool now. Their runners are drained and removed, and their pool is switched off. The settings are kept. | The line of the question card when turning off ({n} is public_on_pool; the singular uses repository, uses, Its and its). Primary: Turn off. Busy word: Turning off. |
 | No public repository uses the pool now. Nothing is stopped. | The line of the question card when turning off and none is on the pool. |
 | The pool was switched off for {n} public repositories. Their settings are kept. | Done message after turning off. |
-| Active types: Private (default) / Active types: Private & Public | The line near the title of Repositories. The value links to the setting. |
+| Types: Private (default) / Types: Private & Public | The line near the title of Repositories. The value links to the setting. |
 | Visibility, Private, Public, Internal | The column and its values. |
 | Public repositories are off, so the pool does not serve this one. | The reason in a greyed public row. Link: Turn on public repositories. |
 | Use pool | Primary action of the action bar on Repositories, for the ticked repositories. Also the action on a repository's page. |
@@ -630,7 +630,7 @@ The words of the first-run fixes (web-console 4.1 and 4.3, CRSP124). The console
 | Word | Where and meaning |
 |---|---|
 | First run is not finished. Next: {step}. | The banner. {step} is connect GitHub, add the first machine or turn on the first repository. The action is Open the setup page. |
-| Install the App on a repository | The button that opens GitHub's install page for the App in a new tab. Busy word: Opening GitHub. |
+| Add a repository | The button that opens GitHub's install page for the App in a new tab (Repositories, Turn on the pool). Busy word: Opening GitHub. |
 | Install the App on an organization | The same button in Add runners, when the App is on no organization. |
 | GitHub is open in a new tab. Pick the account and the repositories there, then come back to this tab. The list refreshes by itself. | Note under the install button after it opened GitHub. |
 | GitHub saved the App installation. The list below is read again. Tick the repositories you want and press Use pool. | Done message on Repositories after GitHub's return with setup_action install or update. Action: Use pool. |
@@ -668,11 +668,11 @@ The words of the Settings section Access for CI and of the action that sets up p
 | Access {name} is made / I have it | Title and close button of the card that shows the value once. |
 | This is the only time the value is shown. crsp keeps no copy of it. Copy it now, or revoke this access and make another. | Needs-you message on that card. |
 | Access value | Label of the code block that holds the value. |
-| Set up parity for a repository | The section of the action. |
+| Set up parity | The section of the action. |
 | No repository yet. Install the App on a repository first (Repositories). | Empty state of the section. |
 | crsp writes the access as the secret CRSP_ACCESS, and its address and certificate fingerprint as the variables CRSP_URL and CRSP_CA_FINGERPRINT, to the repository through the GitHub App. You copy nothing. The parity workflow reads them. | Note of the section. |
 | Repository | The field that chooses the repository. |
-| Set up parity for this repository | The primary button. Busy: Setting up. Reason when none is chosen: Choose a repository first. |
+| Set up parity | The primary button. Busy: Setting up. Reason when none is chosen: Choose a repository first. |
 | Could not set up parity. Nothing was left behind. {reason} | Problem message when the setup fails. |
 | Parity is set up for {repository}. The workflow can run now. | Done message. |
 | The GitHub grant | See GitHub grant words: a missing App permission is shown by the shared part, not by words of this screen. |
