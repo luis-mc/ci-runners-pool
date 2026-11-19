@@ -20,6 +20,13 @@ const primaries = () =>
     (b) => b.textContent,
   );
 
+/** The repository page draws its title while it loads (RES21 B18): wait for the data, not for the title. */
+async function repoHeading(name: string) {
+  const heading = await screen.findByRole('heading', { level: 1, name });
+  await waitFor(() => expect(screen.queryByText(/Loading the repository/)).toBeNull());
+  return heading;
+}
+
 describe('Repositories list in a pane', () => {
   it('draws the toolbar, table and pager inside the Repositories pane (CORE-1)', async () => {
     renderApp(list(signedIn()), '/repositories');
@@ -97,14 +104,14 @@ describe('Repository detail in panes', () => {
 
   it('puts State, Policy, Hosted fallback and Extra packages in panes', async () => {
     renderApp(detail(), '/repositories/octo/app');
-    await screen.findByRole('heading', { level: 1, name: 'octo/app' });
+    await repoHeading('octo/app');
     for (const t of ['State', 'Policy', 'Hosted fallback', 'Extra packages'])
       expect(screen.getByRole('heading', { level: 2, name: t })).toBeTruthy();
   });
 
   it('has one Save and one primary (UX-4, UX-24)', async () => {
     renderApp(detail(), '/repositories/octo/app');
-    await screen.findByRole('heading', { level: 1, name: 'octo/app' });
+    await repoHeading('octo/app');
     expect(screen.getAllByRole('button', { name: /^Save/ })).toHaveLength(1);
     // The action bar holds the one primary: Save (UX-4, UX-71).
     expect(primaries()).toEqual(['Save']);
@@ -112,7 +119,7 @@ describe('Repository detail in panes', () => {
 
   it('keeps Save the one primary also once the pool is on, in the action bar', async () => {
     renderApp(detail(repository({ pool_on: true })), '/repositories/octo/app');
-    await screen.findByRole('heading', { level: 1, name: 'octo/app' });
+    await repoHeading('octo/app');
     expect(primaries()).toEqual(['Save']);
     const bar = screen.getByRole('region', { name: 'Actions' });
     expect(within(bar).getByRole('button', { name: 'Save' })).toBeTruthy();
@@ -128,7 +135,7 @@ describe('Repository detail in panes', () => {
         text: 'zlib1g-dev',
       });
     renderApp(a, '/repositories/octo/app');
-    await screen.findByRole('heading', { level: 1, name: 'octo/app' });
+    await repoHeading('octo/app');
     fireEvent.click(screen.getByRole('checkbox', { name: 'Run jobs from public forks' }));
     fireEvent.click(screen.getByRole('radio', { name: 'Run on GitHub-hosted runners' }));
     fireEvent.change(screen.getByRole('textbox', { name: /Extra packages/ }), {
@@ -157,7 +164,7 @@ describe('Repository detail in panes', () => {
   it('disables Save with its reason while clean, and counts the unsaved changes', async () => {
     const a = detail();
     renderApp(a, '/repositories/octo/app');
-    await screen.findByRole('heading', { level: 1, name: 'octo/app' });
+    await repoHeading('octo/app');
     const save = screen.getByRole<HTMLButtonElement>('button', { name: 'Save' });
     expect(save.disabled).toBe(true);
     expect(screen.getByText('Nothing has changed yet.')).toBeTruthy();

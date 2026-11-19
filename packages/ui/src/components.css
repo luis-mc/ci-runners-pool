@@ -611,6 +611,8 @@ body {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--ds-card-min)), 1fr));
   gap: var(--ds-space-4);
+  /* A two-line card title reaches 30 px above its border: the row gap keeps it off the card above (UX-10, UX-51). */
+  row-gap: var(--ds-space-6);
 }
 .ds-pane {
   position: relative;
@@ -637,6 +639,15 @@ body {
   color: var(--ds-color-primary);
   background: var(--ds-color-page);
   overflow-wrap: anywhere;
+}
+/* A long title stops at two lines (UX-51): the cut-in marks and the count stay on the row beside the clamped name. A
+   two-line title reaches half its height below the border, so a card body leaves some room. */
+.ds-pane__title {
+  display: flex;
+  align-items: flex-start;
+}
+.ds-pane:has(> h3.ds-pane__title) > .ds-pane__body {
+  padding-block-start: var(--ds-space-2);
 }
 .ds-pane__title::before {
   content: '┤ ' / '';
@@ -2467,6 +2478,17 @@ button.ds-jobgraph__node:hover {
 .ds-short {
   text-decoration: underline dotted;
   text-underline-offset: 0.2em;
+}
+
+/* A name that may be long: it breaks anywhere and stops at two lines (UX-51); the title holds the whole name. */
+.ds-clamp {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  min-inline-size: 0;
 }
 
 /* A long text after a cell's content (a status word, then its reason) always has a space before it: the gap of the

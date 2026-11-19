@@ -827,6 +827,7 @@ The fixed words of the waterfall, job graph and charts (components 50 to 55, RES
 | Job, Stage, after, Detail | Job graph: table heads; "Stage {n}" heads a stage; "after: a, b" under a job. |
 | Series, When, Value, Range, Note | Trend chart table heads. |
 | Day, Total, Busiest hour | Heatmap table heads. |
+| Mon, Tue, Wed, Thu, Fri, Sat, Sun | Heatmap day labels on the grid (the narrow column); the table under it keeps the full weekday. |
 | forecast, actual, forecast = actual | Forecast chart axes and the diagonal's legend; table heads. |
 | inside the forecast range, outside the forecast range, no range | Forecast chart: said for each job. |
 | lowest, highest, last, values | Chart and sparkline text alternatives ("5 values, last 4 s"). |

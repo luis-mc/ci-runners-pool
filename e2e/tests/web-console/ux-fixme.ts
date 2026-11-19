@@ -124,13 +124,6 @@ export const FIXME: Record<string, string> = {
   'rowHeights|/settings/app|stress': 'T3: B10',
   'rowHeights|/settings/users|data': 'T3: B10',
   'rowHeights|/settings/users|stress': 'T3: B10',
-  // T4
-  'rowActionWords|/pool/size|data': 'T4: B08',
-  'rowActionWords|/pool/size|stress': 'T4: B08',
-  'textOverBorder|/|stress': 'T4: B07 N2',
-  'textOverText|/|stress': 'T4: B06',
-  'wordBroken|/pool/size|stress': 'T4: B08',
-  'wrapped|/pool/size|stress': 'T4: B08',
   // T5
   'rowActionWords|/doctor|data': 'T5: B09 (Copy)',
   'rowActionWords|/doctor|stress': 'T5: B09 (Copy)',
@@ -155,12 +148,6 @@ export const FIXME: Record<string, string> = {
   'wordBroken|/settings/app|stress': 'T6: B14',
   'wordBroken|/settings/users|data': 'T6: B14',
   'wordBroken|/settings/users|stress': 'T6: B14',
-  // T7
-  'cutText|/jobs/charts|data': 'T7: B15',
-  'cutText|/jobs/charts|stress': 'T7: B15',
-  'cutText|/jobs/trends|data': 'T7: B15',
-  'cutText|/jobs/trends|stress': 'T7: B15',
-  'h1|/repositories/:owner/:name|loading': 'T7: B18',
 };
 
 export function fixmeFor(
