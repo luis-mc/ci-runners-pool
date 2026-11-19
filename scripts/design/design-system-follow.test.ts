@@ -64,9 +64,7 @@ export const guardPaths = (cell: string): string[] =>
  * whose file exists fails, so the list only shrinks. UX-72 of v2 names the review
  * build's spec; LOOK35 points the rule at the real file in next-version.
  */
-const MISSING_GUARDS: Record<string, string> = {
-  'UX-72': 'e2e/tests/review/review-layout.spec.ts',
-};
+const MISSING_GUARDS: Record<string, string> = {};
 
 /** The rule IDs and their guard column, from the rule table. */
 export const ruleTable = (uxRules: string): { id: string; guard: string }[] =>
