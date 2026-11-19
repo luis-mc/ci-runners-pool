@@ -39,6 +39,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.countJobsByStateStmt, err = db.PrepareContext(ctx, countJobsByState); err != nil {
 		return nil, fmt.Errorf("error preparing query CountJobsByState: %w", err)
 	}
+	if q.countLiveRegistryTokenLeasesNamingStmt, err = db.PrepareContext(ctx, countLiveRegistryTokenLeasesNaming); err != nil {
+		return nil, fmt.Errorf("error preparing query CountLiveRegistryTokenLeasesNaming: %w", err)
+	}
 	if q.countMachineSlotsStmt, err = db.PrepareContext(ctx, countMachineSlots); err != nil {
 		return nil, fmt.Errorf("error preparing query CountMachineSlots: %w", err)
 	}
@@ -212,6 +215,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	}
 	if q.getPromotedRegistryImageByKeyStmt, err = db.PrepareContext(ctx, getPromotedRegistryImageByKey); err != nil {
 		return nil, fmt.Errorf("error preparing query GetPromotedRegistryImageByKey: %w", err)
+	}
+	if q.getRegistryCleanupStmt, err = db.PrepareContext(ctx, getRegistryCleanup); err != nil {
+		return nil, fmt.Errorf("error preparing query GetRegistryCleanup: %w", err)
 	}
 	if q.getRegistryImageStmt, err = db.PrepareContext(ctx, getRegistryImage); err != nil {
 		return nil, fmt.Errorf("error preparing query GetRegistryImage: %w", err)
@@ -405,6 +411,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.listImageBuildsOfMachineStmt, err = db.PrepareContext(ctx, listImageBuildsOfMachine); err != nil {
 		return nil, fmt.Errorf("error preparing query ListImageBuildsOfMachine: %w", err)
 	}
+	if q.listInFlightPullMachinesOfRegistryImageStmt, err = db.PrepareContext(ctx, listInFlightPullMachinesOfRegistryImage); err != nil {
+		return nil, fmt.Errorf("error preparing query ListInFlightPullMachinesOfRegistryImage: %w", err)
+	}
 	if q.listInstallationsStmt, err = db.PrepareContext(ctx, listInstallations); err != nil {
 		return nil, fmt.Errorf("error preparing query ListInstallations: %w", err)
 	}
@@ -440,6 +449,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	}
 	if q.listNotificationChannelsStmt, err = db.PrepareContext(ctx, listNotificationChannels); err != nil {
 		return nil, fmt.Errorf("error preparing query ListNotificationChannels: %w", err)
+	}
+	if q.listOldStagedRegistryImagesStmt, err = db.PrepareContext(ctx, listOldStagedRegistryImages); err != nil {
+		return nil, fmt.Errorf("error preparing query ListOldStagedRegistryImages: %w", err)
 	}
 	if q.listOpenGitHubJobsStmt, err = db.PrepareContext(ctx, listOpenGitHubJobs); err != nil {
 		return nil, fmt.Errorf("error preparing query ListOpenGitHubJobs: %w", err)
@@ -500,6 +512,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	}
 	if q.listRunnersStmt, err = db.PrepareContext(ctx, listRunners); err != nil {
 		return nil, fmt.Errorf("error preparing query ListRunners: %w", err)
+	}
+	if q.listRunningJobsOfRegistryImageStmt, err = db.PrepareContext(ctx, listRunningJobsOfRegistryImage); err != nil {
+		return nil, fmt.Errorf("error preparing query ListRunningJobsOfRegistryImage: %w", err)
 	}
 	if q.listRunsOnFindingsStmt, err = db.PrepareContext(ctx, listRunsOnFindings); err != nil {
 		return nil, fmt.Errorf("error preparing query ListRunsOnFindings: %w", err)
@@ -678,6 +693,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.sumRegistryPullDailySinceStmt, err = db.PrepareContext(ctx, sumRegistryPullDailySince); err != nil {
 		return nil, fmt.Errorf("error preparing query SumRegistryPullDailySince: %w", err)
 	}
+	if q.sumRegistrySharedLayersStmt, err = db.PrepareContext(ctx, sumRegistrySharedLayers); err != nil {
+		return nil, fmt.Errorf("error preparing query SumRegistrySharedLayers: %w", err)
+	}
 	if q.sumRunMinutesSinceStmt, err = db.PrepareContext(ctx, sumRunMinutesSince); err != nil {
 		return nil, fmt.Errorf("error preparing query SumRunMinutesSince: %w", err)
 	}
@@ -805,6 +823,11 @@ func (q *Queries) Close() error {
 	if q.countJobsByStateStmt != nil {
 		if cerr := q.countJobsByStateStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing countJobsByStateStmt: %w", cerr)
+		}
+	}
+	if q.countLiveRegistryTokenLeasesNamingStmt != nil {
+		if cerr := q.countLiveRegistryTokenLeasesNamingStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing countLiveRegistryTokenLeasesNamingStmt: %w", cerr)
 		}
 	}
 	if q.countMachineSlotsStmt != nil {
@@ -1095,6 +1118,11 @@ func (q *Queries) Close() error {
 	if q.getPromotedRegistryImageByKeyStmt != nil {
 		if cerr := q.getPromotedRegistryImageByKeyStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing getPromotedRegistryImageByKeyStmt: %w", cerr)
+		}
+	}
+	if q.getRegistryCleanupStmt != nil {
+		if cerr := q.getRegistryCleanupStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getRegistryCleanupStmt: %w", cerr)
 		}
 	}
 	if q.getRegistryImageStmt != nil {
@@ -1417,6 +1445,11 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing listImageBuildsOfMachineStmt: %w", cerr)
 		}
 	}
+	if q.listInFlightPullMachinesOfRegistryImageStmt != nil {
+		if cerr := q.listInFlightPullMachinesOfRegistryImageStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listInFlightPullMachinesOfRegistryImageStmt: %w", cerr)
+		}
+	}
 	if q.listInstallationsStmt != nil {
 		if cerr := q.listInstallationsStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing listInstallationsStmt: %w", cerr)
@@ -1475,6 +1508,11 @@ func (q *Queries) Close() error {
 	if q.listNotificationChannelsStmt != nil {
 		if cerr := q.listNotificationChannelsStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing listNotificationChannelsStmt: %w", cerr)
+		}
+	}
+	if q.listOldStagedRegistryImagesStmt != nil {
+		if cerr := q.listOldStagedRegistryImagesStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listOldStagedRegistryImagesStmt: %w", cerr)
 		}
 	}
 	if q.listOpenGitHubJobsStmt != nil {
@@ -1575,6 +1613,11 @@ func (q *Queries) Close() error {
 	if q.listRunnersStmt != nil {
 		if cerr := q.listRunnersStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing listRunnersStmt: %w", cerr)
+		}
+	}
+	if q.listRunningJobsOfRegistryImageStmt != nil {
+		if cerr := q.listRunningJobsOfRegistryImageStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listRunningJobsOfRegistryImageStmt: %w", cerr)
 		}
 	}
 	if q.listRunsOnFindingsStmt != nil {
@@ -1872,6 +1915,11 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing sumRegistryPullDailySinceStmt: %w", cerr)
 		}
 	}
+	if q.sumRegistrySharedLayersStmt != nil {
+		if cerr := q.sumRegistrySharedLayersStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing sumRegistrySharedLayersStmt: %w", cerr)
+		}
+	}
 	if q.sumRunMinutesSinceStmt != nil {
 		if cerr := q.sumRunMinutesSinceStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing sumRunMinutesSinceStmt: %w", cerr)
@@ -2074,515 +2122,527 @@ func (q *Queries) queryRow(ctx context.Context, stmt *sql.Stmt, query string, ar
 }
 
 type Queries struct {
-	db                                       DBTX
-	tx                                       *sql.Tx
-	addRegistryPullDailyStmt                 *sql.Stmt
-	beatTicketStmt                           *sql.Stmt
-	claimRegistryScanStmt                    *sql.Stmt
-	closeRegistryRecommendationStmt          *sql.Stmt
-	countJobsByStateStmt                     *sql.Stmt
-	countMachineSlotsStmt                    *sql.Stmt
-	countRepositoryRunningStmt               *sql.Stmt
-	countUsersStmt                           *sql.Stmt
-	dailySummarisedDaysStmt                  *sql.Stmt
-	deleteAuditBeforeStmt                    *sql.Stmt
-	deleteEndedRegistryTokenLeasesStmt       *sql.Stmt
-	deleteJobHistoryBeforeStmt               *sql.Stmt
-	deleteJobStepsStmt                       *sql.Stmt
-	deleteJobTicketsStmt                     *sql.Stmt
-	deleteMachineLoadBeforeStmt              *sql.Stmt
-	deleteManagedVariableStmt                *sql.Stmt
-	deleteNotificationChannelStmt            *sql.Stmt
-	deleteOldRegistryPullDailyStmt           *sql.Stmt
-	deleteOldRegistryPullsStmt               *sql.Stmt
-	deletePendingFactsStmt                   *sql.Stmt
-	deleteRegistryLayerStmt                  *sql.Stmt
-	deleteRunnerStmt                         *sql.Stmt
-	deleteRunnerUsageBeforeStmt              *sql.Stmt
-	deleteRunsOnFindingsStmt                 *sql.Stmt
-	deleteTicketStmt                         *sql.Stmt
-	deleteUserStmt                           *sql.Stmt
-	deleteWebhookDeliveriesBeforeStmt        *sql.Stmt
-	endSessionStmt                           *sql.Stmt
-	endUserSessionsStmt                      *sql.Stmt
-	enqueueJobStmt                           *sql.Stmt
-	findJoinCodeByHashStmt                   *sql.Stmt
-	finishBackupStmt                         *sql.Stmt
-	finishDoctorRunStmt                      *sql.Stmt
-	finishImageBuildStmt                     *sql.Stmt
-	finishRegistryCleanupStmt                *sql.Stmt
-	finishRegistryScanStmt                   *sql.Stmt
-	finishRestoreDrillStmt                   *sql.Stmt
-	freeJobSlotsStmt                         *sql.Stmt
-	freeSlotStmt                             *sql.Stmt
-	freeSlotByClaimStmt                      *sql.Stmt
-	getActiveCliTokenStmt                    *sql.Stmt
-	getActiveRegistryReplacePlanForImageStmt *sql.Stmt
-	getActiveSessionStmt                     *sql.Stmt
-	getBackupStmt                            *sql.Stmt
-	getDoctorRunStmt                         *sql.Stmt
-	getGitHubAppStmt                         *sql.Stmt
-	getGitHubJobStmt                         *sql.Stmt
-	getImageBuildStmt                        *sql.Stmt
-	getJobHistoryStmt                        *sql.Stmt
-	getJobsRowStmt                           *sql.Stmt
-	getJoinCodeStmt                          *sql.Stmt
-	getMachineStmt                           *sql.Stmt
-	getMachineByKeyStmt                      *sql.Stmt
-	getMachineChangeStmt                     *sql.Stmt
-	getMachineSettingsStmt                   *sql.Stmt
-	getMetaStmt                              *sql.Stmt
-	getNotificationChannelStmt               *sql.Stmt
-	getOpenMachineChangeStmt                 *sql.Stmt
-	getOwnerStmt                             *sql.Stmt
-	getPendingFactsStmt                      *sql.Stmt
-	getPlanStmt                              *sql.Stmt
-	getPreferencesStmt                       *sql.Stmt
-	getPromotedRegistryImageByKeyStmt        *sql.Stmt
-	getRegistryImageStmt                     *sql.Stmt
-	getRegistryMirrorSettingsStmt            *sql.Stmt
-	getRegistryPointerStmt                   *sql.Stmt
-	getRegistryReplacePlanStmt               *sql.Stmt
-	getRegistryScanStmt                      *sql.Stmt
-	getRegistrySettingsRowStmt               *sql.Stmt
-	getRegistryTagStmt                       *sql.Stmt
-	getRepoPolicyStmt                        *sql.Stmt
-	getRepositoryStmt                        *sql.Stmt
-	getRepositoryByNameStmt                  *sql.Stmt
-	getRunnerStmt                            *sql.Stmt
-	getRunnerByServiceStmt                   *sql.Stmt
-	getRunsRowStmt                           *sql.Stmt
-	getSettingStmt                           *sql.Stmt
-	getTicketStmt                            *sql.Stmt
-	getTrayBindingStmt                       *sql.Stmt
-	getUserStmt                              *sql.Stmt
-	getWorkflowGraphStmt                     *sql.Stmt
-	insertAuditEntryStmt                     *sql.Stmt
-	insertAuditEventStmt                     *sql.Stmt
-	insertBackupStmt                         *sql.Stmt
-	insertCliTokenStmt                       *sql.Stmt
-	insertDoctorFindingStmt                  *sql.Stmt
-	insertDoctorRunStmt                      *sql.Stmt
-	insertImageBuildStmt                     *sql.Stmt
-	insertJobStepStmt                        *sql.Stmt
-	insertJoinCodeStmt                       *sql.Stmt
-	insertLinkCodeStmt                       *sql.Stmt
-	insertMachineStmt                        *sql.Stmt
-	insertMachineChangeStmt                  *sql.Stmt
-	insertMachineKeyStmt                     *sql.Stmt
-	insertMachineLoadStmt                    *sql.Stmt
-	insertMachineSettingsStmt                *sql.Stmt
-	insertNotificationChannelStmt            *sql.Stmt
-	insertPlanStmt                           *sql.Stmt
-	insertRegistryCleanupStmt                *sql.Stmt
-	insertRegistryImageStmt                  *sql.Stmt
-	insertRegistryImageLayerStmt             *sql.Stmt
-	insertRegistryReplacePlanStmt            *sql.Stmt
-	insertRegistryTagStmt                    *sql.Stmt
-	insertRegistryTokenLeaseStmt             *sql.Stmt
-	insertRestoreDrillStmt                   *sql.Stmt
-	insertRunnerStmt                         *sql.Stmt
-	insertRunnerEventStmt                    *sql.Stmt
-	insertRunsOnFindingStmt                  *sql.Stmt
-	insertSessionStmt                        *sql.Stmt
-	insertSetupCodeStmt                      *sql.Stmt
-	insertSlotStmt                           *sql.Stmt
-	insertSlotLogStmt                        *sql.Stmt
-	insertTicketStmt                         *sql.Stmt
-	insertUserStmt                           *sql.Stmt
-	insertWebhookDeliveryStmt                *sql.Stmt
-	lastDoctorRunStmt                        *sql.Stmt
-	lastRegistryCleanupStmt                  *sql.Stmt
-	lastRestoreDrillStmt                     *sql.Stmt
-	listAuditEventsStmt                      *sql.Stmt
-	listBackupsStmt                          *sql.Stmt
-	listCliTokensStmt                        *sql.Stmt
-	listDailySummariesStmt                   *sql.Stmt
-	listDanglingRegistryLayersStmt           *sql.Stmt
-	listExpiredSlotsStmt                     *sql.Stmt
-	listExpiredTicketsStmt                   *sql.Stmt
-	listImageBuildsInFlightStmt              *sql.Stmt
-	listImageBuildsOfMachineStmt             *sql.Stmt
-	listInstallationsStmt                    *sql.Stmt
-	listJobAttemptsStmt                      *sql.Stmt
-	listJobHistoryStmt                       *sql.Stmt
-	listJobStepsStmt                         *sql.Stmt
-	listLatestFindingsStmt                   *sql.Stmt
-	listLiveRegistryTokenLeasesStmt          *sql.Stmt
-	listMachineLoadStmt                      *sql.Stmt
-	listMachineSlotsStmt                     *sql.Stmt
-	listMachineTicketsStmt                   *sql.Stmt
-	listMachinesStmt                         *sql.Stmt
-	listManagedVariablesStmt                 *sql.Stmt
-	listNotificationChannelsStmt             *sql.Stmt
-	listOpenGitHubJobsStmt                   *sql.Stmt
-	listOpenRegistryRecommendationsStmt      *sql.Stmt
-	listPoolRepositoriesStmt                 *sql.Stmt
-	listQueuedRegistryScansStmt              *sql.Stmt
-	listRegistryImageLayersStmt              *sql.Stmt
-	listRegistryImageMachinesStmt            *sql.Stmt
-	listRegistryImagesStmt                   *sql.Stmt
-	listRegistryImagesOfLineageStmt          *sql.Stmt
-	listRegistryPointersOfRepositoryStmt     *sql.Stmt
-	listRegistryPointersToStmt               *sql.Stmt
-	listRegistryPullDailyStmt                *sql.Stmt
-	listRegistryPullsInFlightStmt            *sql.Stmt
-	listRegistryPushesInFlightStmt           *sql.Stmt
-	listRegistrySupersededDueStmt            *sql.Stmt
-	listRegistryUnusedCandidatesStmt         *sql.Stmt
-	listRegistryVariantsDueStmt              *sql.Stmt
-	listRepositoriesStmt                     *sql.Stmt
-	listRunAttemptsStmt                      *sql.Stmt
-	listRunFindingsStmt                      *sql.Stmt
-	listRunnersStmt                          *sql.Stmt
-	listRunsOnFindingsStmt                   *sql.Stmt
-	listSettingsStmt                         *sql.Stmt
-	listUsersStmt                            *sql.Stmt
-	markBackupDeletedStmt                    *sql.Stmt
-	markInstallationRemovedStmt              *sql.Stmt
-	markMachineRemovedStmt                   *sql.Stmt
-	markMachineSeenStmt                      *sql.Stmt
-	markMachinesOfflineStmt                  *sql.Stmt
-	markRegistryImageDeletedStmt             *sql.Stmt
-	promoteRegistryImageStmt                 *sql.Stmt
-	pruneDailySummariesStmt                  *sql.Stmt
-	pruneJobFactsStmt                        *sql.Stmt
-	pruneJobStepsStmt                        *sql.Stmt
-	pruneJobStepsOfJobsStmt                  *sql.Stmt
-	pruneJobsStmt                            *sql.Stmt
-	pruneRunsStmt                            *sql.Stmt
-	pruneWorkflowGraphsStmt                  *sql.Stmt
-	putPendingFactsStmt                      *sql.Stmt
-	putWorkflowGraphStmt                     *sql.Stmt
-	queueRegistryScanStmt                    *sql.Stmt
-	recordSignInStmt                         *sql.Stmt
-	refuseRegistryImageStmt                  *sql.Stmt
-	renameMachineStmt                        *sql.Stmt
-	restoreRegistryImageStmt                 *sql.Stmt
-	revokeCliTokenStmt                       *sql.Stmt
-	revokeJoinCodeStmt                       *sql.Stmt
-	revokeMachineKeysStmt                    *sql.Stmt
-	revokeOpenJoinCodesStmt                  *sql.Stmt
-	revokeUserCliTokensStmt                  *sql.Stmt
-	setGitHubJobWaitStmt                     *sql.Stmt
-	setImageBuildProgressStmt                *sql.Stmt
-	setImageBuildPushStateStmt               *sql.Stmt
-	setJobCompletedStmt                      *sql.Stmt
-	setJobForecastStmt                       *sql.Stmt
-	setJobSlotStmt                           *sql.Stmt
-	setJobStartedStmt                        *sql.Stmt
-	setMachineChangeStateStmt                *sql.Stmt
-	setMachineStateStmt                      *sql.Stmt
-	setManagedVariableStatusStmt             *sql.Stmt
-	setMetaStmt                              *sql.Stmt
-	setNotificationChannelTestStmt           *sql.Stmt
-	setPreferencesStmt                       *sql.Stmt
-	setRegistryBranchGoneStmt                *sql.Stmt
-	setRegistryImageLastPullStmt             *sql.Stmt
-	setRegistryImageLineageStmt              *sql.Stmt
-	setRegistryImageScanStateStmt            *sql.Stmt
-	setRegistryImageSizesStmt                *sql.Stmt
-	setRegistryReadOnlyStmt                  *sql.Stmt
-	setRegistryReplacePlanRolledBackStmt     *sql.Stmt
-	setRegistryReplacePlanStateStmt          *sql.Stmt
-	setRepositoryPoolStmt                    *sql.Stmt
-	setRunnerHygieneStmt                     *sql.Stmt
-	setRunnerRegistrationStmt                *sql.Stmt
-	setRunnerStateStmt                       *sql.Stmt
-	setSettingStmt                           *sql.Stmt
-	setTicketWaitReasonStmt                  *sql.Stmt
-	slotLogCutoffStmt                        *sql.Stmt
-	sumRegistryLayersByKindStmt              *sql.Stmt
-	sumRegistryPullDailySinceStmt            *sql.Stmt
-	sumRunMinutesSinceStmt                   *sql.Stmt
-	supersedeRegistryImageStmt               *sql.Stmt
-	touchSessionStmt                         *sql.Stmt
-	trimSlotLogStmt                          *sql.Stmt
-	typicalImageBuildSecondsStmt             *sql.Stmt
-	updateMachineFactsStmt                   *sql.Stmt
-	updateMachineSettingsStmt                *sql.Stmt
-	updateNotificationChannelStmt            *sql.Stmt
-	updatePlanStmt                           *sql.Stmt
-	updateRegistryMirrorSettingsStmt         *sql.Stmt
-	updateRegistrySettingsRowStmt            *sql.Stmt
-	updateUserRoleStmt                       *sql.Stmt
-	upsertDailySummaryStmt                   *sql.Stmt
-	upsertDoctorStateStmt                    *sql.Stmt
-	upsertGitHubAppStmt                      *sql.Stmt
-	upsertGitHubJobStmt                      *sql.Stmt
-	upsertInstallationStmt                   *sql.Stmt
-	upsertJobHistoryStmt                     *sql.Stmt
-	upsertJobsRowStmt                        *sql.Stmt
-	upsertManagedVariableStmt                *sql.Stmt
-	upsertRegistryLayerStmt                  *sql.Stmt
-	upsertRegistryPointerStmt                *sql.Stmt
-	upsertRegistryPullStmt                   *sql.Stmt
-	upsertRegistryPushStmt                   *sql.Stmt
-	upsertRegistryRecommendationStmt         *sql.Stmt
-	upsertRepoPolicyStmt                     *sql.Stmt
-	upsertRepositoryStmt                     *sql.Stmt
-	upsertRunnerUsageStmt                    *sql.Stmt
-	upsertRunsRowStmt                        *sql.Stmt
-	upsertTrayBindingStmt                    *sql.Stmt
-	useJoinCodeStmt                          *sql.Stmt
-	useLinkCodeStmt                          *sql.Stmt
-	useSetupCodeStmt                         *sql.Stmt
+	db                                          DBTX
+	tx                                          *sql.Tx
+	addRegistryPullDailyStmt                    *sql.Stmt
+	beatTicketStmt                              *sql.Stmt
+	claimRegistryScanStmt                       *sql.Stmt
+	closeRegistryRecommendationStmt             *sql.Stmt
+	countJobsByStateStmt                        *sql.Stmt
+	countLiveRegistryTokenLeasesNamingStmt      *sql.Stmt
+	countMachineSlotsStmt                       *sql.Stmt
+	countRepositoryRunningStmt                  *sql.Stmt
+	countUsersStmt                              *sql.Stmt
+	dailySummarisedDaysStmt                     *sql.Stmt
+	deleteAuditBeforeStmt                       *sql.Stmt
+	deleteEndedRegistryTokenLeasesStmt          *sql.Stmt
+	deleteJobHistoryBeforeStmt                  *sql.Stmt
+	deleteJobStepsStmt                          *sql.Stmt
+	deleteJobTicketsStmt                        *sql.Stmt
+	deleteMachineLoadBeforeStmt                 *sql.Stmt
+	deleteManagedVariableStmt                   *sql.Stmt
+	deleteNotificationChannelStmt               *sql.Stmt
+	deleteOldRegistryPullDailyStmt              *sql.Stmt
+	deleteOldRegistryPullsStmt                  *sql.Stmt
+	deletePendingFactsStmt                      *sql.Stmt
+	deleteRegistryLayerStmt                     *sql.Stmt
+	deleteRunnerStmt                            *sql.Stmt
+	deleteRunnerUsageBeforeStmt                 *sql.Stmt
+	deleteRunsOnFindingsStmt                    *sql.Stmt
+	deleteTicketStmt                            *sql.Stmt
+	deleteUserStmt                              *sql.Stmt
+	deleteWebhookDeliveriesBeforeStmt           *sql.Stmt
+	endSessionStmt                              *sql.Stmt
+	endUserSessionsStmt                         *sql.Stmt
+	enqueueJobStmt                              *sql.Stmt
+	findJoinCodeByHashStmt                      *sql.Stmt
+	finishBackupStmt                            *sql.Stmt
+	finishDoctorRunStmt                         *sql.Stmt
+	finishImageBuildStmt                        *sql.Stmt
+	finishRegistryCleanupStmt                   *sql.Stmt
+	finishRegistryScanStmt                      *sql.Stmt
+	finishRestoreDrillStmt                      *sql.Stmt
+	freeJobSlotsStmt                            *sql.Stmt
+	freeSlotStmt                                *sql.Stmt
+	freeSlotByClaimStmt                         *sql.Stmt
+	getActiveCliTokenStmt                       *sql.Stmt
+	getActiveRegistryReplacePlanForImageStmt    *sql.Stmt
+	getActiveSessionStmt                        *sql.Stmt
+	getBackupStmt                               *sql.Stmt
+	getDoctorRunStmt                            *sql.Stmt
+	getGitHubAppStmt                            *sql.Stmt
+	getGitHubJobStmt                            *sql.Stmt
+	getImageBuildStmt                           *sql.Stmt
+	getJobHistoryStmt                           *sql.Stmt
+	getJobsRowStmt                              *sql.Stmt
+	getJoinCodeStmt                             *sql.Stmt
+	getMachineStmt                              *sql.Stmt
+	getMachineByKeyStmt                         *sql.Stmt
+	getMachineChangeStmt                        *sql.Stmt
+	getMachineSettingsStmt                      *sql.Stmt
+	getMetaStmt                                 *sql.Stmt
+	getNotificationChannelStmt                  *sql.Stmt
+	getOpenMachineChangeStmt                    *sql.Stmt
+	getOwnerStmt                                *sql.Stmt
+	getPendingFactsStmt                         *sql.Stmt
+	getPlanStmt                                 *sql.Stmt
+	getPreferencesStmt                          *sql.Stmt
+	getPromotedRegistryImageByKeyStmt           *sql.Stmt
+	getRegistryCleanupStmt                      *sql.Stmt
+	getRegistryImageStmt                        *sql.Stmt
+	getRegistryMirrorSettingsStmt               *sql.Stmt
+	getRegistryPointerStmt                      *sql.Stmt
+	getRegistryReplacePlanStmt                  *sql.Stmt
+	getRegistryScanStmt                         *sql.Stmt
+	getRegistrySettingsRowStmt                  *sql.Stmt
+	getRegistryTagStmt                          *sql.Stmt
+	getRepoPolicyStmt                           *sql.Stmt
+	getRepositoryStmt                           *sql.Stmt
+	getRepositoryByNameStmt                     *sql.Stmt
+	getRunnerStmt                               *sql.Stmt
+	getRunnerByServiceStmt                      *sql.Stmt
+	getRunsRowStmt                              *sql.Stmt
+	getSettingStmt                              *sql.Stmt
+	getTicketStmt                               *sql.Stmt
+	getTrayBindingStmt                          *sql.Stmt
+	getUserStmt                                 *sql.Stmt
+	getWorkflowGraphStmt                        *sql.Stmt
+	insertAuditEntryStmt                        *sql.Stmt
+	insertAuditEventStmt                        *sql.Stmt
+	insertBackupStmt                            *sql.Stmt
+	insertCliTokenStmt                          *sql.Stmt
+	insertDoctorFindingStmt                     *sql.Stmt
+	insertDoctorRunStmt                         *sql.Stmt
+	insertImageBuildStmt                        *sql.Stmt
+	insertJobStepStmt                           *sql.Stmt
+	insertJoinCodeStmt                          *sql.Stmt
+	insertLinkCodeStmt                          *sql.Stmt
+	insertMachineStmt                           *sql.Stmt
+	insertMachineChangeStmt                     *sql.Stmt
+	insertMachineKeyStmt                        *sql.Stmt
+	insertMachineLoadStmt                       *sql.Stmt
+	insertMachineSettingsStmt                   *sql.Stmt
+	insertNotificationChannelStmt               *sql.Stmt
+	insertPlanStmt                              *sql.Stmt
+	insertRegistryCleanupStmt                   *sql.Stmt
+	insertRegistryImageStmt                     *sql.Stmt
+	insertRegistryImageLayerStmt                *sql.Stmt
+	insertRegistryReplacePlanStmt               *sql.Stmt
+	insertRegistryTagStmt                       *sql.Stmt
+	insertRegistryTokenLeaseStmt                *sql.Stmt
+	insertRestoreDrillStmt                      *sql.Stmt
+	insertRunnerStmt                            *sql.Stmt
+	insertRunnerEventStmt                       *sql.Stmt
+	insertRunsOnFindingStmt                     *sql.Stmt
+	insertSessionStmt                           *sql.Stmt
+	insertSetupCodeStmt                         *sql.Stmt
+	insertSlotStmt                              *sql.Stmt
+	insertSlotLogStmt                           *sql.Stmt
+	insertTicketStmt                            *sql.Stmt
+	insertUserStmt                              *sql.Stmt
+	insertWebhookDeliveryStmt                   *sql.Stmt
+	lastDoctorRunStmt                           *sql.Stmt
+	lastRegistryCleanupStmt                     *sql.Stmt
+	lastRestoreDrillStmt                        *sql.Stmt
+	listAuditEventsStmt                         *sql.Stmt
+	listBackupsStmt                             *sql.Stmt
+	listCliTokensStmt                           *sql.Stmt
+	listDailySummariesStmt                      *sql.Stmt
+	listDanglingRegistryLayersStmt              *sql.Stmt
+	listExpiredSlotsStmt                        *sql.Stmt
+	listExpiredTicketsStmt                      *sql.Stmt
+	listImageBuildsInFlightStmt                 *sql.Stmt
+	listImageBuildsOfMachineStmt                *sql.Stmt
+	listInFlightPullMachinesOfRegistryImageStmt *sql.Stmt
+	listInstallationsStmt                       *sql.Stmt
+	listJobAttemptsStmt                         *sql.Stmt
+	listJobHistoryStmt                          *sql.Stmt
+	listJobStepsStmt                            *sql.Stmt
+	listLatestFindingsStmt                      *sql.Stmt
+	listLiveRegistryTokenLeasesStmt             *sql.Stmt
+	listMachineLoadStmt                         *sql.Stmt
+	listMachineSlotsStmt                        *sql.Stmt
+	listMachineTicketsStmt                      *sql.Stmt
+	listMachinesStmt                            *sql.Stmt
+	listManagedVariablesStmt                    *sql.Stmt
+	listNotificationChannelsStmt                *sql.Stmt
+	listOldStagedRegistryImagesStmt             *sql.Stmt
+	listOpenGitHubJobsStmt                      *sql.Stmt
+	listOpenRegistryRecommendationsStmt         *sql.Stmt
+	listPoolRepositoriesStmt                    *sql.Stmt
+	listQueuedRegistryScansStmt                 *sql.Stmt
+	listRegistryImageLayersStmt                 *sql.Stmt
+	listRegistryImageMachinesStmt               *sql.Stmt
+	listRegistryImagesStmt                      *sql.Stmt
+	listRegistryImagesOfLineageStmt             *sql.Stmt
+	listRegistryPointersOfRepositoryStmt        *sql.Stmt
+	listRegistryPointersToStmt                  *sql.Stmt
+	listRegistryPullDailyStmt                   *sql.Stmt
+	listRegistryPullsInFlightStmt               *sql.Stmt
+	listRegistryPushesInFlightStmt              *sql.Stmt
+	listRegistrySupersededDueStmt               *sql.Stmt
+	listRegistryUnusedCandidatesStmt            *sql.Stmt
+	listRegistryVariantsDueStmt                 *sql.Stmt
+	listRepositoriesStmt                        *sql.Stmt
+	listRunAttemptsStmt                         *sql.Stmt
+	listRunFindingsStmt                         *sql.Stmt
+	listRunnersStmt                             *sql.Stmt
+	listRunningJobsOfRegistryImageStmt          *sql.Stmt
+	listRunsOnFindingsStmt                      *sql.Stmt
+	listSettingsStmt                            *sql.Stmt
+	listUsersStmt                               *sql.Stmt
+	markBackupDeletedStmt                       *sql.Stmt
+	markInstallationRemovedStmt                 *sql.Stmt
+	markMachineRemovedStmt                      *sql.Stmt
+	markMachineSeenStmt                         *sql.Stmt
+	markMachinesOfflineStmt                     *sql.Stmt
+	markRegistryImageDeletedStmt                *sql.Stmt
+	promoteRegistryImageStmt                    *sql.Stmt
+	pruneDailySummariesStmt                     *sql.Stmt
+	pruneJobFactsStmt                           *sql.Stmt
+	pruneJobStepsStmt                           *sql.Stmt
+	pruneJobStepsOfJobsStmt                     *sql.Stmt
+	pruneJobsStmt                               *sql.Stmt
+	pruneRunsStmt                               *sql.Stmt
+	pruneWorkflowGraphsStmt                     *sql.Stmt
+	putPendingFactsStmt                         *sql.Stmt
+	putWorkflowGraphStmt                        *sql.Stmt
+	queueRegistryScanStmt                       *sql.Stmt
+	recordSignInStmt                            *sql.Stmt
+	refuseRegistryImageStmt                     *sql.Stmt
+	renameMachineStmt                           *sql.Stmt
+	restoreRegistryImageStmt                    *sql.Stmt
+	revokeCliTokenStmt                          *sql.Stmt
+	revokeJoinCodeStmt                          *sql.Stmt
+	revokeMachineKeysStmt                       *sql.Stmt
+	revokeOpenJoinCodesStmt                     *sql.Stmt
+	revokeUserCliTokensStmt                     *sql.Stmt
+	setGitHubJobWaitStmt                        *sql.Stmt
+	setImageBuildProgressStmt                   *sql.Stmt
+	setImageBuildPushStateStmt                  *sql.Stmt
+	setJobCompletedStmt                         *sql.Stmt
+	setJobForecastStmt                          *sql.Stmt
+	setJobSlotStmt                              *sql.Stmt
+	setJobStartedStmt                           *sql.Stmt
+	setMachineChangeStateStmt                   *sql.Stmt
+	setMachineStateStmt                         *sql.Stmt
+	setManagedVariableStatusStmt                *sql.Stmt
+	setMetaStmt                                 *sql.Stmt
+	setNotificationChannelTestStmt              *sql.Stmt
+	setPreferencesStmt                          *sql.Stmt
+	setRegistryBranchGoneStmt                   *sql.Stmt
+	setRegistryImageLastPullStmt                *sql.Stmt
+	setRegistryImageLineageStmt                 *sql.Stmt
+	setRegistryImageScanStateStmt               *sql.Stmt
+	setRegistryImageSizesStmt                   *sql.Stmt
+	setRegistryReadOnlyStmt                     *sql.Stmt
+	setRegistryReplacePlanRolledBackStmt        *sql.Stmt
+	setRegistryReplacePlanStateStmt             *sql.Stmt
+	setRepositoryPoolStmt                       *sql.Stmt
+	setRunnerHygieneStmt                        *sql.Stmt
+	setRunnerRegistrationStmt                   *sql.Stmt
+	setRunnerStateStmt                          *sql.Stmt
+	setSettingStmt                              *sql.Stmt
+	setTicketWaitReasonStmt                     *sql.Stmt
+	slotLogCutoffStmt                           *sql.Stmt
+	sumRegistryLayersByKindStmt                 *sql.Stmt
+	sumRegistryPullDailySinceStmt               *sql.Stmt
+	sumRegistrySharedLayersStmt                 *sql.Stmt
+	sumRunMinutesSinceStmt                      *sql.Stmt
+	supersedeRegistryImageStmt                  *sql.Stmt
+	touchSessionStmt                            *sql.Stmt
+	trimSlotLogStmt                             *sql.Stmt
+	typicalImageBuildSecondsStmt                *sql.Stmt
+	updateMachineFactsStmt                      *sql.Stmt
+	updateMachineSettingsStmt                   *sql.Stmt
+	updateNotificationChannelStmt               *sql.Stmt
+	updatePlanStmt                              *sql.Stmt
+	updateRegistryMirrorSettingsStmt            *sql.Stmt
+	updateRegistrySettingsRowStmt               *sql.Stmt
+	updateUserRoleStmt                          *sql.Stmt
+	upsertDailySummaryStmt                      *sql.Stmt
+	upsertDoctorStateStmt                       *sql.Stmt
+	upsertGitHubAppStmt                         *sql.Stmt
+	upsertGitHubJobStmt                         *sql.Stmt
+	upsertInstallationStmt                      *sql.Stmt
+	upsertJobHistoryStmt                        *sql.Stmt
+	upsertJobsRowStmt                           *sql.Stmt
+	upsertManagedVariableStmt                   *sql.Stmt
+	upsertRegistryLayerStmt                     *sql.Stmt
+	upsertRegistryPointerStmt                   *sql.Stmt
+	upsertRegistryPullStmt                      *sql.Stmt
+	upsertRegistryPushStmt                      *sql.Stmt
+	upsertRegistryRecommendationStmt            *sql.Stmt
+	upsertRepoPolicyStmt                        *sql.Stmt
+	upsertRepositoryStmt                        *sql.Stmt
+	upsertRunnerUsageStmt                       *sql.Stmt
+	upsertRunsRowStmt                           *sql.Stmt
+	upsertTrayBindingStmt                       *sql.Stmt
+	useJoinCodeStmt                             *sql.Stmt
+	useLinkCodeStmt                             *sql.Stmt
+	useSetupCodeStmt                            *sql.Stmt
 }
 
 func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 	return &Queries{
-		db:                                       tx,
-		tx:                                       tx,
-		addRegistryPullDailyStmt:                 q.addRegistryPullDailyStmt,
-		beatTicketStmt:                           q.beatTicketStmt,
-		claimRegistryScanStmt:                    q.claimRegistryScanStmt,
-		closeRegistryRecommendationStmt:          q.closeRegistryRecommendationStmt,
-		countJobsByStateStmt:                     q.countJobsByStateStmt,
-		countMachineSlotsStmt:                    q.countMachineSlotsStmt,
-		countRepositoryRunningStmt:               q.countRepositoryRunningStmt,
-		countUsersStmt:                           q.countUsersStmt,
-		dailySummarisedDaysStmt:                  q.dailySummarisedDaysStmt,
-		deleteAuditBeforeStmt:                    q.deleteAuditBeforeStmt,
-		deleteEndedRegistryTokenLeasesStmt:       q.deleteEndedRegistryTokenLeasesStmt,
-		deleteJobHistoryBeforeStmt:               q.deleteJobHistoryBeforeStmt,
-		deleteJobStepsStmt:                       q.deleteJobStepsStmt,
-		deleteJobTicketsStmt:                     q.deleteJobTicketsStmt,
-		deleteMachineLoadBeforeStmt:              q.deleteMachineLoadBeforeStmt,
-		deleteManagedVariableStmt:                q.deleteManagedVariableStmt,
-		deleteNotificationChannelStmt:            q.deleteNotificationChannelStmt,
-		deleteOldRegistryPullDailyStmt:           q.deleteOldRegistryPullDailyStmt,
-		deleteOldRegistryPullsStmt:               q.deleteOldRegistryPullsStmt,
-		deletePendingFactsStmt:                   q.deletePendingFactsStmt,
-		deleteRegistryLayerStmt:                  q.deleteRegistryLayerStmt,
-		deleteRunnerStmt:                         q.deleteRunnerStmt,
-		deleteRunnerUsageBeforeStmt:              q.deleteRunnerUsageBeforeStmt,
-		deleteRunsOnFindingsStmt:                 q.deleteRunsOnFindingsStmt,
-		deleteTicketStmt:                         q.deleteTicketStmt,
-		deleteUserStmt:                           q.deleteUserStmt,
-		deleteWebhookDeliveriesBeforeStmt:        q.deleteWebhookDeliveriesBeforeStmt,
-		endSessionStmt:                           q.endSessionStmt,
-		endUserSessionsStmt:                      q.endUserSessionsStmt,
-		enqueueJobStmt:                           q.enqueueJobStmt,
-		findJoinCodeByHashStmt:                   q.findJoinCodeByHashStmt,
-		finishBackupStmt:                         q.finishBackupStmt,
-		finishDoctorRunStmt:                      q.finishDoctorRunStmt,
-		finishImageBuildStmt:                     q.finishImageBuildStmt,
-		finishRegistryCleanupStmt:                q.finishRegistryCleanupStmt,
-		finishRegistryScanStmt:                   q.finishRegistryScanStmt,
-		finishRestoreDrillStmt:                   q.finishRestoreDrillStmt,
-		freeJobSlotsStmt:                         q.freeJobSlotsStmt,
-		freeSlotStmt:                             q.freeSlotStmt,
-		freeSlotByClaimStmt:                      q.freeSlotByClaimStmt,
-		getActiveCliTokenStmt:                    q.getActiveCliTokenStmt,
-		getActiveRegistryReplacePlanForImageStmt: q.getActiveRegistryReplacePlanForImageStmt,
-		getActiveSessionStmt:                     q.getActiveSessionStmt,
-		getBackupStmt:                            q.getBackupStmt,
-		getDoctorRunStmt:                         q.getDoctorRunStmt,
-		getGitHubAppStmt:                         q.getGitHubAppStmt,
-		getGitHubJobStmt:                         q.getGitHubJobStmt,
-		getImageBuildStmt:                        q.getImageBuildStmt,
-		getJobHistoryStmt:                        q.getJobHistoryStmt,
-		getJobsRowStmt:                           q.getJobsRowStmt,
-		getJoinCodeStmt:                          q.getJoinCodeStmt,
-		getMachineStmt:                           q.getMachineStmt,
-		getMachineByKeyStmt:                      q.getMachineByKeyStmt,
-		getMachineChangeStmt:                     q.getMachineChangeStmt,
-		getMachineSettingsStmt:                   q.getMachineSettingsStmt,
-		getMetaStmt:                              q.getMetaStmt,
-		getNotificationChannelStmt:               q.getNotificationChannelStmt,
-		getOpenMachineChangeStmt:                 q.getOpenMachineChangeStmt,
-		getOwnerStmt:                             q.getOwnerStmt,
-		getPendingFactsStmt:                      q.getPendingFactsStmt,
-		getPlanStmt:                              q.getPlanStmt,
-		getPreferencesStmt:                       q.getPreferencesStmt,
-		getPromotedRegistryImageByKeyStmt:        q.getPromotedRegistryImageByKeyStmt,
-		getRegistryImageStmt:                     q.getRegistryImageStmt,
-		getRegistryMirrorSettingsStmt:            q.getRegistryMirrorSettingsStmt,
-		getRegistryPointerStmt:                   q.getRegistryPointerStmt,
-		getRegistryReplacePlanStmt:               q.getRegistryReplacePlanStmt,
-		getRegistryScanStmt:                      q.getRegistryScanStmt,
-		getRegistrySettingsRowStmt:               q.getRegistrySettingsRowStmt,
-		getRegistryTagStmt:                       q.getRegistryTagStmt,
-		getRepoPolicyStmt:                        q.getRepoPolicyStmt,
-		getRepositoryStmt:                        q.getRepositoryStmt,
-		getRepositoryByNameStmt:                  q.getRepositoryByNameStmt,
-		getRunnerStmt:                            q.getRunnerStmt,
-		getRunnerByServiceStmt:                   q.getRunnerByServiceStmt,
-		getRunsRowStmt:                           q.getRunsRowStmt,
-		getSettingStmt:                           q.getSettingStmt,
-		getTicketStmt:                            q.getTicketStmt,
-		getTrayBindingStmt:                       q.getTrayBindingStmt,
-		getUserStmt:                              q.getUserStmt,
-		getWorkflowGraphStmt:                     q.getWorkflowGraphStmt,
-		insertAuditEntryStmt:                     q.insertAuditEntryStmt,
-		insertAuditEventStmt:                     q.insertAuditEventStmt,
-		insertBackupStmt:                         q.insertBackupStmt,
-		insertCliTokenStmt:                       q.insertCliTokenStmt,
-		insertDoctorFindingStmt:                  q.insertDoctorFindingStmt,
-		insertDoctorRunStmt:                      q.insertDoctorRunStmt,
-		insertImageBuildStmt:                     q.insertImageBuildStmt,
-		insertJobStepStmt:                        q.insertJobStepStmt,
-		insertJoinCodeStmt:                       q.insertJoinCodeStmt,
-		insertLinkCodeStmt:                       q.insertLinkCodeStmt,
-		insertMachineStmt:                        q.insertMachineStmt,
-		insertMachineChangeStmt:                  q.insertMachineChangeStmt,
-		insertMachineKeyStmt:                     q.insertMachineKeyStmt,
-		insertMachineLoadStmt:                    q.insertMachineLoadStmt,
-		insertMachineSettingsStmt:                q.insertMachineSettingsStmt,
-		insertNotificationChannelStmt:            q.insertNotificationChannelStmt,
-		insertPlanStmt:                           q.insertPlanStmt,
-		insertRegistryCleanupStmt:                q.insertRegistryCleanupStmt,
-		insertRegistryImageStmt:                  q.insertRegistryImageStmt,
-		insertRegistryImageLayerStmt:             q.insertRegistryImageLayerStmt,
-		insertRegistryReplacePlanStmt:            q.insertRegistryReplacePlanStmt,
-		insertRegistryTagStmt:                    q.insertRegistryTagStmt,
-		insertRegistryTokenLeaseStmt:             q.insertRegistryTokenLeaseStmt,
-		insertRestoreDrillStmt:                   q.insertRestoreDrillStmt,
-		insertRunnerStmt:                         q.insertRunnerStmt,
-		insertRunnerEventStmt:                    q.insertRunnerEventStmt,
-		insertRunsOnFindingStmt:                  q.insertRunsOnFindingStmt,
-		insertSessionStmt:                        q.insertSessionStmt,
-		insertSetupCodeStmt:                      q.insertSetupCodeStmt,
-		insertSlotStmt:                           q.insertSlotStmt,
-		insertSlotLogStmt:                        q.insertSlotLogStmt,
-		insertTicketStmt:                         q.insertTicketStmt,
-		insertUserStmt:                           q.insertUserStmt,
-		insertWebhookDeliveryStmt:                q.insertWebhookDeliveryStmt,
-		lastDoctorRunStmt:                        q.lastDoctorRunStmt,
-		lastRegistryCleanupStmt:                  q.lastRegistryCleanupStmt,
-		lastRestoreDrillStmt:                     q.lastRestoreDrillStmt,
-		listAuditEventsStmt:                      q.listAuditEventsStmt,
-		listBackupsStmt:                          q.listBackupsStmt,
-		listCliTokensStmt:                        q.listCliTokensStmt,
-		listDailySummariesStmt:                   q.listDailySummariesStmt,
-		listDanglingRegistryLayersStmt:           q.listDanglingRegistryLayersStmt,
-		listExpiredSlotsStmt:                     q.listExpiredSlotsStmt,
-		listExpiredTicketsStmt:                   q.listExpiredTicketsStmt,
-		listImageBuildsInFlightStmt:              q.listImageBuildsInFlightStmt,
-		listImageBuildsOfMachineStmt:             q.listImageBuildsOfMachineStmt,
-		listInstallationsStmt:                    q.listInstallationsStmt,
-		listJobAttemptsStmt:                      q.listJobAttemptsStmt,
-		listJobHistoryStmt:                       q.listJobHistoryStmt,
-		listJobStepsStmt:                         q.listJobStepsStmt,
-		listLatestFindingsStmt:                   q.listLatestFindingsStmt,
-		listLiveRegistryTokenLeasesStmt:          q.listLiveRegistryTokenLeasesStmt,
-		listMachineLoadStmt:                      q.listMachineLoadStmt,
-		listMachineSlotsStmt:                     q.listMachineSlotsStmt,
-		listMachineTicketsStmt:                   q.listMachineTicketsStmt,
-		listMachinesStmt:                         q.listMachinesStmt,
-		listManagedVariablesStmt:                 q.listManagedVariablesStmt,
-		listNotificationChannelsStmt:             q.listNotificationChannelsStmt,
-		listOpenGitHubJobsStmt:                   q.listOpenGitHubJobsStmt,
-		listOpenRegistryRecommendationsStmt:      q.listOpenRegistryRecommendationsStmt,
-		listPoolRepositoriesStmt:                 q.listPoolRepositoriesStmt,
-		listQueuedRegistryScansStmt:              q.listQueuedRegistryScansStmt,
-		listRegistryImageLayersStmt:              q.listRegistryImageLayersStmt,
-		listRegistryImageMachinesStmt:            q.listRegistryImageMachinesStmt,
-		listRegistryImagesStmt:                   q.listRegistryImagesStmt,
-		listRegistryImagesOfLineageStmt:          q.listRegistryImagesOfLineageStmt,
-		listRegistryPointersOfRepositoryStmt:     q.listRegistryPointersOfRepositoryStmt,
-		listRegistryPointersToStmt:               q.listRegistryPointersToStmt,
-		listRegistryPullDailyStmt:                q.listRegistryPullDailyStmt,
-		listRegistryPullsInFlightStmt:            q.listRegistryPullsInFlightStmt,
-		listRegistryPushesInFlightStmt:           q.listRegistryPushesInFlightStmt,
-		listRegistrySupersededDueStmt:            q.listRegistrySupersededDueStmt,
-		listRegistryUnusedCandidatesStmt:         q.listRegistryUnusedCandidatesStmt,
-		listRegistryVariantsDueStmt:              q.listRegistryVariantsDueStmt,
-		listRepositoriesStmt:                     q.listRepositoriesStmt,
-		listRunAttemptsStmt:                      q.listRunAttemptsStmt,
-		listRunFindingsStmt:                      q.listRunFindingsStmt,
-		listRunnersStmt:                          q.listRunnersStmt,
-		listRunsOnFindingsStmt:                   q.listRunsOnFindingsStmt,
-		listSettingsStmt:                         q.listSettingsStmt,
-		listUsersStmt:                            q.listUsersStmt,
-		markBackupDeletedStmt:                    q.markBackupDeletedStmt,
-		markInstallationRemovedStmt:              q.markInstallationRemovedStmt,
-		markMachineRemovedStmt:                   q.markMachineRemovedStmt,
-		markMachineSeenStmt:                      q.markMachineSeenStmt,
-		markMachinesOfflineStmt:                  q.markMachinesOfflineStmt,
-		markRegistryImageDeletedStmt:             q.markRegistryImageDeletedStmt,
-		promoteRegistryImageStmt:                 q.promoteRegistryImageStmt,
-		pruneDailySummariesStmt:                  q.pruneDailySummariesStmt,
-		pruneJobFactsStmt:                        q.pruneJobFactsStmt,
-		pruneJobStepsStmt:                        q.pruneJobStepsStmt,
-		pruneJobStepsOfJobsStmt:                  q.pruneJobStepsOfJobsStmt,
-		pruneJobsStmt:                            q.pruneJobsStmt,
-		pruneRunsStmt:                            q.pruneRunsStmt,
-		pruneWorkflowGraphsStmt:                  q.pruneWorkflowGraphsStmt,
-		putPendingFactsStmt:                      q.putPendingFactsStmt,
-		putWorkflowGraphStmt:                     q.putWorkflowGraphStmt,
-		queueRegistryScanStmt:                    q.queueRegistryScanStmt,
-		recordSignInStmt:                         q.recordSignInStmt,
-		refuseRegistryImageStmt:                  q.refuseRegistryImageStmt,
-		renameMachineStmt:                        q.renameMachineStmt,
-		restoreRegistryImageStmt:                 q.restoreRegistryImageStmt,
-		revokeCliTokenStmt:                       q.revokeCliTokenStmt,
-		revokeJoinCodeStmt:                       q.revokeJoinCodeStmt,
-		revokeMachineKeysStmt:                    q.revokeMachineKeysStmt,
-		revokeOpenJoinCodesStmt:                  q.revokeOpenJoinCodesStmt,
-		revokeUserCliTokensStmt:                  q.revokeUserCliTokensStmt,
-		setGitHubJobWaitStmt:                     q.setGitHubJobWaitStmt,
-		setImageBuildProgressStmt:                q.setImageBuildProgressStmt,
-		setImageBuildPushStateStmt:               q.setImageBuildPushStateStmt,
-		setJobCompletedStmt:                      q.setJobCompletedStmt,
-		setJobForecastStmt:                       q.setJobForecastStmt,
-		setJobSlotStmt:                           q.setJobSlotStmt,
-		setJobStartedStmt:                        q.setJobStartedStmt,
-		setMachineChangeStateStmt:                q.setMachineChangeStateStmt,
-		setMachineStateStmt:                      q.setMachineStateStmt,
-		setManagedVariableStatusStmt:             q.setManagedVariableStatusStmt,
-		setMetaStmt:                              q.setMetaStmt,
-		setNotificationChannelTestStmt:           q.setNotificationChannelTestStmt,
-		setPreferencesStmt:                       q.setPreferencesStmt,
-		setRegistryBranchGoneStmt:                q.setRegistryBranchGoneStmt,
-		setRegistryImageLastPullStmt:             q.setRegistryImageLastPullStmt,
-		setRegistryImageLineageStmt:              q.setRegistryImageLineageStmt,
-		setRegistryImageScanStateStmt:            q.setRegistryImageScanStateStmt,
-		setRegistryImageSizesStmt:                q.setRegistryImageSizesStmt,
-		setRegistryReadOnlyStmt:                  q.setRegistryReadOnlyStmt,
-		setRegistryReplacePlanRolledBackStmt:     q.setRegistryReplacePlanRolledBackStmt,
-		setRegistryReplacePlanStateStmt:          q.setRegistryReplacePlanStateStmt,
-		setRepositoryPoolStmt:                    q.setRepositoryPoolStmt,
-		setRunnerHygieneStmt:                     q.setRunnerHygieneStmt,
-		setRunnerRegistrationStmt:                q.setRunnerRegistrationStmt,
-		setRunnerStateStmt:                       q.setRunnerStateStmt,
-		setSettingStmt:                           q.setSettingStmt,
-		setTicketWaitReasonStmt:                  q.setTicketWaitReasonStmt,
-		slotLogCutoffStmt:                        q.slotLogCutoffStmt,
-		sumRegistryLayersByKindStmt:              q.sumRegistryLayersByKindStmt,
-		sumRegistryPullDailySinceStmt:            q.sumRegistryPullDailySinceStmt,
-		sumRunMinutesSinceStmt:                   q.sumRunMinutesSinceStmt,
-		supersedeRegistryImageStmt:               q.supersedeRegistryImageStmt,
-		touchSessionStmt:                         q.touchSessionStmt,
-		trimSlotLogStmt:                          q.trimSlotLogStmt,
-		typicalImageBuildSecondsStmt:             q.typicalImageBuildSecondsStmt,
-		updateMachineFactsStmt:                   q.updateMachineFactsStmt,
-		updateMachineSettingsStmt:                q.updateMachineSettingsStmt,
-		updateNotificationChannelStmt:            q.updateNotificationChannelStmt,
-		updatePlanStmt:                           q.updatePlanStmt,
-		updateRegistryMirrorSettingsStmt:         q.updateRegistryMirrorSettingsStmt,
-		updateRegistrySettingsRowStmt:            q.updateRegistrySettingsRowStmt,
-		updateUserRoleStmt:                       q.updateUserRoleStmt,
-		upsertDailySummaryStmt:                   q.upsertDailySummaryStmt,
-		upsertDoctorStateStmt:                    q.upsertDoctorStateStmt,
-		upsertGitHubAppStmt:                      q.upsertGitHubAppStmt,
-		upsertGitHubJobStmt:                      q.upsertGitHubJobStmt,
-		upsertInstallationStmt:                   q.upsertInstallationStmt,
-		upsertJobHistoryStmt:                     q.upsertJobHistoryStmt,
-		upsertJobsRowStmt:                        q.upsertJobsRowStmt,
-		upsertManagedVariableStmt:                q.upsertManagedVariableStmt,
-		upsertRegistryLayerStmt:                  q.upsertRegistryLayerStmt,
-		upsertRegistryPointerStmt:                q.upsertRegistryPointerStmt,
-		upsertRegistryPullStmt:                   q.upsertRegistryPullStmt,
-		upsertRegistryPushStmt:                   q.upsertRegistryPushStmt,
-		upsertRegistryRecommendationStmt:         q.upsertRegistryRecommendationStmt,
-		upsertRepoPolicyStmt:                     q.upsertRepoPolicyStmt,
-		upsertRepositoryStmt:                     q.upsertRepositoryStmt,
-		upsertRunnerUsageStmt:                    q.upsertRunnerUsageStmt,
-		upsertRunsRowStmt:                        q.upsertRunsRowStmt,
-		upsertTrayBindingStmt:                    q.upsertTrayBindingStmt,
-		useJoinCodeStmt:                          q.useJoinCodeStmt,
-		useLinkCodeStmt:                          q.useLinkCodeStmt,
-		useSetupCodeStmt:                         q.useSetupCodeStmt,
+		db:                                          tx,
+		tx:                                          tx,
+		addRegistryPullDailyStmt:                    q.addRegistryPullDailyStmt,
+		beatTicketStmt:                              q.beatTicketStmt,
+		claimRegistryScanStmt:                       q.claimRegistryScanStmt,
+		closeRegistryRecommendationStmt:             q.closeRegistryRecommendationStmt,
+		countJobsByStateStmt:                        q.countJobsByStateStmt,
+		countLiveRegistryTokenLeasesNamingStmt:      q.countLiveRegistryTokenLeasesNamingStmt,
+		countMachineSlotsStmt:                       q.countMachineSlotsStmt,
+		countRepositoryRunningStmt:                  q.countRepositoryRunningStmt,
+		countUsersStmt:                              q.countUsersStmt,
+		dailySummarisedDaysStmt:                     q.dailySummarisedDaysStmt,
+		deleteAuditBeforeStmt:                       q.deleteAuditBeforeStmt,
+		deleteEndedRegistryTokenLeasesStmt:          q.deleteEndedRegistryTokenLeasesStmt,
+		deleteJobHistoryBeforeStmt:                  q.deleteJobHistoryBeforeStmt,
+		deleteJobStepsStmt:                          q.deleteJobStepsStmt,
+		deleteJobTicketsStmt:                        q.deleteJobTicketsStmt,
+		deleteMachineLoadBeforeStmt:                 q.deleteMachineLoadBeforeStmt,
+		deleteManagedVariableStmt:                   q.deleteManagedVariableStmt,
+		deleteNotificationChannelStmt:               q.deleteNotificationChannelStmt,
+		deleteOldRegistryPullDailyStmt:              q.deleteOldRegistryPullDailyStmt,
+		deleteOldRegistryPullsStmt:                  q.deleteOldRegistryPullsStmt,
+		deletePendingFactsStmt:                      q.deletePendingFactsStmt,
+		deleteRegistryLayerStmt:                     q.deleteRegistryLayerStmt,
+		deleteRunnerStmt:                            q.deleteRunnerStmt,
+		deleteRunnerUsageBeforeStmt:                 q.deleteRunnerUsageBeforeStmt,
+		deleteRunsOnFindingsStmt:                    q.deleteRunsOnFindingsStmt,
+		deleteTicketStmt:                            q.deleteTicketStmt,
+		deleteUserStmt:                              q.deleteUserStmt,
+		deleteWebhookDeliveriesBeforeStmt:           q.deleteWebhookDeliveriesBeforeStmt,
+		endSessionStmt:                              q.endSessionStmt,
+		endUserSessionsStmt:                         q.endUserSessionsStmt,
+		enqueueJobStmt:                              q.enqueueJobStmt,
+		findJoinCodeByHashStmt:                      q.findJoinCodeByHashStmt,
+		finishBackupStmt:                            q.finishBackupStmt,
+		finishDoctorRunStmt:                         q.finishDoctorRunStmt,
+		finishImageBuildStmt:                        q.finishImageBuildStmt,
+		finishRegistryCleanupStmt:                   q.finishRegistryCleanupStmt,
+		finishRegistryScanStmt:                      q.finishRegistryScanStmt,
+		finishRestoreDrillStmt:                      q.finishRestoreDrillStmt,
+		freeJobSlotsStmt:                            q.freeJobSlotsStmt,
+		freeSlotStmt:                                q.freeSlotStmt,
+		freeSlotByClaimStmt:                         q.freeSlotByClaimStmt,
+		getActiveCliTokenStmt:                       q.getActiveCliTokenStmt,
+		getActiveRegistryReplacePlanForImageStmt:    q.getActiveRegistryReplacePlanForImageStmt,
+		getActiveSessionStmt:                        q.getActiveSessionStmt,
+		getBackupStmt:                               q.getBackupStmt,
+		getDoctorRunStmt:                            q.getDoctorRunStmt,
+		getGitHubAppStmt:                            q.getGitHubAppStmt,
+		getGitHubJobStmt:                            q.getGitHubJobStmt,
+		getImageBuildStmt:                           q.getImageBuildStmt,
+		getJobHistoryStmt:                           q.getJobHistoryStmt,
+		getJobsRowStmt:                              q.getJobsRowStmt,
+		getJoinCodeStmt:                             q.getJoinCodeStmt,
+		getMachineStmt:                              q.getMachineStmt,
+		getMachineByKeyStmt:                         q.getMachineByKeyStmt,
+		getMachineChangeStmt:                        q.getMachineChangeStmt,
+		getMachineSettingsStmt:                      q.getMachineSettingsStmt,
+		getMetaStmt:                                 q.getMetaStmt,
+		getNotificationChannelStmt:                  q.getNotificationChannelStmt,
+		getOpenMachineChangeStmt:                    q.getOpenMachineChangeStmt,
+		getOwnerStmt:                                q.getOwnerStmt,
+		getPendingFactsStmt:                         q.getPendingFactsStmt,
+		getPlanStmt:                                 q.getPlanStmt,
+		getPreferencesStmt:                          q.getPreferencesStmt,
+		getPromotedRegistryImageByKeyStmt:           q.getPromotedRegistryImageByKeyStmt,
+		getRegistryCleanupStmt:                      q.getRegistryCleanupStmt,
+		getRegistryImageStmt:                        q.getRegistryImageStmt,
+		getRegistryMirrorSettingsStmt:               q.getRegistryMirrorSettingsStmt,
+		getRegistryPointerStmt:                      q.getRegistryPointerStmt,
+		getRegistryReplacePlanStmt:                  q.getRegistryReplacePlanStmt,
+		getRegistryScanStmt:                         q.getRegistryScanStmt,
+		getRegistrySettingsRowStmt:                  q.getRegistrySettingsRowStmt,
+		getRegistryTagStmt:                          q.getRegistryTagStmt,
+		getRepoPolicyStmt:                           q.getRepoPolicyStmt,
+		getRepositoryStmt:                           q.getRepositoryStmt,
+		getRepositoryByNameStmt:                     q.getRepositoryByNameStmt,
+		getRunnerStmt:                               q.getRunnerStmt,
+		getRunnerByServiceStmt:                      q.getRunnerByServiceStmt,
+		getRunsRowStmt:                              q.getRunsRowStmt,
+		getSettingStmt:                              q.getSettingStmt,
+		getTicketStmt:                               q.getTicketStmt,
+		getTrayBindingStmt:                          q.getTrayBindingStmt,
+		getUserStmt:                                 q.getUserStmt,
+		getWorkflowGraphStmt:                        q.getWorkflowGraphStmt,
+		insertAuditEntryStmt:                        q.insertAuditEntryStmt,
+		insertAuditEventStmt:                        q.insertAuditEventStmt,
+		insertBackupStmt:                            q.insertBackupStmt,
+		insertCliTokenStmt:                          q.insertCliTokenStmt,
+		insertDoctorFindingStmt:                     q.insertDoctorFindingStmt,
+		insertDoctorRunStmt:                         q.insertDoctorRunStmt,
+		insertImageBuildStmt:                        q.insertImageBuildStmt,
+		insertJobStepStmt:                           q.insertJobStepStmt,
+		insertJoinCodeStmt:                          q.insertJoinCodeStmt,
+		insertLinkCodeStmt:                          q.insertLinkCodeStmt,
+		insertMachineStmt:                           q.insertMachineStmt,
+		insertMachineChangeStmt:                     q.insertMachineChangeStmt,
+		insertMachineKeyStmt:                        q.insertMachineKeyStmt,
+		insertMachineLoadStmt:                       q.insertMachineLoadStmt,
+		insertMachineSettingsStmt:                   q.insertMachineSettingsStmt,
+		insertNotificationChannelStmt:               q.insertNotificationChannelStmt,
+		insertPlanStmt:                              q.insertPlanStmt,
+		insertRegistryCleanupStmt:                   q.insertRegistryCleanupStmt,
+		insertRegistryImageStmt:                     q.insertRegistryImageStmt,
+		insertRegistryImageLayerStmt:                q.insertRegistryImageLayerStmt,
+		insertRegistryReplacePlanStmt:               q.insertRegistryReplacePlanStmt,
+		insertRegistryTagStmt:                       q.insertRegistryTagStmt,
+		insertRegistryTokenLeaseStmt:                q.insertRegistryTokenLeaseStmt,
+		insertRestoreDrillStmt:                      q.insertRestoreDrillStmt,
+		insertRunnerStmt:                            q.insertRunnerStmt,
+		insertRunnerEventStmt:                       q.insertRunnerEventStmt,
+		insertRunsOnFindingStmt:                     q.insertRunsOnFindingStmt,
+		insertSessionStmt:                           q.insertSessionStmt,
+		insertSetupCodeStmt:                         q.insertSetupCodeStmt,
+		insertSlotStmt:                              q.insertSlotStmt,
+		insertSlotLogStmt:                           q.insertSlotLogStmt,
+		insertTicketStmt:                            q.insertTicketStmt,
+		insertUserStmt:                              q.insertUserStmt,
+		insertWebhookDeliveryStmt:                   q.insertWebhookDeliveryStmt,
+		lastDoctorRunStmt:                           q.lastDoctorRunStmt,
+		lastRegistryCleanupStmt:                     q.lastRegistryCleanupStmt,
+		lastRestoreDrillStmt:                        q.lastRestoreDrillStmt,
+		listAuditEventsStmt:                         q.listAuditEventsStmt,
+		listBackupsStmt:                             q.listBackupsStmt,
+		listCliTokensStmt:                           q.listCliTokensStmt,
+		listDailySummariesStmt:                      q.listDailySummariesStmt,
+		listDanglingRegistryLayersStmt:              q.listDanglingRegistryLayersStmt,
+		listExpiredSlotsStmt:                        q.listExpiredSlotsStmt,
+		listExpiredTicketsStmt:                      q.listExpiredTicketsStmt,
+		listImageBuildsInFlightStmt:                 q.listImageBuildsInFlightStmt,
+		listImageBuildsOfMachineStmt:                q.listImageBuildsOfMachineStmt,
+		listInFlightPullMachinesOfRegistryImageStmt: q.listInFlightPullMachinesOfRegistryImageStmt,
+		listInstallationsStmt:                       q.listInstallationsStmt,
+		listJobAttemptsStmt:                         q.listJobAttemptsStmt,
+		listJobHistoryStmt:                          q.listJobHistoryStmt,
+		listJobStepsStmt:                            q.listJobStepsStmt,
+		listLatestFindingsStmt:                      q.listLatestFindingsStmt,
+		listLiveRegistryTokenLeasesStmt:             q.listLiveRegistryTokenLeasesStmt,
+		listMachineLoadStmt:                         q.listMachineLoadStmt,
+		listMachineSlotsStmt:                        q.listMachineSlotsStmt,
+		listMachineTicketsStmt:                      q.listMachineTicketsStmt,
+		listMachinesStmt:                            q.listMachinesStmt,
+		listManagedVariablesStmt:                    q.listManagedVariablesStmt,
+		listNotificationChannelsStmt:                q.listNotificationChannelsStmt,
+		listOldStagedRegistryImagesStmt:             q.listOldStagedRegistryImagesStmt,
+		listOpenGitHubJobsStmt:                      q.listOpenGitHubJobsStmt,
+		listOpenRegistryRecommendationsStmt:         q.listOpenRegistryRecommendationsStmt,
+		listPoolRepositoriesStmt:                    q.listPoolRepositoriesStmt,
+		listQueuedRegistryScansStmt:                 q.listQueuedRegistryScansStmt,
+		listRegistryImageLayersStmt:                 q.listRegistryImageLayersStmt,
+		listRegistryImageMachinesStmt:               q.listRegistryImageMachinesStmt,
+		listRegistryImagesStmt:                      q.listRegistryImagesStmt,
+		listRegistryImagesOfLineageStmt:             q.listRegistryImagesOfLineageStmt,
+		listRegistryPointersOfRepositoryStmt:        q.listRegistryPointersOfRepositoryStmt,
+		listRegistryPointersToStmt:                  q.listRegistryPointersToStmt,
+		listRegistryPullDailyStmt:                   q.listRegistryPullDailyStmt,
+		listRegistryPullsInFlightStmt:               q.listRegistryPullsInFlightStmt,
+		listRegistryPushesInFlightStmt:              q.listRegistryPushesInFlightStmt,
+		listRegistrySupersededDueStmt:               q.listRegistrySupersededDueStmt,
+		listRegistryUnusedCandidatesStmt:            q.listRegistryUnusedCandidatesStmt,
+		listRegistryVariantsDueStmt:                 q.listRegistryVariantsDueStmt,
+		listRepositoriesStmt:                        q.listRepositoriesStmt,
+		listRunAttemptsStmt:                         q.listRunAttemptsStmt,
+		listRunFindingsStmt:                         q.listRunFindingsStmt,
+		listRunnersStmt:                             q.listRunnersStmt,
+		listRunningJobsOfRegistryImageStmt:          q.listRunningJobsOfRegistryImageStmt,
+		listRunsOnFindingsStmt:                      q.listRunsOnFindingsStmt,
+		listSettingsStmt:                            q.listSettingsStmt,
+		listUsersStmt:                               q.listUsersStmt,
+		markBackupDeletedStmt:                       q.markBackupDeletedStmt,
+		markInstallationRemovedStmt:                 q.markInstallationRemovedStmt,
+		markMachineRemovedStmt:                      q.markMachineRemovedStmt,
+		markMachineSeenStmt:                         q.markMachineSeenStmt,
+		markMachinesOfflineStmt:                     q.markMachinesOfflineStmt,
+		markRegistryImageDeletedStmt:                q.markRegistryImageDeletedStmt,
+		promoteRegistryImageStmt:                    q.promoteRegistryImageStmt,
+		pruneDailySummariesStmt:                     q.pruneDailySummariesStmt,
+		pruneJobFactsStmt:                           q.pruneJobFactsStmt,
+		pruneJobStepsStmt:                           q.pruneJobStepsStmt,
+		pruneJobStepsOfJobsStmt:                     q.pruneJobStepsOfJobsStmt,
+		pruneJobsStmt:                               q.pruneJobsStmt,
+		pruneRunsStmt:                               q.pruneRunsStmt,
+		pruneWorkflowGraphsStmt:                     q.pruneWorkflowGraphsStmt,
+		putPendingFactsStmt:                         q.putPendingFactsStmt,
+		putWorkflowGraphStmt:                        q.putWorkflowGraphStmt,
+		queueRegistryScanStmt:                       q.queueRegistryScanStmt,
+		recordSignInStmt:                            q.recordSignInStmt,
+		refuseRegistryImageStmt:                     q.refuseRegistryImageStmt,
+		renameMachineStmt:                           q.renameMachineStmt,
+		restoreRegistryImageStmt:                    q.restoreRegistryImageStmt,
+		revokeCliTokenStmt:                          q.revokeCliTokenStmt,
+		revokeJoinCodeStmt:                          q.revokeJoinCodeStmt,
+		revokeMachineKeysStmt:                       q.revokeMachineKeysStmt,
+		revokeOpenJoinCodesStmt:                     q.revokeOpenJoinCodesStmt,
+		revokeUserCliTokensStmt:                     q.revokeUserCliTokensStmt,
+		setGitHubJobWaitStmt:                        q.setGitHubJobWaitStmt,
+		setImageBuildProgressStmt:                   q.setImageBuildProgressStmt,
+		setImageBuildPushStateStmt:                  q.setImageBuildPushStateStmt,
+		setJobCompletedStmt:                         q.setJobCompletedStmt,
+		setJobForecastStmt:                          q.setJobForecastStmt,
+		setJobSlotStmt:                              q.setJobSlotStmt,
+		setJobStartedStmt:                           q.setJobStartedStmt,
+		setMachineChangeStateStmt:                   q.setMachineChangeStateStmt,
+		setMachineStateStmt:                         q.setMachineStateStmt,
+		setManagedVariableStatusStmt:                q.setManagedVariableStatusStmt,
+		setMetaStmt:                                 q.setMetaStmt,
+		setNotificationChannelTestStmt:              q.setNotificationChannelTestStmt,
+		setPreferencesStmt:                          q.setPreferencesStmt,
+		setRegistryBranchGoneStmt:                   q.setRegistryBranchGoneStmt,
+		setRegistryImageLastPullStmt:                q.setRegistryImageLastPullStmt,
+		setRegistryImageLineageStmt:                 q.setRegistryImageLineageStmt,
+		setRegistryImageScanStateStmt:               q.setRegistryImageScanStateStmt,
+		setRegistryImageSizesStmt:                   q.setRegistryImageSizesStmt,
+		setRegistryReadOnlyStmt:                     q.setRegistryReadOnlyStmt,
+		setRegistryReplacePlanRolledBackStmt:        q.setRegistryReplacePlanRolledBackStmt,
+		setRegistryReplacePlanStateStmt:             q.setRegistryReplacePlanStateStmt,
+		setRepositoryPoolStmt:                       q.setRepositoryPoolStmt,
+		setRunnerHygieneStmt:                        q.setRunnerHygieneStmt,
+		setRunnerRegistrationStmt:                   q.setRunnerRegistrationStmt,
+		setRunnerStateStmt:                          q.setRunnerStateStmt,
+		setSettingStmt:                              q.setSettingStmt,
+		setTicketWaitReasonStmt:                     q.setTicketWaitReasonStmt,
+		slotLogCutoffStmt:                           q.slotLogCutoffStmt,
+		sumRegistryLayersByKindStmt:                 q.sumRegistryLayersByKindStmt,
+		sumRegistryPullDailySinceStmt:               q.sumRegistryPullDailySinceStmt,
+		sumRegistrySharedLayersStmt:                 q.sumRegistrySharedLayersStmt,
+		sumRunMinutesSinceStmt:                      q.sumRunMinutesSinceStmt,
+		supersedeRegistryImageStmt:                  q.supersedeRegistryImageStmt,
+		touchSessionStmt:                            q.touchSessionStmt,
+		trimSlotLogStmt:                             q.trimSlotLogStmt,
+		typicalImageBuildSecondsStmt:                q.typicalImageBuildSecondsStmt,
+		updateMachineFactsStmt:                      q.updateMachineFactsStmt,
+		updateMachineSettingsStmt:                   q.updateMachineSettingsStmt,
+		updateNotificationChannelStmt:               q.updateNotificationChannelStmt,
+		updatePlanStmt:                              q.updatePlanStmt,
+		updateRegistryMirrorSettingsStmt:            q.updateRegistryMirrorSettingsStmt,
+		updateRegistrySettingsRowStmt:               q.updateRegistrySettingsRowStmt,
+		updateUserRoleStmt:                          q.updateUserRoleStmt,
+		upsertDailySummaryStmt:                      q.upsertDailySummaryStmt,
+		upsertDoctorStateStmt:                       q.upsertDoctorStateStmt,
+		upsertGitHubAppStmt:                         q.upsertGitHubAppStmt,
+		upsertGitHubJobStmt:                         q.upsertGitHubJobStmt,
+		upsertInstallationStmt:                      q.upsertInstallationStmt,
+		upsertJobHistoryStmt:                        q.upsertJobHistoryStmt,
+		upsertJobsRowStmt:                           q.upsertJobsRowStmt,
+		upsertManagedVariableStmt:                   q.upsertManagedVariableStmt,
+		upsertRegistryLayerStmt:                     q.upsertRegistryLayerStmt,
+		upsertRegistryPointerStmt:                   q.upsertRegistryPointerStmt,
+		upsertRegistryPullStmt:                      q.upsertRegistryPullStmt,
+		upsertRegistryPushStmt:                      q.upsertRegistryPushStmt,
+		upsertRegistryRecommendationStmt:            q.upsertRegistryRecommendationStmt,
+		upsertRepoPolicyStmt:                        q.upsertRepoPolicyStmt,
+		upsertRepositoryStmt:                        q.upsertRepositoryStmt,
+		upsertRunnerUsageStmt:                       q.upsertRunnerUsageStmt,
+		upsertRunsRowStmt:                           q.upsertRunsRowStmt,
+		upsertTrayBindingStmt:                       q.upsertTrayBindingStmt,
+		useJoinCodeStmt:                             q.useJoinCodeStmt,
+		useLinkCodeStmt:                             q.useLinkCodeStmt,
+		useSetupCodeStmt:                            q.useSetupCodeStmt,
 	}
 }

@@ -64,3 +64,33 @@ WHERE id = ?;
 
 -- name: LastRegistryCleanup :one
 SELECT * FROM registry_cleanups ORDER BY id DESC LIMIT 1;
+
+-- name: GetRegistryCleanup :one
+SELECT * FROM registry_cleanups WHERE id = ?;
+
+-- name: ListOldStagedRegistryImages :many
+SELECT * FROM registry_images
+WHERE state IN ('staged', 'refused') AND pushed_at <> '' AND pushed_at < ?
+ORDER BY pushed_at, id;
+
+-- name: ListRunningJobsOfRegistryImage :many
+SELECT DISTINCT j.repository, j.workflow, j.name, j.started_at
+FROM registry_pulls p JOIN jobs j ON CAST(j.id AS TEXT) = p.job_id
+WHERE p.image_id = ? AND j.state = 'running'
+ORDER BY j.started_at, j.name;
+
+-- name: ListInFlightPullMachinesOfRegistryImage :many
+SELECT DISTINCT machine_id FROM registry_pulls
+WHERE image_id = ? AND state IN ('pulling', 'waiting_controller')
+ORDER BY machine_id;
+
+-- name: CountLiveRegistryTokenLeasesNaming :one
+SELECT count(*) FROM registry_token_leases
+WHERE expires_at > ? AND instr(names, '"' || CAST(sqlc.arg(name) AS TEXT) || '"') > 0;
+
+-- name: SumRegistrySharedLayers :many
+SELECT l.charged_to, CAST(COALESCE(sum(l.size_bytes), 0) AS INTEGER) AS bytes FROM registry_layers l
+WHERE EXISTS (
+    SELECT 1 FROM registry_image_layers il JOIN registry_images i ON i.id = il.image_id
+    WHERE il.layer_digest = l.digest AND i.state <> 'deleted' AND i.kind <> l.charged_to)
+GROUP BY l.charged_to;
