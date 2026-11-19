@@ -191,6 +191,7 @@ export function ChartsTab() {
                   unit="count"
                   rows={WEEKDAYS.map((label, weekday) => ({
                     label,
+                    short: label.slice(0, 3),
                     values: Array.from(
                       { length: 24 },
                       (_, hour) =>

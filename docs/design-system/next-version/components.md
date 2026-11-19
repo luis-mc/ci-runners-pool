@@ -598,7 +598,7 @@ A field's width caps its box, never its name and help: a lone field's name and h
 ## 56. Short text
 
 - **Used for:** a long name in a table cell, such as a branch (`dependabot/npm_and_yarn/vite-8.3.8`), that would otherwise wrap over many lines.
-- **Looks:** the name cut in the middle with an ellipsis, so its start and its end both stay readable (`RES15-jobs…ection`), with a dotted underline when it is cut. The full name is the hover text and the text a screen reader reads; the detail of the item always shows it whole. A name that fits is shown as it is.
+- **Looks:** the name cut in the middle with an ellipsis, so its start and its end both stay readable (`RES15-jobs…ection`), with a dotted underline when it is cut. The full name is the hover text and the text a screen reader reads; the detail of the item always shows it whole. A name that fits is shown as it is. **A name that may be long and has no middle to cut (LOOK38, `ClampText`):** a machine or runner name in a table cell or a card title breaks anywhere to fit its box (`overflow-wrap: anywhere`) and stops at two lines; the whole name is the hover text. A card title is clamped the same way, and the grid keeps a two-line title off the card above it.
 - **Source:** `packages/ui/src/components/ShortText.tsx`, `packages/ui/src/components.css`
 - **Rules:** UX-49, UX-17.
 - **Guard:** `packages/ui/src/components/parts.test.tsx`.

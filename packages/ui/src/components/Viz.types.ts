@@ -107,7 +107,12 @@ export interface SparklineProps {
 export interface HeatmapProps {
   label: string;
   /** rows[day][hour 0..23] */
-  rows: readonly { label: string; values: readonly number[] }[];
+  rows: readonly {
+    label: string;
+    /** The label on the grid when the column is too narrow for `label` (Mon for Monday); the table keeps `label`. */
+    short?: string;
+    values: readonly number[];
+  }[];
   unit: Unit;
 }
 /** Forecast against actual: one dot per finished job, a diagonal for "forecast = actual", a band for the range. */

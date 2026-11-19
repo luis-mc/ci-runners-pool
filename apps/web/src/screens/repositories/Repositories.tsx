@@ -555,7 +555,8 @@ export function RepositoryDetail() {
           { label: `${owner}/${name}` },
         ]}
       />
-      {result.state === 'failed' && result.data === undefined ? (
+      {result.state === 'loading' ||
+      (result.state === 'failed' && result.data === undefined) ? (
         <PageHeader title={`${owner}/${name}`} />
       ) : null}
       <Load result={result} what="the repository" reload={reload}>
