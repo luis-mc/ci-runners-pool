@@ -330,8 +330,13 @@ func TestIntegrationGroupsAndStats(t *testing.T) {
 	s := jobsDB(t)
 	ctx := context.Background()
 	now := time.Now().UTC().Truncate(time.Second)
+	// A job made "an hour ago" must still be on today's date, so in the first hour of the UTC day it is made now.
+	back := time.Hour
+	if now.Hour() == 0 {
+		back = 0
+	}
 	mk := func(id int64, name, runner, kind string, state jobsdata.State, res jobsdata.Result, wait, run int, daysAgo int) {
-		j := mkJob(id, name, state, res, now.Add(-time.Duration(daysAgo)*24*time.Hour-time.Hour), wait, run)
+		j := mkJob(id, name, state, res, now.Add(-time.Duration(daysAgo)*24*time.Hour-back), wait, run)
 		j.RunnerName, j.RunnerKind, j.Backend, j.MachineID, j.MachineName = runner, jobsdata.RunnerKind(kind), "docker", "m1", "Mac"
 		must(t, s.UpsertJob(ctx, j))
 	}
