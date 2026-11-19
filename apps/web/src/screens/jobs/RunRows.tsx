@@ -66,6 +66,7 @@ export function runColumns(kind: RunKind, _now: number): Column<RunRow>[] {
     cell: (r) => r.repository.split('/')[1] ?? r.repository,
     sort: (r) => r.repository,
     kind: 'grow',
+    grow: 2,
   };
   const workflow: Column<RunRow> = {
     id: 'workflow',
@@ -76,6 +77,7 @@ export function runColumns(kind: RunKind, _now: number): Column<RunRow>[] {
       </Cut>
     ),
     kind: 'grow',
+    grow: 2,
     title: (r) =>
       `${r.workflow} #${r.id}${r.attempt > 1 ? `, attempt ${r.attempt}` : ''}`,
     sort: (r) => r.workflow,
@@ -88,6 +90,7 @@ export function runColumns(kind: RunKind, _now: number): Column<RunRow>[] {
     title: (r) => r.branch,
     sort: (r) => r.branch,
     kind: 'grow',
+    grow: 1,
     secondary: true,
   };
   const commit: Column<RunRow> = {

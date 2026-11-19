@@ -203,6 +203,7 @@ export function jobColumns(kind: Kind, now: number): Column<Job>[] {
     cell: (j) => j.repository.split('/')[1] ?? j.repository,
     sort: (j) => j.repository,
     kind: 'grow',
+    grow: 2,
   };
   const job: Column<Job> = {
     id: 'job',
@@ -211,6 +212,7 @@ export function jobColumns(kind: Kind, now: number): Column<Job>[] {
     title: (j) => `${j.workflow ?? 'workflow'} / ${j.job_name}`,
     sort: (j) => j.job_name,
     kind: 'grow',
+    grow: 2,
   };
   const branch: Column<Job> = {
     id: 'branch',
@@ -220,6 +222,7 @@ export function jobColumns(kind: Kind, now: number): Column<Job>[] {
     title: (j) => j.branch ?? '',
     sort: (j) => j.branch ?? '',
     kind: 'grow',
+    grow: 1,
     secondary: true,
   };
   const where: Column<Job> = {
