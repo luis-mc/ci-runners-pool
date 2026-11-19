@@ -4608,11 +4608,8 @@ type RepositoryPolicy struct {
 	Labels []string `json:"labels"`
 
 	// LegacyVars Also write CI_RUNS_ON and CI_RUNS_ON_WINDOWS with the same labels as RUNS_ON_LINUX and RUNS_ON_WINDOWS, for workflows that still follow the old dev-standards templates (github-integration R5.39). Off by default; for the move from the old pool.
-	LegacyVars *bool `json:"legacy_vars,omitempty"`
-
-	// LightRunner Keep one light runner per OS for this repository and write RUNS_ON_LIGHT, so jobs that last seconds do not queue behind a long build (scheduling R5.65). On by default.
-	LightRunner     bool `json:"light_runner"`
-	MaxParallelJobs int  `json:"max_parallel_jobs"`
+	LegacyVars      *bool `json:"legacy_vars,omitempty"`
+	MaxParallelJobs int   `json:"max_parallel_jobs"`
 
 	// Priority Higher goes first (scheduling R5.8).
 	Priority     int      `json:"priority"`
@@ -4653,10 +4650,7 @@ type RepositoryPolicyUpdate struct {
 	Labels       *[]string          `json:"labels,omitempty"`
 
 	// LegacyVars Turn the old variable names CI_RUNS_ON and CI_RUNS_ON_WINDOWS on or off (github-integration R5.39).
-	LegacyVars *bool `json:"legacy_vars,omitempty"`
-
-	// LightRunner Turn the light runner on or off (scheduling R5.65).
-	LightRunner     *bool     `json:"light_runner,omitempty"`
+	LegacyVars      *bool     `json:"legacy_vars,omitempty"`
 	MaxParallelJobs *int      `json:"max_parallel_jobs,omitempty"`
 	Priority        *int      `json:"priority,omitempty"`
 	RunnerGroups    *[]string `json:"runner_groups,omitempty"`

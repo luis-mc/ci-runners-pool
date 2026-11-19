@@ -10,19 +10,24 @@ import (
 
 const errResetACLPrefix = "reset folder owner and access"
 
-// ErrPrepareFolder is the one line the owner sees when the folder reset
-// fails; the step, the exit code and the tool text go to the log and to
-// FolderResetError.Detail.
+// ErrPrepareFolder starts the error of a failed folder reset. The error goes on
+// with the redacted detail (the failing step, the tool's exit code and its
+// message), so the controller log and the runner's reason say why.
 const ErrPrepareFolder = "Could not prepare the runner folder"
 
-// FolderResetError is a failed folder reset. Error is the short line; Detail
-// is the whole reason.
+// FolderResetError is a failed folder reset. Detail is the whole reason, already
+// redacted; Error is the short line followed by it.
 type FolderResetError struct {
 	Detail string
 	Err    error
 }
 
-func (e *FolderResetError) Error() string { return ErrPrepareFolder }
+func (e *FolderResetError) Error() string {
+	if e.Detail == "" {
+		return ErrPrepareFolder
+	}
+	return ErrPrepareFolder + ": " + e.Detail
+}
 func (e *FolderResetError) Unwrap() error { return e.Err }
 
 // ResetFolderACL gives the runner folder and every file in it to the account
@@ -68,6 +73,7 @@ func ResetFolderACL(ctx context.Context, d sys.Deps, folder, account, sid string
 }
 
 func fail(d sys.Deps, e *FolderResetError) error {
+	e.Detail = redactWith(d, e.Detail)
 	if d.LogLine != nil {
 		d.LogLine("acl", redactWith(d, e.Detail))
 	}

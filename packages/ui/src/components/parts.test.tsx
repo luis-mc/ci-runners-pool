@@ -1,12 +1,13 @@
 // CRSP157: the shared parts changed for the UX audit: hit areas, table fold, switch name, key hints, states, preview.
-import { act, cleanup, render, screen, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { MemoryRouter } from 'react-router-dom';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Switch } from './Fields';
 import { KeyHints, KeyHintsProvider, useKeyHints } from './KeyHints';
 import { Empty, Failed } from './State';
+import { Status } from './Status';
 import { Table } from './Table';
 import { ThemePreview } from './ThemePreview';
 import { DEFAULT_THEME_ID, THEMES } from '../themes';
@@ -250,6 +251,48 @@ describe('RowAction and the one-line table (UX-72)', () => {
     expect(buttons.map((b) => b.textContent)).toEqual(['Open', 'Open']);
     expect(buttons[0]?.getAttribute('aria-label')).toBe('Open: alpha');
     expect(buttons[1]?.getAttribute('href')).toBe('/things/b');
+  });
+  it('lets a row action be a press that opens no page (OPS46)', () => {
+    const onPress = vi.fn();
+    render(
+      <MemoryRouter>
+        <Table
+          caption="Things"
+          columns={columns}
+          rows={rows}
+          rowKey={(r) => r.id}
+          action={{
+            label: 'Remove',
+            name: (r) => r.name,
+            press: (r) => (r.id === 'a' ? { onPress, kind: 'danger' } : null),
+          }}
+        />
+      </MemoryRouter>,
+    );
+    const buttons = screen.getAllByRole('button', { name: 'Remove' });
+    expect(buttons).toHaveLength(1);
+    fireEvent.click(buttons[0] as HTMLElement);
+    expect(onPress).toHaveBeenCalledTimes(1);
+  });
+  it('marks a long text after a cell so a space can separate them (OPS46)', () => {
+    const { container } = render(
+      <Table
+        caption="Things"
+        columns={[
+          {
+            id: 's',
+            header: 'State',
+            cell: () => <Status kind="failed" word="failed" />,
+            long: () => ({ full: 'no usable container engine' }),
+          },
+        ]}
+        rows={[{ id: 'a' }]}
+        rowKey={(r) => r.id}
+      />,
+    );
+    const value = container.querySelector('.ds-table__value');
+    expect(value?.children).toHaveLength(2);
+    expect(value?.children[1]?.hasAttribute('data-long')).toBe(true);
   });
   it('marks the table one line and gives a cut cell its full text on hover', () => {
     const { container } = view();

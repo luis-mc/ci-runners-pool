@@ -189,6 +189,11 @@ type Runner struct {
 	UncleanReason string
 	// Labels are the labels the runner carries.
 	Labels []string
+	// LegacyLight is true for a light runner an older version made; the
+	// reconcile removes it (decision D110). LightRemovalProblem is why the last
+	// try to remove it failed; empty while no try failed.
+	LegacyLight         bool
+	LightRemovalProblem string
 	// GitHubRunnerID is set once registered.
 	GitHubRunnerID int64
 	// ServiceName is the OS service name of a persistent runner.
@@ -327,9 +332,6 @@ type Repository struct {
 	// Expected holds the value the product would write for each variable,
 	// keyed by variable name, for OSes the policy enables. A JSON list.
 	Expected map[string]string
-	// LightRunner is true when the repository's policy keeps a light runner
-	// for it (scheduling R5.65).
-	LightRunner bool
 	// EphemeralOnly is true when the repository's jobs go to ephemeral runners
 	// only (github-integration R5.60).
 	EphemeralOnly bool

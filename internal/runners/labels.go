@@ -26,7 +26,6 @@ var fixedLabels = map[string]bool{
 	"docker":       true,
 	"kvm":          true,
 	"gpu":          true,
-	LightLabel:     true,
 	EphemeralLabel: true,
 }
 

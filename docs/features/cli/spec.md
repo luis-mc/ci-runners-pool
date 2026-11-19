@@ -198,7 +198,7 @@ With `--json`, a refusal prints the contract's `ErrorEnvelope` to stderr and use
 
 ### Resource commands
 
-**R5.17** — `repo list` MUST list the repositories the user can administer, with pool on or off, labels, parallel limit, priority and repository variable status. `repo enable OWNER/NAME` and `repo disable OWNER/NAME` turn the pool on or off. `repo policy OWNER/NAME` shows the policy; with flags (`--labels`, `--max-parallel`, `--priority`, `--allow-fork-prs`, `--light-runner=true|false`) it changes it. `--allow-fork-prs` MUST print the fork warning and need a yes.
+**R5.17** — `repo list` MUST list the repositories the user can administer, with pool on or off, labels, parallel limit, priority and repository variable status. `repo enable OWNER/NAME` and `repo disable OWNER/NAME` turn the pool on or off. `repo policy OWNER/NAME` shows the policy; with flags (`--labels`, `--max-parallel`, `--priority`, `--allow-fork-prs`, `--runner-kind`) it changes it. `--allow-fork-prs` MUST print the fork warning and need a yes.
 
 **R5.18** — `machine list` MUST show each machine with state (active, drained, offline), OS, backends, slots used and free, memory and CPU load. `machine add [--name NAME] [--expires 15m]` MUST print one join command with a one-time join code, and how long it is valid.
 

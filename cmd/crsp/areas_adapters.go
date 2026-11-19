@@ -406,6 +406,10 @@ func (f doctorFleet) Runners(ctx context.Context) ([]doctor.Runner, error) {
 		dr := doctor.Runner{
 			ID: r.ID, Name: r.Name, MachineID: r.MachineID, MachineName: names[r.MachineID], OS: r.OS, Kind: r.Kind,
 			Labels: r.Labels, GitHubRunnerID: r.GitHubRunnerID, ServiceName: r.ServiceName, FolderReadable: true, UncleanReason: r.UncleanReason,
+			LegacyLight: runners.IsLegacyLight(r),
+		}
+		if dr.LegacyLight && r.State != runners.Draining && r.State != runners.Removing {
+			dr.LightRemovalProblem = r.Reason
 		}
 		if r.Scope.Organization != "" {
 			dr.Scope = github.RunnerScope{Owner: r.Scope.Organization, Organization: r.Scope.Organization}
@@ -457,35 +461,8 @@ func (f doctorFleet) Repositories(ctx context.Context) ([]doctor.Repository, err
 		}
 		rt, _ := f.rsvc.RoutingOf(ctx, r.ID)
 		out = append(out, doctor.Repository{ID: r.ID, FullName: r.FullName, Owner: r.Owner, Name: r.Name,
-			InstallationID: r.InstallationID, DefaultBranch: r.DefaultBranch, Expected: want, LightRunner: pol.LightRunner, EphemeralOnly: pol.EphemeralOnly(r.Visibility),
+			InstallationID: r.InstallationID, DefaultBranch: r.DefaultBranch, Expected: want, EphemeralOnly: pol.EphemeralOnly(r.Visibility),
 			Where: rt.Where, FallbackOn: pol.HostedFallback, HostedOSes: hostedOSes(rt), WaitingOSes: waitingOSes(rt)})
-	}
-	return out, nil
-}
-
-// lightPlacer lists the machines that can host a light runner: online, active,
-// of the OS, with light slots above 0. Only the controller's own machine can
-// add runners until the runner messages of the agent link are built, so only
-// it is listed (scheduling R5.65).
-type lightPlacer struct{ svc *machines.Service }
-
-func (p lightPlacer) LightHosts(ctx context.Context, os string) ([]runners.LightHost, error) {
-	views, err := p.svc.List(ctx)
-	if err != nil {
-		return nil, err
-	}
-	var out []runners.LightHost
-	for _, v := range views {
-		m := v.Machine
-		state := v.Settings.State
-		if state == "" {
-			state = m.State
-		}
-		if !m.RemovedAt.IsZero() || !m.Online || !m.IsController || m.OS != os ||
-			(state != "" && state != machines.StateActive) || v.Settings.LightSlots < 1 {
-			continue
-		}
-		out = append(out, runners.LightHost{MachineID: m.ID, LightSlots: v.Settings.LightSlots})
 	}
 	return out, nil
 }
@@ -505,28 +482,6 @@ func poolRepos(store repos.Store) func(context.Context) ([]runners.PoolRepo, err
 		}
 		return out, nil
 	}
-}
-
-// lightKeeper gives the repositories service the light runners of the runners service.
-type lightKeeper struct{ svc *runners.Service }
-
-func (k lightKeeper) EnsureLight(ctx context.Context, r repos.Repository, oses []string, actor string) (int, []string, error) {
-	res, err := k.svc.EnsureLight(ctx, r.ID, r.Name, oses, actor)
-	have := 0
-	var notes []string
-	for _, x := range res {
-		if x.Runner != "" {
-			have++
-		} else if x.Why != "" {
-			notes = append(notes, runners.OSName(x.OS)+": "+x.Why)
-		}
-	}
-	return have, notes, err
-}
-
-func (k lightKeeper) RemoveLight(ctx context.Context, r repos.Repository, actor string) error {
-	_, err := k.svc.RemoveLight(ctx, r.ID, actor)
-	return err
 }
 
 func hostedOSes(rt repos.Routing) []string {

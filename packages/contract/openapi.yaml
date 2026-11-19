@@ -5037,7 +5037,6 @@ components:
           allow_fork_pull_requests: false
           labels: [self-hosted, linux, x64]
           runner_groups: []
-          light_runner: true
     PublicRepositories:
       type: object
       required: [enabled, public_on_pool]
@@ -5216,14 +5215,7 @@ components:
     RepositoryPolicy:
       type: object
       required:
-        [
-          priority,
-          max_parallel_jobs,
-          allow_fork_pull_requests,
-          labels,
-          runner_groups,
-          light_runner,
-        ]
+        [priority, max_parallel_jobs, allow_fork_pull_requests, labels, runner_groups]
       properties:
         priority:
           type: integer
@@ -5245,9 +5237,6 @@ components:
           type: array
           items:
             type: string
-        light_runner:
-          type: boolean
-          description: Keep one light runner per OS for this repository and write RUNS_ON_LIGHT, so jobs that last seconds do not queue behind a long build (scheduling R5.65). On by default.
         runner_kinds:
           type: string
           enum: [ephemeral_only, any_runner]
@@ -5307,9 +5296,6 @@ components:
           maximum: 256
         allow_fork_pull_requests:
           type: boolean
-        light_runner:
-          type: boolean
-          description: Turn the light runner on or off (scheduling R5.65).
         runner_kinds:
           type: string
           enum: [ephemeral_only, any_runner, default]
