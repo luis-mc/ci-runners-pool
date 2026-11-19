@@ -260,13 +260,13 @@ Canonical JSON (`registry.CanonicalJSON`): one object, no whitespace, keys in by
 
 ### IMG2: stack scan at the run's commit (R5.73 to R5.76)
 
-**R5.73** — The scan reads the stack files of RES19 section 5 **at the run's commit** (not the default branch head) through the contents API; it never clones or runs code.
+**R5.73** (built, IMG2) — The scan reads the stack files of RES19 section 5 **at the run's commit** (not the default branch head) through the contents API; it never clones or runs code. Built: `github.REST.ListBlobsAt` lists the commit's tree with one call (`git/trees/{sha}?recursive=1`; a cut-short tree is `ErrTreeTruncated`, never a partial hash) and `GetFileAt` reads each file at the commit; `stackscan.Classify` names the files: `package.json`, `go.mod`, `go.work`, `Cargo.toml`, `pyproject.toml`, `pom.xml`, `build.gradle(.kts)`, `gradle-wrapper.properties`, `mise.toml`, `requirements*.txt`, the lock files (`pnpm-lock.yaml`, `package-lock.json`, `yarn.lock`, `Cargo.lock`, `uv.lock`), the version files (`.tool-versions`, `.nvmrc`, `.node-version`, `.python-version`, `rust-toolchain(.toml)`), `Dockerfile*`, `*.Dockerfile`, `compose*.y(a)ml`, `docker-compose*.y(a)ml`, `devcontainer.json` under `.devcontainer/`, `.devcontainer.json`, and `.crsp.yml` at the root. Workflows are not stack files. Files sit at most 3 directories deep; `node_modules`, `vendor`, `dist`, `build`, `target` and similar folders are skipped; more than 500 stack files stops the scan. The commit must be a full hex sha.
 
-**R5.74** — It returns `[]registry.StackFile` (path, content) to REG3 (`StackSource`) and keeps findings, not file text.
+**R5.74** (built, IMG2) — It returns `[]registry.StackFile` (path, content) to REG3 (`StackSource`) and keeps findings, not file text. Built: `stackscan.Scanner` implements `registry.StackSource`; contents are LF-normalised (CRLF only); a `Finding` is path, kind, size, blob sha and the too-large flag. Results are cached in memory by repository and commit (64 entries, never stored); a failed or delayed scan is not cached, and concurrent asks share one read. No table is needed, so migration 00020 is unused.
 
-**R5.75** — It counts against the GitHub rate budget (R6.6 of github-integration); a low budget delays the scan and says so.
+**R5.75** (built, IMG2) — It counts against the GitHub rate budget (R6.6 of github-integration); a low budget delays the scan and says so. Built: every call is background work (`github.Background`); past half the hourly limit the scan returns `stackscan.DelayedError` (`errors.Is(err, ErrDelayed)`): "Stack scan delayed until <time>: the GitHub rate budget is low."
 
-**R5.76** — A file larger than the cap is hashed by its blob SHA and listed as too large.
+**R5.76** (built, IMG2) — A file larger than the cap is hashed by its blob SHA and listed as too large. Built: the cap is 1 MiB; the file is not read, its stack content is `git-blob-sha1:<sha>`, and its finding has `TooLarge`.
 
 ### IMG3: image profiles (R5.77 to R5.80)
 
@@ -336,7 +336,7 @@ All under `/api/v1/registry/*` with `x-cli: none` for now. `GET /api/v1/registry
 
 ## 9. How it is proven
 
-Rows for R5.13 to R5.20 (agent ensure-image) and R5.21 and R5.22 (key) are built and run in CI. Every other row is planned: none of those tests exist yet (NOT YET IMPLEMENTED). Paths are written without code marks until the files exist.
+Rows for R5.13 to R5.20 (agent ensure-image), R5.21 and R5.22 (key) and R5.73 to R5.76 (stack scan) are built and run in CI. Every other row is planned: none of those tests exist yet (NOT YET IMPLEMENTED). Paths are written without code marks until the files exist.
 
 | Requirement | Test |
 |---|---|
@@ -367,7 +367,7 @@ Rows for R5.13 to R5.20 (agent ensure-image) and R5.21 and R5.22 (key) are built
 | R5.59 to R5.62 | internal/registry/scan/scan_test.go |
 | R5.63 to R5.67 | internal/registry/mirror/mirror_test.go |
 | R5.68 to R5.72 | internal/backend/container/buildstream_test.go; internal/api/handlers_builds_test.go |
-| R5.73 to R5.76 | internal/stackscan/scan_test.go |
+| R5.73 to R5.76 | `internal/stackscan/scan_test.go` (built: recorded tree in internal/stackscan/testdata/tree.json); `internal/github/webhook_steps_test.go` (built: TestRESTListBlobsAt, TestRESTListBlobsAtHeldBackOnLowBudget) |
 | R5.77 to R5.80 | `internal/profiles/profiles_test.go` (built: defaults, mapping, precedence, ref, views, older generation); `internal/store/profilestore_test.go` (built: tables) |
 | R6.1 | internal/store/no_secrets_test.go (registry tables); internal/registry/core/token_test.go (no token in logs) |
 
