@@ -17,6 +17,7 @@ import (
 	"go.yaml.in/yaml/v3"
 
 	"github.com/oapi-codegen/runtime"
+	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
 // Defines values for AccessScope.
@@ -96,16 +97,16 @@ func (e AppWebhookState) Valid() bool {
 
 // Defines values for Arch.
 const (
-	Arm64 Arch = "arm64"
-	X64   Arch = "x64"
+	ArchArm64 Arch = "arm64"
+	ArchX64   Arch = "x64"
 )
 
 // Valid indicates whether the value is a known member of the Arch enum.
 func (e Arch) Valid() bool {
 	switch e {
-	case Arm64:
+	case ArchArm64:
 		return true
-	case X64:
+	case ArchX64:
 		return true
 	default:
 		return false
@@ -604,6 +605,129 @@ func (e ImageState) Valid() bool {
 	}
 }
 
+// Defines values for ImageBuildFailureClass.
+const (
+	ImageBuildFailureClassApt      ImageBuildFailureClass = "apt"
+	ImageBuildFailureClassChecksum ImageBuildFailureClass = "checksum"
+	ImageBuildFailureClassDisk     ImageBuildFailureClass = "disk"
+	ImageBuildFailureClassNetwork  ImageBuildFailureClass = "network"
+	ImageBuildFailureClassOther    ImageBuildFailureClass = "other"
+	ImageBuildFailureClassTimeout  ImageBuildFailureClass = "timeout"
+)
+
+// Valid indicates whether the value is a known member of the ImageBuildFailureClass enum.
+func (e ImageBuildFailureClass) Valid() bool {
+	switch e {
+	case ImageBuildFailureClassApt:
+		return true
+	case ImageBuildFailureClassChecksum:
+		return true
+	case ImageBuildFailureClassDisk:
+		return true
+	case ImageBuildFailureClassNetwork:
+		return true
+	case ImageBuildFailureClassOther:
+		return true
+	case ImageBuildFailureClassTimeout:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ImageBuildReason.
+const (
+	Asked         ImageBuildReason = "asked"
+	BaseUpdated   ImageBuildReason = "base_updated"
+	FirstRunner   ImageBuildReason = "first_runner"
+	LayersChanged ImageBuildReason = "layers_changed"
+	NotInRegistry ImageBuildReason = "not_in_registry"
+	PinUpdated    ImageBuildReason = "pin_updated"
+	StackChanged  ImageBuildReason = "stack_changed"
+)
+
+// Valid indicates whether the value is a known member of the ImageBuildReason enum.
+func (e ImageBuildReason) Valid() bool {
+	switch e {
+	case Asked:
+		return true
+	case BaseUpdated:
+		return true
+	case FirstRunner:
+		return true
+	case LayersChanged:
+		return true
+	case NotInRegistry:
+		return true
+	case PinUpdated:
+		return true
+	case StackChanged:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ImageBuildState.
+const (
+	ImageBuildStateBuilding  ImageBuildState = "building"
+	ImageBuildStateCancelled ImageBuildState = "cancelled"
+	ImageBuildStateDone      ImageBuildState = "done"
+	ImageBuildStateFailed    ImageBuildState = "failed"
+	ImageBuildStateQueued    ImageBuildState = "queued"
+)
+
+// Valid indicates whether the value is a known member of the ImageBuildState enum.
+func (e ImageBuildState) Valid() bool {
+	switch e {
+	case ImageBuildStateBuilding:
+		return true
+	case ImageBuildStateCancelled:
+		return true
+	case ImageBuildStateDone:
+		return true
+	case ImageBuildStateFailed:
+		return true
+	case ImageBuildStateQueued:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ImagePushState.
+const (
+	ImagePushStateFailed            ImagePushState = "failed"
+	ImagePushStateNone              ImagePushState = "none"
+	ImagePushStatePromoted          ImagePushState = "promoted"
+	ImagePushStatePushed            ImagePushState = "pushed"
+	ImagePushStatePushing           ImagePushState = "pushing"
+	ImagePushStateRefused           ImagePushState = "refused"
+	ImagePushStateWaitingController ImagePushState = "waiting_controller"
+)
+
+// Valid indicates whether the value is a known member of the ImagePushState enum.
+func (e ImagePushState) Valid() bool {
+	switch e {
+	case ImagePushStateFailed:
+		return true
+	case ImagePushStateNone:
+		return true
+	case ImagePushStatePromoted:
+		return true
+	case ImagePushStatePushed:
+		return true
+	case ImagePushStatePushing:
+		return true
+	case ImagePushStateRefused:
+		return true
+	case ImagePushStateWaitingController:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for InstallationAccountType.
 const (
 	InstallationAccountTypeOrganization InstallationAccountType = "Organization"
@@ -1035,19 +1159,19 @@ func (e MachineSettingsUpdateGateOnTimeout) Valid() bool {
 
 // Defines values for MachineSettingsUpdatePause.
 const (
-	None         MachineSettingsUpdatePause = "none"
-	OneHour      MachineSettingsUpdatePause = "one_hour"
-	UntilResumed MachineSettingsUpdatePause = "until_resumed"
+	MachineSettingsUpdatePauseNone         MachineSettingsUpdatePause = "none"
+	MachineSettingsUpdatePauseOneHour      MachineSettingsUpdatePause = "one_hour"
+	MachineSettingsUpdatePauseUntilResumed MachineSettingsUpdatePause = "until_resumed"
 )
 
 // Valid indicates whether the value is a known member of the MachineSettingsUpdatePause enum.
 func (e MachineSettingsUpdatePause) Valid() bool {
 	switch e {
-	case None:
+	case MachineSettingsUpdatePauseNone:
 		return true
-	case OneHour:
+	case MachineSettingsUpdatePauseOneHour:
 		return true
-	case UntilResumed:
+	case MachineSettingsUpdatePauseUntilResumed:
 		return true
 	default:
 		return false
@@ -1480,6 +1604,129 @@ func (e QueueSettingsOrder) Valid() bool {
 	}
 }
 
+// Defines values for RegistryArch.
+const (
+	RegistryArchAmd64 RegistryArch = "amd64"
+	RegistryArchArm64 RegistryArch = "arm64"
+)
+
+// Valid indicates whether the value is a known member of the RegistryArch enum.
+func (e RegistryArch) Valid() bool {
+	switch e {
+	case RegistryArchAmd64:
+		return true
+	case RegistryArchArm64:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RegistryCleanupState.
+const (
+	RegistryCleanupStateDone    RegistryCleanupState = "done"
+	RegistryCleanupStateFailed  RegistryCleanupState = "failed"
+	RegistryCleanupStateRunning RegistryCleanupState = "running"
+)
+
+// Valid indicates whether the value is a known member of the RegistryCleanupState enum.
+func (e RegistryCleanupState) Valid() bool {
+	switch e {
+	case RegistryCleanupStateDone:
+		return true
+	case RegistryCleanupStateFailed:
+		return true
+	case RegistryCleanupStateRunning:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RegistryCleanupTrigger.
+const (
+	Now    RegistryCleanupTrigger = "now"
+	Weekly RegistryCleanupTrigger = "weekly"
+)
+
+// Valid indicates whether the value is a known member of the RegistryCleanupTrigger enum.
+func (e RegistryCleanupTrigger) Valid() bool {
+	switch e {
+	case Now:
+		return true
+	case Weekly:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RegistryDecider.
+const (
+	RegistryDeciderCrsp  RegistryDecider = "crsp"
+	RegistryDeciderOwner RegistryDecider = "owner"
+)
+
+// Valid indicates whether the value is a known member of the RegistryDecider enum.
+func (e RegistryDecider) Valid() bool {
+	switch e {
+	case RegistryDeciderCrsp:
+		return true
+	case RegistryDeciderOwner:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RegistryImageKind.
+const (
+	RegistryImageKindCustom   RegistryImageKind = "custom"
+	RegistryImageKindStandard RegistryImageKind = "standard"
+)
+
+// Valid indicates whether the value is a known member of the RegistryImageKind enum.
+func (e RegistryImageKind) Valid() bool {
+	switch e {
+	case RegistryImageKindCustom:
+		return true
+	case RegistryImageKindStandard:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RegistryImageState.
+const (
+	RegistryImageStateCurrent    RegistryImageState = "current"
+	RegistryImageStateDeleted    RegistryImageState = "deleted"
+	RegistryImageStateRefused    RegistryImageState = "refused"
+	RegistryImageStateStaged     RegistryImageState = "staged"
+	RegistryImageStateSuperseded RegistryImageState = "superseded"
+	RegistryImageStateVariant    RegistryImageState = "variant"
+)
+
+// Valid indicates whether the value is a known member of the RegistryImageState enum.
+func (e RegistryImageState) Valid() bool {
+	switch e {
+	case RegistryImageStateCurrent:
+		return true
+	case RegistryImageStateDeleted:
+		return true
+	case RegistryImageStateRefused:
+		return true
+	case RegistryImageStateStaged:
+		return true
+	case RegistryImageStateSuperseded:
+		return true
+	case RegistryImageStateVariant:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for RegistryLoginKind.
 const (
 	RegistryLoginKindContainer  RegistryLoginKind = "container"
@@ -1516,6 +1763,162 @@ func (e RegistryLoginInputKind) Valid() bool {
 	case RegistryLoginInputKindPersistent:
 		return true
 	case RegistryLoginInputKindVm:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RegistryPullSource.
+const (
+	Built  RegistryPullSource = "built"
+	Local  RegistryPullSource = "local"
+	Pulled RegistryPullSource = "pulled"
+)
+
+// Valid indicates whether the value is a known member of the RegistryPullSource enum.
+func (e RegistryPullSource) Valid() bool {
+	switch e {
+	case Built:
+		return true
+	case Local:
+		return true
+	case Pulled:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RegistryPullState.
+const (
+	RegistryPullStateDone              RegistryPullState = "done"
+	RegistryPullStateFailed            RegistryPullState = "failed"
+	RegistryPullStatePulling           RegistryPullState = "pulling"
+	RegistryPullStateWaitingController RegistryPullState = "waiting_controller"
+)
+
+// Valid indicates whether the value is a known member of the RegistryPullState enum.
+func (e RegistryPullState) Valid() bool {
+	switch e {
+	case RegistryPullStateDone:
+		return true
+	case RegistryPullStateFailed:
+		return true
+	case RegistryPullStatePulling:
+		return true
+	case RegistryPullStateWaitingController:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RegistryReplacePlanState.
+const (
+	RegistryReplacePlanStateDone       RegistryReplacePlanState = "done"
+	RegistryReplacePlanStateDraft      RegistryReplacePlanState = "draft"
+	RegistryReplacePlanStateFailed     RegistryReplacePlanState = "failed"
+	RegistryReplacePlanStateRolledBack RegistryReplacePlanState = "rolled_back"
+	RegistryReplacePlanStateRunning    RegistryReplacePlanState = "running"
+	RegistryReplacePlanStateStopped    RegistryReplacePlanState = "stopped"
+)
+
+// Valid indicates whether the value is a known member of the RegistryReplacePlanState enum.
+func (e RegistryReplacePlanState) Valid() bool {
+	switch e {
+	case RegistryReplacePlanStateDone:
+		return true
+	case RegistryReplacePlanStateDraft:
+		return true
+	case RegistryReplacePlanStateFailed:
+		return true
+	case RegistryReplacePlanStateRolledBack:
+		return true
+	case RegistryReplacePlanStateRunning:
+		return true
+	case RegistryReplacePlanStateStopped:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RegistryRule.
+const (
+	RegistryRuleDangling       RegistryRule = "dangling"
+	RegistryRuleOverBudget     RegistryRule = "over_budget"
+	RegistryRuleProfileRemoved RegistryRule = "profile_removed"
+	RegistryRuleReplace        RegistryRule = "replace"
+	RegistryRuleSuperseded     RegistryRule = "superseded"
+	RegistryRuleUnused         RegistryRule = "unused"
+	RegistryRuleVariant        RegistryRule = "variant"
+)
+
+// Valid indicates whether the value is a known member of the RegistryRule enum.
+func (e RegistryRule) Valid() bool {
+	switch e {
+	case RegistryRuleDangling:
+		return true
+	case RegistryRuleOverBudget:
+		return true
+	case RegistryRuleProfileRemoved:
+		return true
+	case RegistryRuleReplace:
+		return true
+	case RegistryRuleSuperseded:
+		return true
+	case RegistryRuleUnused:
+		return true
+	case RegistryRuleVariant:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RegistryScanState.
+const (
+	RegistryScanStateDone       RegistryScanState = "done"
+	RegistryScanStateFailed     RegistryScanState = "failed"
+	RegistryScanStateNotScanned RegistryScanState = "not_scanned"
+	RegistryScanStateQueued     RegistryScanState = "queued"
+	RegistryScanStateScanning   RegistryScanState = "scanning"
+)
+
+// Valid indicates whether the value is a known member of the RegistryScanState enum.
+func (e RegistryScanState) Valid() bool {
+	switch e {
+	case RegistryScanStateDone:
+		return true
+	case RegistryScanStateFailed:
+		return true
+	case RegistryScanStateNotScanned:
+		return true
+	case RegistryScanStateQueued:
+		return true
+	case RegistryScanStateScanning:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RegistryStackFileChangeChange.
+const (
+	RegistryStackFileChangeChangeAdded   RegistryStackFileChangeChange = "added"
+	RegistryStackFileChangeChangeChanged RegistryStackFileChangeChange = "changed"
+	RegistryStackFileChangeChangeRemoved RegistryStackFileChangeChange = "removed"
+)
+
+// Valid indicates whether the value is a known member of the RegistryStackFileChangeChange enum.
+func (e RegistryStackFileChangeChange) Valid() bool {
+	switch e {
+	case RegistryStackFileChangeChangeAdded:
+		return true
+	case RegistryStackFileChangeChangeChanged:
+		return true
+	case RegistryStackFileChangeChangeRemoved:
 		return true
 	default:
 		return false
@@ -3390,6 +3793,52 @@ type Image struct {
 // ImageState defines model for Image.State.
 type ImageState string
 
+// ImageBuild defines model for ImageBuild.
+type ImageBuild struct {
+	Arch    *RegistryArch `json:"arch,omitempty"`
+	Failure *struct {
+		Class ImageBuildFailureClass `json:"class"`
+		Step  string                 `json:"step"`
+		Why   string                 `json:"why"`
+	} `json:"failure,omitempty"`
+	FinishedAt *time.Time `json:"finished_at,omitempty"`
+	Id         string     `json:"id"`
+	Key        string     `json:"key"`
+
+	// LogTail Redacted, capped. Only on getImageBuild.
+	LogTail     *string           `json:"log_tail,omitempty"`
+	MachineId   string            `json:"machine_id"`
+	MachineName *string           `json:"machine_name,omitempty"`
+	Profile     *string           `json:"profile,omitempty"`
+	PushState   ImagePushState    `json:"push_state"`
+	QueuedAt    time.Time         `json:"queued_at"`
+	Reason      *ImageBuildReason `json:"reason,omitempty"`
+	SecondsLeft *float32          `json:"seconds_left,omitempty"`
+	SizeBytes   *int64            `json:"size_bytes,omitempty"`
+	StartedAt   *time.Time        `json:"started_at,omitempty"`
+	State       ImageBuildState   `json:"state"`
+	Step        int               `json:"step"`
+	StepName    *string           `json:"step_name,omitempty"`
+	StepsTotal  int               `json:"steps_total"`
+
+	// TypicalSeconds From earlier builds; absent with no history (the bar is the unknown-total bar, UX-29).
+	TypicalSeconds *float32 `json:"typical_seconds,omitempty"`
+}
+
+// ImageBuildFailureClass defines model for ImageBuild.Failure.Class.
+type ImageBuildFailureClass string
+
+// ImageBuildReason defines model for ImageBuild.Reason.
+type ImageBuildReason string
+
+// ImageBuildList defines model for ImageBuildList.
+type ImageBuildList struct {
+	Items []ImageBuild `json:"items"`
+}
+
+// ImageBuildState defines model for ImageBuildState.
+type ImageBuildState string
+
 // ImageExtraPackages defines model for ImageExtraPackages.
 type ImageExtraPackages struct {
 	Packages   []string `json:"packages"`
@@ -3416,6 +3865,9 @@ type ImageLayer struct {
 type ImageList struct {
 	Items []Image `json:"items"`
 }
+
+// ImagePushState defines model for ImagePushState.
+type ImagePushState string
 
 // ImageTool defines model for ImageTool.
 type ImageTool struct {
@@ -4483,6 +4935,206 @@ type RedeemSetupLinkRequest struct {
 	Code string `json:"code"`
 }
 
+// RegistryArch defines model for RegistryArch.
+type RegistryArch string
+
+// RegistryBudget defines model for RegistryBudget.
+type RegistryBudget struct {
+	Kind       RegistryImageKind `json:"kind"`
+	LimitBytes int64             `json:"limit_bytes"`
+	Over       bool              `json:"over"`
+
+	// SharedBytes Layers shared with the other kind, counted once against the oldest image's kind.
+	SharedBytes int64 `json:"shared_bytes"`
+	UsedBytes   int64 `json:"used_bytes"`
+}
+
+// RegistryBudgets defines model for RegistryBudgets.
+type RegistryBudgets struct {
+	Custom        RegistryBudget `json:"custom"`
+	FreeDiskBytes int64          `json:"free_disk_bytes"`
+
+	// MaxTotalBytes Half the free disk plus what the registry holds now; the two limits may not add up to more.
+	MaxTotalBytes int64          `json:"max_total_bytes"`
+	Standard      RegistryBudget `json:"standard"`
+}
+
+// RegistryBudgetsInput defines model for RegistryBudgetsInput.
+type RegistryBudgetsInput struct {
+	CustomBytes   int64 `json:"custom_bytes"`
+	StandardBytes int64 `json:"standard_bytes"`
+}
+
+// RegistryCleanup defines model for RegistryCleanup.
+type RegistryCleanup struct {
+	Error      *string                `json:"error,omitempty"`
+	FinishedAt *time.Time             `json:"finished_at,omitempty"`
+	FreedBytes int64                  `json:"freed_bytes"`
+	Id         int64                  `json:"id"`
+	StartedAt  time.Time              `json:"started_at"`
+	State      RegistryCleanupState   `json:"state"`
+	Trigger    RegistryCleanupTrigger `json:"trigger"`
+}
+
+// RegistryCleanupState defines model for RegistryCleanup.State.
+type RegistryCleanupState string
+
+// RegistryCleanupTrigger defines model for RegistryCleanup.Trigger.
+type RegistryCleanupTrigger string
+
+// RegistryCompare defines model for RegistryCompare.
+type RegistryCompare struct {
+	BaseChanged     bool                 `json:"base_changed"`
+	FreesBytes      int64                `json:"frees_bytes"`
+	KeepDaysDefault int                  `json:"keep_days_default"`
+	New             RegistryImageSummary `json:"new"`
+	Old             RegistryImageSummary `json:"old"`
+
+	// Repositories Repositories whose pointer would move.
+	Repositories []string                  `json:"repositories"`
+	SharedBytes  int64                     `json:"shared_bytes"`
+	StackFiles   []RegistryStackFileChange `json:"stack_files"`
+}
+
+// RegistryDecider owner waits for a yes; crsp acts alone on due_at.
+type RegistryDecider string
+
+// RegistryImage defines model for RegistryImage.
+type RegistryImage struct {
+	Arch       RegistryArch `json:"arch"`
+	BaseDigest *string      `json:"base_digest,omitempty"`
+	BaseName   *string      `json:"base_name,omitempty"`
+
+	// Branch Empty for the default branch.
+	Branch    *string    `json:"branch,omitempty"`
+	Commit    *string    `json:"commit,omitempty"`
+	Id        string     `json:"id"`
+	KeepUntil *time.Time `json:"keep_until,omitempty"`
+
+	// Key The image key, 12 hex; lists show the first 6. It is also the tag.
+	Key        string            `json:"key"`
+	Kind       RegistryImageKind `json:"kind"`
+	LastPullAt *time.Time        `json:"last_pull_at,omitempty"`
+	Layers     []RegistryLayer   `json:"layers"`
+
+	// Lineage The images of the same repository, profile and arch, newest first.
+	Lineage        []RegistryLineageEntry `json:"lineage"`
+	Machines       []RegistryImageMachine `json:"machines"`
+	ManifestDigest string                 `json:"manifest_digest"`
+
+	// Name crsp/std/<profile> or crsp/custom/<owner>-<repo>/<profile>.
+	Name       string            `json:"name"`
+	Pointers   []RegistryPointer `json:"pointers"`
+	Profile    string            `json:"profile"`
+	PromotedAt *time.Time        `json:"promoted_at,omitempty"`
+	Pulls7Days int               `json:"pulls_7_days"`
+
+	// PullsByDay 14 days, oldest first; every day present (0 when none).
+	PullsByDay []RegistryPullDay `json:"pulls_by_day"`
+
+	// PullsText The text form of the chart (UX-41).
+	PullsText *string   `json:"pulls_text,omitempty"`
+	PushedAt  time.Time `json:"pushed_at"`
+
+	// PushedBy Machine id.
+	PushedBy     *string           `json:"pushed_by,omitempty"`
+	ReplacedBy   *string           `json:"replaced_by,omitempty"`
+	Replaces     *string           `json:"replaces,omitempty"`
+	SavedSeconds *float32          `json:"saved_seconds,omitempty"`
+	Scan         *RegistryScan     `json:"scan,omitempty"`
+	ScanState    RegistryScanState `json:"scan_state"`
+
+	// Similar Images of the same profile and arch sharing over 60% of bytes. Information only; never offered for replace.
+	Similar *[]struct {
+		ImageId       string  `json:"image_id"`
+		SharedPercent float32 `json:"shared_percent"`
+	} `json:"similar,omitempty"`
+	SizeBytes        int64   `json:"size_bytes"`
+	SourceRepository *string `json:"source_repository,omitempty"`
+	StackHash        *string `json:"stack_hash,omitempty"`
+
+	// State registry R5.4.1. staged and refused are shown only on the image page.
+	State       RegistryImageState `json:"state"`
+	UniqueBytes int64              `json:"unique_bytes"`
+
+	// UpdateFound A newer image updates this one (an open replace recommendation).
+	UpdateFound *bool `json:"update_found,omitempty"`
+}
+
+// RegistryImageKind defines model for RegistryImageKind.
+type RegistryImageKind string
+
+// RegistryImageList defines model for RegistryImageList.
+type RegistryImageList struct {
+	Items []RegistryImageSummary `json:"items"`
+}
+
+// RegistryImageMachine defines model for RegistryImageMachine.
+type RegistryImageMachine struct {
+	// Holds The machine's engine has the image now (agent inventory).
+	Holds         bool       `json:"holds"`
+	InUseByRunner *bool      `json:"in_use_by_runner,omitempty"`
+	LastUsedAt    *time.Time `json:"last_used_at,omitempty"`
+	MachineId     string     `json:"machine_id"`
+	MachineName   string     `json:"machine_name"`
+}
+
+// RegistryImageState registry R5.4.1. staged and refused are shown only on the image page.
+type RegistryImageState string
+
+// RegistryImageSummary defines model for RegistryImageSummary.
+type RegistryImageSummary struct {
+	Arch RegistryArch `json:"arch"`
+
+	// Branch Empty for the default branch.
+	Branch    *string    `json:"branch,omitempty"`
+	Id        string     `json:"id"`
+	KeepUntil *time.Time `json:"keep_until,omitempty"`
+
+	// Key The image key, 12 hex; lists show the first 6. It is also the tag.
+	Key            string            `json:"key"`
+	Kind           RegistryImageKind `json:"kind"`
+	LastPullAt     *time.Time        `json:"last_pull_at,omitempty"`
+	ManifestDigest string            `json:"manifest_digest"`
+
+	// Name crsp/std/<profile> or crsp/custom/<owner>-<repo>/<profile>.
+	Name             string            `json:"name"`
+	Profile          string            `json:"profile"`
+	Pulls7Days       int               `json:"pulls_7_days"`
+	PushedAt         time.Time         `json:"pushed_at"`
+	ScanState        RegistryScanState `json:"scan_state"`
+	SizeBytes        int64             `json:"size_bytes"`
+	SourceRepository *string           `json:"source_repository,omitempty"`
+
+	// State registry R5.4.1. staged and refused are shown only on the image page.
+	State       RegistryImageState `json:"state"`
+	UniqueBytes int64              `json:"unique_bytes"`
+
+	// UpdateFound A newer image updates this one (an open replace recommendation).
+	UpdateFound *bool `json:"update_found,omitempty"`
+}
+
+// RegistryLayer defines model for RegistryLayer.
+type RegistryLayer struct {
+	Digest    string  `json:"digest"`
+	MediaType *string `json:"media_type,omitempty"`
+
+	// SharedWith How many other images hold this layer.
+	SharedWith int   `json:"shared_with"`
+	SizeBytes  int64 `json:"size_bytes"`
+}
+
+// RegistryLineageEntry defines model for RegistryLineageEntry.
+type RegistryLineageEntry struct {
+	Branch   *string   `json:"branch,omitempty"`
+	ImageId  string    `json:"image_id"`
+	Key      string    `json:"key"`
+	PushedAt time.Time `json:"pushed_at"`
+
+	// State registry R5.4.1. staged and refused are shown only on the image page.
+	State RegistryImageState `json:"state"`
+}
+
 // RegistryLogin defines model for RegistryLogin.
 type RegistryLogin struct {
 	Host     string            `json:"host"`
@@ -4506,10 +5158,235 @@ type RegistryLoginInput struct {
 // RegistryLoginInputKind defines model for RegistryLoginInput.Kind.
 type RegistryLoginInputKind string
 
+// RegistryMirrorSettings defines model for RegistryMirrorSettings.
+type RegistryMirrorSettings struct {
+	BudgetBytes int64  `json:"budget_bytes"`
+	Enabled     bool   `json:"enabled"`
+	Folder      string `json:"folder"`
+
+	// Path Where engines reach the mirror on the controller's listener.
+	Path              *string  `json:"path,omitempty"`
+	TagRecheckMinutes int      `json:"tag_recheck_minutes"`
+	Upstreams         []string `json:"upstreams"`
+	UsedBytes         int64    `json:"used_bytes"`
+}
+
+// RegistryMirrorSettingsInput defines model for RegistryMirrorSettingsInput.
+type RegistryMirrorSettingsInput struct {
+	BudgetBytes       int64    `json:"budget_bytes"`
+	Enabled           bool     `json:"enabled"`
+	Folder            *string  `json:"folder,omitempty"`
+	TagRecheckMinutes int      `json:"tag_recheck_minutes"`
+	Upstreams         []string `json:"upstreams"`
+}
+
+// RegistryOverview defines model for RegistryOverview.
+type RegistryOverview struct {
+	Budgets []RegistryBudget `json:"budgets"`
+	Images  struct {
+		Custom   int `json:"custom"`
+		Standard int `json:"standard"`
+	} `json:"images"`
+	InFlight struct {
+		Builds int `json:"builds"`
+		Pulls  int `json:"pulls"`
+		Pushes int `json:"pushes"`
+	} `json:"in_flight"`
+	Last7Days     RegistryWeek     `json:"last_7_days"`
+	LastCleanup   *RegistryCleanup `json:"last_cleanup,omitempty"`
+	NextCleanupAt *time.Time       `json:"next_cleanup_at,omitempty"`
+
+	// Recommendations Owner's-yes rules first, then crsp's by due date. None can be dismissed.
+	Recommendations []RegistryRecommendation `json:"recommendations"`
+	Where           RegistryWhere            `json:"where"`
+}
+
+// RegistryPointer defines model for RegistryPointer.
+type RegistryPointer struct {
+	Arch            RegistryArch `json:"arch"`
+	ImageId         string       `json:"image_id"`
+	MovedAt         time.Time    `json:"moved_at"`
+	MovedBy         string       `json:"moved_by"`
+	PreviousImageId *string      `json:"previous_image_id,omitempty"`
+	Profile         string       `json:"profile"`
+	Repository      string       `json:"repository"`
+}
+
+// RegistryPull defines model for RegistryPull.
+type RegistryPull struct {
+	BytesDone   int64   `json:"bytes_done"`
+	BytesTotal  int64   `json:"bytes_total"`
+	Error       *string `json:"error,omitempty"`
+	Id          string  `json:"id"`
+	ImageId     *string `json:"image_id,omitempty"`
+	Key         string  `json:"key"`
+	MachineId   string  `json:"machine_id"`
+	MachineName *string `json:"machine_name,omitempty"`
+	Repository  *string `json:"repository,omitempty"`
+
+	// SecondsLeft From the machine's measured pull speed; absent with no history.
+	SecondsLeft *float32           `json:"seconds_left,omitempty"`
+	Source      RegistryPullSource `json:"source"`
+	StartedAt   time.Time          `json:"started_at"`
+	State       RegistryPullState  `json:"state"`
+}
+
+// RegistryPullSource defines model for RegistryPull.Source.
+type RegistryPullSource string
+
+// RegistryPullState defines model for RegistryPull.State.
+type RegistryPullState string
+
+// RegistryPullDay defines model for RegistryPullDay.
+type RegistryPullDay struct {
+	Day   openapi_types.Date `json:"day"`
+	Pulls int                `json:"pulls"`
+}
+
+// RegistryPullList defines model for RegistryPullList.
+type RegistryPullList struct {
+	Items []RegistryPull `json:"items"`
+}
+
+// RegistryRecommendation defines model for RegistryRecommendation.
+type RegistryRecommendation struct {
+	CreatedAt time.Time `json:"created_at"`
+
+	// Decider owner waits for a yes; crsp acts alone on due_at.
+	Decider RegistryDecider `json:"decider"`
+
+	// DueAt When crsp acts alone, shown ahead. Absent when the owner decides.
+	DueAt      *time.Time         `json:"due_at,omitempty"`
+	FreesBytes int64              `json:"frees_bytes"`
+	Id         string             `json:"id"`
+	ImageId    *string            `json:"image_id,omitempty"`
+	Kind       *RegistryImageKind `json:"kind,omitempty"`
+
+	// OtherImageId For replace, the image the new one would replace.
+	OtherImageId *string      `json:"other_image_id,omitempty"`
+	Rule         RegistryRule `json:"rule"`
+}
+
+// RegistryReplacePlan defines model for RegistryReplacePlan.
+type RegistryReplacePlan struct {
+	CanRollback *bool      `json:"can_rollback,omitempty"`
+	CreatedAt   time.Time  `json:"created_at"`
+	CreatedBy   *string    `json:"created_by,omitempty"`
+	Error       *string    `json:"error,omitempty"`
+	FinishedAt  *time.Time `json:"finished_at,omitempty"`
+	FreesBytes  *int64     `json:"frees_bytes,omitempty"`
+	Id          string     `json:"id"`
+	KeepDays    int        `json:"keep_days"`
+	KeepUntil   *time.Time `json:"keep_until,omitempty"`
+
+	// Machines Machines that held the old image and are warmed with the new one.
+	Machines     []string                 `json:"machines"`
+	NewImage     RegistryImageSummary     `json:"new_image"`
+	OldImage     RegistryImageSummary     `json:"old_image"`
+	Repositories []string                 `json:"repositories"`
+	StartedAt    *time.Time               `json:"started_at,omitempty"`
+	State        RegistryReplacePlanState `json:"state"`
+
+	// StepText What runs now, in plain words.
+	StepText   *string `json:"step_text,omitempty"`
+	StepsDone  int     `json:"steps_done"`
+	StepsTotal int     `json:"steps_total"`
+}
+
+// RegistryReplacePlanInput defines model for RegistryReplacePlanInput.
+type RegistryReplacePlanInput struct {
+	KeepDays   int    `json:"keep_days"`
+	NewImageId string `json:"new_image_id"`
+}
+
+// RegistryReplacePlanState defines model for RegistryReplacePlanState.
+type RegistryReplacePlanState string
+
+// RegistryRule defines model for RegistryRule.
+type RegistryRule string
+
+// RegistryScan defines model for RegistryScan.
+type RegistryScan struct {
+	Critical  *int              `json:"critical,omitempty"`
+	Error     *string           `json:"error,omitempty"`
+	High      *int              `json:"high,omitempty"`
+	Low       *int              `json:"low,omitempty"`
+	Medium    *int              `json:"medium,omitempty"`
+	Packages  *int              `json:"packages,omitempty"`
+	ScannedAt *time.Time        `json:"scanned_at,omitempty"`
+	State     RegistryScanState `json:"state"`
+}
+
+// RegistryScanState defines model for RegistryScanState.
+type RegistryScanState string
+
 // RegistrySettings defines model for RegistrySettings.
 type RegistrySettings struct {
 	CaBundleSet bool            `json:"ca_bundle_set"`
 	Logins      []RegistryLogin `json:"logins"`
+}
+
+// RegistryStackFileChange defines model for RegistryStackFileChange.
+type RegistryStackFileChange struct {
+	AfterSha256  *string                       `json:"after_sha256,omitempty"`
+	BeforeSha256 *string                       `json:"before_sha256,omitempty"`
+	Change       RegistryStackFileChangeChange `json:"change"`
+	Path         string                        `json:"path"`
+}
+
+// RegistryStackFileChangeChange defines model for RegistryStackFileChange.Change.
+type RegistryStackFileChangeChange string
+
+// RegistryStoreSettings defines model for RegistryStoreSettings.
+type RegistryStoreSettings struct {
+	// AloneRules The rules crsp acts on without a yes (fixed by the owner).
+	AloneRules  *[]RegistryRule `json:"alone_rules,omitempty"`
+	CleanupHour int             `json:"cleanup_hour"`
+
+	// CleanupWeekday 0 is Sunday.
+	CleanupWeekday int    `json:"cleanup_weekday"`
+	Folder         string `json:"folder"`
+
+	// FolderPending A new folder waiting for the blobs to move.
+	FolderPending     *string `json:"folder_pending,omitempty"`
+	KeepOldDays       int     `json:"keep_old_days"`
+	UnusedDays        int     `json:"unused_days"`
+	VariantGoneDays   int     `json:"variant_gone_days"`
+	VariantUnusedDays int     `json:"variant_unused_days"`
+}
+
+// RegistryStoreSettingsInput defines model for RegistryStoreSettingsInput.
+type RegistryStoreSettingsInput struct {
+	CleanupHour       int    `json:"cleanup_hour"`
+	CleanupWeekday    int    `json:"cleanup_weekday"`
+	Folder            string `json:"folder"`
+	KeepOldDays       int    `json:"keep_old_days"`
+	UnusedDays        int    `json:"unused_days"`
+	VariantGoneDays   int    `json:"variant_gone_days"`
+	VariantUnusedDays int    `json:"variant_unused_days"`
+}
+
+// RegistryWeek defines model for RegistryWeek.
+type RegistryWeek struct {
+	BuildsAvoided int     `json:"builds_avoided"`
+	BytesPulled   int64   `json:"bytes_pulled"`
+	Pulls         int     `json:"pulls"`
+	SavedSeconds  float32 `json:"saved_seconds"`
+}
+
+// RegistryWhere defines model for RegistryWhere.
+type RegistryWhere struct {
+	Folder string `json:"folder"`
+
+	// Host host:port on the controller's HTTPS listener (private LAN address only).
+	Host string `json:"host"`
+
+	// ReadOnly True during the cleanup window; pulls keep working.
+	ReadOnly bool `json:"read_only"`
+	Running  bool `json:"running"`
+
+	// WhyNot Why it is not running, in plain words.
+	WhyNot *string `json:"why_not,omitempty"`
 }
 
 // RemoveRunnerLeftoversRequest defines model for RemoveRunnerLeftoversRequest.
@@ -5425,6 +6302,9 @@ type WebhookModeUpdateMode string
 // BackupId defines model for BackupId.
 type BackupId = string
 
+// BuildId defines model for BuildId.
+type BuildId = string
+
 // CacheId defines model for CacheId.
 type CacheId = string
 
@@ -5490,6 +6370,9 @@ type OAuthState = string
 
 // PlanId defines model for PlanId.
 type PlanId = string
+
+// RegistryImageId defines model for RegistryImageId.
+type RegistryImageId = string
 
 // RepositoryId defines model for RepositoryId.
 type RepositoryId = int64
@@ -5758,8 +6641,35 @@ type DeleteNotificationChannelParams struct {
 	Confirm *Confirm `form:"confirm,omitempty" json:"confirm,omitempty"`
 }
 
+// ListImageBuildsParams defines parameters for ListImageBuilds.
+type ListImageBuildsParams struct {
+	MachineId *string `form:"machine_id,omitempty" json:"machine_id,omitempty"`
+}
+
+// ListRegistryImagesParams defines parameters for ListRegistryImages.
+type ListRegistryImagesParams struct {
+	Kind  *RegistryImageKind  `form:"kind,omitempty" json:"kind,omitempty"`
+	State *RegistryImageState `form:"state,omitempty" json:"state,omitempty"`
+
+	// Repository owner/name; images it points to or that were built for it.
+	Repository *string       `form:"repository,omitempty" json:"repository,omitempty"`
+	Arch       *RegistryArch `form:"arch,omitempty" json:"arch,omitempty"`
+	Profile    *string       `form:"profile,omitempty" json:"profile,omitempty"`
+}
+
+// DeleteRegistryImageParams defines parameters for DeleteRegistryImage.
+type DeleteRegistryImageParams struct {
+	// Confirm The yes to a question card that named what goes (UX-62).
+	Confirm *Confirm `form:"confirm,omitempty" json:"confirm,omitempty"`
+}
+
 // DeleteRegistryLoginParamsKind defines parameters for DeleteRegistryLogin.
 type DeleteRegistryLoginParamsKind string
+
+// ListRegistryPullsParams defines parameters for ListRegistryPulls.
+type ListRegistryPullsParams struct {
+	MachineId *string `form:"machine_id,omitempty" json:"machine_id,omitempty"`
+}
 
 // ListRunnersParams defines parameters for ListRunners.
 type ListRunnersParams struct {
@@ -5922,11 +6832,23 @@ type CreateNotificationChannelJSONRequestBody = NotificationChannelInput
 // UpdateNotificationChannelJSONRequestBody defines body for UpdateNotificationChannel for application/json ContentType.
 type UpdateNotificationChannelJSONRequestBody = NotificationChannelUpdate
 
+// PutRegistryBudgetsJSONRequestBody defines body for PutRegistryBudgets for application/json ContentType.
+type PutRegistryBudgetsJSONRequestBody = RegistryBudgetsInput
+
 // PutRegistryCaBundleJSONRequestBody defines body for PutRegistryCaBundle for application/json ContentType.
 type PutRegistryCaBundleJSONRequestBody = CaBundleInput
 
 // PutRegistryLoginJSONRequestBody defines body for PutRegistryLogin for application/json ContentType.
 type PutRegistryLoginJSONRequestBody = RegistryLoginInput
+
+// PutRegistryMirrorSettingsJSONRequestBody defines body for PutRegistryMirrorSettings for application/json ContentType.
+type PutRegistryMirrorSettingsJSONRequestBody = RegistryMirrorSettingsInput
+
+// CreateRegistryReplacePlanJSONRequestBody defines body for CreateRegistryReplacePlan for application/json ContentType.
+type CreateRegistryReplacePlanJSONRequestBody = RegistryReplacePlanInput
+
+// PutRegistryStoreSettingsJSONRequestBody defines body for PutRegistryStoreSettings for application/json ContentType.
+type PutRegistryStoreSettingsJSONRequestBody = RegistryStoreSettingsInput
 
 // SetRepositoryExtraPackagesJSONRequestBody defines body for SetRepositoryExtraPackages for application/json ContentType.
 type SetRepositoryExtraPackagesJSONRequestBody = ExtraPackagesUpdate
@@ -6866,6 +7788,45 @@ type ClientInterface interface {
 	// Corresponds with GET /api/v1/registry (the `GetRegistrySettings` operationId).
 	GetRegistrySettings(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// GetRegistryBudgets Budgets of standard and custom images with their use and the free disk
+	//
+	// registry R5.6.1 (REG6).
+	//
+	// Corresponds with GET /api/v1/registry/budgets (the `GetRegistryBudgets` operationId).
+	GetRegistryBudgets(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PutRegistryBudgetsWithBody Set the two budgets
+	//
+	// registry R5.6.1 (REG6). 400 bad_request when the sum is above half the free disk of the registry folder's volume; the detail names the most it may be.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with PUT /api/v1/registry/budgets (the `PutRegistryBudgets` operationId).
+	PutRegistryBudgetsWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PutRegistryBudgets Set the two budgets
+	//
+	// registry R5.6.1 (REG6). 400 bad_request when the sum is above half the free disk of the registry folder's volume; the detail names the most it may be.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with PUT /api/v1/registry/budgets (the `PutRegistryBudgets` operationId).
+	PutRegistryBudgets(ctx context.Context, body PutRegistryBudgetsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListImageBuilds Image builds, the running ones first, with their push state
+	//
+	// registry R5.10 (IMG1; push state by REG2).
+	//
+	// Corresponds with GET /api/v1/registry/builds (the `ListImageBuilds` operationId).
+	ListImageBuilds(ctx context.Context, params *ListImageBuildsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetImageBuild One build with its steps and log tail
+	//
+	// registry R5.10 (IMG1).
+	//
+	// Corresponds with GET /api/v1/registry/builds/{buildId} (the `GetImageBuild` operationId).
+	GetImageBuild(ctx context.Context, buildId BuildId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// DeleteRegistryCaBundle Remove the private CA bundle
 	//
 	// Corresponds with DELETE /api/v1/registry/ca-bundle (the `DeleteRegistryCaBundle` operationId).
@@ -6889,6 +7850,41 @@ type ClientInterface interface {
 	// Corresponds with PUT /api/v1/registry/ca-bundle (the `PutRegistryCaBundle` operationId).
 	PutRegistryCaBundle(ctx context.Context, body PutRegistryCaBundleJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// StartRegistryCleanup Clean up now (read-only window, then garbage collection)
+	//
+	// registry R5.6.6 (REG6). 409 conflict when a cleanup runs.
+	//
+	// Corresponds with POST /api/v1/registry/cleanup (the `StartRegistryCleanup` operationId).
+	StartRegistryCleanup(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListRegistryImages Images in the registry, newest first
+	//
+	// registry R5.5.5 (REG4). Deleted images are not listed.
+	//
+	// Corresponds with GET /api/v1/registry/images (the `ListRegistryImages` operationId).
+	ListRegistryImages(ctx context.Context, params *ListRegistryImagesParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// DeleteRegistryImage Delete one image's manifest
+	//
+	// registry R5.6.4 (REG6). Without `confirm=true` it answers 409 needs_confirmation naming the running jobs that use it, the repositories that point to it and whether it is inside its rollback days; the question card lists them. An image a running job uses is refused even with confirm (409 conflict). Blobs wait for the cleanup.
+	//
+	// Corresponds with DELETE /api/v1/registry/images/{registryImageId} (the `DeleteRegistryImage` operationId).
+	DeleteRegistryImage(ctx context.Context, registryImageId RegistryImageId, params *DeleteRegistryImageParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetRegistryImage One image with lineage, layers, pulls by day, machines, pointers and scan
+	//
+	// registry R5.5.6 (REG4; scan by REG8).
+	//
+	// Corresponds with GET /api/v1/registry/images/{registryImageId} (the `GetRegistryImage` operationId).
+	GetRegistryImage(ctx context.Context, registryImageId RegistryImageId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CompareRegistryImage The image against the one it would replace
+	//
+	// registry R5.7.1 (REG7). 404 when the image updates nothing.
+	//
+	// Corresponds with GET /api/v1/registry/images/{registryImageId}/compare (the `CompareRegistryImage` operationId).
+	CompareRegistryImage(ctx context.Context, registryImageId RegistryImageId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// PutRegistryLoginWithBody Store a registry login for one backend kind
 	//
 	// runners R5.77. The password goes to the secret store. An empty password keeps the stored one.
@@ -6911,6 +7907,116 @@ type ClientInterface interface {
 	//
 	// Corresponds with DELETE /api/v1/registry/logins/{kind}/{host} (the `DeleteRegistryLogin` operationId).
 	DeleteRegistryLogin(ctx context.Context, kind DeleteRegistryLoginParamsKind, host string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetRegistryMirrorSettings The pull-through mirror of upstream bases
+	//
+	// registry R5.9 (REG9).
+	//
+	// Corresponds with GET /api/v1/registry/mirror (the `GetRegistryMirrorSettings` operationId).
+	GetRegistryMirrorSettings(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PutRegistryMirrorSettingsWithBody Turn the mirror on or off, its upstreams and budget
+	//
+	// registry R5.9 (REG9).
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with PUT /api/v1/registry/mirror (the `PutRegistryMirrorSettings` operationId).
+	PutRegistryMirrorSettingsWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PutRegistryMirrorSettings Turn the mirror on or off, its upstreams and budget
+	//
+	// registry R5.9 (REG9).
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with PUT /api/v1/registry/mirror (the `PutRegistryMirrorSettings` operationId).
+	PutRegistryMirrorSettings(ctx context.Context, body PutRegistryMirrorSettingsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetRegistryOverview Where the registry runs, budgets, the last 7 days and the recommendations
+	//
+	// registry R5.5.4, R5.6.3 (REG4 reads, REG6 recommendations).
+	//
+	// Corresponds with GET /api/v1/registry/overview (the `GetRegistryOverview` operationId).
+	GetRegistryOverview(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListRegistryPulls Pulls in progress and waiting for the controller
+	//
+	// registry R5.5.2 (REG4 from REG2's reports). The Add runners pulling step reads it.
+	//
+	// Corresponds with GET /api/v1/registry/pulls (the `ListRegistryPulls` operationId).
+	ListRegistryPulls(ctx context.Context, params *ListRegistryPullsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CreateRegistryReplacePlanWithBody Make a replace plan (nothing changes yet)
+	//
+	// registry R5.7.2 (REG7). The plan is the Review step's data.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with POST /api/v1/registry/replace-plans (the `CreateRegistryReplacePlan` operationId).
+	CreateRegistryReplacePlanWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CreateRegistryReplacePlan Make a replace plan (nothing changes yet)
+	//
+	// registry R5.7.2 (REG7). The plan is the Review step's data.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with POST /api/v1/registry/replace-plans (the `CreateRegistryReplacePlan` operationId).
+	CreateRegistryReplacePlan(ctx context.Context, body CreateRegistryReplacePlanJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetRegistryReplacePlan One replace plan with its progress
+	//
+	// registry R5.7.3 (REG7). The wizard reads this after a reload.
+	//
+	// Corresponds with GET /api/v1/registry/replace-plans/{planId} (the `GetRegistryReplacePlan` operationId).
+	GetRegistryReplacePlan(ctx context.Context, planId PlanId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// RollbackRegistryReplacePlan Go back to the old image while it is kept
+	//
+	// registry R5.7.4 (REG7). 409 conflict after keep_until.
+	//
+	// Corresponds with POST /api/v1/registry/replace-plans/{planId}/rollback (the `RollbackRegistryReplacePlan` operationId).
+	RollbackRegistryReplacePlan(ctx context.Context, planId PlanId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// StartRegistryReplacePlan Replace (move the pointers, warm machines, keep the old image)
+	//
+	// registry R5.7.3 (REG7). 409 conflict unless the plan is draft or stopped.
+	//
+	// Corresponds with POST /api/v1/registry/replace-plans/{planId}/start (the `StartRegistryReplacePlan` operationId).
+	StartRegistryReplacePlan(ctx context.Context, planId PlanId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// StopRegistryReplacePlan Stop a running replace after its current step
+	//
+	// registry R5.7.3 (REG7). Pointers already moved stay moved; Rollback undoes them.
+	//
+	// Corresponds with POST /api/v1/registry/replace-plans/{planId}/stop (the `StopRegistryReplacePlan` operationId).
+	StopRegistryReplacePlan(ctx context.Context, planId PlanId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetRegistryStoreSettings Folder, days and cleanup time of the registry
+	//
+	// registry R5.6.2 (REG6). Not the registry logins of getRegistrySettings.
+	//
+	// Corresponds with GET /api/v1/registry/settings (the `GetRegistryStoreSettings` operationId).
+	GetRegistryStoreSettings(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PutRegistryStoreSettingsWithBody Change the folder, the days or the cleanup time
+	//
+	// registry R5.6.2 (REG6). A new folder is used after the blobs are moved; the answer says so. Which rules crsp may act on alone is fixed (owner decision) and not part of the input.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with PUT /api/v1/registry/settings (the `PutRegistryStoreSettings` operationId).
+	PutRegistryStoreSettingsWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PutRegistryStoreSettings Change the folder, the days or the cleanup time
+	//
+	// registry R5.6.2 (REG6). A new folder is used after the blobs are moved; the answer says so. Which rules crsp may act on alone is fixed (owner decision) and not part of the input.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with PUT /api/v1/registry/settings (the `PutRegistryStoreSettings` operationId).
+	PutRegistryStoreSettings(ctx context.Context, body PutRegistryStoreSettingsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetRepository One repository with its policy and variable status
 	//
@@ -9373,6 +10479,95 @@ func (c *Client) GetRegistrySettings(ctx context.Context, reqEditors ...RequestE
 	return c.Client.Do(req)
 }
 
+// GetRegistryBudgets Budgets of standard and custom images with their use and the free disk
+//
+// registry R5.6.1 (REG6).
+//
+// Corresponds with GET /api/v1/registry/budgets (the `GetRegistryBudgets` operationId).
+func (c *Client) GetRegistryBudgets(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetRegistryBudgetsRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// PutRegistryBudgetsWithBody Set the two budgets
+//
+// registry R5.6.1 (REG6). 400 bad_request when the sum is above half the free disk of the registry folder's volume; the detail names the most it may be.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with PUT /api/v1/registry/budgets (the `PutRegistryBudgets` operationId).
+func (c *Client) PutRegistryBudgetsWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPutRegistryBudgetsRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// PutRegistryBudgets Set the two budgets
+//
+// registry R5.6.1 (REG6). 400 bad_request when the sum is above half the free disk of the registry folder's volume; the detail names the most it may be.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with PUT /api/v1/registry/budgets (the `PutRegistryBudgets` operationId).
+func (c *Client) PutRegistryBudgets(ctx context.Context, body PutRegistryBudgetsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPutRegistryBudgetsRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ListImageBuilds Image builds, the running ones first, with their push state
+//
+// registry R5.10 (IMG1; push state by REG2).
+//
+// Corresponds with GET /api/v1/registry/builds (the `ListImageBuilds` operationId).
+func (c *Client) ListImageBuilds(ctx context.Context, params *ListImageBuildsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListImageBuildsRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GetImageBuild One build with its steps and log tail
+//
+// registry R5.10 (IMG1).
+//
+// Corresponds with GET /api/v1/registry/builds/{buildId} (the `GetImageBuild` operationId).
+func (c *Client) GetImageBuild(ctx context.Context, buildId BuildId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetImageBuildRequest(c.Server, buildId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 // DeleteRegistryCaBundle Remove the private CA bundle
 //
 // Corresponds with DELETE /api/v1/registry/ca-bundle (the `DeleteRegistryCaBundle` operationId).
@@ -9426,6 +10621,91 @@ func (c *Client) PutRegistryCaBundle(ctx context.Context, body PutRegistryCaBund
 	return c.Client.Do(req)
 }
 
+// StartRegistryCleanup Clean up now (read-only window, then garbage collection)
+//
+// registry R5.6.6 (REG6). 409 conflict when a cleanup runs.
+//
+// Corresponds with POST /api/v1/registry/cleanup (the `StartRegistryCleanup` operationId).
+func (c *Client) StartRegistryCleanup(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewStartRegistryCleanupRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ListRegistryImages Images in the registry, newest first
+//
+// registry R5.5.5 (REG4). Deleted images are not listed.
+//
+// Corresponds with GET /api/v1/registry/images (the `ListRegistryImages` operationId).
+func (c *Client) ListRegistryImages(ctx context.Context, params *ListRegistryImagesParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListRegistryImagesRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// DeleteRegistryImage Delete one image's manifest
+//
+// registry R5.6.4 (REG6). Without `confirm=true` it answers 409 needs_confirmation naming the running jobs that use it, the repositories that point to it and whether it is inside its rollback days; the question card lists them. An image a running job uses is refused even with confirm (409 conflict). Blobs wait for the cleanup.
+//
+// Corresponds with DELETE /api/v1/registry/images/{registryImageId} (the `DeleteRegistryImage` operationId).
+func (c *Client) DeleteRegistryImage(ctx context.Context, registryImageId RegistryImageId, params *DeleteRegistryImageParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDeleteRegistryImageRequest(c.Server, registryImageId, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GetRegistryImage One image with lineage, layers, pulls by day, machines, pointers and scan
+//
+// registry R5.5.6 (REG4; scan by REG8).
+//
+// Corresponds with GET /api/v1/registry/images/{registryImageId} (the `GetRegistryImage` operationId).
+func (c *Client) GetRegistryImage(ctx context.Context, registryImageId RegistryImageId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetRegistryImageRequest(c.Server, registryImageId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// CompareRegistryImage The image against the one it would replace
+//
+// registry R5.7.1 (REG7). 404 when the image updates nothing.
+//
+// Corresponds with GET /api/v1/registry/images/{registryImageId}/compare (the `CompareRegistryImage` operationId).
+func (c *Client) CompareRegistryImage(ctx context.Context, registryImageId RegistryImageId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCompareRegistryImageRequest(c.Server, registryImageId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 // PutRegistryLoginWithBody Store a registry login for one backend kind
 //
 // runners R5.77. The password goes to the secret store. An empty password keeps the stored one.
@@ -9469,6 +10749,256 @@ func (c *Client) PutRegistryLogin(ctx context.Context, body PutRegistryLoginJSON
 // Corresponds with DELETE /api/v1/registry/logins/{kind}/{host} (the `DeleteRegistryLogin` operationId).
 func (c *Client) DeleteRegistryLogin(ctx context.Context, kind DeleteRegistryLoginParamsKind, host string, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewDeleteRegistryLoginRequest(c.Server, kind, host)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GetRegistryMirrorSettings The pull-through mirror of upstream bases
+//
+// registry R5.9 (REG9).
+//
+// Corresponds with GET /api/v1/registry/mirror (the `GetRegistryMirrorSettings` operationId).
+func (c *Client) GetRegistryMirrorSettings(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetRegistryMirrorSettingsRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// PutRegistryMirrorSettingsWithBody Turn the mirror on or off, its upstreams and budget
+//
+// registry R5.9 (REG9).
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with PUT /api/v1/registry/mirror (the `PutRegistryMirrorSettings` operationId).
+func (c *Client) PutRegistryMirrorSettingsWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPutRegistryMirrorSettingsRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// PutRegistryMirrorSettings Turn the mirror on or off, its upstreams and budget
+//
+// registry R5.9 (REG9).
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with PUT /api/v1/registry/mirror (the `PutRegistryMirrorSettings` operationId).
+func (c *Client) PutRegistryMirrorSettings(ctx context.Context, body PutRegistryMirrorSettingsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPutRegistryMirrorSettingsRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GetRegistryOverview Where the registry runs, budgets, the last 7 days and the recommendations
+//
+// registry R5.5.4, R5.6.3 (REG4 reads, REG6 recommendations).
+//
+// Corresponds with GET /api/v1/registry/overview (the `GetRegistryOverview` operationId).
+func (c *Client) GetRegistryOverview(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetRegistryOverviewRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ListRegistryPulls Pulls in progress and waiting for the controller
+//
+// registry R5.5.2 (REG4 from REG2's reports). The Add runners pulling step reads it.
+//
+// Corresponds with GET /api/v1/registry/pulls (the `ListRegistryPulls` operationId).
+func (c *Client) ListRegistryPulls(ctx context.Context, params *ListRegistryPullsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListRegistryPullsRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// CreateRegistryReplacePlanWithBody Make a replace plan (nothing changes yet)
+//
+// registry R5.7.2 (REG7). The plan is the Review step's data.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with POST /api/v1/registry/replace-plans (the `CreateRegistryReplacePlan` operationId).
+func (c *Client) CreateRegistryReplacePlanWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateRegistryReplacePlanRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// CreateRegistryReplacePlan Make a replace plan (nothing changes yet)
+//
+// registry R5.7.2 (REG7). The plan is the Review step's data.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with POST /api/v1/registry/replace-plans (the `CreateRegistryReplacePlan` operationId).
+func (c *Client) CreateRegistryReplacePlan(ctx context.Context, body CreateRegistryReplacePlanJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateRegistryReplacePlanRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GetRegistryReplacePlan One replace plan with its progress
+//
+// registry R5.7.3 (REG7). The wizard reads this after a reload.
+//
+// Corresponds with GET /api/v1/registry/replace-plans/{planId} (the `GetRegistryReplacePlan` operationId).
+func (c *Client) GetRegistryReplacePlan(ctx context.Context, planId PlanId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetRegistryReplacePlanRequest(c.Server, planId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// RollbackRegistryReplacePlan Go back to the old image while it is kept
+//
+// registry R5.7.4 (REG7). 409 conflict after keep_until.
+//
+// Corresponds with POST /api/v1/registry/replace-plans/{planId}/rollback (the `RollbackRegistryReplacePlan` operationId).
+func (c *Client) RollbackRegistryReplacePlan(ctx context.Context, planId PlanId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewRollbackRegistryReplacePlanRequest(c.Server, planId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// StartRegistryReplacePlan Replace (move the pointers, warm machines, keep the old image)
+//
+// registry R5.7.3 (REG7). 409 conflict unless the plan is draft or stopped.
+//
+// Corresponds with POST /api/v1/registry/replace-plans/{planId}/start (the `StartRegistryReplacePlan` operationId).
+func (c *Client) StartRegistryReplacePlan(ctx context.Context, planId PlanId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewStartRegistryReplacePlanRequest(c.Server, planId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// StopRegistryReplacePlan Stop a running replace after its current step
+//
+// registry R5.7.3 (REG7). Pointers already moved stay moved; Rollback undoes them.
+//
+// Corresponds with POST /api/v1/registry/replace-plans/{planId}/stop (the `StopRegistryReplacePlan` operationId).
+func (c *Client) StopRegistryReplacePlan(ctx context.Context, planId PlanId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewStopRegistryReplacePlanRequest(c.Server, planId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GetRegistryStoreSettings Folder, days and cleanup time of the registry
+//
+// registry R5.6.2 (REG6). Not the registry logins of getRegistrySettings.
+//
+// Corresponds with GET /api/v1/registry/settings (the `GetRegistryStoreSettings` operationId).
+func (c *Client) GetRegistryStoreSettings(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetRegistryStoreSettingsRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// PutRegistryStoreSettingsWithBody Change the folder, the days or the cleanup time
+//
+// registry R5.6.2 (REG6). A new folder is used after the blobs are moved; the answer says so. Which rules crsp may act on alone is fixed (owner decision) and not part of the input.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with PUT /api/v1/registry/settings (the `PutRegistryStoreSettings` operationId).
+func (c *Client) PutRegistryStoreSettingsWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPutRegistryStoreSettingsRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// PutRegistryStoreSettings Change the folder, the days or the cleanup time
+//
+// registry R5.6.2 (REG6). A new folder is used after the blobs are moved; the answer says so. Which rules crsp may act on alone is fixed (owner decision) and not part of the input.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with PUT /api/v1/registry/settings (the `PutRegistryStoreSettings` operationId).
+func (c *Client) PutRegistryStoreSettings(ctx context.Context, body PutRegistryStoreSettingsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPutRegistryStoreSettingsRequest(c.Server, body)
 	if err != nil {
 		return nil, err
 	}
@@ -15033,6 +16563,161 @@ func NewGetRegistrySettingsRequest(server string) (*http.Request, error) {
 	return req, nil
 }
 
+// NewGetRegistryBudgetsRequest constructs an http.Request for the GetRegistryBudgets method
+func NewGetRegistryBudgetsRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/registry/budgets")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewPutRegistryBudgetsRequest calls the generic PutRegistryBudgets builder with application/json body
+func NewPutRegistryBudgetsRequest(server string, body PutRegistryBudgetsJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewPutRegistryBudgetsRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewPutRegistryBudgetsRequestWithBody constructs an http.Request for the PutRegistryBudgets method, with any body, and a specified content type
+func NewPutRegistryBudgetsRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/registry/budgets")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPut, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewListImageBuildsRequest constructs an http.Request for the ListImageBuilds method
+func NewListImageBuildsRequest(server string, params *ListImageBuildsParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/registry/builds")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.MachineId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "machine_id", *params.MachineId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetImageBuildRequest constructs an http.Request for the GetImageBuild method
+func NewGetImageBuildRequest(server string, buildId BuildId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "buildId", buildId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/registry/builds/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewDeleteRegistryCaBundleRequest constructs an http.Request for the DeleteRegistryCaBundle method
 func NewDeleteRegistryCaBundleRequest(server string) (*http.Request, error) {
 	var err error
@@ -15096,6 +16781,264 @@ func NewPutRegistryCaBundleRequestWithBody(server string, contentType string, bo
 	}
 
 	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewStartRegistryCleanupRequest constructs an http.Request for the StartRegistryCleanup method
+func NewStartRegistryCleanupRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/registry/cleanup")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewListRegistryImagesRequest constructs an http.Request for the ListRegistryImages method
+func NewListRegistryImagesRequest(server string, params *ListRegistryImagesParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/registry/images")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.Kind != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "kind", *params.Kind, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.State != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "state", *params.State, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Repository != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "repository", *params.Repository, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Arch != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "arch", *params.Arch, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Profile != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "profile", *params.Profile, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewDeleteRegistryImageRequest constructs an http.Request for the DeleteRegistryImage method
+func NewDeleteRegistryImageRequest(server string, registryImageId RegistryImageId, params *DeleteRegistryImageParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "registryImageId", registryImageId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/registry/images/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.Confirm != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "confirm", *params.Confirm, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "boolean", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodDelete, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetRegistryImageRequest constructs an http.Request for the GetRegistryImage method
+func NewGetRegistryImageRequest(server string, registryImageId RegistryImageId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "registryImageId", registryImageId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/registry/images/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewCompareRegistryImageRequest constructs an http.Request for the CompareRegistryImage method
+func NewCompareRegistryImageRequest(server string, registryImageId RegistryImageId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "registryImageId", registryImageId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/registry/images/%s/compare", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
 
 	return req, nil
 }
@@ -15177,6 +17120,397 @@ func NewDeleteRegistryLoginRequest(server string, kind DeleteRegistryLoginParams
 	if err != nil {
 		return nil, err
 	}
+
+	return req, nil
+}
+
+// NewGetRegistryMirrorSettingsRequest constructs an http.Request for the GetRegistryMirrorSettings method
+func NewGetRegistryMirrorSettingsRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/registry/mirror")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewPutRegistryMirrorSettingsRequest calls the generic PutRegistryMirrorSettings builder with application/json body
+func NewPutRegistryMirrorSettingsRequest(server string, body PutRegistryMirrorSettingsJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewPutRegistryMirrorSettingsRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewPutRegistryMirrorSettingsRequestWithBody constructs an http.Request for the PutRegistryMirrorSettings method, with any body, and a specified content type
+func NewPutRegistryMirrorSettingsRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/registry/mirror")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPut, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewGetRegistryOverviewRequest constructs an http.Request for the GetRegistryOverview method
+func NewGetRegistryOverviewRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/registry/overview")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewListRegistryPullsRequest constructs an http.Request for the ListRegistryPulls method
+func NewListRegistryPullsRequest(server string, params *ListRegistryPullsParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/registry/pulls")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.MachineId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "machine_id", *params.MachineId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewCreateRegistryReplacePlanRequest calls the generic CreateRegistryReplacePlan builder with application/json body
+func NewCreateRegistryReplacePlanRequest(server string, body CreateRegistryReplacePlanJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewCreateRegistryReplacePlanRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewCreateRegistryReplacePlanRequestWithBody constructs an http.Request for the CreateRegistryReplacePlan method, with any body, and a specified content type
+func NewCreateRegistryReplacePlanRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/registry/replace-plans")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewGetRegistryReplacePlanRequest constructs an http.Request for the GetRegistryReplacePlan method
+func NewGetRegistryReplacePlanRequest(server string, planId PlanId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "planId", planId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/registry/replace-plans/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewRollbackRegistryReplacePlanRequest constructs an http.Request for the RollbackRegistryReplacePlan method
+func NewRollbackRegistryReplacePlanRequest(server string, planId PlanId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "planId", planId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/registry/replace-plans/%s/rollback", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewStartRegistryReplacePlanRequest constructs an http.Request for the StartRegistryReplacePlan method
+func NewStartRegistryReplacePlanRequest(server string, planId PlanId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "planId", planId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/registry/replace-plans/%s/start", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewStopRegistryReplacePlanRequest constructs an http.Request for the StopRegistryReplacePlan method
+func NewStopRegistryReplacePlanRequest(server string, planId PlanId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "planId", planId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/registry/replace-plans/%s/stop", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetRegistryStoreSettingsRequest constructs an http.Request for the GetRegistryStoreSettings method
+func NewGetRegistryStoreSettingsRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/registry/settings")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewPutRegistryStoreSettingsRequest calls the generic PutRegistryStoreSettings builder with application/json body
+func NewPutRegistryStoreSettingsRequest(server string, body PutRegistryStoreSettingsJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewPutRegistryStoreSettingsRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewPutRegistryStoreSettingsRequestWithBody constructs an http.Request for the PutRegistryStoreSettings method, with any body, and a specified content type
+func NewPutRegistryStoreSettingsRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/registry/settings")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPut, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
 
 	return req, nil
 }
@@ -18607,6 +20941,51 @@ type ClientWithResponsesInterface interface {
 	// Corresponds with GET /api/v1/registry (the `GetRegistrySettings` operationId).
 	GetRegistrySettingsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetRegistrySettingsResponse, error)
 
+	// GetRegistryBudgetsWithResponse Budgets of standard and custom images with their use and the free disk
+	//
+	// registry R5.6.1 (REG6).
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/v1/registry/budgets (the `GetRegistryBudgets` operationId).
+	GetRegistryBudgetsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetRegistryBudgetsResponse, error)
+
+	// PutRegistryBudgetsWithBodyWithResponse Set the two budgets
+	//
+	// registry R5.6.1 (REG6). 400 bad_request when the sum is above half the free disk of the registry folder's volume; the detail names the most it may be.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /api/v1/registry/budgets (the `PutRegistryBudgets` operationId).
+	PutRegistryBudgetsWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PutRegistryBudgetsResponse, error)
+
+	// PutRegistryBudgetsWithResponse Set the two budgets
+	//
+	// registry R5.6.1 (REG6). 400 bad_request when the sum is above half the free disk of the registry folder's volume; the detail names the most it may be.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /api/v1/registry/budgets (the `PutRegistryBudgets` operationId).
+	PutRegistryBudgetsWithResponse(ctx context.Context, body PutRegistryBudgetsJSONRequestBody, reqEditors ...RequestEditorFn) (*PutRegistryBudgetsResponse, error)
+
+	// ListImageBuildsWithResponse Image builds, the running ones first, with their push state
+	//
+	// registry R5.10 (IMG1; push state by REG2).
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/v1/registry/builds (the `ListImageBuilds` operationId).
+	ListImageBuildsWithResponse(ctx context.Context, params *ListImageBuildsParams, reqEditors ...RequestEditorFn) (*ListImageBuildsResponse, error)
+
+	// GetImageBuildWithResponse One build with its steps and log tail
+	//
+	// registry R5.10 (IMG1).
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/v1/registry/builds/{buildId} (the `GetImageBuild` operationId).
+	GetImageBuildWithResponse(ctx context.Context, buildId BuildId, reqEditors ...RequestEditorFn) (*GetImageBuildResponse, error)
+
 	// DeleteRegistryCaBundleWithResponse Remove the private CA bundle
 	//
 	// Returns a wrapper object for the known response body format(s).
@@ -18632,6 +21011,51 @@ type ClientWithResponsesInterface interface {
 	// Corresponds with PUT /api/v1/registry/ca-bundle (the `PutRegistryCaBundle` operationId).
 	PutRegistryCaBundleWithResponse(ctx context.Context, body PutRegistryCaBundleJSONRequestBody, reqEditors ...RequestEditorFn) (*PutRegistryCaBundleResponse, error)
 
+	// StartRegistryCleanupWithResponse Clean up now (read-only window, then garbage collection)
+	//
+	// registry R5.6.6 (REG6). 409 conflict when a cleanup runs.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /api/v1/registry/cleanup (the `StartRegistryCleanup` operationId).
+	StartRegistryCleanupWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*StartRegistryCleanupResponse, error)
+
+	// ListRegistryImagesWithResponse Images in the registry, newest first
+	//
+	// registry R5.5.5 (REG4). Deleted images are not listed.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/v1/registry/images (the `ListRegistryImages` operationId).
+	ListRegistryImagesWithResponse(ctx context.Context, params *ListRegistryImagesParams, reqEditors ...RequestEditorFn) (*ListRegistryImagesResponse, error)
+
+	// DeleteRegistryImageWithResponse Delete one image's manifest
+	//
+	// registry R5.6.4 (REG6). Without `confirm=true` it answers 409 needs_confirmation naming the running jobs that use it, the repositories that point to it and whether it is inside its rollback days; the question card lists them. An image a running job uses is refused even with confirm (409 conflict). Blobs wait for the cleanup.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with DELETE /api/v1/registry/images/{registryImageId} (the `DeleteRegistryImage` operationId).
+	DeleteRegistryImageWithResponse(ctx context.Context, registryImageId RegistryImageId, params *DeleteRegistryImageParams, reqEditors ...RequestEditorFn) (*DeleteRegistryImageResponse, error)
+
+	// GetRegistryImageWithResponse One image with lineage, layers, pulls by day, machines, pointers and scan
+	//
+	// registry R5.5.6 (REG4; scan by REG8).
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/v1/registry/images/{registryImageId} (the `GetRegistryImage` operationId).
+	GetRegistryImageWithResponse(ctx context.Context, registryImageId RegistryImageId, reqEditors ...RequestEditorFn) (*GetRegistryImageResponse, error)
+
+	// CompareRegistryImageWithResponse The image against the one it would replace
+	//
+	// registry R5.7.1 (REG7). 404 when the image updates nothing.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/v1/registry/images/{registryImageId}/compare (the `CompareRegistryImage` operationId).
+	CompareRegistryImageWithResponse(ctx context.Context, registryImageId RegistryImageId, reqEditors ...RequestEditorFn) (*CompareRegistryImageResponse, error)
+
 	// PutRegistryLoginWithBodyWithResponse Store a registry login for one backend kind
 	//
 	// runners R5.77. The password goes to the secret store. An empty password keeps the stored one.
@@ -18656,6 +21080,132 @@ type ClientWithResponsesInterface interface {
 	//
 	// Corresponds with DELETE /api/v1/registry/logins/{kind}/{host} (the `DeleteRegistryLogin` operationId).
 	DeleteRegistryLoginWithResponse(ctx context.Context, kind DeleteRegistryLoginParamsKind, host string, reqEditors ...RequestEditorFn) (*DeleteRegistryLoginResponse, error)
+
+	// GetRegistryMirrorSettingsWithResponse The pull-through mirror of upstream bases
+	//
+	// registry R5.9 (REG9).
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/v1/registry/mirror (the `GetRegistryMirrorSettings` operationId).
+	GetRegistryMirrorSettingsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetRegistryMirrorSettingsResponse, error)
+
+	// PutRegistryMirrorSettingsWithBodyWithResponse Turn the mirror on or off, its upstreams and budget
+	//
+	// registry R5.9 (REG9).
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /api/v1/registry/mirror (the `PutRegistryMirrorSettings` operationId).
+	PutRegistryMirrorSettingsWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PutRegistryMirrorSettingsResponse, error)
+
+	// PutRegistryMirrorSettingsWithResponse Turn the mirror on or off, its upstreams and budget
+	//
+	// registry R5.9 (REG9).
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /api/v1/registry/mirror (the `PutRegistryMirrorSettings` operationId).
+	PutRegistryMirrorSettingsWithResponse(ctx context.Context, body PutRegistryMirrorSettingsJSONRequestBody, reqEditors ...RequestEditorFn) (*PutRegistryMirrorSettingsResponse, error)
+
+	// GetRegistryOverviewWithResponse Where the registry runs, budgets, the last 7 days and the recommendations
+	//
+	// registry R5.5.4, R5.6.3 (REG4 reads, REG6 recommendations).
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/v1/registry/overview (the `GetRegistryOverview` operationId).
+	GetRegistryOverviewWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetRegistryOverviewResponse, error)
+
+	// ListRegistryPullsWithResponse Pulls in progress and waiting for the controller
+	//
+	// registry R5.5.2 (REG4 from REG2's reports). The Add runners pulling step reads it.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/v1/registry/pulls (the `ListRegistryPulls` operationId).
+	ListRegistryPullsWithResponse(ctx context.Context, params *ListRegistryPullsParams, reqEditors ...RequestEditorFn) (*ListRegistryPullsResponse, error)
+
+	// CreateRegistryReplacePlanWithBodyWithResponse Make a replace plan (nothing changes yet)
+	//
+	// registry R5.7.2 (REG7). The plan is the Review step's data.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /api/v1/registry/replace-plans (the `CreateRegistryReplacePlan` operationId).
+	CreateRegistryReplacePlanWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateRegistryReplacePlanResponse, error)
+
+	// CreateRegistryReplacePlanWithResponse Make a replace plan (nothing changes yet)
+	//
+	// registry R5.7.2 (REG7). The plan is the Review step's data.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /api/v1/registry/replace-plans (the `CreateRegistryReplacePlan` operationId).
+	CreateRegistryReplacePlanWithResponse(ctx context.Context, body CreateRegistryReplacePlanJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateRegistryReplacePlanResponse, error)
+
+	// GetRegistryReplacePlanWithResponse One replace plan with its progress
+	//
+	// registry R5.7.3 (REG7). The wizard reads this after a reload.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/v1/registry/replace-plans/{planId} (the `GetRegistryReplacePlan` operationId).
+	GetRegistryReplacePlanWithResponse(ctx context.Context, planId PlanId, reqEditors ...RequestEditorFn) (*GetRegistryReplacePlanResponse, error)
+
+	// RollbackRegistryReplacePlanWithResponse Go back to the old image while it is kept
+	//
+	// registry R5.7.4 (REG7). 409 conflict after keep_until.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /api/v1/registry/replace-plans/{planId}/rollback (the `RollbackRegistryReplacePlan` operationId).
+	RollbackRegistryReplacePlanWithResponse(ctx context.Context, planId PlanId, reqEditors ...RequestEditorFn) (*RollbackRegistryReplacePlanResponse, error)
+
+	// StartRegistryReplacePlanWithResponse Replace (move the pointers, warm machines, keep the old image)
+	//
+	// registry R5.7.3 (REG7). 409 conflict unless the plan is draft or stopped.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /api/v1/registry/replace-plans/{planId}/start (the `StartRegistryReplacePlan` operationId).
+	StartRegistryReplacePlanWithResponse(ctx context.Context, planId PlanId, reqEditors ...RequestEditorFn) (*StartRegistryReplacePlanResponse, error)
+
+	// StopRegistryReplacePlanWithResponse Stop a running replace after its current step
+	//
+	// registry R5.7.3 (REG7). Pointers already moved stay moved; Rollback undoes them.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /api/v1/registry/replace-plans/{planId}/stop (the `StopRegistryReplacePlan` operationId).
+	StopRegistryReplacePlanWithResponse(ctx context.Context, planId PlanId, reqEditors ...RequestEditorFn) (*StopRegistryReplacePlanResponse, error)
+
+	// GetRegistryStoreSettingsWithResponse Folder, days and cleanup time of the registry
+	//
+	// registry R5.6.2 (REG6). Not the registry logins of getRegistrySettings.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/v1/registry/settings (the `GetRegistryStoreSettings` operationId).
+	GetRegistryStoreSettingsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetRegistryStoreSettingsResponse, error)
+
+	// PutRegistryStoreSettingsWithBodyWithResponse Change the folder, the days or the cleanup time
+	//
+	// registry R5.6.2 (REG6). A new folder is used after the blobs are moved; the answer says so. Which rules crsp may act on alone is fixed (owner decision) and not part of the input.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /api/v1/registry/settings (the `PutRegistryStoreSettings` operationId).
+	PutRegistryStoreSettingsWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PutRegistryStoreSettingsResponse, error)
+
+	// PutRegistryStoreSettingsWithResponse Change the folder, the days or the cleanup time
+	//
+	// registry R5.6.2 (REG6). A new folder is used after the blobs are moved; the answer says so. Which rules crsp may act on alone is fixed (owner decision) and not part of the input.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /api/v1/registry/settings (the `PutRegistryStoreSettings` operationId).
+	PutRegistryStoreSettingsWithResponse(ctx context.Context, body PutRegistryStoreSettingsJSONRequestBody, reqEditors ...RequestEditorFn) (*PutRegistryStoreSettingsResponse, error)
 
 	// GetRepositoryWithResponse One repository with its policy and variable status
 	//
@@ -23349,6 +25899,198 @@ func (r GetRegistrySettingsResponse) ContentType() string {
 	return ""
 }
 
+type GetRegistryBudgetsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *RegistryBudgets
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetRegistryBudgetsResponse) GetJSON200() *RegistryBudgets {
+	return r.JSON200
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r GetRegistryBudgetsResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r GetRegistryBudgetsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetRegistryBudgetsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetRegistryBudgetsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetRegistryBudgetsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type PutRegistryBudgetsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *RegistryBudgets
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r PutRegistryBudgetsResponse) GetJSON200() *RegistryBudgets {
+	return r.JSON200
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r PutRegistryBudgetsResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r PutRegistryBudgetsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r PutRegistryBudgetsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r PutRegistryBudgetsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r PutRegistryBudgetsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type ListImageBuildsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *ImageBuildList
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r ListImageBuildsResponse) GetJSON200() *ImageBuildList {
+	return r.JSON200
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r ListImageBuildsResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r ListImageBuildsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ListImageBuildsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListImageBuildsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ListImageBuildsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type GetImageBuildResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *ImageBuild
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetImageBuildResponse) GetJSON200() *ImageBuild {
+	return r.JSON200
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r GetImageBuildResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r GetImageBuildResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetImageBuildResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetImageBuildResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetImageBuildResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 type DeleteRegistryCaBundleResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -23438,6 +26180,246 @@ func (r PutRegistryCaBundleResponse) ContentType() string {
 	return ""
 }
 
+type StartRegistryCleanupResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON202 the response for an HTTP 202 `application/json` response
+	JSON202 *RegistryCleanup
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON202 returns the response for an HTTP 202 `application/json` response
+func (r StartRegistryCleanupResponse) GetJSON202() *RegistryCleanup {
+	return r.JSON202
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r StartRegistryCleanupResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r StartRegistryCleanupResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r StartRegistryCleanupResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r StartRegistryCleanupResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r StartRegistryCleanupResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type ListRegistryImagesResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *RegistryImageList
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r ListRegistryImagesResponse) GetJSON200() *RegistryImageList {
+	return r.JSON200
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r ListRegistryImagesResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r ListRegistryImagesResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ListRegistryImagesResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListRegistryImagesResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ListRegistryImagesResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type DeleteRegistryImageResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON202 the response for an HTTP 202 `application/json` response
+	JSON202 *RegistryImage
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON202 returns the response for an HTTP 202 `application/json` response
+func (r DeleteRegistryImageResponse) GetJSON202() *RegistryImage {
+	return r.JSON202
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r DeleteRegistryImageResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r DeleteRegistryImageResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r DeleteRegistryImageResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r DeleteRegistryImageResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r DeleteRegistryImageResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type GetRegistryImageResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *RegistryImage
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetRegistryImageResponse) GetJSON200() *RegistryImage {
+	return r.JSON200
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r GetRegistryImageResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r GetRegistryImageResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetRegistryImageResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetRegistryImageResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetRegistryImageResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type CompareRegistryImageResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *RegistryCompare
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r CompareRegistryImageResponse) GetJSON200() *RegistryCompare {
+	return r.JSON200
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r CompareRegistryImageResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r CompareRegistryImageResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r CompareRegistryImageResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CompareRegistryImageResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r CompareRegistryImageResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 type PutRegistryLoginResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -23521,6 +26503,534 @@ func (r DeleteRegistryLoginResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r DeleteRegistryLoginResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type GetRegistryMirrorSettingsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *RegistryMirrorSettings
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetRegistryMirrorSettingsResponse) GetJSON200() *RegistryMirrorSettings {
+	return r.JSON200
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r GetRegistryMirrorSettingsResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r GetRegistryMirrorSettingsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetRegistryMirrorSettingsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetRegistryMirrorSettingsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetRegistryMirrorSettingsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type PutRegistryMirrorSettingsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *RegistryMirrorSettings
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r PutRegistryMirrorSettingsResponse) GetJSON200() *RegistryMirrorSettings {
+	return r.JSON200
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r PutRegistryMirrorSettingsResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r PutRegistryMirrorSettingsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r PutRegistryMirrorSettingsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r PutRegistryMirrorSettingsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r PutRegistryMirrorSettingsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type GetRegistryOverviewResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *RegistryOverview
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetRegistryOverviewResponse) GetJSON200() *RegistryOverview {
+	return r.JSON200
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r GetRegistryOverviewResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r GetRegistryOverviewResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetRegistryOverviewResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetRegistryOverviewResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetRegistryOverviewResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type ListRegistryPullsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *RegistryPullList
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r ListRegistryPullsResponse) GetJSON200() *RegistryPullList {
+	return r.JSON200
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r ListRegistryPullsResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r ListRegistryPullsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ListRegistryPullsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListRegistryPullsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ListRegistryPullsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type CreateRegistryReplacePlanResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON201 the response for an HTTP 201 `application/json` response
+	JSON201 *RegistryReplacePlan
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON201 returns the response for an HTTP 201 `application/json` response
+func (r CreateRegistryReplacePlanResponse) GetJSON201() *RegistryReplacePlan {
+	return r.JSON201
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r CreateRegistryReplacePlanResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r CreateRegistryReplacePlanResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r CreateRegistryReplacePlanResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CreateRegistryReplacePlanResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r CreateRegistryReplacePlanResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type GetRegistryReplacePlanResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *RegistryReplacePlan
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetRegistryReplacePlanResponse) GetJSON200() *RegistryReplacePlan {
+	return r.JSON200
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r GetRegistryReplacePlanResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r GetRegistryReplacePlanResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetRegistryReplacePlanResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetRegistryReplacePlanResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetRegistryReplacePlanResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type RollbackRegistryReplacePlanResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON202 the response for an HTTP 202 `application/json` response
+	JSON202 *RegistryReplacePlan
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON202 returns the response for an HTTP 202 `application/json` response
+func (r RollbackRegistryReplacePlanResponse) GetJSON202() *RegistryReplacePlan {
+	return r.JSON202
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r RollbackRegistryReplacePlanResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r RollbackRegistryReplacePlanResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r RollbackRegistryReplacePlanResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r RollbackRegistryReplacePlanResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r RollbackRegistryReplacePlanResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type StartRegistryReplacePlanResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON202 the response for an HTTP 202 `application/json` response
+	JSON202 *RegistryReplacePlan
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON202 returns the response for an HTTP 202 `application/json` response
+func (r StartRegistryReplacePlanResponse) GetJSON202() *RegistryReplacePlan {
+	return r.JSON202
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r StartRegistryReplacePlanResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r StartRegistryReplacePlanResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r StartRegistryReplacePlanResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r StartRegistryReplacePlanResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r StartRegistryReplacePlanResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type StopRegistryReplacePlanResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON202 the response for an HTTP 202 `application/json` response
+	JSON202 *RegistryReplacePlan
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON202 returns the response for an HTTP 202 `application/json` response
+func (r StopRegistryReplacePlanResponse) GetJSON202() *RegistryReplacePlan {
+	return r.JSON202
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r StopRegistryReplacePlanResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r StopRegistryReplacePlanResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r StopRegistryReplacePlanResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r StopRegistryReplacePlanResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r StopRegistryReplacePlanResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type GetRegistryStoreSettingsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *RegistryStoreSettings
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetRegistryStoreSettingsResponse) GetJSON200() *RegistryStoreSettings {
+	return r.JSON200
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r GetRegistryStoreSettingsResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r GetRegistryStoreSettingsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetRegistryStoreSettingsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetRegistryStoreSettingsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetRegistryStoreSettingsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type PutRegistryStoreSettingsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *RegistryStoreSettings
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r PutRegistryStoreSettingsResponse) GetJSON200() *RegistryStoreSettings {
+	return r.JSON200
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r PutRegistryStoreSettingsResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r PutRegistryStoreSettingsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r PutRegistryStoreSettingsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r PutRegistryStoreSettingsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r PutRegistryStoreSettingsResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -27770,6 +31280,81 @@ func (c *ClientWithResponses) GetRegistrySettingsWithResponse(ctx context.Contex
 	return ParseGetRegistrySettingsResponse(rsp)
 }
 
+// GetRegistryBudgetsWithResponse Budgets of standard and custom images with their use and the free disk
+//
+// registry R5.6.1 (REG6).
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/v1/registry/budgets (the `GetRegistryBudgets` operationId).
+func (c *ClientWithResponses) GetRegistryBudgetsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetRegistryBudgetsResponse, error) {
+	rsp, err := c.GetRegistryBudgets(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetRegistryBudgetsResponse(rsp)
+}
+
+// PutRegistryBudgetsWithBodyWithResponse Set the two budgets
+//
+// registry R5.6.1 (REG6). 400 bad_request when the sum is above half the free disk of the registry folder's volume; the detail names the most it may be.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /api/v1/registry/budgets (the `PutRegistryBudgets` operationId).
+func (c *ClientWithResponses) PutRegistryBudgetsWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PutRegistryBudgetsResponse, error) {
+	rsp, err := c.PutRegistryBudgetsWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePutRegistryBudgetsResponse(rsp)
+}
+
+// PutRegistryBudgetsWithResponse Set the two budgets
+//
+// registry R5.6.1 (REG6). 400 bad_request when the sum is above half the free disk of the registry folder's volume; the detail names the most it may be.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /api/v1/registry/budgets (the `PutRegistryBudgets` operationId).
+func (c *ClientWithResponses) PutRegistryBudgetsWithResponse(ctx context.Context, body PutRegistryBudgetsJSONRequestBody, reqEditors ...RequestEditorFn) (*PutRegistryBudgetsResponse, error) {
+	rsp, err := c.PutRegistryBudgets(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePutRegistryBudgetsResponse(rsp)
+}
+
+// ListImageBuildsWithResponse Image builds, the running ones first, with their push state
+//
+// registry R5.10 (IMG1; push state by REG2).
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/v1/registry/builds (the `ListImageBuilds` operationId).
+func (c *ClientWithResponses) ListImageBuildsWithResponse(ctx context.Context, params *ListImageBuildsParams, reqEditors ...RequestEditorFn) (*ListImageBuildsResponse, error) {
+	rsp, err := c.ListImageBuilds(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListImageBuildsResponse(rsp)
+}
+
+// GetImageBuildWithResponse One build with its steps and log tail
+//
+// registry R5.10 (IMG1).
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/v1/registry/builds/{buildId} (the `GetImageBuild` operationId).
+func (c *ClientWithResponses) GetImageBuildWithResponse(ctx context.Context, buildId BuildId, reqEditors ...RequestEditorFn) (*GetImageBuildResponse, error) {
+	rsp, err := c.GetImageBuild(ctx, buildId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetImageBuildResponse(rsp)
+}
+
 // DeleteRegistryCaBundleWithResponse Remove the private CA bundle
 //
 // Returns a wrapper object for the known response body format(s).
@@ -27813,6 +31398,81 @@ func (c *ClientWithResponses) PutRegistryCaBundleWithResponse(ctx context.Contex
 	return ParsePutRegistryCaBundleResponse(rsp)
 }
 
+// StartRegistryCleanupWithResponse Clean up now (read-only window, then garbage collection)
+//
+// registry R5.6.6 (REG6). 409 conflict when a cleanup runs.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /api/v1/registry/cleanup (the `StartRegistryCleanup` operationId).
+func (c *ClientWithResponses) StartRegistryCleanupWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*StartRegistryCleanupResponse, error) {
+	rsp, err := c.StartRegistryCleanup(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseStartRegistryCleanupResponse(rsp)
+}
+
+// ListRegistryImagesWithResponse Images in the registry, newest first
+//
+// registry R5.5.5 (REG4). Deleted images are not listed.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/v1/registry/images (the `ListRegistryImages` operationId).
+func (c *ClientWithResponses) ListRegistryImagesWithResponse(ctx context.Context, params *ListRegistryImagesParams, reqEditors ...RequestEditorFn) (*ListRegistryImagesResponse, error) {
+	rsp, err := c.ListRegistryImages(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListRegistryImagesResponse(rsp)
+}
+
+// DeleteRegistryImageWithResponse Delete one image's manifest
+//
+// registry R5.6.4 (REG6). Without `confirm=true` it answers 409 needs_confirmation naming the running jobs that use it, the repositories that point to it and whether it is inside its rollback days; the question card lists them. An image a running job uses is refused even with confirm (409 conflict). Blobs wait for the cleanup.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with DELETE /api/v1/registry/images/{registryImageId} (the `DeleteRegistryImage` operationId).
+func (c *ClientWithResponses) DeleteRegistryImageWithResponse(ctx context.Context, registryImageId RegistryImageId, params *DeleteRegistryImageParams, reqEditors ...RequestEditorFn) (*DeleteRegistryImageResponse, error) {
+	rsp, err := c.DeleteRegistryImage(ctx, registryImageId, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseDeleteRegistryImageResponse(rsp)
+}
+
+// GetRegistryImageWithResponse One image with lineage, layers, pulls by day, machines, pointers and scan
+//
+// registry R5.5.6 (REG4; scan by REG8).
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/v1/registry/images/{registryImageId} (the `GetRegistryImage` operationId).
+func (c *ClientWithResponses) GetRegistryImageWithResponse(ctx context.Context, registryImageId RegistryImageId, reqEditors ...RequestEditorFn) (*GetRegistryImageResponse, error) {
+	rsp, err := c.GetRegistryImage(ctx, registryImageId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetRegistryImageResponse(rsp)
+}
+
+// CompareRegistryImageWithResponse The image against the one it would replace
+//
+// registry R5.7.1 (REG7). 404 when the image updates nothing.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/v1/registry/images/{registryImageId}/compare (the `CompareRegistryImage` operationId).
+func (c *ClientWithResponses) CompareRegistryImageWithResponse(ctx context.Context, registryImageId RegistryImageId, reqEditors ...RequestEditorFn) (*CompareRegistryImageResponse, error) {
+	rsp, err := c.CompareRegistryImage(ctx, registryImageId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCompareRegistryImageResponse(rsp)
+}
+
 // PutRegistryLoginWithBodyWithResponse Store a registry login for one backend kind
 //
 // runners R5.77. The password goes to the secret store. An empty password keeps the stored one.
@@ -27854,6 +31514,216 @@ func (c *ClientWithResponses) DeleteRegistryLoginWithResponse(ctx context.Contex
 		return nil, err
 	}
 	return ParseDeleteRegistryLoginResponse(rsp)
+}
+
+// GetRegistryMirrorSettingsWithResponse The pull-through mirror of upstream bases
+//
+// registry R5.9 (REG9).
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/v1/registry/mirror (the `GetRegistryMirrorSettings` operationId).
+func (c *ClientWithResponses) GetRegistryMirrorSettingsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetRegistryMirrorSettingsResponse, error) {
+	rsp, err := c.GetRegistryMirrorSettings(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetRegistryMirrorSettingsResponse(rsp)
+}
+
+// PutRegistryMirrorSettingsWithBodyWithResponse Turn the mirror on or off, its upstreams and budget
+//
+// registry R5.9 (REG9).
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /api/v1/registry/mirror (the `PutRegistryMirrorSettings` operationId).
+func (c *ClientWithResponses) PutRegistryMirrorSettingsWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PutRegistryMirrorSettingsResponse, error) {
+	rsp, err := c.PutRegistryMirrorSettingsWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePutRegistryMirrorSettingsResponse(rsp)
+}
+
+// PutRegistryMirrorSettingsWithResponse Turn the mirror on or off, its upstreams and budget
+//
+// registry R5.9 (REG9).
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /api/v1/registry/mirror (the `PutRegistryMirrorSettings` operationId).
+func (c *ClientWithResponses) PutRegistryMirrorSettingsWithResponse(ctx context.Context, body PutRegistryMirrorSettingsJSONRequestBody, reqEditors ...RequestEditorFn) (*PutRegistryMirrorSettingsResponse, error) {
+	rsp, err := c.PutRegistryMirrorSettings(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePutRegistryMirrorSettingsResponse(rsp)
+}
+
+// GetRegistryOverviewWithResponse Where the registry runs, budgets, the last 7 days and the recommendations
+//
+// registry R5.5.4, R5.6.3 (REG4 reads, REG6 recommendations).
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/v1/registry/overview (the `GetRegistryOverview` operationId).
+func (c *ClientWithResponses) GetRegistryOverviewWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetRegistryOverviewResponse, error) {
+	rsp, err := c.GetRegistryOverview(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetRegistryOverviewResponse(rsp)
+}
+
+// ListRegistryPullsWithResponse Pulls in progress and waiting for the controller
+//
+// registry R5.5.2 (REG4 from REG2's reports). The Add runners pulling step reads it.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/v1/registry/pulls (the `ListRegistryPulls` operationId).
+func (c *ClientWithResponses) ListRegistryPullsWithResponse(ctx context.Context, params *ListRegistryPullsParams, reqEditors ...RequestEditorFn) (*ListRegistryPullsResponse, error) {
+	rsp, err := c.ListRegistryPulls(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListRegistryPullsResponse(rsp)
+}
+
+// CreateRegistryReplacePlanWithBodyWithResponse Make a replace plan (nothing changes yet)
+//
+// registry R5.7.2 (REG7). The plan is the Review step's data.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /api/v1/registry/replace-plans (the `CreateRegistryReplacePlan` operationId).
+func (c *ClientWithResponses) CreateRegistryReplacePlanWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateRegistryReplacePlanResponse, error) {
+	rsp, err := c.CreateRegistryReplacePlanWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateRegistryReplacePlanResponse(rsp)
+}
+
+// CreateRegistryReplacePlanWithResponse Make a replace plan (nothing changes yet)
+//
+// registry R5.7.2 (REG7). The plan is the Review step's data.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /api/v1/registry/replace-plans (the `CreateRegistryReplacePlan` operationId).
+func (c *ClientWithResponses) CreateRegistryReplacePlanWithResponse(ctx context.Context, body CreateRegistryReplacePlanJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateRegistryReplacePlanResponse, error) {
+	rsp, err := c.CreateRegistryReplacePlan(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateRegistryReplacePlanResponse(rsp)
+}
+
+// GetRegistryReplacePlanWithResponse One replace plan with its progress
+//
+// registry R5.7.3 (REG7). The wizard reads this after a reload.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/v1/registry/replace-plans/{planId} (the `GetRegistryReplacePlan` operationId).
+func (c *ClientWithResponses) GetRegistryReplacePlanWithResponse(ctx context.Context, planId PlanId, reqEditors ...RequestEditorFn) (*GetRegistryReplacePlanResponse, error) {
+	rsp, err := c.GetRegistryReplacePlan(ctx, planId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetRegistryReplacePlanResponse(rsp)
+}
+
+// RollbackRegistryReplacePlanWithResponse Go back to the old image while it is kept
+//
+// registry R5.7.4 (REG7). 409 conflict after keep_until.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /api/v1/registry/replace-plans/{planId}/rollback (the `RollbackRegistryReplacePlan` operationId).
+func (c *ClientWithResponses) RollbackRegistryReplacePlanWithResponse(ctx context.Context, planId PlanId, reqEditors ...RequestEditorFn) (*RollbackRegistryReplacePlanResponse, error) {
+	rsp, err := c.RollbackRegistryReplacePlan(ctx, planId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseRollbackRegistryReplacePlanResponse(rsp)
+}
+
+// StartRegistryReplacePlanWithResponse Replace (move the pointers, warm machines, keep the old image)
+//
+// registry R5.7.3 (REG7). 409 conflict unless the plan is draft or stopped.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /api/v1/registry/replace-plans/{planId}/start (the `StartRegistryReplacePlan` operationId).
+func (c *ClientWithResponses) StartRegistryReplacePlanWithResponse(ctx context.Context, planId PlanId, reqEditors ...RequestEditorFn) (*StartRegistryReplacePlanResponse, error) {
+	rsp, err := c.StartRegistryReplacePlan(ctx, planId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseStartRegistryReplacePlanResponse(rsp)
+}
+
+// StopRegistryReplacePlanWithResponse Stop a running replace after its current step
+//
+// registry R5.7.3 (REG7). Pointers already moved stay moved; Rollback undoes them.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /api/v1/registry/replace-plans/{planId}/stop (the `StopRegistryReplacePlan` operationId).
+func (c *ClientWithResponses) StopRegistryReplacePlanWithResponse(ctx context.Context, planId PlanId, reqEditors ...RequestEditorFn) (*StopRegistryReplacePlanResponse, error) {
+	rsp, err := c.StopRegistryReplacePlan(ctx, planId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseStopRegistryReplacePlanResponse(rsp)
+}
+
+// GetRegistryStoreSettingsWithResponse Folder, days and cleanup time of the registry
+//
+// registry R5.6.2 (REG6). Not the registry logins of getRegistrySettings.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/v1/registry/settings (the `GetRegistryStoreSettings` operationId).
+func (c *ClientWithResponses) GetRegistryStoreSettingsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetRegistryStoreSettingsResponse, error) {
+	rsp, err := c.GetRegistryStoreSettings(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetRegistryStoreSettingsResponse(rsp)
+}
+
+// PutRegistryStoreSettingsWithBodyWithResponse Change the folder, the days or the cleanup time
+//
+// registry R5.6.2 (REG6). A new folder is used after the blobs are moved; the answer says so. Which rules crsp may act on alone is fixed (owner decision) and not part of the input.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /api/v1/registry/settings (the `PutRegistryStoreSettings` operationId).
+func (c *ClientWithResponses) PutRegistryStoreSettingsWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PutRegistryStoreSettingsResponse, error) {
+	rsp, err := c.PutRegistryStoreSettingsWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePutRegistryStoreSettingsResponse(rsp)
+}
+
+// PutRegistryStoreSettingsWithResponse Change the folder, the days or the cleanup time
+//
+// registry R5.6.2 (REG6). A new folder is used after the blobs are moved; the answer says so. Which rules crsp may act on alone is fixed (owner decision) and not part of the input.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /api/v1/registry/settings (the `PutRegistryStoreSettings` operationId).
+func (c *ClientWithResponses) PutRegistryStoreSettingsWithResponse(ctx context.Context, body PutRegistryStoreSettingsJSONRequestBody, reqEditors ...RequestEditorFn) (*PutRegistryStoreSettingsResponse, error) {
+	rsp, err := c.PutRegistryStoreSettings(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePutRegistryStoreSettingsResponse(rsp)
 }
 
 // GetRepositoryWithResponse One repository with its policy and variable status
@@ -31824,6 +35694,138 @@ func ParseGetRegistrySettingsResponse(rsp *http.Response) (*GetRegistrySettingsR
 	return response, nil
 }
 
+// ParseGetRegistryBudgetsResponse parses an HTTP response from a GetRegistryBudgetsWithResponse call
+func ParseGetRegistryBudgetsResponse(rsp *http.Response) (*GetRegistryBudgetsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetRegistryBudgetsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest RegistryBudgets
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParsePutRegistryBudgetsResponse parses an HTTP response from a PutRegistryBudgetsWithResponse call
+func ParsePutRegistryBudgetsResponse(rsp *http.Response) (*PutRegistryBudgetsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &PutRegistryBudgetsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest RegistryBudgets
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListImageBuildsResponse parses an HTTP response from a ListImageBuildsWithResponse call
+func ParseListImageBuildsResponse(rsp *http.Response) (*ListImageBuildsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListImageBuildsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest ImageBuildList
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetImageBuildResponse parses an HTTP response from a GetImageBuildWithResponse call
+func ParseGetImageBuildResponse(rsp *http.Response) (*GetImageBuildResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetImageBuildResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest ImageBuild
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParseDeleteRegistryCaBundleResponse parses an HTTP response from a DeleteRegistryCaBundleWithResponse call
 func ParseDeleteRegistryCaBundleResponse(rsp *http.Response) (*DeleteRegistryCaBundleResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -31869,6 +35871,171 @@ func ParsePutRegistryCaBundleResponse(rsp *http.Response) (*PutRegistryCaBundleR
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest RegistrySettings
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseStartRegistryCleanupResponse parses an HTTP response from a StartRegistryCleanupWithResponse call
+func ParseStartRegistryCleanupResponse(rsp *http.Response) (*StartRegistryCleanupResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &StartRegistryCleanupResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 202:
+		var dest RegistryCleanup
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON202 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListRegistryImagesResponse parses an HTTP response from a ListRegistryImagesWithResponse call
+func ParseListRegistryImagesResponse(rsp *http.Response) (*ListRegistryImagesResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListRegistryImagesResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest RegistryImageList
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseDeleteRegistryImageResponse parses an HTTP response from a DeleteRegistryImageWithResponse call
+func ParseDeleteRegistryImageResponse(rsp *http.Response) (*DeleteRegistryImageResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &DeleteRegistryImageResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 202:
+		var dest RegistryImage
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON202 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetRegistryImageResponse parses an HTTP response from a GetRegistryImageWithResponse call
+func ParseGetRegistryImageResponse(rsp *http.Response) (*GetRegistryImageResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetRegistryImageResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest RegistryImage
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseCompareRegistryImageResponse parses an HTTP response from a CompareRegistryImageWithResponse call
+func ParseCompareRegistryImageResponse(rsp *http.Response) (*CompareRegistryImageResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CompareRegistryImageResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest RegistryCompare
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -31935,6 +36102,369 @@ func ParseDeleteRegistryLoginResponse(rsp *http.Response) (*DeleteRegistryLoginR
 	switch {
 	case rsp.StatusCode == 204:
 		break // No content-type
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetRegistryMirrorSettingsResponse parses an HTTP response from a GetRegistryMirrorSettingsWithResponse call
+func ParseGetRegistryMirrorSettingsResponse(rsp *http.Response) (*GetRegistryMirrorSettingsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetRegistryMirrorSettingsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest RegistryMirrorSettings
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParsePutRegistryMirrorSettingsResponse parses an HTTP response from a PutRegistryMirrorSettingsWithResponse call
+func ParsePutRegistryMirrorSettingsResponse(rsp *http.Response) (*PutRegistryMirrorSettingsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &PutRegistryMirrorSettingsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest RegistryMirrorSettings
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetRegistryOverviewResponse parses an HTTP response from a GetRegistryOverviewWithResponse call
+func ParseGetRegistryOverviewResponse(rsp *http.Response) (*GetRegistryOverviewResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetRegistryOverviewResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest RegistryOverview
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListRegistryPullsResponse parses an HTTP response from a ListRegistryPullsWithResponse call
+func ParseListRegistryPullsResponse(rsp *http.Response) (*ListRegistryPullsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListRegistryPullsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest RegistryPullList
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseCreateRegistryReplacePlanResponse parses an HTTP response from a CreateRegistryReplacePlanWithResponse call
+func ParseCreateRegistryReplacePlanResponse(rsp *http.Response) (*CreateRegistryReplacePlanResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CreateRegistryReplacePlanResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest RegistryReplacePlan
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetRegistryReplacePlanResponse parses an HTTP response from a GetRegistryReplacePlanWithResponse call
+func ParseGetRegistryReplacePlanResponse(rsp *http.Response) (*GetRegistryReplacePlanResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetRegistryReplacePlanResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest RegistryReplacePlan
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseRollbackRegistryReplacePlanResponse parses an HTTP response from a RollbackRegistryReplacePlanWithResponse call
+func ParseRollbackRegistryReplacePlanResponse(rsp *http.Response) (*RollbackRegistryReplacePlanResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &RollbackRegistryReplacePlanResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 202:
+		var dest RegistryReplacePlan
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON202 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseStartRegistryReplacePlanResponse parses an HTTP response from a StartRegistryReplacePlanWithResponse call
+func ParseStartRegistryReplacePlanResponse(rsp *http.Response) (*StartRegistryReplacePlanResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &StartRegistryReplacePlanResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 202:
+		var dest RegistryReplacePlan
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON202 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseStopRegistryReplacePlanResponse parses an HTTP response from a StopRegistryReplacePlanWithResponse call
+func ParseStopRegistryReplacePlanResponse(rsp *http.Response) (*StopRegistryReplacePlanResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &StopRegistryReplacePlanResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 202:
+		var dest RegistryReplacePlan
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON202 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetRegistryStoreSettingsResponse parses an HTTP response from a GetRegistryStoreSettingsWithResponse call
+func ParseGetRegistryStoreSettingsResponse(rsp *http.Response) (*GetRegistryStoreSettingsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetRegistryStoreSettingsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest RegistryStoreSettings
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParsePutRegistryStoreSettingsResponse parses an HTTP response from a PutRegistryStoreSettingsWithResponse call
+func ParsePutRegistryStoreSettingsResponse(rsp *http.Response) (*PutRegistryStoreSettingsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &PutRegistryStoreSettingsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest RegistryStoreSettings
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
 		var dest Error
