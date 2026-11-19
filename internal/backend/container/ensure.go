@@ -343,6 +343,7 @@ func (b *Backend) pull(ctx context.Context, ctl Controller, r RegistryRequest, a
 		}
 		prog := &pullProgress{total: total}
 		last := b.now()
+		b.ensureEngineCA(ctx, host)
 		err = b.withDockerConfig(host, tok, func(dir string) error {
 			res, rerr := b.runStream(ctx, []string{"--config", dir, "pull", ref}, func(line string) {
 				prog.feed(line)
@@ -465,6 +466,7 @@ func (b *Backend) push(ctx context.Context, ctl Controller, r RegistryRequest, a
 			continue
 		}
 		var digest string
+		b.ensureEngineCA(ctx, host)
 		lastErr = b.withDockerConfig(host, tok, func(dir string) error {
 			res, err := b.runStream(ctx, []string{"--config", dir, "push", ref}, nil)
 			if err != nil {
