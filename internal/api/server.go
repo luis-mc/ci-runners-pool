@@ -78,6 +78,9 @@ type Options struct {
 	// EnvSets serves the environment set routes and the merged runner
 	// environment (handlers_envsets.go). Nil answers 501.
 	EnvSets *envsets.Service
+	// RegistryReplace serves compare, replace plans and rollback of pool registry images
+	// (handlers_registry_reg7.go). Nil answers 501.
+	RegistryReplace RegistryReplaceService
 	// Registry serves the registry login and CA bundle routes. Nil answers 501.
 	Registry *regcreds.Store
 	// Compare serves the speed comparison route (handlers_compare.go). Nil answers 501.

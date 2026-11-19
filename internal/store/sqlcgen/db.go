@@ -501,6 +501,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.listRegistryPushesInFlightStmt, err = db.PrepareContext(ctx, listRegistryPushesInFlight); err != nil {
 		return nil, fmt.Errorf("error preparing query ListRegistryPushesInFlight: %w", err)
 	}
+	if q.listRegistryReplacePlansByStateStmt, err = db.PrepareContext(ctx, listRegistryReplacePlansByState); err != nil {
+		return nil, fmt.Errorf("error preparing query ListRegistryReplacePlansByState: %w", err)
+	}
 	if q.listRegistrySupersededDueStmt, err = db.PrepareContext(ctx, listRegistrySupersededDue); err != nil {
 		return nil, fmt.Errorf("error preparing query ListRegistrySupersededDue: %w", err)
 	}
@@ -1607,6 +1610,11 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing listRegistryPushesInFlightStmt: %w", cerr)
 		}
 	}
+	if q.listRegistryReplacePlansByStateStmt != nil {
+		if cerr := q.listRegistryReplacePlansByStateStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listRegistryReplacePlansByStateStmt: %w", cerr)
+		}
+	}
 	if q.listRegistrySupersededDueStmt != nil {
 		if cerr := q.listRegistrySupersededDueStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing listRegistrySupersededDueStmt: %w", cerr)
@@ -2315,6 +2323,7 @@ type Queries struct {
 	listRegistryPullDailyStmt                *sql.Stmt
 	listRegistryPullsInFlightStmt            *sql.Stmt
 	listRegistryPushesInFlightStmt           *sql.Stmt
+	listRegistryReplacePlansByStateStmt      *sql.Stmt
 	listRegistrySupersededDueStmt            *sql.Stmt
 	listRegistryUnusedCandidatesStmt         *sql.Stmt
 	listRegistryVariantsDueStmt              *sql.Stmt
@@ -2582,6 +2591,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		listRegistryPullDailyStmt:                q.listRegistryPullDailyStmt,
 		listRegistryPullsInFlightStmt:            q.listRegistryPullsInFlightStmt,
 		listRegistryPushesInFlightStmt:           q.listRegistryPushesInFlightStmt,
+		listRegistryReplacePlansByStateStmt:      q.listRegistryReplacePlansByStateStmt,
 		listRegistrySupersededDueStmt:            q.listRegistrySupersededDueStmt,
 		listRegistryUnusedCandidatesStmt:         q.listRegistryUnusedCandidatesStmt,
 		listRegistryVariantsDueStmt:              q.listRegistryVariantsDueStmt,

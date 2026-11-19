@@ -210,7 +210,7 @@ Canonical JSON (`registry.CanonicalJSON`): one object, no whitespace, keys in by
 
 **R5.52** — Staged and refused images older than 1 day are removed at the cleanup.
 
-### REG7: replace and rollback (R5.53 to R5.58)
+### REG7: replace and rollback (R5.53 to R5.58) — built
 
 **R5.53** — `compareRegistryImage`: both images, stack files that differ (path, before, after), base changed, shared bytes, bytes freed, repositories whose pointer would move.
 
@@ -365,7 +365,7 @@ Rows for R5.13 to R5.20 (agent ensure-image), R5.21 and R5.22 (key), R5.59 to R5
 | R5.46, R5.47 | internal/registry/retention/delete_test.go |
 | R5.48, R5.52 | internal/registry/retention/cleanup_test.go (pulls during the window) |
 | R5.51 | internal/api/handlers_registry_retention_test.go (audit entries) |
-| R5.53 to R5.58 | internal/registry/replace/replace_test.go; internal/api/handlers_registry_replace_test.go |
+| R5.53 to R5.58 | `internal/registry/replace/replace_test.go` (built: TestPlanLifecycle, TestAnotherRepositoryKeepsTheOldImage, TestRollbackRestoresThePointer, TestRollbackAfterKeepUntilIsRefused, TestStopAfterCurrentStepThenResume, TestRecoverStopsOrphanedRunningPlans, TestCompare); `internal/store/registry_replace_test.go` (built: plan survives a reopen); `internal/api/handlers_registry_reg7_test.go` (built: error mapping) |
 | R5.59 to R5.62 | internal/registry/scan/scan_test.go |
 | R5.63 to R5.67 | internal/registry/mirror/mirror_test.go |
 | R5.68 to R5.72 | internal/backend/container/buildstream_test.go; internal/api/handlers_builds_test.go |
@@ -411,6 +411,6 @@ Built (REG10):
 - internal/store/migrations/00019_registry.sql and the query files `registry_core.sql` (REG1), `registry_keys.sql` (REG3), `registry_records.sql` (REG4), `registry_retention.sql` (REG6), `registry_replace.sql` (REG7), `registry_scan.sql` (REG8), `registry_mirror.sql` (REG9), `image_builds.sql` (IMG1)
 - internal/registry/keys/ (REG3: Keyer, labels, pointer rules, Detector, similar) and internal/store/registry_keys.go (pointer and lineage store)
 - internal/registry/scan/ (REG8: `scanner.go`, `run.go`, `referrers.go`, `fetch.go`)
-- internal/api/stubs_registry_reg4.go, `_reg6.go`, `_reg7.go`, `_reg9.go`, `_img1.go` (501 per owning task)
+- internal/api/stubs_registry_reg4.go, `_reg6.go`, `_reg9.go`, `_img1.go` (501 per owning task); REG7's stub is replaced by `handlers_registry_reg7.go`, `internal/registry/replace/` and `internal/store/registry_replace.go`
 
 Migration numbers reserved for the wave, so parallel tasks never collide: 00020 IMG2, 00021 IMG3, 00022 REG1, 00023 REG3, 00024 REG4, 00025 REG6, 00026 REG7, 00027 REG8, 00028 REG9, 00029 IMG1. A task that needs no new column uses none.
