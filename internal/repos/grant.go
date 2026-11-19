@@ -2,7 +2,6 @@ package repos
 
 import (
 	"context"
-	"net/url"
 	"strings"
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/auth"
@@ -46,8 +45,8 @@ type GrantView struct {
 }
 
 // installURL is GitHub's page that installs the App on more repositories.
-func installURL(app github.App) string {
-	return "https://github.com/apps/" + url.PathEscape(app.Slug) + "/installations/new"
+func (s *Service) installURL(app github.App) string {
+	return s.cfg.Addresses.InstallPage(app.Slug)
 }
 
 // freshInstallation reads the installation's permissions from GitHub, so a
@@ -141,7 +140,7 @@ func (s *Service) Grant(ctx context.Context, p auth.Principal, in GrantInput) (G
 	}
 	if id == 0 {
 		g := github.DiffGrant(in.Needs, nil, nil)
-		steps := append([]github.GrantStep{{ID: GrantStepInstall, URL: installURL(app)}}, g.Steps...)
+		steps := append([]github.GrantStep{{ID: GrantStepInstall, URL: s.installURL(app)}}, g.Steps...)
 		for i := 1; i < len(steps); i++ {
 			steps[i].URL = ""
 		}
@@ -157,7 +156,7 @@ func (s *Service) Grant(ctx context.Context, p auth.Principal, in GrantInput) (G
 // grantFor makes the view for a known App and installation.
 func (s *Service) grantFor(app github.App, ins Installation, needs []string) GrantView {
 	g := github.DiffGrant(needs, app.Permissions, ins.Permissions)
-	appURL, insURL := github.GrantPages(app, github.Installation{ID: ins.ID, AccountLogin: ins.AccountLogin, AccountType: ins.AccountType})
+	appURL, insURL := github.GrantPages(s.cfg.Addresses.GitHubURL, app, github.Installation{ID: ins.ID, AccountLogin: ins.AccountLogin, AccountType: ins.AccountType})
 	if strings.TrimSpace(app.Slug) == "" {
 		appURL = ""
 	}

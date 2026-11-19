@@ -217,18 +217,25 @@ The states named for every list follow the design system: loading (component 16,
 
 ### 4.6 Jobs
 
-- **Purpose:** see the queue and the job history, and why a job waits.
-- **Data:** `listJobs` (queued, running, done; filters by repository, machine, result, time range), `getJob`, `exportJobs`.
-- **Sub-sections (D24, LOOK31):** a tab row (component 3): All (this list), By repository, By machine, By runner type, By job type, and Wait and duration. A grouped tab is one table: running, queued, done, failed, average wait and average duration, from the queue, the running jobs and the last 200 finished jobs. Wait and duration shows each day's average wait and duration as level bars (UX-41). The detail has no tabs.
-- **Done list (D34):** the history keeps the last 100 finished jobs; See all pages in earlier ones.
-- **Queue:** a table (component 15) of queued jobs with repository, labels, wait time and the reason it waits ("waits for a free slot on any Linux machine"; UX-29); a reason longer than one short line is one line with a *Details* button that opens the whole text in a row under it (LOOK19, D37).
-- **History:** a time axis list (component 24, UX-33): repository, workflow and job name, result (UX-58), machine, backend, wait time, run time. Each row opens the detail, with a link to the run on GitHub.
-- **Panes:** Queue, Filters (result, time range, repository, machine) and History (the time axis, with Export in its border line), each a pane (UX-10). The row under the cursor is drawn in reverse video (UX-51).
-- **Actions:** export the history (component 29, UX-39); it is the one primary of the list, in the action bar (component 48, UX-71, UX-4), and on the detail the one primary is "Open the run on GitHub", also in the bar (LOOK27). No command changes a job.
-- **States:** loading; empty ("No jobs yet. Jobs show here when a workflow runs on the pool." with the one primary "Add runners" in the action bar, UX-71, UX-6); the detail keeps its h1 "Job" when it could not load (UX-17); could not load; live; an empty period offers to widen the range (component 24).
-- **Detail:** placement and waits are in `scheduling`; history and minutes saved are in `observability`.
-- **Components:** 1, 11, 12, 15, 17, 19, 21, 24, 29.
-- **Milestone:** later (milestone 2). M1 shows the queue and running jobs on the overview.
+- **Purpose:** see the queue, the running work and the history as workflow runs and as jobs, why a job waits, how long it will take, and where the time goes (OPS34, owner decisions of 2026-11-18, review RES15). This section replaces the earlier Jobs screens (R5.117).
+- **Routes:** `#/jobs` (Queue, Running, Done), `#/jobs/repository`, `#/jobs/machine`, `#/jobs/runner`, `#/jobs/runner-type`, `#/jobs/job-type`, `#/jobs/charts`, `#/jobs/run/<id>` (Run page) and `#/jobs/<id>` (Job page). The old Jobs routes redirect to these (R5.117).
+- **Data:** `listRuns`, `getRun`, `listJobs`, `getJob`, `listJobGroups`, `getJobStats`, `exportJobs` and `exportJobSummaries`, through the generated client; all read-only, viewer role (observability R5.35 to R5.46). The forecast of a job or a step arrives with the job, so the screens never call `getForecast`.
+- **Home (`#/jobs`):** three panes, Queue, Running and Done. A **Runs | Jobs** switch picks the row kind and keeps the filter; it is stored in the address (R5.104). The filter is in the address too (`repository`, `machine`, `runner`, `runner_kind`, `backend`, `job_type`, `branch`): a group row or a breadcrumb sets it, and a note above the list says what it shows, with the button *Show every job*. The API takes a repository by its id, so the screen reads the repository list once to find it; a filter by a runner, a machine, a runner type or a job type opens the Jobs view, because runs are listed by repository and branch only. Done also has the time range (7, 30 or 90 days).
+  - **Runs (default):** one row per workflow run: repository, workflow with its run number, branch (and task id when the cut hides it), commit and event, and the result in word, glyph and colour (UX-58). Queue rows (made from the queued jobs) show the place in line, jobs queued, the start range and why the run waits (UX-29); Running rows show jobs done of total, the running jobs, time so far and when the run should end; Done rows show when it finished, jobs done of total, jobs failed and the total time. The row action is *Open run*: it opens the run in place to its jobs as a waterfall, with *Open run page* under it (R5.105, R5.106). Forecast against actual is on Charts.
+  - **Jobs:** the flat job list: the same facts per job plus runner and machine; Running shows progress against the forecast. The row action is *Open job*. The forecast of a job is on the Job page, not in the table, so the table stays one line a row without scrolling sideways at 1300 px (UX-72).
+  - **Queue:** queue order (1, 2, 3), waited so far, why it waits and the start range from slots and jobs ahead (R5.111, scheduling R5.72); a reason longer than one short line is one line with a *Details* button (LOOK19, D37).
+  - **Done:** 25 rows; *Show more* adds 25 up to 100 per page; older jobs by the filter and the time range (R5.107). The page never scrolls sideways (UX-49).
+- **Sub-sections:** a tab row (component 3): Queue, Running, Done, By repository, By machine, By runner, By runner type, By job type and Charts. A grouped tab is one table (R5.108): running, queued, done, failed, median wait, median run time, slow end (p90) of the run time and a sparkline, from the last 90 days. Its row action is *Open* (UX-72). By runner has one row per runner name; By runner type splits persistent from ephemeral and shows the backend as a column; By job type groups the job name without matrix values with a light or heavy badge (R5.109). A row opens the Done list with the group's filter (a repository opens its runs).
+- **Charts (`#/jobs/charts`):** the last 14 days with a switch to 7 or 30: waits and run times over time (median and range), forecast against actual (how many jobs landed inside the range) and busiest hours (weekday by hour). Each chart has a time axis (UX-33), a text alternative and a table view (UX-41), and the daily summaries export (R5.110, R5.116).
+- **Run page (`#/jobs/run/<id>`):** the run's facts (repository, branch, task, worktree, commit and event, pull request, start, the forecast end, and an attempt switch), the job graph drawn from the `needs` of the workflow file (jobs of a dynamic matrix or a reusable workflow are marked "expands at run time"; when the file could not be read, the jobs are drawn by timing overlap with a note, R5.112), the jobs as a waterfall (wait lighter, run darker), the run total and the critical path, and the forecast range with its basis. Each job opens its steps (R5.106).
+- **Job page (`#/jobs/<id>`):** repository, branch and commit, pull request, task id when the branch starts with one, worktree only when the job reported it, else "not reported" (R5.113); runner, machine, backend and runner kind; timings (queued, waited and why, started, ran, clean-up); queue position and start range while queued; the steps as a waterfall with a forecast per step (steps come from GitHub events, R5.114); the job graph with this job and the critical path marked; the history of the job key; links to GitHub. The one primary is "Open the run on GitHub", in the action bar (LOOK27).
+- **Forecast words:** a range with its basis on the Run and Job pages ("about 6 to 9 min, median of the last 20"), one number in tables; under 5 runs "not enough history yet" with the workflow's or repository's typical time, labelled (R5.115, observability R5.40 to R5.43).
+- **Keyboard:** rows open with Enter and move with the arrow keys (UX-57).
+- **Actions:** *Export CSV* on Done writes the filtered list as CSV (the jobs through `exportJobs` with the same filter, the runs as a file made from every page of the filter), and *Export daily summaries (CSV)* on Charts writes the daily summaries of the range (component 29, UX-39). Each of these exports is the one primary of its page, in the action bar (UX-71, UX-4); on Queue and Running the one primary is *Add runners*. The toolbar of the lists says what a row is (*One row per run* or *One row per job*). The Job and Run pages have one primary, *Open the run on GitHub* (UX-71, UX-4). No command changes a job.
+- **States:** every tab has loading, empty and could not load (with Try again). Empty says what is true: "Nothing is waiting. Every job has a slot.", "No run is in progress.", "No finished runs yet...", "No jobs yet. Jobs show here when a workflow runs on the pool." (groups), "No finished jobs in this range, so there is nothing to draw." (Charts). A job or a step with fewer than 5 runs says "not enough history yet" and no number is made up. The Run and Job pages keep their h1 when they could not load (UX-17). A list that holds open work asks again every 5 seconds and keeps the rows on screen while it does (UX-35).
+- **Detail:** placement and waits are in `scheduling`; storage, retention, the forecast method and the exports are in `observability`; the ingest is in `github-integration`.
+- **Components:** the shared parts Waterfall, Job graph, Trend chart, Sparkline, Heatmap and Forecast chart (design system `next-version`, components 49 to 54), and 1, 3, 11, 12, 15, 17, 19, 21, 24, 29, 48.
+- **Milestone:** OPS34. M1 shows the queue and running jobs on the overview.
 
 ### 4.7 Images and caches
 
@@ -348,7 +355,7 @@ A command the role does not allow is shown disabled with its reason. The API ref
 
 **R5.23** (built, CRSP24; idle and busy, RES7) — The runners screen lists runners live with their isolation word, labels, state, job and age. A line above the table counts the idle and busy runners; the state chip says `idle` or `busy`, and the current job column gives the running job's repository and name with how long it has run. It adds runners only on machines whose backends support the chosen OS, and deletes runners. The Machine column shows the machine's name as a link to the machine page (UX-1). The state word is the true one (UX-19; runners R5.79): `idle` only when GitHub says online and not busy and the service runs, else `not registered`, `stopped`, `offline` or `unknown`; a state that is not idle or busy shows its reason under the word. A failed runner has a Remove button on its row (UX-6). On a managed runner that is offline it also shows *Delete registration* (CRSP108, github-integration R5.33): a question card names the runner and what goes (words: content.md, *Offline runner cleanup words*), then the registration is deleted at GitHub. A failed runner's whole reason (`failed_reason`, runners R5.87, CRSP126) shows when the record has no other reason. A delete lists only real problems: a runner that is already gone is not one. The list updates live while a runner drains and goes, with no reload (OPS19).
 
-**R5.24** (built, CRSP35) — The jobs screen shows the queue with each job's wait reason, and the history with filters by repository, machine, result and time range. Each row opens the detail, with a link to the run on GitHub. Export holds every row of the filter, in the order shown.
+**R5.24** (built, CRSP35; replaced by R5.104 to R5.118, OPS34) — The jobs screen shows the queue with each job's wait reason, and the history with filters by repository, machine, result and time range. Each row opens the detail, with a link to the run on GitHub. Export holds every row of the filter, in the order shown.
 
 **R5.25** (built in part, CRSP36: caches; images with milestone 2) — The images and caches screen shows images with layers and sizes, and caches with size and cap. It changes layers, rebuilds an image after a drain, and wipes a cache.
 
@@ -409,6 +416,36 @@ A command the role does not allow is shown disabled with its reason. The API ref
 **R5.102** (M1, Built by OPS28; owner decision D94; github-integration R5.60; components 15, 14; UX-22, UX-9, UX-38, UX-58) — **The Repositories page shows and sets the runner kind.** The table has the column **Runner kind** with the status word *Ephemeral only* or *Any runner* (UX-58); a value that follows the visibility reads *default* beside it. The repository's policy form has the same choice, saved with the page's one Save (UX-71). Setting a public repository to *Any runner* asks first with a question card that says in plain words what changes (jobs of a public repository, a fork's pull request included, would run on runners that keep their state between jobs; UX-9, UX-62). A repository that is Ephemeral only and has no ephemeral capacity shows the state *No ephemeral capacity* in its row, a Problem message on its page and a link to Add runners (`ephemeral_capacity` is false); the Doctor shows the same (doctor R5.47). A viewer sees the column and not the choice (UX-38).
 
 **R5.103** (built, TRAY5; owner decision D18) — **The tab shows the crsp icon.** `apps/web/index.html` links `/crsp-icon.png` (the round CRSP disc, written by `go generate ./cmd/crsp` from the tray's drawing code), so console tabs, the web update page and a browser app window show the icon, not the browser's globe. On Windows the update itself opens in the native window (tray R5.45); the page stays for macOS, Linux and the console.
+
+**R5.104** (OPS34, owner decision A) — **Runs and Jobs.** The Jobs home lists the queued, running and done work as one row per workflow run (jobs done of total, total time, result), with a Runs | Jobs switch that keeps the flat job list and the filter. The switch is in the address.
+
+**R5.105** (OPS34) — **Queue, Running and Done.** Each of the three panes is a table with the columns of section 4.6 and the wait reason of the queue (UX-29). The result is a word with a glyph and a colour (UX-58).
+
+**R5.106** (OPS34) — **Run to jobs to steps.** A run row opens the Run page (jobs as a waterfall, the graph, total, critical path); a job opens the Job page with its steps as a waterfall. A step name is shown as text, never as markup.
+
+**R5.107** (OPS34, decision 1) — **Done list paging.** Done shows 25 rows, *Show more* adds 25 up to 100 per page; older rows are reached by the filter and the time range (kept 90 days, observability R5.37).
+
+**R5.108** (OPS34, decision 9) — **The five groupings.** By repository, machine, runner, runner type and job type are one table each with running, queued, done, failed, median wait, median run time, p90 run time and a sparkline. A row applies its value as a filter on the home list.
+
+**R5.109** (OPS34, decisions 9, 10) — **What the groupings mean.** By runner is the runner name. By runner type is persistent against ephemeral, with the backend as a column. Job type is the job name without matrix values, with a light or heavy badge.
+
+**R5.110** (OPS34, decision 11; UX-33, UX-41) — **Charts.** Charts show the last 14 days and switch to 7 or 30: waits and run times, forecast against actual, busiest hours. Each has a text alternative and a table view.
+
+**R5.111** (OPS34, decision 8) — **Queue start range.** A queued job shows its queue order, why it waits (UX-29), how long it has waited and a start range (scheduling R5.72).
+
+**R5.112** (OPS34, decision 3) — **The job graph.** The Run and Job pages draw the `needs` edges read from the workflow file of the head commit. A dynamic matrix or a reusable workflow is marked "expands at run time". When the file could not be read, the jobs are drawn by timing overlap, with a note that says so.
+
+**R5.113** (OPS34, decision 6) — **Branch, task and worktree.** The branch is always shown. The task id is shown when the branch starts with one. The worktree is shown only when the job reported it, else "not reported". A worktree path is never guessed.
+
+**R5.114** (OPS34, decision 5) — **Steps.** Step names and times come from GitHub workflow job events (github-integration R5.96). A job with no stored steps (older than 30 days or not reported) says "steps are no longer kept" or "not reported".
+
+**R5.115** (OPS34, decisions 4, 7) — **Forecast words.** The Run and Job pages show a range and its basis; tables show one number; with fewer than 5 runs the screens say "not enough history yet" and show the typical time of the workflow or repository, labelled as such.
+
+**R5.116** (OPS34, decision 12) — **Exports.** *Export* writes the filtered list as CSV in the order shown; a second action writes the daily summaries as CSV (observability R5.45).
+
+**R5.117** (OPS34, decision 13) — **Replaces the old Jobs.** The old Jobs routes (`#/jobs` list tabs, All, Wait and duration, By runner type, By job type, and the old detail address) redirect to the new routes; no old screen remains.
+
+**R5.118** (OPS34; UX-49) — **Layout.** Every Jobs route fits at 360, 393 and 1300 px with no sideways scroll, and passes the no-app-CSS scan and the keyboard rule (UX-57).
 
 ## 6. Non-functional requirements
 
@@ -485,7 +522,7 @@ flowchart LR
 | `/repositories`, `/repositories/:owner/:name` | Repositories |
 | `/machines`, `/machines/add`, `/machines/:id` | Machines |
 | `/runners`, `/runners/add`, `/runners/:id` | Runners |
-| `/jobs`, `/jobs/:id` | Jobs |
+| `/jobs`, `/jobs/repository`, `/jobs/machine`, `/jobs/runner`, `/jobs/runner-type`, `/jobs/job-type`, `/jobs/charts`, `/jobs/run/:id`, `/jobs/:id` | Jobs |
 | `/images`, `/caches` | Images and caches |
 | `/doctor` | Doctor |
 | `/settings/access`, `/settings/repositories`, `/settings/console`, `/settings/data`, `/settings/audit` (and the old one-page addresses, which redirect) | Settings |
@@ -501,7 +538,7 @@ flowchart LR
 | Repositories | `listInstallations`, `listRepositories`, `getRepository`, `updateRepositoryPolicy`, `planRepositoryChanges`, `applyRepositoryChanges`, `getAppInstallUrl` | `github-integration` |
 | Machines | `listMachines`, `getMachine`, `updateMachine`, `drainMachine`, `resumeMachine`, `removeMachine`, `createJoinCode`, `getJoinCode`, `revokeJoinCode`, `getInstallCommand` | `machines` |
 | Runners | `listRunners`, `getRunner`, `planRunners`, `createRunners`, `deleteRunner`, `streamRunnerLog` | `runners` |
-| Jobs | `listJobs`, `getJob`, `exportJobs` | `scheduling`, `observability` |
+| Jobs | `listJobs`, `getJob`, `getRun`, `getJobStats`, `getForecast`, `exportJobs` | `scheduling`, `observability` |
 | Images and caches | `listImages`, `getImage`, `updateImageLayers`, `rebuildImage`, `listCaches`, `wipeCache` | `runners`, `caches` |
 | Doctor | `listDoctorFindings`, `runDoctor`, `getDoctorRun` | `doctor` |
 | Users | `listUsers`, `addUser`, `updateUserRole`, `removeUser`, `getPreferences`, `updatePreferences` | `web-console` (this spec) |
@@ -603,6 +640,21 @@ A row with a path has that test. A row that says NOT YET IMPLEMENTED names the p
 | R5.100 | Vitest | `packages/ui/src/components/EditBar.test.tsx` (count, disabled until a change, field marks, leave guard on a link, on Back and on tab close), `apps/web/src/screens/settings/EditBar.test.tsx` (Settings tab and Access tab, one Save), `apps/web/src/screens/repositories/Repositories.edit.test.tsx`, `apps/web/src/screens/images/ImageDetail.edit.test.tsx`, `apps/web/src/screens/machines/Machines.test.tsx` (the three pool size choices and their labels, the live check states, the shrink tick, one Save). Screens in `docs/review/LOOK21/` |
 | R5.101 | Vitest | planned in the OPS28 web branch (names reconciled when they land): `apps/web/src/screens/runners/` tests for the Kind radio (offered kinds, not-offered reason, default per public repository, reason line, keep-dependencies check box and the always-removed line, plan refusal on step 1) and the runner page (setting, size, Clear now) |
 | R5.102 | Vitest | planned in the OPS28 web branch: `apps/web/src/screens/repositories/Repositories.test.tsx` (Runner kind column, setting, public repository warning, no ephemeral capacity) |
+| R5.104 | Vitest | `apps/web/src/screens/jobs/Jobs.test.tsx` (one row for each run, the Runs/Jobs switch keeps the filter, the address names the view) |
+| R5.105 | Vitest | `apps/web/src/screens/jobs/Jobs.test.tsx` (Queue, Running and Done columns, wait reason, start range, result as word, loading, empty and error), `apps/web/src/screens/jobs/redirects.test.tsx` (the nine tabs) |
+| R5.106 | Vitest | `apps/web/src/screens/jobs/Jobs.test.tsx` (a run opens in place to its jobs), `apps/web/src/screens/jobs/RunPage.test.tsx`, `apps/web/src/screens/jobs/JobPage.test.tsx` (run to jobs to steps, step names as text) |
+| R5.107 | Vitest, Go test | `apps/web/src/screens/jobs/Jobs.test.tsx` (Done shows 25, Show 25 more up to 100, the range asks for a from date); `internal/api/handlers_jobsdata_test.go` TestListJobsCursorAndLimit |
+| R5.108 | Vitest | `apps/web/src/screens/jobs/Groups.test.tsx` |
+| R5.109 | Vitest, Go test | `apps/web/src/screens/jobs/Groups.test.tsx` (runner, runner type, job type badge); `internal/store/jobsdata_test.go` TestGroupBy |
+| R5.110 | Vitest | `apps/web/src/screens/jobs/Charts.test.tsx` (14 days, 7 and 30, share inside the forecast, table view, summaries export) |
+| R5.111 | Vitest | `apps/web/src/screens/jobs/Jobs.test.tsx` (Queue: place, start range, why it waits, Jobs view with Open job) |
+| R5.112 | Vitest | `apps/web/src/screens/jobs/RunPage.test.tsx` (needs graph, expands at run time, overlap fallback with its note, run end as a range with its basis) |
+| R5.113 | Vitest | `apps/web/src/screens/jobs/JobPage.test.tsx` (branch, task id, worktree not reported) |
+| R5.114 | Vitest | `apps/web/src/screens/jobs/JobPage.test.tsx` (steps waterfall, steps no longer kept, no steps reported) |
+| R5.115 | Vitest | `apps/web/src/screens/jobs/words.test.ts`, `apps/web/src/screens/jobs/JobPage.test.tsx` (range with basis, one number in tables, not enough history yet, no number made up) |
+| R5.116 | Vitest, Go test | `apps/web/src/screens/jobs/Jobs.test.tsx` (both exports); `internal/api/handlers_jobsdata_test.go` TestExportJobsCSV, TestExportDailyCSV |
+| R5.117 | Vitest | `apps/web/src/screens/jobs/redirects.test.tsx` (the old Wait and duration tab opens Charts; the other old addresses keep working), `apps/web/src/screens/pool/pool.test.tsx` |
+| R5.118 | Playwright e2e | `e2e/tests/web-console/ux-routes.spec.ts` (data-mode layout check at 360, 393 and 1300 px for every Jobs route, read from `screens/jobs/routes.tsx`), `e2e/tests/web-console/ux-jobs-rows.spec.ts` (UX-72: one-line rows, one set of row words, cards alike at 393 px), `scripts/design/no-app-css.test.ts` |
 | R5.96 | Vitest, Playwright e2e | `apps/web/src/screens/settings/UpdatePage.test.tsx` (first run, asks first, Not now, Update now with percent and Hide, follows a running update, waits for the service and ends with Updated to X, failed with the log path, done after reload), `apps/web/src/screens/wizards.test.tsx` (the update page passes the ten wizard states), `e2e/tests/web-console/ux-routes.spec.ts` (`/update` at 360, 393 and 1300 px). Screens in `docs/review/TRAY4/` |
 | R5.101 | Vitest | `apps/web/src/index-icon.test.ts` (index.html links an icon file that exists in public/) |
 | R5.98 | Vitest | `apps/web/src/shell/Shell.test.tsx` (a runner service that did not start: the banner, Start, it clears, offline machine); `apps/web/src/screens/doctor/Doctor.test.tsx` (the Start button of `runner.logon`) |
@@ -688,7 +740,7 @@ Source: apps/web/src/screens/machines/Machines.tsx
 Source: apps/web/src/screens/machines/AddMachine.tsx
 Source: apps/web/src/screens/runners/Runners.tsx
 Source: apps/web/src/screens/runners/AddRunners.tsx
-Source: apps/web/src/screens/jobs/Jobs.tsx
+Source: apps/web/src/screens/jobs/JobsHome.tsx
 Source: apps/web/src/screens/doctor/Doctor.tsx
 Source: apps/web/src/screens/images/ImagesAndCaches.tsx
 Source: apps/web/src/screens/settings/Settings.tsx

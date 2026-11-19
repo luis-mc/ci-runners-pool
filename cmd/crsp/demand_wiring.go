@@ -116,8 +116,11 @@ type demandRunner struct {
 	scale  *github.ScaleSetDemand
 	// onQueued feeds webhook health (RES14); nil does nothing.
 	onQueued func(string, int64)
-	cancel   context.CancelFunc
-	done     chan struct{}
+	// onJob sees every job the source delivers, queued, running and completed,
+	// for the Jobs section; it must not block. Nil does nothing.
+	onJob  func(github.Job)
+	cancel context.CancelFunc
+	done   chan struct{}
 }
 
 // targets lists the repositories to poll. Nothing is polled while no machine
@@ -194,6 +197,9 @@ func (d *demandRunner) start() {
 		cancel()
 		return
 	}
+	if d.onJob != nil {
+		jobs = teeJobs(ctx, jobs, d.onJob)
+	}
 	done := make(chan struct{})
 	go func() {
 		defer close(done)
@@ -248,9 +254,9 @@ func (d *demandRunner) Stop() {
 // startDemand runs the poller, the demand loop and the quiet-demand watchdog
 // until the returned stop is called. The watchdog's state is what the doctor
 // check `demand.quiet` reads.
-func startDemand(ctx context.Context, logger *slog.Logger, gh *github.REST, env demandEnv, svc *runners.Service, pool string, quiet time.Duration, scaleSet bool, onQueued func(string, int64)) (stop func(), wd *demand.Watchdog) {
+func startDemand(ctx context.Context, logger *slog.Logger, gh *github.REST, env demandEnv, svc *runners.Service, pool string, quiet time.Duration, scaleSet bool, onQueued func(string, int64), onJob func(github.Job)) (stop func(), wd *demand.Watchdog) {
 	ctx, cancel := context.WithCancel(ctx)
-	dr := &demandRunner{logger: logger, gh: gh, env: env, ctx: ctx, scaleSet: scaleSet, onQueued: onQueued,
+	dr := &demandRunner{logger: logger, gh: gh, env: env, ctx: ctx, scaleSet: scaleSet, onQueued: onQueued, onJob: onJob,
 		loop: &demand.Loop{Env: env, Runners: svc, PoolName: pool, Logger: logger, ReadJob: gh.GetJob}}
 	dr.mu.Lock()
 	dr.start()

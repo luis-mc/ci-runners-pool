@@ -81,10 +81,14 @@ describe('GithubGrant step states', () => {
     expect(screen.queryByRole('button')).toBeNull();
   });
 
-  it('opens only pages of GitHub', () => {
+  it('opens only https pages the controller names', () => {
     expect(githubPage('javascript:alert(1)')).toBeUndefined();
-    expect(githubPage('https://evil.example/x')).toBeUndefined();
+    expect(githubPage('http://ghe.example.com/x')).toBeUndefined();
+    expect(githubPage('not an address')).toBeUndefined();
     expect(githubPage(APP)).toBe(APP);
+    // A GitHub Enterprise Server page: the controller built it from CRSP_GITHUB_URL.
+    const ghes = 'https://ghe.example.com/settings/apps/crsp/permissions';
+    expect(githubPage(ghes)).toBe(ghes);
     const bad: GrantState = {
       ...none,
       steps: [
@@ -92,7 +96,7 @@ describe('GithubGrant step states', () => {
           id: 'ask',
           done: false,
           permissions: ['secrets'],
-          url: 'https://evil.example/x',
+          url: 'javascript:alert(1)',
         },
       ],
     };

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/addresses"
 	"strings"
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/auth"
@@ -184,6 +185,7 @@ func (l machineLookup) GetMachine(ctx context.Context, id string) (runners.Machi
 type scopeResolver struct {
 	repos repos.Store
 	auth  *auth.Service
+	addr  addresses.Set
 }
 
 func (r scopeResolver) Resolve(ctx context.Context, s runners.Scope) (runners.Target, error) {
@@ -195,7 +197,7 @@ func (r scopeResolver) Resolve(ctx context.Context, s runners.Scope) (runners.Ta
 		}
 		return runners.Target{
 			Scope:          github.RunnerScope{Owner: repo.Owner, Repo: repo.Name},
-			InstallationID: repo.InstallationID, URL: "https://github.com/" + repo.FullName, Group: s.Group,
+			InstallationID: repo.InstallationID, URL: r.addr.RepoPage(repo.FullName), Group: s.Group,
 		}, nil
 	case "organization":
 		ins, err := r.repos.ListInstallations(ctx)
@@ -212,7 +214,7 @@ func (r scopeResolver) Resolve(ctx context.Context, s runners.Scope) (runners.Ta
 				} else if ok && s.Group != "" && strings.EqualFold(op.GroupName, s.Group) {
 					rs.GroupID = op.GroupID
 				}
-				return runners.Target{Scope: rs, InstallationID: i.ID, URL: "https://github.com/" + i.AccountLogin, Group: s.Group}, nil
+				return runners.Target{Scope: rs, InstallationID: i.ID, URL: r.addr.RepoPage(i.AccountLogin), Group: s.Group}, nil
 			}
 		}
 		return runners.Target{}, fmt.Errorf("the GitHub App is not installed on %s", s.Organization)

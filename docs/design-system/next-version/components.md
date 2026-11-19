@@ -159,7 +159,7 @@ The body scrolls when the content is taller than the space. The overlay never gr
 ## 12. Segmented choices and filter chips
 
 - **Used for:** picking one of a few views (segmented), or turning filters on and off (chips).
-- **Looks:** a row of joined buttons with one chosen (segmented), or small round-ended chips that show on or off. A filter with two states, such as Pool on and Pool off, is segmented with a first choice All, never two loose chips. Chips stay for filters with more than two answers.
+- **Looks:** a row of joined buttons with one chosen (segmented), or small round-ended chips that show on or off. A filter with two states, such as Pool on and Pool off, is segmented with a first choice All, never two loose chips. Chips stay for filters with more than two answers. A view switch (Runs and Jobs, 7, 14 and 30 days) is segmented without the All choice (`allLabel={null}`): one view is always chosen.
 - **Source:** `packages/ui` `Segmented` (`src/ui/segmented`), `Chips`
 - **Rules:** UX-8, UX-17, UX-22.
 - **Guard:** none yet.
@@ -184,7 +184,7 @@ The body scrolls when the content is taller than the space. The overlay never gr
 ## 15. Tables and list rows
 
 - **Used for:** a table to compare three or more facts; rows for everything else. Rows become a stack of name and value lines on a phone. Column heads sort.
-- **Looks:** a plain grid with light lines and a bold head row. Heads stay on one line and are bottom-aligned; inside a pane the first column starts on the pane's inner edge, with no extra inset (UX-69). On a phone (under 600 px) each row is a stack of `name  value` lines, the first column as the bold title line; a column marked `secondary` is left out of the stack. Given a `title` the table is drawn inside a pane with the title and the row count. The head of a sortable column is a button at least 44 px wide and high (UX-16); the row under the cursor stays in reverse video (component 41). A row that cannot be used now is shown in grey (`inactive`, UX-70): its text and links use `--ds-color-text-inactive` and links stay underlined; the reason and the link that fixes it sit in the row itself, with a `Tag`, never only in the grey. **Long text in a cell (LOOK19):** a column's `long` text is one line with an ellipsis (`ds-table__clip`, at most 40 characters wide, the full cell width at phone width) plus a button (`expandLabel`: *Full error* for a failed runner, *Details* elsewhere) with `aria-expanded` and `aria-controls`. The button opens the full text in a full-width row under the row (`expandedRow`, `role="region"`, named by the button's word and the row), pressed again it closes; no dialog, focus stays on the button, the row is not a list row for `j` and `k`. The one line is the server's short reason when the record has one, else the part before the first " (" or ": ", cut at 60 characters (`summarize`); text of 40 characters or less shows whole, with no button. `CappedList` shows at most two items and a count (*self-hosted, windows +2*) with the full list in visually hidden text. A page passes the text as data, it never draws the clip, the button or the row (UX-49: nothing scrolls sideways).
+- **Looks:** a plain grid with light lines and a bold head row. Heads stay on one line and are bottom-aligned; inside a pane the first column starts on the pane's inner edge, with no extra inset (UX-69). On a phone (under 600 px) each row is a stack of `name  value` lines, the first column as the bold title line; a column marked `secondary` is left out of the stack. Given a `title` the table is drawn inside a pane with the title and the row count. The head of a sortable column is a button at least 44 px wide and high (UX-16); the row under the cursor stays in reverse video (component 41). A row that cannot be used now is shown in grey (`inactive`, UX-70): its text and links use `--ds-color-text-inactive` and links stay underlined; the reason and the link that fixes it sit in the row itself, with a `Tag`, never only in the grey. **Long text in a cell (LOOK19):** a column's `long` text is one line with an ellipsis (`ds-table__clip`, at most 40 characters wide, the full cell width at phone width) plus a button (`expandLabel`: *Full error* for a failed runner, *Details* elsewhere) with `aria-expanded` and `aria-controls`. The button opens the full text in a full-width row under the row (`expandedRow`, `role="region"`, named by the button's word and the row), pressed again it closes; no dialog, focus stays on the button, the row is not a list row for `j` and `k`. The one line is the server's short reason when the record has one, else the part before the first " (" or ": ", cut at 60 characters (`summarize`); text of 40 characters or less shows whole, with no button. `CappedList` shows at most two items and a count (*self-hosted, windows +2*) with the full list in visually hidden text. A page passes the text as data, it never draws the clip, the button or the row (UX-49: nothing scrolls sideways). **A row that opens to more than text (RES16):** a table given `detail` (`label`, `render`) ends every row with a button (*Jobs* for a run) with `aria-expanded` and `aria-controls`; it opens the page's own content, for example the waterfall of a run's jobs, in a full-width row under the row (`role="region"`, named by the button's word and the row) and closes again. A cell shows one number, not a range, and a long name is cut with component 56. **One line a row (RES17, UX-72):** a table given `oneLine` keeps every cell on one line, with a long text cut with an ellipsis (see column kinds below) and the full text as hover text (`title`, from the column's `title` or its text), a row of one list has one height (a button's height plus the cell padding), the long-text button sits inline at the right of its cell, and the last column is the row action. **Column kinds (RES18, UX-72):** each column of a one-line table is `fit` or `grow` (`kind`; without one, grow for a column with `long` text, else fit). A fit column is as wide as its widest value or head, on one line, never cut: dates, times, counts (*7 of 7*), the result, a short id, the row action. A grow column shares the width that is left, at least `--ds-cell-grow-min`, and is cut with an ellipsis, the full text on hover (repository, workflow, job, reason). A branch is cut in the middle (`middle`: the start and the last six characters stay). `Cut` keeps a fixed end next to a cut name: the run number after a workflow (*Docs #8133*), the time after a job (*docs-check, 39 s*). The page declares the kind and passes data; at phone width the kinds do not apply. At 1300 px a table whose fit columns do not fit moves its least useful column into the detail. A table given `action` (`label`, `to`, `name`) ends every row with component 57 in a column of `--ds-row-action-width`; at phone width it is the last line of the card, full width, in the same place in every card. The page passes data only.
 - **Source:** `packages/ui/src/components/Table.tsx`, `packages/ui/src/components.css`
 - **Rules:** UX-25, UX-16, UX-17, UX-18, UX-39.
 - **Guard:** none yet.
@@ -317,7 +317,7 @@ A `Tag` is the small outlined label that names a kind next to a word, such as `i
 
 - **Used for:** numbers over time or in shares, drawn as inline SVG to scale, labelled, in token colours. Each chart has a text or table alternative. A chart shows the top N and then "See all N". Key numbers are lettered figures, never tiles.
 - **Looks:** a drawn chart with labelled axes and token colours, and a table or text under it. Key numbers are large lettered figures.
-- **Source:** `src/ui/chart`
+- **Source:** `packages/ui/src/components/Charts.tsx`
 - **Rules:** UX-41, UX-17, UX-18, UX-11.
 - **Guard:** none yet.
 
@@ -546,6 +546,70 @@ A field's width caps its box, never its name and help: a lone field's name and h
 - **Source:** `internal/updatewindow/` (`model.go` the states, `layout.go` the units, `art.go` the band and the installer bitmaps, `window_windows.go` the window), `internal/updatewindow/tokens_gen.go` (generated from `packages/ui/src/tokens.css` by `internal/updatewindow/genart`), `installer/build.ps1` and `installer/crsp.wxs` (`WixUIBannerBmp`, `WixUIDialogBmp`)
 - **Rules:** CORE-1 to CORE-7, UX-30 (steps in order, later steps cannot be pressed), UX-71 (the buttons on one bar at the foot), UX-4.
 - **Guard:** `internal/updatewindow/layout_test.go` and `art_test.go` (nothing clipped at every DPI, the palette equals the tokens), and `crsp update-window --layout-check` on the Windows runner (`.github/workflows/tray-smoke.yml`).
+
+## 50. Waterfall
+
+- **Used for:** the steps of a job or the jobs of a run on one time axis: where each started, how long it ran, how long it waited, the forecast for its end and "now" on a live run.
+- **Looks:** one row per step: a glyph, the name, a muted second line and the detail in words, and a bar on a shared axis. A wait is a lighter hatched segment before the bar. The forecast is a bracket with end caps after the bar. The critical path has a thicker outline and the words "critical path". "now" is a dashed line. A row that opens is a button. At phone width the label stacks above the bar. A table under "Show as table" says every row in words.
+- **Source:** `packages/ui/src/components/Waterfall.tsx` (`Waterfall`), `packages/ui/src/components/VizAlt.tsx`, `packages/ui/src/components.css`
+- **Rules:** UX-41, UX-17, UX-18, UX-11, UX-49, UX-57, UX-58.
+- **Guard:** `packages/ui/src/components/Viz.test.tsx`.
+
+## 51. Job graph
+
+- **Used for:** the jobs of a run and what each needs.
+- **Looks:** the stages as columns, a job one stage after the last job it needs, with connectors between them; the critical path has thicker outlines. A loop in the needs never breaks it: the edge that closes it is dropped. At phone width the stages are a vertical list and each job says "after: a, b". A job that opens is a button. A table under "Show as table" lists stage and needs.
+- **Source:** `packages/ui/src/components/JobGraph.tsx` (`JobGraph`, `layoutGraph`), `packages/ui/src/components.css`
+- **Rules:** UX-41, UX-17, UX-18, UX-49, UX-57, UX-58.
+- **Guard:** `packages/ui/src/components/Viz.test.tsx`.
+
+## 52. Trend chart
+
+- **Used for:** one to four series over time or over categories, as lines or columns, with an optional range band.
+- **Looks:** inline SVG to scale with the top and bottom value and the first and last time named; lines differ by dash as well as colour, and a legend names them. A table under "Show as table" lists every point.
+- **Source:** `packages/ui/src/components/Charts.tsx` (`TrendChart`), `packages/ui/src/components.css`
+- **Rules:** UX-41, UX-17, UX-18, UX-11, UX-58.
+- **Guard:** `packages/ui/src/components/Viz.test.tsx`.
+
+## 53. Sparkline
+
+- **Used for:** a small trend in a table cell or a facts row.
+- **Looks:** one line with no axes; the last value can be marked with a dot. It always has its label and the last, lowest and highest value as text. No values say "no data yet".
+- **Source:** `packages/ui/src/components/Charts.tsx` (`Sparkline`), `packages/ui/src/components.css`
+- **Rules:** UX-41, UX-17, UX-11.
+- **Guard:** `packages/ui/src/components/Viz.test.tsx`.
+
+## 54. Heatmap
+
+- **Used for:** a weekday by hour grid of counts or seconds ("busiest hours").
+- **Looks:** seven rows of 24 cells in five steps of one colour; the highest step has an outline. It fits 360 px without scrolling. A table under "Show as table" gives each day's total and busiest hour.
+- **Source:** `packages/ui/src/components/Charts.tsx` (`Heatmap`), `packages/ui/src/components.css`
+- **Rules:** UX-41, UX-17, UX-18, UX-49, UX-58.
+- **Guard:** `packages/ui/src/components/Viz.test.tsx`.
+
+## 55. Forecast chart
+
+- **Used for:** how good a forecast was: one dot per finished job, forecast across and actual up.
+- **Looks:** a dashed diagonal for "forecast = actual"; a bracket with end caps at the height of each dot for its range. A dot inside its range is round, one outside is a diamond. A table under "Show as table" says each job in words.
+- **Source:** `packages/ui/src/components/Charts.tsx` (`ForecastChart`), `packages/ui/src/components.css`
+- **Rules:** UX-41, UX-17, UX-18, UX-58.
+- **Guard:** `packages/ui/src/components/Viz.test.tsx`.
+
+## 56. Short text
+
+- **Used for:** a long name in a table cell, such as a branch (`dependabot/npm_and_yarn/vite-8.3.8`), that would otherwise wrap over many lines.
+- **Looks:** the name cut in the middle with an ellipsis, so its start and its end both stay readable (`RES15-jobs…ection`), with a dotted underline when it is cut. The full name is the hover text and the text a screen reader reads; the detail of the item always shows it whole. A name that fits is shown as it is.
+- **Source:** `packages/ui/src/components/ShortText.tsx`, `packages/ui/src/components.css`
+- **Rules:** UX-49, UX-17.
+- **Guard:** `packages/ui/src/components/parts.test.tsx`.
+
+## 57. Row action
+
+- **Used for:** the one button at the end of a table row that opens the thing the row is: a run, a group (repository, machine, runner, runner type, job type) or a job.
+- **Looks:** a normal button on one line, in a last column of fixed width (`--ds-row-action-width`), the same size in every row and every list. Its words come from the Row action words of content.md: *Open run*, *Open*, *Open job*. A group's name is already in the row, so the button says only *Open*; a screen reader hears the word and the name (`Open: runner-1`). At phone width it fills the last line of the card.
+- **Source:** `packages/ui/src/components/RowAction.tsx`, `packages/ui/src/components.css`
+- **Rules:** UX-72, UX-16, UX-8.
+- **Guard:** `packages/ui/src/components/parts.test.tsx`.
 
 ## How to add a component
 

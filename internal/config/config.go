@@ -28,6 +28,7 @@ import (
 
 	"github.com/pelletier/go-toml/v2"
 
+	"github.com/luis-mc/ci-runners-shared-pool/internal/addresses"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/runnercache"
 )
 
@@ -79,6 +80,9 @@ type Config struct {
 	// DiskFloorGiB is the free disk a machine needs before it starts a job or
 	// a VM, in GiB; 0 turns the floor off (runners R5.83). Default 10.
 	DiskFloorGiB int
+	// Addresses are the external addresses (GitHub, runner downloads), from
+	// the CRSP_GITHUB_URL family of variables (operations OPS35).
+	Addresses addresses.Set
 }
 
 // DefaultRunnerSweepDays is the default of `runner_sweep_days`.
@@ -244,6 +248,12 @@ func LoadFor(goos string, getenv func(string) string, readFile func(string) ([]b
 	cfg.DiskFloorGiB = runnercache.DefaultDiskFloorGiB
 	if fs.DiskFloorGiB != nil {
 		cfg.DiskFloorGiB = max(*fs.DiskFloorGiB, 0)
+	}
+
+	if addr, err := addresses.Load(getenv); err != nil {
+		errs = append(errs, err)
+	} else {
+		cfg.Addresses = addr
 	}
 
 	if err := errors.Join(errs...); err != nil {

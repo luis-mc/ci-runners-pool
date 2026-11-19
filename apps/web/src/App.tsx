@@ -18,8 +18,7 @@ import type { EventSourceFactory } from './live/store';
 import { AppShell } from './shell/Shell';
 import { FaultBoundary } from './screens/common';
 import { DoctorScreen } from './screens/doctor/Doctor';
-import { JobDetail, JobsList } from './screens/jobs/Jobs';
-import { JobsGrouped, JobsLayout, JobsTrends } from './screens/jobs/JobsGrouped';
+import { jobsRoutes } from './screens/jobs/routes';
 import { MOVED, MovedTo } from './screens/pool/redirects';
 import { PoolLayout } from './screens/pool/PoolLayout';
 import { PoolSizePage } from './screens/pool/PoolSizePage';
@@ -180,21 +179,7 @@ export function App({
                 <Route path="pool/runners/add" element={<AddRunnersPage />} />
                 <Route path="pool/runners/:id" element={<RunnerPage />} />
                 <Route path="pool/images/:imageId" element={<ImageDetail />} />
-                <Route element={<JobsLayout />}>
-                  <Route path="jobs" element={<JobsList />} />
-                  <Route
-                    path="jobs/repository"
-                    element={<JobsGrouped by="repository" />}
-                  />
-                  <Route path="jobs/machine" element={<JobsGrouped by="machine" />} />
-                  <Route
-                    path="jobs/runner-type"
-                    element={<JobsGrouped by="runner-type" />}
-                  />
-                  <Route path="jobs/job-type" element={<JobsGrouped by="job-type" />} />
-                  <Route path="jobs/trends" element={<JobsTrends />} />
-                </Route>
-                <Route path="jobs/:id" element={<JobDetail />} />
+                {jobsRoutes}
                 {MOVED.map(([from, to]) => (
                   <Route key={from} path={from} element={<MovedTo to={to} />} />
                 ))}

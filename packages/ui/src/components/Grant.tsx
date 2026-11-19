@@ -74,9 +74,20 @@ const OPEN_WORD: Record<GrantStepId, 'openInstall' | 'openAsk' | 'openAccept'> =
   accept: 'openAccept',
 };
 
-/** Only GitHub's own pages are opened. */
+/**
+ * Only the GitHub pages the controller names are opened: an https address, or
+ * http on this PC. The controller builds them from its GitHub setting
+ * (CRSP_GITHUB_URL), so the page never holds a host of its own.
+ */
 export function githubPage(url: string | undefined): string | undefined {
-  return url?.startsWith('https://github.com/') ? url : undefined;
+  if (!url) return undefined;
+  try {
+    const u = new URL(url);
+    const local = u.hostname === '127.0.0.1' || u.hostname === 'localhost';
+    return u.protocol === 'https:' || (u.protocol === 'http:' && local) ? url : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 export function permissionList(

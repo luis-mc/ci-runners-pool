@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/addresses"
 	"log/slog"
 	"net"
 	"net/http"
@@ -560,7 +561,7 @@ func (s *server) GetCliLoginConfig(ctx context.Context, _ gen.GetCliLoginConfigR
 	}
 	base := a.WebBase
 	if base == "" {
-		base = github.DefaultWebBase
+		base = addresses.DefaultGitHubURL
 	}
 	return gen.GetCliLoginConfig200JSONResponse{ClientId: st.App.ClientID,
 		DeviceCodeUrl: base + "/login/device/code", VerificationUrl: base + "/login/device"}, nil

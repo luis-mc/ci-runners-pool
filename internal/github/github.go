@@ -166,11 +166,14 @@ type Job struct {
 	RunAttempt int
 	Repository string
 	Workflow   string
-	Name       string
-	HeadSHA    string
-	HeadBranch string
-	Event      string
-	FromFork   bool
+	// WorkflowPath is the workflow file of the run, ".github/workflows/ci.yml",
+	// when the source knew it (the REST run list does; a webhook does not).
+	WorkflowPath string
+	Name         string
+	HeadSHA      string
+	HeadBranch   string
+	Event        string
+	FromFork     bool
 	// Partial is true for a job read from a webhook: the event that started its
 	// run and whether it came from a fork are not known yet (CRSP82). A partial
 	// job never gets a runner until the poller reads the run.

@@ -47,7 +47,9 @@ type Link struct {
 
 	mu      sync.Mutex
 	pending map[string]chan *agentv1.RunnerResult
-	reports map[string]Report
+	// pendingLO waits for RunnerLeftoversReport answers (OPS33).
+	pendingLO map[string]chan *agentv1.RunnerLeftoversReport
+	reports   map[string]Report
 }
 
 // Report is a machine's last MachineReport and when the controller got it.
@@ -58,7 +60,7 @@ type Report struct {
 
 // New returns a Link that sends through s.
 func New(s Sender) *Link {
-	return &Link{Sender: s, pending: map[string]chan *agentv1.RunnerResult{}, reports: map[string]Report{}}
+	return &Link{Sender: s, pending: map[string]chan *agentv1.RunnerResult{}, pendingLO: map[string]chan *agentv1.RunnerLeftoversReport{}, reports: map[string]Report{}}
 }
 
 var _ runners.Agent = (*Agent)(nil)
@@ -102,6 +104,17 @@ func (l *Link) OnMessage(machineID string, msg *agentv1.SessionRequest) bool {
 		return true
 	case *agentv1.SessionRequest_RunnerClean:
 		l.onRunnerClean(machineID, m.RunnerClean)
+		return true
+	case *agentv1.SessionRequest_RunnerLeftoversReport:
+		l.mu.Lock()
+		ch := l.pendingLO[m.RunnerLeftoversReport.GetCommandId()]
+		l.mu.Unlock()
+		if ch != nil {
+			select {
+			case ch <- m.RunnerLeftoversReport:
+			default:
+			}
+		}
 		return true
 	case *agentv1.SessionRequest_MachineReport:
 		l.mu.Lock()

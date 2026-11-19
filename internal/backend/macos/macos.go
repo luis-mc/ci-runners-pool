@@ -347,7 +347,7 @@ func (b *Backend) fresh(ctx context.Context, r backend.RunnerSpec, folder string
 		return err
 	}
 	pin := runners.Pin{OS: "macos", Arch: r.Arch, Version: r.RunnerVersion, SHA256: r.RunnerSHA256}
-	if err := persistent.Download(ctx, b.d, pin.DownloadURL(), archive, r.RunnerSHA256); err != nil {
+	if err := persistent.Download(ctx, b.d, pin.DownloadURL(b.d.Addresses), archive, r.RunnerSHA256); err != nil {
 		return err
 	}
 	if _, err := b.run(ctx, "unpack", sys.Command{Name: "tar", Args: []string{"-xzf", archive, "-C", folder}}); err != nil {

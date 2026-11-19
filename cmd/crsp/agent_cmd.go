@@ -6,6 +6,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/addresses"
 	"io"
 	"log/slog"
 	"os"
@@ -85,6 +86,9 @@ func agentRun(args []string, stderr io.Writer) error {
 	}
 	if f.controller == "" {
 		return errors.New("the controller address is required: --controller host:8461")
+	}
+	if _, err := addresses.Load(os.Getenv); err != nil {
+		return err
 	}
 	logger := slog.New(logging.NewHandler(slog.NewJSONHandler(stderr, nil), secretRedactor))
 	slog.SetDefault(logger)

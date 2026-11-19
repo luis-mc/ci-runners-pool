@@ -14,7 +14,7 @@ import (
 // service list (caches R5.36, runners R5.5). The agent measures and wipes; it
 // takes no path from the controller.
 func agentCacheSource() agent.CacheSource {
-	reg := registry.Platform(registry.RealDeps(func(string, string) {}, secretRedactor.Redact, secretRedactor.Add))
+	reg := registry.Platform(realDeps(func(string, string) {}, secretRedactor.Redact, secretRedactor.Add))
 	var ctr agent.ContainerRunners
 	if b, ok := reg.Get(backend.Docker); ok {
 		if pc, ok := b.(persistentContainer); ok {

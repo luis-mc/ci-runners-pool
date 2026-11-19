@@ -15,6 +15,7 @@ import (
 	"github.com/luis-mc/ci-runners-shared-pool/internal/cpucap"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/dockercompact"
 	agentv1 "github.com/luis-mc/ci-runners-shared-pool/internal/gen/agent/v1"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/leftovers"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/load"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/machines"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/recovery"
@@ -87,6 +88,10 @@ type Config struct {
 	// CPUCap sets the CPU cap on the runner processes (machines R5.64); nil uses
 	// the OS applier.
 	CPUCap cpucap.Applier
+
+	// Leftovers is the OS access of the runner leftovers scan and removal
+	// (doctor R5.48); nil is the real host. Tests give a fake.
+	Leftovers leftovers.OS
 
 	// DockerHost is the OS access of the docker-compact helper (caches R5.51 to R5.54); nil
 	// is the real one. Tests give a fake: the real compact never runs in tests.
@@ -575,6 +580,10 @@ func (l *link) handle(ctx context.Context, msg *agentv1.SessionResponse) error {
 		go l.updateFiles(ctx, m.UpdateRunnerFiles)
 	case *agentv1.SessionResponse_RunHostCommand:
 		go l.runHostCommand(ctx, m.RunHostCommand)
+	case *agentv1.SessionResponse_ScanRunnerLeftovers:
+		go l.scanLeftovers(ctx, m.ScanRunnerLeftovers)
+	case *agentv1.SessionResponse_RemoveRunnerLeftovers:
+		go l.removeLeftovers(ctx, m.RemoveRunnerLeftovers)
 	case *agentv1.SessionResponse_MeasureCaches:
 		go l.reportCaches(ctx, m.MeasureCaches.GetCommandId())
 	case *agentv1.SessionResponse_RunnerHygiene:

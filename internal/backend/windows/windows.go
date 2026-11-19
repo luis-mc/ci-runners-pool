@@ -319,7 +319,7 @@ func (b *Backend) start(ctx context.Context, r backend.RunnerSpec, cfg backend.S
 			return h, err
 		}
 		pin := runners.Pin{OS: "windows", Arch: r.Arch, Version: r.RunnerVersion, SHA256: r.RunnerSHA256}
-		if err := persistent.Download(ctx, b.d, pin.DownloadURL(), archive, r.RunnerSHA256); err != nil {
+		if err := persistent.Download(ctx, b.d, pin.DownloadURL(b.d.Addresses), archive, r.RunnerSHA256); err != nil {
 			return h, err
 		}
 		env["CRSP_ARCHIVE"] = archive

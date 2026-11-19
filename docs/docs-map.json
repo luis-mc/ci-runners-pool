@@ -25,6 +25,9 @@
     "installer/**": [
       "docs/features/operations/spec.md"
     ],
+    "internal/addresses/**": [
+      "docs/features/operations/spec.md"
+    ],
     "internal/agent/**": [
       "docs/features/machines/spec.md"
     ],

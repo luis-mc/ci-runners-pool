@@ -307,6 +307,16 @@ Findings show on the repository row and feed the doctor. (Source: runner-pool R5
 
 **R5.89a** (built, LOOK15) — **The session says whether the GitHub sign-in holds.** `getSession` returns `github_signin`: `active` with `expires_at` while the memory-only user token (R6.2) is held and not past its end (8 hours from GitHub), or `ended` after a restart, the 8 hours or a sign-out. The token itself is never returned. The console shows it in the account menu (web-console R5.95).
 
+### 5.10 Jobs data ingest (OPS34)
+
+**R5.96** (OPS34, owner decision 5) — **Steps from `workflow_job` events.** The `workflow_job` webhook (R5.36) and the existing REST poller (R5.37) feed the Jobs section: runs from `workflow_run` events, jobs and their `steps[]` (name, number, start, end, result) from `workflow_job` events (`in_progress` updates and `completed`). A hook mark per step may refine them later. The ingest is in `internal/jobsdata/ingest`; it is idempotent per delivery id and a finished row never changes (observability R5.12).
+
+**R5.97** (OPS34) — **No new polling.** The Jobs section adds no polling loop. A job or run that arrives only by the poller is stored without steps. Missed deliveries are filled by the poller's existing reads within the rate-limit rules.
+
+**R5.98** (OPS34, owner decision 3) — **The workflow file, once per head commit.** To draw the job graph the controller reads the workflow file of a run's head commit once through the contents API with the installation token, parses its `needs`, and caches the result by repository, path and commit sha. The read goes through the rate budget of R6.6 (no read when the budget is low); a failed read is retried later and meanwhile the graph falls back to timing overlap with a note (web-console R5.112). Only the job names and `needs` are kept, never the file text.
+
+**R5.99** (OPS34) — **What is kept from an event.** Only the fields of observability R5.38; no logs, commit messages or actor email.
+
 ## 6. Non-functional requirements
 
 **R6.1** (M1, built, CRSP106) — **Secrets only in the OS secret store.** The App private key, client secret, webhook secret, CLI tokens and any GitHub user refresh token live only in the OS secret store: Windows Credential Manager or DPAPI, macOS Keychain, Linux Secret Service, or a file with mode 0600 when no service exists. They never go to the database, config files, environment files, logs, crash files, API responses or the audit log.
@@ -488,6 +498,10 @@ Rows marked planned are not built yet; the others name the test files. The fake 
 | R5.86 | built: internal/github/grant_test.go TestDiffGrantStates, TestGrantPagesForAUserAndAnOrganization; internal/api/handlers_access_test.go TestGrantReadsBothSidesOfGitHub, TestGrantWithoutAnInstallationStartsWithInstall, TestGrantNeedsAPermissionNameAndAnAdmin, TestSetupParityWithoutThePermissionMakesNothingAndNamesThePages |
 | R5.87 | built: internal/github/grant_test.go TestForgetInstallationTokenMakesANewToken, TestParseInstallationEvent; internal/api/handlers_access_test.go TestAcceptedPermissionsRefreshTheInstallationToken |
 | R5.90 | built: internal/repos/registrations_test.go TestPoolSwitchSyncsRegistrationsAfterTheSwitchIsStored, TestRegistrationFailureDoesNotUndoThePoolSwitch, TestReconcileInstallationsSyncsRegistrations |
+| R5.96 | `internal/jobsdata/ingest/recorder_test.go` TestWorkflowJobStepsFromEvents, TestIdempotentPerDelivery |
+| R5.97 | `internal/jobsdata/ingest/recorder_test.go` TestPollerOnlyJobHasNoSteps, TestNoNewPollLoop |
+| R5.98 | `internal/jobsdata/ingest/recorder_test.go` TestWorkflowReadOncePerSha, TestNeedsParsed, TestReadFailureFallsBack, TestRateLimitSkipsRead |
+| R5.99 | `internal/jobsdata/ingest/recorder_test.go` TestNothingSecretStored |
 
 ## 10. Decisions
 

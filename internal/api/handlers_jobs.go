@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -9,6 +10,7 @@ import (
 	"time"
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/api/gen"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/jobsdata"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/scheduler"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/scheduler/slots"
 )
@@ -16,7 +18,11 @@ import (
 // The jobs and slot routes: listJobs, getJob, listSlots, freeStaleSlots
 // (observability R5.1, R5.7; scheduling R5.37, R5.58).
 
-const defaultJobLimit = 50
+const (
+	defaultJobLimit = 25
+	maxJobLimit     = 100
+	historyLen      = 30
+)
 
 func errBody(code, msg string) gen.ErrorEnvelope {
 	return gen.ErrorEnvelope{Error: gen.ErrorBody{Code: code, Message: msg}}
@@ -123,57 +129,191 @@ func toJob(j slots.JobRecord) gen.Job {
 		out.WaitReason, out.WaitText = waitReason(j.WaitReason), ptr(j.WaitText)
 	}
 	if j.Repository != "" {
-		out.HtmlUrl = ptr(fmt.Sprintf("https://github.com/%s/actions/runs/%d/job/%d", j.Repository, j.RunID, j.ID))
+		out.HtmlUrl = ptr(jobPage(j))
 	}
 	return out
 }
 
-// ListJobs implements GET /api/v1/jobs: newest first, keyset-paged on the job id.
-func (s *server) ListJobs(ctx context.Context, req gen.ListJobsRequestObject) (gen.ListJobsResponseObject, error) {
-	if s.opts.Jobs == nil {
-		return gen.ListJobsdefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notWired()}, nil
-	}
-	p := req.Params
-	f := slots.JobFilter{Limit: defaultJobLimit}
-	if p.Limit != nil {
-		if *p.Limit < 1 || *p.Limit > 200 {
-			return gen.ListJobsdefaultJSONResponse{StatusCode: http.StatusBadRequest, Body: errBody(CodeBadRequest, "limit must be 1 to 200")}, nil
-		}
-		f.Limit = *p.Limit
-	}
-	if p.State != nil {
-		switch slots.JobState(*p.State) {
-		case slots.JobQueued, slots.JobRunning, slots.JobDone:
-			f.State = slots.JobState(*p.State)
+// jobQuery is the filter every Jobs route takes (listJobs, exportJobs, getJobStats), read from the query.
+type jobQuery struct {
+	State        *string
+	Result       *string
+	RepositoryID *int64
+	MachineID    *string
+	Backend      *string
+	Runner       *string
+	RunnerKind   *string
+	JobType      *string
+	JobKey       *string
+	Branch       *string
+	RunID        *int64
+	From, To     *time.Time
+}
+
+// jobFilter validates a query and gives the filter of the store; msg is the 400 text, empty when it is valid.
+func (q jobQuery) jobFilter() (f jobsdata.JobFilter, msg string) {
+	if q.State != nil {
+		switch jobsdata.State(*q.State) {
+		case jobsdata.Queued, jobsdata.Running, jobsdata.Done:
+			f.State = jobsdata.State(*q.State)
 		default:
-			return gen.ListJobsdefaultJSONResponse{StatusCode: http.StatusBadRequest, Body: errBody(CodeBadRequest, "state must be queued, running or done")}, nil
+			return f, "state must be queued, running or done"
 		}
 	}
-	if p.RepositoryId != nil {
-		f.RepositoryID = *p.RepositoryId
+	if q.RunnerKind != nil {
+		switch jobsdata.RunnerKind(*q.RunnerKind) {
+		case jobsdata.Persistent, jobsdata.Ephemeral:
+			f.RunnerKind = jobsdata.RunnerKind(*q.RunnerKind)
+		default:
+			return f, "runner_kind must be persistent or ephemeral"
+		}
 	}
-	if p.MachineId != nil {
-		f.MachineID = *p.MachineId
+	setIf(&f.RepositoryID, q.RepositoryID)
+	setIf(&f.MachineID, q.MachineID)
+	setIf(&f.Backend, q.Backend)
+	setIf(&f.RunnerName, q.Runner)
+	setIf(&f.JobType, q.JobType)
+	setIf(&f.JobKey, q.JobKey)
+	setIf(&f.Branch, q.Branch)
+	setIf(&f.RunID, q.RunID)
+	setIf(&f.From, q.From)
+	setIf(&f.To, q.To)
+	if q.Result != nil {
+		f.Result = jobsdata.Result(*q.Result)
 	}
-	if p.Backend != nil {
-		f.Backend = *p.Backend
+	return f, ""
+}
+
+func setIf[T any](dst *T, src *T) {
+	if src != nil {
+		*dst = *src
+	}
+}
+
+// legacy is the filter of the scheduler's job table, which has no runner, job key or branch.
+func (q jobQuery) legacy() (slots.JobFilter, string) {
+	var f slots.JobFilter
+	if q.State != nil {
+		switch slots.JobState(*q.State) {
+		case slots.JobQueued, slots.JobRunning, slots.JobDone:
+			f.State = slots.JobState(*q.State)
+		default:
+			return f, "state must be queued, running or done"
+		}
+	}
+	setIf(&f.RepositoryID, q.RepositoryID)
+	setIf(&f.MachineID, q.MachineID)
+	setIf(&f.Backend, q.Backend)
+	setIf(&f.From, q.From)
+	setIf(&f.To, q.To)
+	if q.Result != nil {
+		f.Result = *q.Result
+	}
+	return f, ""
+}
+
+func queryOf(p gen.ListJobsParams) jobQuery {
+	q := jobQuery{RepositoryID: p.RepositoryId, MachineID: p.MachineId, Backend: p.Backend, Runner: p.Runner, JobType: p.JobType, JobKey: p.JobIdent,
+		Branch: p.Branch, RunID: p.RunId, From: p.From, To: p.To}
+	if p.State != nil {
+		q.State = ptrOf(string(*p.State))
 	}
 	if p.Result != nil {
-		f.Result = string(*p.Result)
+		q.Result = ptrOf(string(*p.Result))
 	}
-	if p.From != nil {
-		f.From = *p.From
+	if p.RunnerKind != nil {
+		q.RunnerKind = ptrOf(string(*p.RunnerKind))
 	}
-	if p.To != nil {
-		f.To = *p.To
+	return q
+}
+
+// pageLimit reads the page size: 25 by default, 1 to 100.
+func pageLimit(p *int) (int, bool) {
+	if p == nil {
+		return defaultJobLimit, true
 	}
-	if p.Cursor != nil && *p.Cursor != "" {
-		after, err := strconv.ParseInt(strings.TrimPrefix(*p.Cursor, "j"), 10, 64)
-		if err != nil || after < 1 {
-			return gen.ListJobsdefaultJSONResponse{StatusCode: http.StatusBadRequest, Body: errBody(CodeBadRequest, "the cursor is not valid")}, nil
-		}
-		f.After = after
+	return *p, *p >= 1 && *p <= maxJobLimit
+}
+
+// cursorID reads a cursor such as "j123" or "r123".
+func cursorID(c *string, prefix string) (int64, bool) {
+	if c == nil || *c == "" {
+		return 0, true
 	}
+	n, err := strconv.ParseInt(strings.TrimPrefix(*c, prefix), 10, 64)
+	return n, err == nil && n >= 1
+}
+
+// ListJobs implements GET /api/v1/jobs: newest first, keyset-paged on the job id.
+func (s *server) ListJobs(ctx context.Context, req gen.ListJobsRequestObject) (gen.ListJobsResponseObject, error) {
+	fail := func(status int, code, msg string) (gen.ListJobsResponseObject, error) {
+		return gen.ListJobsdefaultJSONResponse{StatusCode: status, Body: errBody(code, msg)}, nil
+	}
+	if s.opts.JobsData == nil && s.opts.Jobs == nil {
+		return fail(http.StatusNotImplemented, CodeNotImplemented, "this operation is not built yet")
+	}
+	limit, ok := pageLimit(req.Params.Limit)
+	if !ok {
+		return fail(http.StatusBadRequest, CodeBadRequest, "limit must be 1 to 100")
+	}
+	after, ok := cursorID(req.Params.Cursor, "j")
+	if !ok {
+		return fail(http.StatusBadRequest, CodeBadRequest, "the cursor is not valid")
+	}
+	q := queryOf(req.Params)
+	if s.opts.JobsData == nil {
+		return s.listJobsLegacy(ctx, q, limit, after)
+	}
+	f, msg := q.jobFilter()
+	if msg != "" {
+		return fail(http.StatusBadRequest, CodeBadRequest, msg)
+	}
+	f.Limit, f.After = limit, after
+	rows, total, err := s.opts.JobsData.ListJobs(ctx, f)
+	if err != nil {
+		s.opts.Logger.Error("list jobs", "err", err)
+		return fail(http.StatusInternalServerError, CodeInternal, "internal error")
+	}
+	page := gen.JobPage{Items: []gen.Job{}, Stale: gen.Staleness{}, Total: &total}
+	if len(rows) > limit {
+		rows = rows[:limit]
+		page.NextCursor = ptr("j" + strconv.FormatInt(rows[len(rows)-1].ID, 10))
+	}
+	items, err := s.jobItems(ctx, rows)
+	if err != nil {
+		s.opts.Logger.Error("list jobs", "err", err)
+		return fail(http.StatusInternalServerError, CodeInternal, "internal error")
+	}
+	page.Items = items
+	return gen.ListJobs200JSONResponse(page), nil
+}
+
+// jobItems maps jobs with their forecast and queue place.
+func (s *server) jobItems(ctx context.Context, rows []jobsdata.Job) ([]gen.Job, error) {
+	fc := newForecaster(s.opts.JobsData, s.now())
+	fcs, err := fc.forJobs(ctx, rows)
+	if err != nil {
+		return nil, err
+	}
+	qi, err := s.queueFor(ctx, fc, rows)
+	if err != nil {
+		return nil, err
+	}
+	items := make([]gen.Job, 0, len(rows))
+	for _, r := range rows {
+		q, hasQ := qi[r.ID]
+		items = append(items, jobWithForecast(r, fcs[r.ID], q, hasQ))
+	}
+	return items, nil
+}
+
+// listJobsLegacy serves the page from the scheduler's table while the Jobs section data is not wired.
+func (s *server) listJobsLegacy(ctx context.Context, q jobQuery, limit int, after int64) (gen.ListJobsResponseObject, error) {
+	f, msg := q.legacy()
+	if msg != "" {
+		return gen.ListJobsdefaultJSONResponse{StatusCode: http.StatusBadRequest, Body: errBody(CodeBadRequest, msg)}, nil
+	}
+	f.Limit, f.After = limit, after
 	rows, err := s.opts.Jobs.ListJobs(ctx, f)
 	if err != nil {
 		s.opts.Logger.Error("list jobs", "err", err)
@@ -190,20 +330,109 @@ func (s *server) ListJobs(ctx context.Context, req gen.ListJobsRequestObject) (g
 	return gen.ListJobs200JSONResponse(page), nil
 }
 
+// jobDetailBody is the job detail answer: the job's fields with the extra ones beside them (gen.JobDetail, which
+// the generator flattens; a test keeps the two in step).
+type jobDetailBody struct {
+	gen.Job
+	Steps    []gen.StepItem     `json:"steps"`
+	History  []gen.HistoryPoint `json:"history"`
+	Attempts []gen.AttemptRef   `json:"attempts"`
+	RunEta   *gen.Eta           `json:"run_eta,omitempty"`
+}
+
+type jobDetailResponse jobDetailBody
+
+func (r jobDetailResponse) VisitGetJobResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	return json.NewEncoder(w).Encode(jobDetailBody(r))
+}
+
 // GetJob implements GET /api/v1/jobs/{jobId}.
 func (s *server) GetJob(ctx context.Context, req gen.GetJobRequestObject) (gen.GetJobResponseObject, error) {
-	if s.opts.Jobs == nil {
-		return gen.GetJobdefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notWired()}, nil
+	fail := func(status int, code, msg string) (gen.GetJobResponseObject, error) {
+		return gen.GetJobdefaultJSONResponse{StatusCode: status, Body: errBody(code, msg)}, nil
 	}
-	j, ok, err := s.opts.Jobs.GetJob(ctx, req.JobId)
+	if s.opts.JobsData == nil && s.opts.Jobs == nil {
+		return fail(http.StatusNotImplemented, CodeNotImplemented, "this operation is not built yet")
+	}
+	if s.opts.JobsData == nil {
+		j, ok, err := s.opts.Jobs.GetJob(ctx, req.JobId)
+		if err != nil {
+			s.opts.Logger.Error("get job", "err", err)
+			return fail(http.StatusInternalServerError, CodeInternal, "internal error")
+		}
+		if !ok {
+			return fail(http.StatusNotFound, CodeNotFound, "no such job")
+		}
+		return jobDetailResponse{Job: toJob(j), Steps: []gen.StepItem{}, History: []gen.HistoryPoint{}, Attempts: []gen.AttemptRef{}}, nil
+	}
+	d, ok, err := s.opts.JobsData.GetJob(ctx, req.JobId)
 	if err != nil {
 		s.opts.Logger.Error("get job", "err", err)
-		return gen.GetJobdefaultJSONResponse{StatusCode: http.StatusInternalServerError, Body: errBody(CodeInternal, "internal error")}, nil
+		return fail(http.StatusInternalServerError, CodeInternal, "internal error")
 	}
 	if !ok {
-		return gen.GetJobdefaultJSONResponse{StatusCode: http.StatusNotFound, Body: errBody(CodeNotFound, "no such job")}, nil
+		return fail(http.StatusNotFound, CodeNotFound, "no such job")
 	}
-	return gen.GetJob200JSONResponse(toJob(j)), nil
+	body, err := s.jobDetail(ctx, d)
+	if err != nil {
+		s.opts.Logger.Error("get job", "err", err)
+		return fail(http.StatusInternalServerError, CodeInternal, "internal error")
+	}
+	return jobDetailResponse(body), nil
+}
+
+// jobDetail builds the detail: the job with its forecast and queue place, its steps with a forecast where step
+// samples exist, the last 30 runs of its key, its attempts and the ETA of its run.
+func (s *server) jobDetail(ctx context.Context, d jobsdata.JobDetail) (jobDetailBody, error) {
+	r := s.opts.JobsData
+	fc := newForecaster(r, s.now())
+	jf, err := fc.forJob(ctx, d.Job)
+	if err != nil {
+		return jobDetailBody{}, err
+	}
+	qi, err := s.queueFor(ctx, fc, []jobsdata.Job{d.Job})
+	if err != nil {
+		return jobDetailBody{}, err
+	}
+	q, hasQ := qi[d.ID]
+	body := jobDetailBody{Job: jobWithForecast(d.Job, jf, q, hasQ), Steps: []gen.StepItem{}, Attempts: toAttempts(d.Attempts)}
+	body.Needs = ptrOf(d.Needs)
+	if d.Needs == nil {
+		body.Needs = ptrOf([]string{})
+	}
+	for _, st := range d.Steps {
+		item := toStepItem(st)
+		sf, ok, err := fc.forStep(ctx, d.RepositoryID, d.JobKey, st.Name)
+		if err != nil {
+			return jobDetailBody{}, err
+		}
+		if ok {
+			g := toForecast(sf)
+			item.Forecast = &g
+		}
+		body.Steps = append(body.Steps, item)
+	}
+	hist, err := r.History(ctx, d.RepositoryID, d.JobKey, historyLen)
+	if err != nil {
+		return jobDetailBody{}, err
+	}
+	body.History = toHistory(hist)
+	if d.State != jobsdata.Done {
+		run, ok, err := r.GetRun(ctx, d.RunID, d.Attempt)
+		if err != nil {
+			return jobDetailBody{}, err
+		}
+		if ok && run.State != jobsdata.Done {
+			v, err := s.buildRun(ctx, fc, run)
+			if err != nil {
+				return jobDetailBody{}, err
+			}
+			body.RunEta = v.Eta
+		}
+	}
+	return body, nil
 }
 
 func (s *server) machineKnown(ctx context.Context, id string) (bool, error) {
