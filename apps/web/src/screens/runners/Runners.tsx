@@ -259,26 +259,6 @@ export function RunnersList() {
       sort: (r) => r.created_at ?? '',
     },
     {
-      id: 'remove',
-      header: 'Action',
-      cell: (r) =>
-        r.managed && r.state === 'failed' ? (
-          <Button
-            kind="danger"
-            onPress={() => {
-              setPicked(new Set([r.id]));
-              del.ask([`Runner ${r.name}`], []);
-            }}
-            disabled={!admin}
-            reason={why}
-          >
-            Remove
-          </Button>
-        ) : (
-          ''
-        ),
-    },
-    {
       id: 'managed',
       header: 'Managed',
       cell: (r) =>
@@ -499,6 +479,22 @@ export function RunnersList() {
                         rowKey={(r) => r.id}
                         expandLabel="Full error"
                         rowLabel={(r) => r.name}
+                        action={{
+                          label: 'Remove',
+                          name: (r) => r.name,
+                          press: (r) =>
+                            r.managed && r.state === 'failed'
+                              ? {
+                                  kind: 'danger',
+                                  onPress: () => {
+                                    setPicked(new Set([r.id]));
+                                    del.ask([`Runner ${r.name}`], []);
+                                  },
+                                  disabled: !admin,
+                                  reason: why,
+                                }
+                              : null,
+                        }}
                         selected={picked}
                         onToggle={(k) =>
                           setPicked((p) => {

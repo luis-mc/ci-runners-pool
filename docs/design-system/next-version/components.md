@@ -606,7 +606,7 @@ A field's width caps its box, never its name and help: a lone field's name and h
 ## 57. Row action
 
 - **Used for:** the one button at the end of a table row that opens the thing the row is: a run, a group (repository, machine, runner, runner type, job type) or a job.
-- **Looks:** a normal button on one line, in a last column of fixed width (`--ds-row-action-width`), the same size in every row and every list. Its words come from the Row action words of content.md: *Open run*, *Open*, *Open job*. A group's name is already in the row, so the button says only *Open*; a screen reader hears the word and the name (`Open: runner-1`). At phone width it fills the last line of the card.
+- **Looks:** a normal button on one line, in a last column of fixed width (`--ds-row-action-width`), the same size in every row and every list. Its words come from the Row action words of content.md: *Open run*, *Open*, *Open job*; an action that acts on the row and opens no page (a failed runner's *Remove*) is a press in the same column, with the same one-line word. A group's name is already in the row, so the button says only *Open*; a screen reader hears the word and the name (`Open: runner-1`). At phone width it fills the last line of the card.
 - **Source:** `packages/ui/src/components/RowAction.tsx`, `packages/ui/src/components.css`
 - **Rules:** UX-72, UX-16, UX-8.
 - **Guard:** `packages/ui/src/components/parts.test.tsx`.
