@@ -24,6 +24,7 @@ import { Load } from '../common';
 import type { Schemas } from '../../api/api';
 import { useRun } from './api';
 import { edgesOf, graphNodes, runRows } from './runViews';
+import { RUN_JOBS_ID, RunJobsTable } from './RunJobs';
 import { basisFor, graphSource } from './runBasis';
 import { etaWords, jobStatus, repoPath, sourceWords, taskOf } from './words';
 
@@ -81,7 +82,7 @@ function RunBody({ run, onAttempt }: { run: RunItem; onAttempt: (a: number) => v
     <Stack>
       <PageHeader
         title={`${run.workflow} on ${run.branch}`}
-        lead={`${run.repository}, run ${formatNumber(run.id)}, attempt ${run.attempt}. This run has ${run.jobs.length} jobs; each job has steps.`}
+        lead={`${run.repository}, run ${formatNumber(run.id)}, attempt ${run.attempt}. This run has ${run.jobs.length} ${run.jobs.length === 1 ? 'job' : 'jobs'}; ${run.jobs.length === 1 ? 'the job has steps' : 'each job has steps'}.`}
       />
       <Cluster>
         <Status kind={kind} word={word} />
@@ -109,7 +110,9 @@ function RunBody({ run, onAttempt }: { run: RunItem; onAttempt: (a: number) => v
               },
               { name: 'Branch', value: run.branch },
               { name: 'Task', value: taskOf(run) },
-              { name: 'Worktree', value: run.worktree ?? 'not reported' },
+              ...(run.worktree !== run.branch
+                ? [{ name: 'Worktree', value: run.worktree ?? 'not reported' }]
+                : []),
               { name: 'Commit and event', value: sourceWords(run) },
               {
                 name: 'Pull request',
@@ -130,7 +133,7 @@ function RunBody({ run, onAttempt }: { run: RunItem; onAttempt: (a: number) => v
       </Section>
       <Section
         title="Job graph"
-        hint="An arrow means the job on its right needs the job on its left. The thick path is the longest chain."
+        hint="An arrow means the job on its right needs the job on its left. The thick path is the longest chain. The table under Jobs says the same in words."
       >
         <Stack>
           <Text tone="muted">{graphSource(run)}</Text>
@@ -139,12 +142,13 @@ function RunBody({ run, onAttempt }: { run: RunItem; onAttempt: (a: number) => v
             nodes={graphNodes(run, now, open)}
             edges={edgesOf(run)}
             emptyText="This run has no jobs."
+            altTable={RUN_JOBS_ID}
           />
         </Stack>
       </Section>
       <Section
         title="Timeline"
-        hint="Each job waits in the queue (light part), then runs. A bracket is the forecast of the end."
+        hint="Each job waits in the queue (light part), then runs. A bracket is the forecast of the end. The table under Jobs says the same in words."
       >
         <Waterfall
           label={`Jobs of run ${run.id}`}
@@ -152,8 +156,17 @@ function RunBody({ run, onAttempt }: { run: RunItem; onAttempt: (a: number) => v
           totalSec={view.totalSec}
           {...(view.nowSec !== undefined ? { nowSec: view.nowSec } : {})}
           emptyText="This run has no jobs."
+          altTable={RUN_JOBS_ID}
         />
       </Section>
+      {run.jobs.length > 0 ? (
+        <Section
+          title="Jobs"
+          hint="Every job of the run once, with the critical path marked."
+        >
+          <RunJobsTable run={run} now={now} onOpen={open} />
+        </Section>
+      ) : null}
     </Stack>
   );
 }
