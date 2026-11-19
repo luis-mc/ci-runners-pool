@@ -1,7 +1,6 @@
 package api
 
 import (
-	"fmt"
 	"sort"
 	"time"
 
@@ -101,7 +100,7 @@ func toJobItem(j jobsdata.Job) gen.Job {
 		out.WaitReason, out.WaitText = waitReason(j.WaitReason), ptr(j.WaitText)
 	}
 	if out.HtmlUrl == nil && j.Repository != "" {
-		out.HtmlUrl = ptr(fmt.Sprintf("https://github.com/%s/actions/runs/%d/job/%d", j.Repository, j.RunID, j.ID))
+		out.HtmlUrl = ptr(githubSet().JobPage(j.Repository, j.RunID, j.ID))
 	}
 	if j.CleanupMS > 0 {
 		out.CleanupSeconds = ptr(int(j.CleanupMS / 1000))

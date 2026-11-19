@@ -15,12 +15,14 @@ var githubAddresses atomic.Pointer[addresses.Set]
 // SetGitHubAddresses sets the addresses the job pages are built from.
 func SetGitHubAddresses(a addresses.Set) { githubAddresses.Store(&a) }
 
+func githubSet() addresses.Set {
+	if a := githubAddresses.Load(); a != nil {
+		return *a
+	}
+	return addresses.Defaults()
+}
+
 // jobPage is the GitHub page of a job.
 func jobPage(j slots.JobRecord) string {
-	a := githubAddresses.Load()
-	if a == nil {
-		d := addresses.Defaults()
-		a = &d
-	}
-	return a.JobPage(j.Repository, j.RunID, j.ID)
+	return githubSet().JobPage(j.Repository, j.RunID, j.ID)
 }
