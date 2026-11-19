@@ -358,6 +358,11 @@ body {
   margin-inline: auto;
   padding: var(--ds-space-2) var(--ds-page-gutter) var(--ds-space-3);
 }
+/* Two pages one after the other in the frame (a section's tab row, then the screen under it) keep the page gap
+   between them, as the blocks inside one page do (LOOK36). */
+.ds-page + .ds-page {
+  margin-block-start: var(--ds-space-5);
+}
 .ds-h1 {
   margin: 0;
   font-size: var(--ds-size-6);
@@ -1402,11 +1407,12 @@ legend > .ds-field__changed {
   flex-wrap: wrap;
   gap: var(--ds-space-2);
 }
-/* Tabs wrap onto as many rows as they need; a tab row never scrolls sideways (UX-68). */
+/* Tabs wrap onto as many rows as they need; a tab row never scrolls sideways (UX-68). The first label starts on the
+   frame edge, as a top menu item does (UX-69): a tab has no side padding, the gap between labels is --ds-space-5. */
 .ds-tabs {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--ds-space-2);
+  gap: 0 var(--ds-space-5);
   overflow: visible;
   border-block-end: var(--ds-border-thin) solid var(--ds-color-divider);
 }
@@ -1427,9 +1433,8 @@ legend > .ds-field__changed {
 .ds-tab {
   flex: 0 1 auto;
   max-inline-size: 100%;
-  overflow-wrap: anywhere;
   min-block-size: var(--ds-target-min);
-  padding-inline: var(--ds-space-4);
+  padding-inline: 0;
   font: inherit;
   color: var(--ds-color-text);
   background: none;

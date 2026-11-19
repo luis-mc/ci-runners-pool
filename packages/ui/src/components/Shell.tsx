@@ -41,6 +41,24 @@ export function TopMenu({
   );
 }
 
+/** The phone's one Menu button, on the frame edge like the top menu it opens (UX-69, UX-15). */
+export function TopMenuButton({
+  open,
+  here,
+  onToggle,
+}: {
+  open: boolean;
+  /** The label of the open area. */
+  here: string;
+  onToggle: () => void;
+}) {
+  return (
+    <div className="ds-topmenu__toggle ds-band" data-frame-band data-menu-toggle>
+      <Button onPress={onToggle}>{open ? 'Close the menu' : `Menu: ${here}`}</Button>
+    </div>
+  );
+}
+
 export function Breadcrumbs({
   trail,
 }: {
