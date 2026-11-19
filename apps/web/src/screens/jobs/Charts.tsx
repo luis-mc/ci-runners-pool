@@ -1,6 +1,7 @@
 // Jobs, Charts (RES15): durations and waits over time, forecast against actual, and the busiest hours. A chart
 // supports the words beside it and has a text equivalent (UX-41, UX-17).
 import {
+  ActionBar,
   Cluster,
   Empty,
   ExportButton,
@@ -70,12 +71,19 @@ export function ChartsTab() {
               onChange={(v) => setDays(v === '7' || v === '30' ? v : '14')}
               allLabel={null}
             />
-            <ExportButton
-              what="daily summaries"
-              label="Export daily summaries (CSV)"
-              run={exportSummaries}
-            />
           </Cluster>
+        );
+        const actions = (
+          <ActionBar
+            primary={
+              <ExportButton
+                what="daily summaries"
+                label="Export daily summaries (CSV)"
+                run={exportSummaries}
+                primary
+              />
+            }
+          />
         );
         if (s.days.length === 0)
           return (
@@ -84,6 +92,7 @@ export function ChartsTab() {
               <Section title="Charts">
                 <Empty title="No finished jobs in this range, so there is nothing to draw." />
               </Section>
+              {actions}
             </Stack>
           );
         const at = (day: string) => Date.parse(`${day}T00:00:00Z`);
@@ -189,6 +198,7 @@ export function ChartsTab() {
               />
             </Section>
             <Text tone="muted">{`Showing the last ${days} days. ${RETENTION_WORDS}`}</Text>
+            {actions}
           </Stack>
         );
       }}

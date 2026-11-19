@@ -1887,6 +1887,12 @@ legend > .ds-field__changed {
 }
 
 /* components 50 to 55: waterfall, job graph, trend chart, sparkline, heatmap, forecast chart */
+.ds-viz-table-wrap {
+  overflow-x: auto;
+}
+.ds-viz-table th {
+  white-space: nowrap;
+}
 .ds-viz-table {
   inline-size: 100%;
   border-collapse: collapse;

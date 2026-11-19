@@ -2,8 +2,9 @@
 // machine, runner, runner type, job type, charts). Every list is one Table (component 15). Wait reasons say what is
 // happening (UX-29); a status is a word, a glyph and a colour (UX-58). Runs are the first view, jobs the second.
 import {
+  ActionBar,
   Button,
-  Cluster,
+  ListToolbar,
   Empty,
   ExportButton,
   LinkButton,
@@ -623,27 +624,45 @@ function JobsListTab({ kind }: { kind: Kind }) {
   return (
     <Stack>
       <FilterNote note={f.note} to={f.clearTo} />
-      <Cluster>
-        <ViewSwitch view={view} onChange={set} />
-        {kind === 'done' ? (
-          <Segmented
-            label="Range"
-            options={RANGES}
-            value={days}
-            onChange={(v) => {
-              const next = new URLSearchParams(params);
-              next.set('days', v || String(KEPT_DAYS));
-              setParams(next, { replace: true });
-              setShown(DONE_STEP);
-            }}
-            allLabel={null}
-          />
-        ) : null}
-        {kind === 'done' ? (
-          <ExportButton what={`done ${unit}`} run={exportRows} label="Export CSV" />
-        ) : null}
-      </Cluster>
+      <ListToolbar
+        label={TITLES[kind]}
+        filters={
+          <>
+            <ViewSwitch view={view} onChange={set} />
+            {kind === 'done' ? (
+              <Segmented
+                label="Range"
+                options={RANGES}
+                value={days}
+                onChange={(v) => {
+                  const next = new URLSearchParams(params);
+                  next.set('days', v || String(KEPT_DAYS));
+                  setParams(next, { replace: true });
+                  setShown(DONE_STEP);
+                }}
+                allLabel={null}
+              />
+            ) : null}
+          </>
+        }
+      />
       {body()}
+      <ActionBar
+        primary={
+          kind === 'done' ? (
+            <ExportButton
+              what={`done ${unit}`}
+              run={exportRows}
+              label="Export CSV"
+              primary
+            />
+          ) : (
+            <LinkButton to="/pool/runners/add" kind="primary">
+              Add runners
+            </LinkButton>
+          )
+        }
+      />
     </Stack>
   );
 }
