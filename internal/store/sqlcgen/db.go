@@ -33,6 +33,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.claimRegistryScanStmt, err = db.PrepareContext(ctx, claimRegistryScan); err != nil {
 		return nil, fmt.Errorf("error preparing query ClaimRegistryScan: %w", err)
 	}
+	if q.clearRepositoryProfileStmt, err = db.PrepareContext(ctx, clearRepositoryProfile); err != nil {
+		return nil, fmt.Errorf("error preparing query ClearRepositoryProfile: %w", err)
+	}
 	if q.closeRegistryRecommendationStmt, err = db.PrepareContext(ctx, closeRegistryRecommendation); err != nil {
 		return nil, fmt.Errorf("error preparing query CloseRegistryRecommendation: %w", err)
 	}
@@ -56,6 +59,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	}
 	if q.deleteEndedRegistryTokenLeasesStmt, err = db.PrepareContext(ctx, deleteEndedRegistryTokenLeases); err != nil {
 		return nil, fmt.Errorf("error preparing query DeleteEndedRegistryTokenLeases: %w", err)
+	}
+	if q.deleteImageProfileStmt, err = db.PrepareContext(ctx, deleteImageProfile); err != nil {
+		return nil, fmt.Errorf("error preparing query DeleteImageProfile: %w", err)
 	}
 	if q.deleteJobHistoryBeforeStmt, err = db.PrepareContext(ctx, deleteJobHistoryBefore); err != nil {
 		return nil, fmt.Errorf("error preparing query DeleteJobHistoryBefore: %w", err)
@@ -168,6 +174,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.getImageBuildStmt, err = db.PrepareContext(ctx, getImageBuild); err != nil {
 		return nil, fmt.Errorf("error preparing query GetImageBuild: %w", err)
 	}
+	if q.getImageProfileStmt, err = db.PrepareContext(ctx, getImageProfile); err != nil {
+		return nil, fmt.Errorf("error preparing query GetImageProfile: %w", err)
+	}
 	if q.getJobHistoryStmt, err = db.PrepareContext(ctx, getJobHistory); err != nil {
 		return nil, fmt.Errorf("error preparing query GetJobHistory: %w", err)
 	}
@@ -243,6 +252,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.getRepositoryByNameStmt, err = db.PrepareContext(ctx, getRepositoryByName); err != nil {
 		return nil, fmt.Errorf("error preparing query GetRepositoryByName: %w", err)
 	}
+	if q.getRepositoryProfileStmt, err = db.PrepareContext(ctx, getRepositoryProfile); err != nil {
+		return nil, fmt.Errorf("error preparing query GetRepositoryProfile: %w", err)
+	}
 	if q.getRunnerStmt, err = db.PrepareContext(ctx, getRunner); err != nil {
 		return nil, fmt.Errorf("error preparing query GetRunner: %w", err)
 	}
@@ -287,6 +299,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	}
 	if q.insertImageBuildStmt, err = db.PrepareContext(ctx, insertImageBuild); err != nil {
 		return nil, fmt.Errorf("error preparing query InsertImageBuild: %w", err)
+	}
+	if q.insertImageProfileIfAbsentStmt, err = db.PrepareContext(ctx, insertImageProfileIfAbsent); err != nil {
+		return nil, fmt.Errorf("error preparing query InsertImageProfileIfAbsent: %w", err)
 	}
 	if q.insertJobStepStmt, err = db.PrepareContext(ctx, insertJobStep); err != nil {
 		return nil, fmt.Errorf("error preparing query InsertJobStep: %w", err)
@@ -405,6 +420,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.listImageBuildsOfMachineStmt, err = db.PrepareContext(ctx, listImageBuildsOfMachine); err != nil {
 		return nil, fmt.Errorf("error preparing query ListImageBuildsOfMachine: %w", err)
 	}
+	if q.listImageProfilesStmt, err = db.PrepareContext(ctx, listImageProfiles); err != nil {
+		return nil, fmt.Errorf("error preparing query ListImageProfiles: %w", err)
+	}
 	if q.listInstallationsStmt, err = db.PrepareContext(ctx, listInstallations); err != nil {
 		return nil, fmt.Errorf("error preparing query ListInstallations: %w", err)
 	}
@@ -491,6 +509,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	}
 	if q.listRepositoriesStmt, err = db.PrepareContext(ctx, listRepositories); err != nil {
 		return nil, fmt.Errorf("error preparing query ListRepositories: %w", err)
+	}
+	if q.listRepositoryProfilesStmt, err = db.PrepareContext(ctx, listRepositoryProfiles); err != nil {
+		return nil, fmt.Errorf("error preparing query ListRepositoryProfiles: %w", err)
 	}
 	if q.listRunAttemptsStmt, err = db.PrepareContext(ctx, listRunAttempts); err != nil {
 		return nil, fmt.Errorf("error preparing query ListRunAttempts: %w", err)
@@ -654,6 +675,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.setRepositoryPoolStmt, err = db.PrepareContext(ctx, setRepositoryPool); err != nil {
 		return nil, fmt.Errorf("error preparing query SetRepositoryPool: %w", err)
 	}
+	if q.setRepositoryProfileStmt, err = db.PrepareContext(ctx, setRepositoryProfile); err != nil {
+		return nil, fmt.Errorf("error preparing query SetRepositoryProfile: %w", err)
+	}
 	if q.setRunnerHygieneStmt, err = db.PrepareContext(ctx, setRunnerHygiene); err != nil {
 		return nil, fmt.Errorf("error preparing query SetRunnerHygiene: %w", err)
 	}
@@ -726,6 +750,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.upsertGitHubJobStmt, err = db.PrepareContext(ctx, upsertGitHubJob); err != nil {
 		return nil, fmt.Errorf("error preparing query UpsertGitHubJob: %w", err)
 	}
+	if q.upsertImageProfileStmt, err = db.PrepareContext(ctx, upsertImageProfile); err != nil {
+		return nil, fmt.Errorf("error preparing query UpsertImageProfile: %w", err)
+	}
 	if q.upsertInstallationStmt, err = db.PrepareContext(ctx, upsertInstallation); err != nil {
 		return nil, fmt.Errorf("error preparing query UpsertInstallation: %w", err)
 	}
@@ -797,6 +824,11 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing claimRegistryScanStmt: %w", cerr)
 		}
 	}
+	if q.clearRepositoryProfileStmt != nil {
+		if cerr := q.clearRepositoryProfileStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing clearRepositoryProfileStmt: %w", cerr)
+		}
+	}
 	if q.closeRegistryRecommendationStmt != nil {
 		if cerr := q.closeRegistryRecommendationStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing closeRegistryRecommendationStmt: %w", cerr)
@@ -835,6 +867,11 @@ func (q *Queries) Close() error {
 	if q.deleteEndedRegistryTokenLeasesStmt != nil {
 		if cerr := q.deleteEndedRegistryTokenLeasesStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing deleteEndedRegistryTokenLeasesStmt: %w", cerr)
+		}
+	}
+	if q.deleteImageProfileStmt != nil {
+		if cerr := q.deleteImageProfileStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing deleteImageProfileStmt: %w", cerr)
 		}
 	}
 	if q.deleteJobHistoryBeforeStmt != nil {
@@ -1022,6 +1059,11 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing getImageBuildStmt: %w", cerr)
 		}
 	}
+	if q.getImageProfileStmt != nil {
+		if cerr := q.getImageProfileStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getImageProfileStmt: %w", cerr)
+		}
+	}
 	if q.getJobHistoryStmt != nil {
 		if cerr := q.getJobHistoryStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing getJobHistoryStmt: %w", cerr)
@@ -1147,6 +1189,11 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing getRepositoryByNameStmt: %w", cerr)
 		}
 	}
+	if q.getRepositoryProfileStmt != nil {
+		if cerr := q.getRepositoryProfileStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getRepositoryProfileStmt: %w", cerr)
+		}
+	}
 	if q.getRunnerStmt != nil {
 		if cerr := q.getRunnerStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing getRunnerStmt: %w", cerr)
@@ -1220,6 +1267,11 @@ func (q *Queries) Close() error {
 	if q.insertImageBuildStmt != nil {
 		if cerr := q.insertImageBuildStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing insertImageBuildStmt: %w", cerr)
+		}
+	}
+	if q.insertImageProfileIfAbsentStmt != nil {
+		if cerr := q.insertImageProfileIfAbsentStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing insertImageProfileIfAbsentStmt: %w", cerr)
 		}
 	}
 	if q.insertJobStepStmt != nil {
@@ -1417,6 +1469,11 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing listImageBuildsOfMachineStmt: %w", cerr)
 		}
 	}
+	if q.listImageProfilesStmt != nil {
+		if cerr := q.listImageProfilesStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listImageProfilesStmt: %w", cerr)
+		}
+	}
 	if q.listInstallationsStmt != nil {
 		if cerr := q.listInstallationsStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing listInstallationsStmt: %w", cerr)
@@ -1560,6 +1617,11 @@ func (q *Queries) Close() error {
 	if q.listRepositoriesStmt != nil {
 		if cerr := q.listRepositoriesStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing listRepositoriesStmt: %w", cerr)
+		}
+	}
+	if q.listRepositoryProfilesStmt != nil {
+		if cerr := q.listRepositoryProfilesStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listRepositoryProfilesStmt: %w", cerr)
 		}
 	}
 	if q.listRunAttemptsStmt != nil {
@@ -1832,6 +1894,11 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing setRepositoryPoolStmt: %w", cerr)
 		}
 	}
+	if q.setRepositoryProfileStmt != nil {
+		if cerr := q.setRepositoryProfileStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing setRepositoryProfileStmt: %w", cerr)
+		}
+	}
 	if q.setRunnerHygieneStmt != nil {
 		if cerr := q.setRunnerHygieneStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing setRunnerHygieneStmt: %w", cerr)
@@ -1950,6 +2017,11 @@ func (q *Queries) Close() error {
 	if q.upsertGitHubJobStmt != nil {
 		if cerr := q.upsertGitHubJobStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing upsertGitHubJobStmt: %w", cerr)
+		}
+	}
+	if q.upsertImageProfileStmt != nil {
+		if cerr := q.upsertImageProfileStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing upsertImageProfileStmt: %w", cerr)
 		}
 	}
 	if q.upsertInstallationStmt != nil {
@@ -2079,6 +2151,7 @@ type Queries struct {
 	addRegistryPullDailyStmt                 *sql.Stmt
 	beatTicketStmt                           *sql.Stmt
 	claimRegistryScanStmt                    *sql.Stmt
+	clearRepositoryProfileStmt               *sql.Stmt
 	closeRegistryRecommendationStmt          *sql.Stmt
 	countJobsByStateStmt                     *sql.Stmt
 	countMachineSlotsStmt                    *sql.Stmt
@@ -2087,6 +2160,7 @@ type Queries struct {
 	dailySummarisedDaysStmt                  *sql.Stmt
 	deleteAuditBeforeStmt                    *sql.Stmt
 	deleteEndedRegistryTokenLeasesStmt       *sql.Stmt
+	deleteImageProfileStmt                   *sql.Stmt
 	deleteJobHistoryBeforeStmt               *sql.Stmt
 	deleteJobStepsStmt                       *sql.Stmt
 	deleteJobTicketsStmt                     *sql.Stmt
@@ -2124,6 +2198,7 @@ type Queries struct {
 	getGitHubAppStmt                         *sql.Stmt
 	getGitHubJobStmt                         *sql.Stmt
 	getImageBuildStmt                        *sql.Stmt
+	getImageProfileStmt                      *sql.Stmt
 	getJobHistoryStmt                        *sql.Stmt
 	getJobsRowStmt                           *sql.Stmt
 	getJoinCodeStmt                          *sql.Stmt
@@ -2149,6 +2224,7 @@ type Queries struct {
 	getRepoPolicyStmt                        *sql.Stmt
 	getRepositoryStmt                        *sql.Stmt
 	getRepositoryByNameStmt                  *sql.Stmt
+	getRepositoryProfileStmt                 *sql.Stmt
 	getRunnerStmt                            *sql.Stmt
 	getRunnerByServiceStmt                   *sql.Stmt
 	getRunsRowStmt                           *sql.Stmt
@@ -2164,6 +2240,7 @@ type Queries struct {
 	insertDoctorFindingStmt                  *sql.Stmt
 	insertDoctorRunStmt                      *sql.Stmt
 	insertImageBuildStmt                     *sql.Stmt
+	insertImageProfileIfAbsentStmt           *sql.Stmt
 	insertJobStepStmt                        *sql.Stmt
 	insertJoinCodeStmt                       *sql.Stmt
 	insertLinkCodeStmt                       *sql.Stmt
@@ -2203,6 +2280,7 @@ type Queries struct {
 	listExpiredTicketsStmt                   *sql.Stmt
 	listImageBuildsInFlightStmt              *sql.Stmt
 	listImageBuildsOfMachineStmt             *sql.Stmt
+	listImageProfilesStmt                    *sql.Stmt
 	listInstallationsStmt                    *sql.Stmt
 	listJobAttemptsStmt                      *sql.Stmt
 	listJobHistoryStmt                       *sql.Stmt
@@ -2232,6 +2310,7 @@ type Queries struct {
 	listRegistryUnusedCandidatesStmt         *sql.Stmt
 	listRegistryVariantsDueStmt              *sql.Stmt
 	listRepositoriesStmt                     *sql.Stmt
+	listRepositoryProfilesStmt               *sql.Stmt
 	listRunAttemptsStmt                      *sql.Stmt
 	listRunFindingsStmt                      *sql.Stmt
 	listRunnersStmt                          *sql.Stmt
@@ -2286,6 +2365,7 @@ type Queries struct {
 	setRegistryReplacePlanRolledBackStmt     *sql.Stmt
 	setRegistryReplacePlanStateStmt          *sql.Stmt
 	setRepositoryPoolStmt                    *sql.Stmt
+	setRepositoryProfileStmt                 *sql.Stmt
 	setRunnerHygieneStmt                     *sql.Stmt
 	setRunnerRegistrationStmt                *sql.Stmt
 	setRunnerStateStmt                       *sql.Stmt
@@ -2310,6 +2390,7 @@ type Queries struct {
 	upsertDoctorStateStmt                    *sql.Stmt
 	upsertGitHubAppStmt                      *sql.Stmt
 	upsertGitHubJobStmt                      *sql.Stmt
+	upsertImageProfileStmt                   *sql.Stmt
 	upsertInstallationStmt                   *sql.Stmt
 	upsertJobHistoryStmt                     *sql.Stmt
 	upsertJobsRowStmt                        *sql.Stmt
@@ -2336,6 +2417,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		addRegistryPullDailyStmt:                 q.addRegistryPullDailyStmt,
 		beatTicketStmt:                           q.beatTicketStmt,
 		claimRegistryScanStmt:                    q.claimRegistryScanStmt,
+		clearRepositoryProfileStmt:               q.clearRepositoryProfileStmt,
 		closeRegistryRecommendationStmt:          q.closeRegistryRecommendationStmt,
 		countJobsByStateStmt:                     q.countJobsByStateStmt,
 		countMachineSlotsStmt:                    q.countMachineSlotsStmt,
@@ -2344,6 +2426,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		dailySummarisedDaysStmt:                  q.dailySummarisedDaysStmt,
 		deleteAuditBeforeStmt:                    q.deleteAuditBeforeStmt,
 		deleteEndedRegistryTokenLeasesStmt:       q.deleteEndedRegistryTokenLeasesStmt,
+		deleteImageProfileStmt:                   q.deleteImageProfileStmt,
 		deleteJobHistoryBeforeStmt:               q.deleteJobHistoryBeforeStmt,
 		deleteJobStepsStmt:                       q.deleteJobStepsStmt,
 		deleteJobTicketsStmt:                     q.deleteJobTicketsStmt,
@@ -2381,6 +2464,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		getGitHubAppStmt:                         q.getGitHubAppStmt,
 		getGitHubJobStmt:                         q.getGitHubJobStmt,
 		getImageBuildStmt:                        q.getImageBuildStmt,
+		getImageProfileStmt:                      q.getImageProfileStmt,
 		getJobHistoryStmt:                        q.getJobHistoryStmt,
 		getJobsRowStmt:                           q.getJobsRowStmt,
 		getJoinCodeStmt:                          q.getJoinCodeStmt,
@@ -2406,6 +2490,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		getRepoPolicyStmt:                        q.getRepoPolicyStmt,
 		getRepositoryStmt:                        q.getRepositoryStmt,
 		getRepositoryByNameStmt:                  q.getRepositoryByNameStmt,
+		getRepositoryProfileStmt:                 q.getRepositoryProfileStmt,
 		getRunnerStmt:                            q.getRunnerStmt,
 		getRunnerByServiceStmt:                   q.getRunnerByServiceStmt,
 		getRunsRowStmt:                           q.getRunsRowStmt,
@@ -2421,6 +2506,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		insertDoctorFindingStmt:                  q.insertDoctorFindingStmt,
 		insertDoctorRunStmt:                      q.insertDoctorRunStmt,
 		insertImageBuildStmt:                     q.insertImageBuildStmt,
+		insertImageProfileIfAbsentStmt:           q.insertImageProfileIfAbsentStmt,
 		insertJobStepStmt:                        q.insertJobStepStmt,
 		insertJoinCodeStmt:                       q.insertJoinCodeStmt,
 		insertLinkCodeStmt:                       q.insertLinkCodeStmt,
@@ -2460,6 +2546,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		listExpiredTicketsStmt:                   q.listExpiredTicketsStmt,
 		listImageBuildsInFlightStmt:              q.listImageBuildsInFlightStmt,
 		listImageBuildsOfMachineStmt:             q.listImageBuildsOfMachineStmt,
+		listImageProfilesStmt:                    q.listImageProfilesStmt,
 		listInstallationsStmt:                    q.listInstallationsStmt,
 		listJobAttemptsStmt:                      q.listJobAttemptsStmt,
 		listJobHistoryStmt:                       q.listJobHistoryStmt,
@@ -2489,6 +2576,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		listRegistryUnusedCandidatesStmt:         q.listRegistryUnusedCandidatesStmt,
 		listRegistryVariantsDueStmt:              q.listRegistryVariantsDueStmt,
 		listRepositoriesStmt:                     q.listRepositoriesStmt,
+		listRepositoryProfilesStmt:               q.listRepositoryProfilesStmt,
 		listRunAttemptsStmt:                      q.listRunAttemptsStmt,
 		listRunFindingsStmt:                      q.listRunFindingsStmt,
 		listRunnersStmt:                          q.listRunnersStmt,
@@ -2543,6 +2631,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		setRegistryReplacePlanRolledBackStmt:     q.setRegistryReplacePlanRolledBackStmt,
 		setRegistryReplacePlanStateStmt:          q.setRegistryReplacePlanStateStmt,
 		setRepositoryPoolStmt:                    q.setRepositoryPoolStmt,
+		setRepositoryProfileStmt:                 q.setRepositoryProfileStmt,
 		setRunnerHygieneStmt:                     q.setRunnerHygieneStmt,
 		setRunnerRegistrationStmt:                q.setRunnerRegistrationStmt,
 		setRunnerStateStmt:                       q.setRunnerStateStmt,
@@ -2567,6 +2656,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		upsertDoctorStateStmt:                    q.upsertDoctorStateStmt,
 		upsertGitHubAppStmt:                      q.upsertGitHubAppStmt,
 		upsertGitHubJobStmt:                      q.upsertGitHubJobStmt,
+		upsertImageProfileStmt:                   q.upsertImageProfileStmt,
 		upsertInstallationStmt:                   q.upsertInstallationStmt,
 		upsertJobHistoryStmt:                     q.upsertJobHistoryStmt,
 		upsertJobsRowStmt:                        q.upsertJobsRowStmt,
