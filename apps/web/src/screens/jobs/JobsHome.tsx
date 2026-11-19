@@ -626,6 +626,7 @@ function JobsListTab({ kind }: { kind: Kind }) {
       <FilterNote note={f.note} to={f.clearTo} />
       <ListToolbar
         label={TITLES[kind]}
+        count={view === 'runs' ? 'One row per run' : 'One row per job'}
         filters={
           <>
             <ViewSwitch view={view} onChange={set} />

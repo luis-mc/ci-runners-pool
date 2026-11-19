@@ -1887,12 +1887,6 @@ legend > .ds-field__changed {
 }
 
 /* components 50 to 55: waterfall, job graph, trend chart, sparkline, heatmap, forecast chart */
-.ds-viz-table-wrap {
-  overflow-x: auto;
-}
-.ds-viz-table th {
-  white-space: nowrap;
-}
 .ds-viz-table {
   inline-size: 100%;
   border-collapse: collapse;
@@ -1905,6 +1899,39 @@ legend > .ds-field__changed {
   vertical-align: top;
   overflow-wrap: anywhere;
   border-block-end: var(--ds-border-thin) solid var(--ds-color-divider);
+}
+/* At phone width the text table stacks like every table: the head row is out of sight, each cell says its column. */
+@media (max-width: 599px) {
+  .ds-viz-table thead {
+    position: absolute;
+    inline-size: 1px;
+    block-size: 1px;
+    overflow: hidden;
+  }
+  .ds-viz-table,
+  .ds-viz-table tbody {
+    display: block;
+  }
+  .ds-viz-table tr {
+    display: grid;
+    gap: var(--ds-space-1);
+    padding: var(--ds-space-2) 0;
+    border-block-end: var(--ds-border-thin) solid var(--ds-color-divider);
+  }
+  .ds-viz-table tr th,
+  .ds-viz-table tr td {
+    border: 0;
+    padding: 0;
+  }
+  .ds-viz-table td {
+    display: grid;
+    grid-template-columns: minmax(5rem, 35%) minmax(0, 1fr);
+    gap: var(--ds-space-3);
+  }
+  .ds-viz-table td::before {
+    content: attr(data-label);
+    color: var(--ds-color-text-muted);
+  }
 }
 .ds-waterfall {
   display: grid;

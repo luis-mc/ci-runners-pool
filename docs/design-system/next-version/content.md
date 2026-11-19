@@ -1021,6 +1021,7 @@ The words of the new Jobs section (web-console 4.6, proposed). A wait names what
 | Word | Where and meaning |
 |---|---|
 | Queue, Running, Done | Tabs and pane titles of the three lists. |
+| One row per run, One row per job | The count slot of the Jobs list toolbar: says what a row is in the chosen view. |
 | By repository, By machine, By runner, By runner type, By job type, Charts | The sub-section tabs. |
 | Order | Column: the job's place in the queue, 1 is next. |
 | Workflow and job, Branch, Runner and machine, Waited, Ran, Forecast, Starts, Doing now, Progress | Column heads. |

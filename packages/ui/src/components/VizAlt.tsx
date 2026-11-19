@@ -15,35 +15,35 @@ export function VizAlt({
 }) {
   return (
     <Disclosure summary={SHOW_AS_TABLE}>
-      <div className="ds-viz-table-wrap">
-        <table className="ds-viz-table">
-          <caption className="ds-visually-hidden">{caption}</caption>
-          <thead>
-            <tr>
-              {head.map((h, i) => (
-                <th key={`${i}-${h}`} scope="col">
-                  {h}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row, r) => (
-              <tr key={r}>
-                {row.map((cell, i) =>
-                  i === 0 ? (
-                    <th key={i} scope="row">
-                      {cell}
-                    </th>
-                  ) : (
-                    <td key={i}>{cell}</td>
-                  ),
-                )}
-              </tr>
+      <table className="ds-viz-table">
+        <caption className="ds-visually-hidden">{caption}</caption>
+        <thead>
+          <tr>
+            {head.map((h, i) => (
+              <th key={`${i}-${h}`} scope="col">
+                {h}
+              </th>
             ))}
-          </tbody>
-        </table>
-      </div>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row, r) => (
+            <tr key={r}>
+              {row.map((cell, i) =>
+                i === 0 ? (
+                  <th key={i} scope="row">
+                    {cell}
+                  </th>
+                ) : (
+                  <td key={i} data-label={head[i] ?? ''}>
+                    {cell}
+                  </td>
+                ),
+              )}
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </Disclosure>
   );
 }

@@ -12,7 +12,7 @@ const NATIVE_ARROWS =
   'input:not([type=checkbox]):not([type=button]):not([type=submit]), select, textarea, [role=slider], [role=spinbutton], [role=tab], [role=radio], [role=combobox], [role=listbox], [role=textbox]';
 
 const FOCUSABLE =
-  'a[href], button:not([disabled]), input:not([disabled]):not([type=hidden]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex^="-"])';
+  'a[href], button:not([disabled]), summary, input:not([disabled]):not([type=hidden]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex^="-"])';
 
 /** The controls a person can reach, in reading order, visible only. */
 async function controls(page: Page): Promise<string[]> {
