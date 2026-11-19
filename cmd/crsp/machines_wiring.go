@@ -107,7 +107,7 @@ func startMachines(ctx context.Context, cfg config.Config, logger *slog.Logger, 
 	var pkgSource machines.PackageSource
 	consoleURL := ""
 	if _, ok := update.ParseVersion(version); ok {
-		pkgs = &packages.Store{Source: update.GitHubSource{Version: version}, Dir: filepath.Join(cfg.DataDir, "packages")}
+		pkgs = &packages.Store{Source: update.GitHubSource{Base: cfg.Addresses.GitHubAPIURL, Version: version}, Dir: filepath.Join(cfg.DataDir, "packages")}
 		pkgSource = pkgs
 		if lh, lp, err := net.SplitHostPort(cfg.ListenAddr); err == nil && !webui.IsLoopback(lh) {
 			consoleURL = "https://" + net.JoinHostPort(public, lp)
@@ -116,7 +116,7 @@ func startMachines(ctx context.Context, cfg config.Config, logger *slog.Logger, 
 
 	// An SSH join to Windows downloads from the controller's own package
 	// endpoint when there is one, else from the GitHub release (CRSP123).
-	var winPackages machines.WindowsPackageSource = releasePackages{version: version}
+	var winPackages machines.WindowsPackageSource = releasePackages{version: version, apiBase: cfg.Addresses.GitHubAPIURL}
 	if pkgSource != nil && consoleURL != "" {
 		winPackages = controllerPackages{sums: pkgSource, console: consoleURL}
 	}
@@ -141,7 +141,7 @@ func startMachines(ctx context.Context, cfg config.Config, logger *slog.Logger, 
 	if err != nil {
 		return nil, err
 	}
-	mountRecovery(svc, ca, version)
+	mountRecovery(svc, ca, cfg.Addresses.GitHubAPIURL, version)
 	link := machines.NewLinkServer(addr, ca, svc)
 	go func() {
 		logger.Info("agent link listening", "addr", ln.Addr().String())

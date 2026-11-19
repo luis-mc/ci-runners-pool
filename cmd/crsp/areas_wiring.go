@@ -116,7 +116,8 @@ func buildController(ctx context.Context, d controllerDeps) (*controller, error)
 	c := &controller{}
 
 	// GitHub: client, sign-in, repositories, webhook.
-	gh := github.New(github.Config{Secrets: d.Secrets, Logger: logger})
+	gh := github.New(github.Config{APIBase: d.Cfg.Addresses.GitHubAPIURL, WebBase: d.Cfg.Addresses.GitHubURL, Secrets: d.Secrets, Logger: logger})
+	api.SetGitHubAddresses(d.Cfg.Addresses)
 	// The repository state is kept in the database: the pool switch of a
 	// repository must survive a restart, such as an upgrade (CRSP148).
 	repoStore, err := repos.NewPersistentStore(ctx, d.DB.ReposState())
@@ -135,7 +136,7 @@ func buildController(ctx context.Context, d controllerDeps) (*controller, error)
 		LoadWebhookAddress: cbSettings.GetWebhookAddress,
 		SaveWebhookAddress: cbSettings.SetWebhookAddress,
 		HookHealth:         health,
-		GitHub:             gh, Secrets: d.Secrets, Now: d.Now,
+		GitHub:             gh, Secrets: d.Secrets, Now: d.Now, WebBase: gh.WebBase(),
 		// An App made before the list was kept has the loopback callback
 		// of this port only (OPS16): never the address chosen later.
 		ConsoleURLs:    func() []string { return []string{loopbackConsoleURL(console)} },
@@ -146,7 +147,7 @@ func buildController(ctx context.Context, d controllerDeps) (*controller, error)
 	if st, err := asvc.State(ctx); err == nil && st.HasApp {
 		gh.UseApp(st.App.ID, st.App.ClientID)
 	}
-	rsvc := repos.New(repos.Config{Store: repoStore, GitHub: gh, Tokens: asvc, Audit: asvc, PoolName: pool,
+	rsvc := repos.New(repos.Config{Addresses: d.Cfg.Addresses, Store: repoStore, GitHub: gh, Tokens: asvc, Audit: asvc, PoolName: pool,
 		Capacity: machineCapacity{svc: d.Machines, pool: pool}, Sizes: machineCapacity{svc: d.Machines, pool: pool}, Up: machineUp{svc: d.Machines},
 		FallbackGrace: fallbackGrace(d), PublicRepositories: publicRepositories(d), Now: d.Now})
 	// An App made without a webhook has no webhook secret in the store (R5.3):
@@ -182,7 +183,7 @@ func buildController(ctx context.Context, d controllerDeps) (*controller, error)
 			}
 		},
 	}
-	c.Options.GitHub = &api.GitHubArea{Auth: asvc, Repos: rsvc, Webhook: hook, Logger: logger, Health: health, AppHealth: appHealth,
+	c.Options.GitHub = &api.GitHubArea{Auth: asvc, Repos: rsvc, Webhook: hook, WebBase: gh.WebBase(), Logger: logger, Health: health, AppHealth: appHealth,
 		HasMachine: func(ctx context.Context) bool { vs, err := d.Machines.List(ctx); return err == nil && len(vs) > 0 }}
 	c.Auth, c.Repos = asvc, rsvc
 	if cmp, err := newCompareService(gh, repoStore); err == nil {
@@ -227,7 +228,7 @@ func buildController(ctx context.Context, d controllerDeps) (*controller, error)
 	// machines wait for the runner messages on the agent link.
 	reg := d.Backends
 	if reg == nil {
-		reg = registry.Platform(registry.RealDeps(nil, secretRedactor.Redact, secretRedactor.Add), runnerIDSource(logger, d.DB))
+		reg = registry.Platform(realDeps(nil, secretRedactor.Redact, secretRedactor.Add), runnerIDSource(logger, d.DB))
 	}
 	// Every change to a runner record is told to the live view, so the console list moves without a reload.
 	rstore := runners.NotifyStore{Store: runners.NewMemStore(), OnChange: func(r runners.Record, gone bool) {
@@ -237,7 +238,7 @@ func buildController(ctx context.Context, d controllerDeps) (*controller, error)
 	}}
 	agent := linkAgent{local: runners.NewLocalAgent(reg), svc: d.Machines, remote: remoteAgent(d.Link)}
 	runnerSvc := &runners.Service{
-		Store: rstore, Machines: machineLookup{svc: d.Machines}, Resolver: scopeResolver{repos: repoStore, auth: asvc},
+		Store: rstore, Machines: machineLookup{svc: d.Machines}, Resolver: scopeResolver{repos: repoStore, auth: asvc, addr: d.Cfg.Addresses},
 		GitHub: gh, Agent: agent, Audit: runnerAudit{auth: asvc},
 		PoolName: pool, CacheQuota: d.Cfg.Cache, Now: d.Now, Services: agent.Services,
 		// A public repository gets no new runner while the setting is off (github-integration R5.55).
@@ -266,7 +267,7 @@ func buildController(ctx context.Context, d controllerDeps) (*controller, error)
 	// agent link; an agent that does not report `runner_swap` answers with a
 	// reason and is sent nothing. No command or flag reads this setting.
 	if d.Link != nil {
-		runnerSvc.Updater = &agentlink.Updater{L: d.Link, Bundles: pinBundles{svc: d.Machines}}
+		runnerSvc.Updater = &agentlink.Updater{L: d.Link, Bundles: pinBundles{svc: d.Machines, addr: d.Cfg.Addresses}}
 		// The clean-up reports of persistent runners reach the runner service (runners R5.90, R5.91).
 		d.Link.Hygiene = runnerSvc
 	}

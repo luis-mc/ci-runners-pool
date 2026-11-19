@@ -6,6 +6,7 @@ package sys
 
 import (
 	"context"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/addresses"
 	"io/fs"
 	"os"
 	"os/exec"
@@ -60,11 +61,14 @@ type Fetcher interface {
 
 // Deps is what every persistent backend is built with.
 type Deps struct {
-	Cmd    Commands
-	FS     FS
-	Fetch  Fetcher
-	Verify func(path, sha256 string) error
-	Redact func(string) string
+	Cmd Commands
+	FS  FS
+	// Addresses are the external addresses (runner download base); the zero
+	// value takes the github.com defaults.
+	Addresses addresses.Set
+	Fetch     Fetcher
+	Verify    func(path, sha256 string) error
+	Redact    func(string) string
 	// Secret teaches Redact a one-time value (token, JIT config) before it is used (runners R5.11).
 	Secret  func(string)
 	LogLine func(step, msg string)

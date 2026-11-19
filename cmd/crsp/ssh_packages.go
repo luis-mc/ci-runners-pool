@@ -16,10 +16,10 @@ import (
 // GitHub release asset of the controller's own version, with its line from
 // SHA256SUMS (CRSP123). It is the fallback when the controller's own package
 // endpoint (controllerPackages) is not reachable.
-type releasePackages struct{ version string }
+type releasePackages struct{ version, apiBase string }
 
 func (r releasePackages) WindowsPackage(ctx context.Context, arch string) (machines.PackageRef, error) {
-	rel, err := update.GitHubSource{Version: r.version}.Latest(ctx)
+	rel, err := update.GitHubSource{Base: r.apiBase, Version: r.version}.Latest(ctx)
 	if err != nil {
 		return machines.PackageRef{}, err
 	}

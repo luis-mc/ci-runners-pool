@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/addresses"
 	"io"
 	"net/http"
 	"net/url"
@@ -71,7 +72,7 @@ func (g GitHubSource) releasePath() string {
 func (g GitHubSource) Latest(ctx context.Context) (Release, error) {
 	base := g.Base
 	if base == "" {
-		base = "https://api.github.com"
+		base = addresses.DefaultGitHubAPIURL
 	}
 	repo := g.Repo
 	if repo == "" {

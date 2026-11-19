@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/addresses"
 	"io"
 	"net/http"
 	"net/url"
@@ -39,7 +40,7 @@ type Source interface {
 
 // API is a Source over the GitHub REST API.
 type API struct {
-	// Base is the API address; empty uses https://api.github.com.
+	// Base is the API address; empty uses addresses.DefaultGitHubAPIURL.
 	Base string
 	HTTP *http.Client
 	// Bearer returns the credential for a repository's calls.
@@ -53,7 +54,7 @@ const apiVersion = "2022-11-28"
 func (a *API) get(ctx context.Context, owner, repo, path string, q url.Values, out any) error {
 	base := strings.TrimRight(a.Base, "/")
 	if base == "" {
-		base = "https://api.github.com"
+		base = addresses.DefaultGitHubAPIURL
 	}
 	h := a.HTTP
 	if h == nil {

@@ -95,17 +95,17 @@ func DiffGrant(need []string, asked, accepted map[string]string) Grant {
 // GrantPages names the two GitHub pages that grant an App permission: the
 // App's permissions page (the App's owner changes the request), then the
 // installation page (the installation's owner accepts it).
-func GrantPages(app App, ins Installation) (appURL, installURL string) {
+func GrantPages(webBase string, app App, ins Installation) (appURL, installURL string) {
 	slug := url.PathEscape(app.Slug)
 	if strings.EqualFold(app.OwnerType, "Organization") && app.OwnerLogin != "" {
-		appURL = "https://github.com/organizations/" + url.PathEscape(app.OwnerLogin) + "/settings/apps/" + slug + "/permissions"
+		appURL = webBase + "/organizations/" + url.PathEscape(app.OwnerLogin) + "/settings/apps/" + slug + "/permissions"
 	} else {
-		appURL = "https://github.com/settings/apps/" + slug + "/permissions"
+		appURL = webBase + "/settings/apps/" + slug + "/permissions"
 	}
 	if strings.EqualFold(ins.AccountType, "Organization") && ins.AccountLogin != "" {
-		installURL = "https://github.com/organizations/" + url.PathEscape(ins.AccountLogin) + "/settings/installations/" + strconv.FormatInt(ins.ID, 10)
+		installURL = webBase + "/organizations/" + url.PathEscape(ins.AccountLogin) + "/settings/installations/" + strconv.FormatInt(ins.ID, 10)
 	} else {
-		installURL = "https://github.com/settings/installations/" + strconv.FormatInt(ins.ID, 10)
+		installURL = webBase + "/settings/installations/" + strconv.FormatInt(ins.ID, 10)
 	}
 	return appURL, installURL
 }

@@ -123,7 +123,7 @@ func toJob(j slots.JobRecord) gen.Job {
 		out.WaitReason, out.WaitText = waitReason(j.WaitReason), ptr(j.WaitText)
 	}
 	if j.Repository != "" {
-		out.HtmlUrl = ptr(fmt.Sprintf("https://github.com/%s/actions/runs/%d/job/%d", j.Repository, j.RunID, j.ID))
+		out.HtmlUrl = ptr(jobPage(j))
 	}
 	return out
 }
