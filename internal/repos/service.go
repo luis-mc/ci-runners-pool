@@ -29,8 +29,6 @@ type Config struct {
 	// SizeFloors is the owner's map of size name to floor; nil or empty means
 	// the size class table (DefaultSizeFloors).
 	SizeFloors func() map[string]SizeFloor
-	// Light keeps the light runners; nil means none are kept.
-	Light LightRunners
 	// Ephemeral says whether the pool can make an ephemeral runner now; nil
 	// means unknown and the repository view claims nothing (R5.60).
 	Ephemeral EphemeralCapacity
@@ -89,10 +87,6 @@ func New(cfg Config) *Service {
 // SetRegistrar sets who keeps the registrations of the pool runners. The
 // wiring calls it once the runners service exists.
 func (s *Service) SetRegistrar(r PoolRegistrar) { s.cfg.Registrar = r }
-
-// SetLight sets who keeps the light runners. The wiring calls it once the
-// runners service exists, which is after this one.
-func (s *Service) SetLight(l LightRunners) { s.cfg.Light = l }
 
 // EphemeralCapacity says whether an ephemeral pool ceiling slot exists on an
 // online machine. (*runners.Service).EphemeralCapacity implements it.
@@ -471,9 +465,6 @@ func (s *Service) UpdatePolicy(ctx context.Context, p auth.Principal, id int64, 
 		if err := s.syncVariables(ctx, p, r, np); err != nil {
 			return np, err
 		}
-		if err := s.syncLight(ctx, p, r, np); err != nil {
-			return np, err
-		}
 		_ = s.CheckRunsOn(ctx, id)
 	}
 	return np, nil
@@ -516,9 +507,6 @@ func describePolicy(a, b Policy) string {
 	}
 	if strings.Join(a.ExtraPackages, ",") != strings.Join(b.ExtraPackages, ",") {
 		d = append(d, "extra packages "+strings.Join(b.ExtraPackages, ","))
-	}
-	if a.LightRunner != b.LightRunner {
-		d = append(d, fmt.Sprintf("light runner %t to %t", a.LightRunner, b.LightRunner))
 	}
 	if a.LegacyVars != b.LegacyVars {
 		d = append(d, fmt.Sprintf("old variable names %t to %t", a.LegacyVars, b.LegacyVars))

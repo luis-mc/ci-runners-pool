@@ -13,7 +13,7 @@ func TestGitHubWorkStopsWhileTheAppIsGone(t *testing.T) {
 	gh := github.New(github.Config{})
 	gh.UseApp(7, "Iv23liFAKECLIENTID00")
 	gone := false
-	tasks := githubLoopTasks(gh, nil, func() bool { return gone })
+	tasks := githubLoopTasks(gh, nil, nil, func() bool { return gone })
 	if !tasks.Ready() {
 		t.Fatal("a live App: the loops run")
 	}

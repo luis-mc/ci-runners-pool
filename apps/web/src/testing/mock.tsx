@@ -218,7 +218,6 @@ export function repository(
       priority: 10,
       max_parallel_jobs: 2,
       allow_fork_pull_requests: false,
-      light_runner: true,
       labels: ['self-hosted'],
       runner_groups: [],
     },

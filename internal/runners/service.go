@@ -69,9 +69,8 @@ type Service struct {
 	// R5.15); nil means on.
 	AutoUpdate func(ctx context.Context) bool
 
-	// Light places the light runners of a repository (scheduling R5.65). Nil
-	// turns light runners off.
-	Light LightPlacer
+	// LogInfo writes one INFO line; nil writes nothing.
+	LogInfo func(line string)
 	// Services lists the OS services of a machine, from its agent. Nil means
 	// the service state is not known, so no runner shows `stopped` (UX-19).
 	Services func(ctx context.Context, machineID string) ([]backend.Found, error)
@@ -92,10 +91,11 @@ type Service struct {
 	hygMu        sync.Mutex      // guards clearPending
 	clearPending map[string]bool // machine|runner name -> a cache clear was asked
 
-	lightTry map[string]lightTry // repository and OS -> tries of the failed light runner
+	legacyMu    sync.Mutex     // guards legacyTries
+	legacyTries map[string]int // runner id -> failed tries to remove a light runner left by an older version
 
 	mu      sync.Mutex // one plan apply at a time
-	lightMu sync.Mutex // one light-runner change at a time
+	lightMu sync.Mutex // one light-runner removal pass at a time
 
 	stopMu  sync.Mutex
 	stops   map[string]bool // plan id -> a stop was asked while it applies

@@ -118,11 +118,6 @@ export function failedWords(n: number): string {
   return `${n} ${n === 1 ? 'runner' : 'runners'} failed. The State column says why. Remove a failed runner with Remove, then add runners again.`;
 }
 
-/** The light runners the pool made when it was turned on (scheduling R5.65): named for the light label. */
-export function isLight(r: Pick<Runner, 'name' | 'labels'>): boolean {
-  return r.labels.includes('crsp-light') || r.name.startsWith('crsp-light-');
-}
-
 const LEAVING_POLL_MS = 3000;
 
 export function RunnersList() {
@@ -371,14 +366,6 @@ export function RunnersList() {
                     : []),
                 ]}
               />
-              {data.items.some(isLight) ? (
-                <Message
-                  tone="note"
-                  action={<LinkButton to="/repositories">Open Repositories</LinkButton>}
-                >
-                  {`${data.items.filter(isLight).length} of these are light runners. The pool made them when you turned it on, one per system, so jobs that last seconds do not wait behind a long build. Turn them off for a repository on its page.`}
-                </Message>
-              ) : null}
               {data.items.some((r) => r.state === 'failed') ? (
                 <Message
                   tone="needs-you"

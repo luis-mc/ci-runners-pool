@@ -200,17 +200,6 @@ The words of the images and caches screen (web-console 4.7).
 - A field name is a noun: "Title", not "Enter the title".
 - Mark only optional fields, with "(optional)" after the name.
 
-## Light runner words
-
-The words of the repository policy form for the light runner (scheduling R5.65).
-
-| Word | Meaning |
-|---|---|
-| Light runner | A runner kept free for jobs that last seconds, so they do not wait behind a long build. |
-| Keep a light runner for short jobs | The switch on the policy form. On by default. |
-| A light runner is kept free for jobs that last seconds, so they do not wait behind a long build. A workflow uses it with runs-on: ${{ vars.RUNS_ON_LIGHT }}. | The note under the switch. |
-| No light runner is online for {os} on {repository} | The doctor finding when the runner is missing. |
-
 ## Machine policy words
 
 The words of the machine mode, the battery pause and the CPU cap (machines R5.61 to R5.64, tray R5.42, web-console R5.65). The tray and the console use the same words.
@@ -647,9 +636,6 @@ The words of the first-run fixes (web-console 4.1 and 4.3, CRSP124). The console
 | GitHub saved the App installation. The list below is read again. Tick the repositories you want and press Use pool. | Done message on Repositories after GitHub's return with setup_action install or update. Action: Use pool. |
 | GitHub sent the install request to an owner of the account. The repositories show here when they approve it. | Needs-you message after the return with setup_action request. |
 | No repository is waiting. Install the App on a repository to turn the pool on for it, or open Repositories to see the ones that already use it. | Needs-you message in Turn on the pool when no repository is free. |
-| Turning the pool on also makes one light runner per system, on a machine that is up. Jobs that last seconds use it, so they do not wait behind a long build. Turn it off for a repository on its page. | Note on the Review step of Turn on the pool. |
-| The pool made light runners for short jobs. They show in Runners. | Part of the Done message of Turn on the pool. |
-| {n} of these are light runners. The pool made them when you turned it on, one per system, so jobs that last seconds do not wait behind a long build. Turn them off for a repository on its page. | Note in Runners. Action: Open Repositories. |
 | {n} runners failed. The State column says why. Remove a failed runner with Remove, then add runners again. | Needs-you message in Runners. |
 | Clear search and filter, Clear search and filters | The action of the "hidden by the search" note in Machines and Runners. |
 | Tick {backend} | The action that ticks an installed backend that is not turned on (machine page). |

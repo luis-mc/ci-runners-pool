@@ -213,15 +213,6 @@ func buildController(ctx context.Context, d controllerDeps) (*controller, error)
 	}()
 	c.closers = append(c.closers, func() { stopHealth(); <-healthDone })
 
-	// RUNS_ON variables: put back to the policy every 10 minutes, and once now.
-	loopCtx, stopLoop := context.WithCancel(ctx)
-	loopDone := make(chan struct{})
-	go func() {
-		defer close(loopDone)
-		runsOnLoop(loopCtx, logger, realClock{}, githubLoopTasks(gh, rsvc, appHealth.Gone))
-	}()
-	c.closers = append(c.closers, func() { stopLoop(); <-loopDone })
-
 	// Live view over an empty source until the store adapter is wired (CRSP23).
 	hub, live := wire.NewLive(overview.EmptySource{}, events.Options{})
 	c.Hub = hub
@@ -282,22 +273,15 @@ func buildController(ctx context.Context, d controllerDeps) (*controller, error)
 		}
 	}
 
-	// Light runners: one per repository and OS, on a machine with a light slot
-	// (scheduling R5.65).
-	runnerSvc.Light = lightPlacer{svc: d.Machines}
-	// The job gate reads a runner's stored route, never its name (runners R5.70).
-	if q, ok := d.Queue.(interface {
-		SetLightLookup(func(machineID, runnerName string) bool)
-	}); ok {
-		q.SetLightLookup(func(machineID, name string) bool { return runnerSvc.RunsLight(ctx, machineID, name) })
-	}
+	// Light runners are gone (decision D110); the reconcile removes the ones an
+	// older version made.
+	runnerSvc.LogInfo = func(line string) { logger.Info(line) }
 	// An unclean runner takes no new job (runners R5.91).
 	if q, ok := d.Queue.(interface {
 		SetUncleanLookup(func(machineID, runnerName string) string)
 	}); ok {
 		q.SetUncleanLookup(func(machineID, name string) string { return runnerSvc.Unclean(ctx, machineID, name) })
 	}
-	rsvc.SetLight(lightKeeper{svc: runnerSvc})
 	// Long-lived runners serve every repository that uses the pool: one hidden
 	// registration for each pool repository, made and removed with the pool
 	// switch and by the reconcile loop (runners R5.88).
@@ -305,6 +289,15 @@ func buildController(ctx context.Context, d controllerDeps) (*controller, error)
 	rsvc.SetEphemeral(runnerSvc)
 	rsvc.SetRegistrar(runnerSvc)
 	rsvc.SetFleet(runnerSvc)
+
+	// RUNS_ON variables: put back to the policy every 10 minutes, and once now.
+	loopCtx, stopLoop := context.WithCancel(ctx)
+	loopDone := make(chan struct{})
+	go func() {
+		defer close(loopDone)
+		runsOnLoop(loopCtx, logger, realClock{}, githubLoopTasks(gh, rsvc, runnerSvc, appHealth.Gone))
+	}()
+	c.closers = append(c.closers, func() { stopLoop(); <-loopDone })
 
 	// Demand: poll queued jobs of the repositories with the pool on and start one
 	// ephemeral container runner per job on a machine whose allow list names
@@ -479,8 +472,22 @@ func fallbackGrace(d controllerDeps) func() time.Duration {
 	}
 }
 
+// lightRemover is what the reconcile needs to remove the light runners an older
+// version made.
+type lightRemover interface {
+	RemoveLegacyLight(ctx context.Context, actor string) (runners.LegacyLightResult, error)
+}
+
+func removeLightRunners(ctx context.Context, r lightRemover) error {
+	if r == nil {
+		return nil
+	}
+	_, err := r.RemoveLegacyLight(ctx, "controller")
+	return err
+}
+
 // githubLoopTasks wires the loops to the repository service.
-func githubLoopTasks(gh *github.REST, rsvc *repos.Service, appGone func() bool) runsOnTasks {
+func githubLoopTasks(gh *github.REST, rsvc *repos.Service, runnerSvc lightRemover, appGone func() bool) runsOnTasks {
 	return runsOnTasks{
 		Ready: func() bool { return gh.AppID() != 0 && !appGone() },
 		Reconcile: []func(context.Context) (string, error){
@@ -489,6 +496,11 @@ func githubLoopTasks(gh *github.REST, rsvc *repos.Service, appGone func() bool) 
 			},
 			func(ctx context.Context) (string, error) {
 				return "restore RUNS_ON variables", rsvc.ReconcileAllVariables(ctx)
+			},
+			// After the variables: no workflow points at a light runner while
+			// the runners are drained and removed (decision D110).
+			func(ctx context.Context) (string, error) {
+				return "remove light runners", removeLightRunners(ctx, runnerSvc)
 			},
 		},
 		Check:    rsvc.CheckAllRunsOn,

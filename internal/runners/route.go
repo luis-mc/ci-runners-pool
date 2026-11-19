@@ -1,18 +1,13 @@
 package runners
 
-import (
-	"context"
-	"fmt"
-	"strings"
-)
+import "fmt"
 
 // Queue is the queue a runner serves (runners R5.70).
 type Queue string
 
 // The queues. A runner serves exactly one.
 const (
-	QueueCI    Queue = "ci"    // the job slots
-	QueueLight Queue = "light" // the light slots (scheduling R5.65)
+	QueueCI Queue = "ci" // the job slots
 )
 
 // Route says which pool and queue a runner serves. It is stored on the record
@@ -33,47 +28,18 @@ func (r Route) Normal() Route {
 	return r
 }
 
-// Light is true for a route on the light queue.
-func (r Route) Light() bool { return r.Normal().Queue == QueueLight }
-
 // Validate refuses a queue that does not exist.
 func (r Route) Validate() error {
 	switch r.Normal().Queue {
-	case QueueCI, QueueLight:
+	case QueueCI:
 		return nil
 	}
-	return fmt.Errorf("route queue %q is not ci or light", r.Queue)
+	return fmt.Errorf("route queue %q is not ci", r.Queue)
 }
 
-// RouteForLabels is the route a new runner gets from the labels it was asked
-// for: the light label puts it on the light queue. It reads labels, never the
-// name. The name is not an input.
-func RouteForLabels(pool string, labels []string) Route {
-	r := Route{Pool: pool, Queue: QueueCI}
-	for _, l := range labels {
-		if strings.EqualFold(l, LightLabel) {
-			r.Queue = QueueLight
-		}
-	}
-	return r
-}
+// RouteForLabels is the route a new runner gets: the CI queue. It reads no
+// label and never the name.
+func RouteForLabels(pool string, _ []string) Route { return Route{Pool: pool, Queue: QueueCI} }
 
 // RouteOf is the route of a record, with an empty queue read as CI.
 func RouteOf(r Record) Route { return r.Route.Normal() }
-
-// RunsLight answers the job gate: is the runner with this name on this machine
-// on the light queue? It reads the stored route of the record found by name;
-// the name is only the key to find the record, never parsed. An unknown runner
-// is not light.
-func (s *Service) RunsLight(ctx context.Context, machineID, runnerName string) bool {
-	all, err := s.Store.ListRunners(ctx, Filter{MachineID: machineID})
-	if err != nil {
-		return false
-	}
-	for _, r := range all {
-		if r.MachineID == machineID && r.Name == runnerName {
-			return RouteOf(r).Light()
-		}
-	}
-	return false
-}

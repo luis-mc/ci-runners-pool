@@ -270,61 +270,21 @@ func TestLightSlots(t *testing.T) {
 	}
 }
 
-// R5.65: a job on a light runner takes a light slot whatever its job key is,
-// and when the light slot is busy it waits for it, never for a job slot.
-func TestLightRunnerTakesLightSlotOnly(t *testing.T) {
+// OPS49 (D110): there are no light runners. The gate never reads a runner
+// name or a runner's queue: a job on a runner called like an old light runner
+// takes a job slot, and only a job whose name is on the light list takes a
+// light slot.
+func TestGateIgnoresTheRunnerName(t *testing.T) {
 	e := newEnv(t)
-	// The registry says this runner is on the light queue (runners R5.70).
-	e.eng.SetLightLookup(func(_, name string) bool { return name == "crsp-light-r-linux" })
-	lj := func(run int64, name string) scheduler.JobRef {
-		j := job("o/r", run, name)
-		j.RunnerName = "crsp-light-r-linux"
-		return j
+	j := job("o/r", 1, "build")
+	j.RunnerName = "crsp-light-r-linux"
+	if g := goes(t, e.gate(e.req("a", j, 1, quiet))); g.Kind != scheduler.SlotCI {
+		t.Fatalf("grant %+v, want a job slot", g)
 	}
-	g := goes(t, e.gate(e.req("a", lj(1, "build"), 1, quiet)))
-	if g.Kind != scheduler.SlotLight || g.Number != 1 {
-		t.Fatalf("grant %+v", g)
-	}
-	// the light slot is busy, both job slots are free: still no job slot
-	waits(t, e.gate(e.req("b", lj(2, "build"), 1, quiet)), scheduler.WaitFreeSlot)
-	if len(e.status(m1).Tickets) != 0 {
-		t.Fatal("a light runner job took a ticket")
-	}
-	if _, err := e.eng.Release(context.Background(), m1, lj(1, "build"), nil); err != nil {
-		t.Fatal(err)
-	}
-	if g = goes(t, e.gate(e.req("b", lj(2, "build"), 1, quiet))); g.Kind != scheduler.SlotLight {
-		t.Fatalf("grant %+v", g)
-	}
-}
-
-// runners R5.70: the gate never parses a runner name. A runner named like a
-// light runner that the registry does not put on the light queue takes a job
-// slot; a runner with any name that the registry puts there takes a light slot.
-func TestGateRoutesByRegistryNotByName(t *testing.T) {
-	for _, tc := range []struct {
-		name  string
-		light func(string, string) bool
-		want  scheduler.SlotKind
-	}{
-		{"no lookup set", nil, scheduler.SlotCI},
-		{"registry says ci", func(string, string) bool { return false }, scheduler.SlotCI},
-		{"registry says light", func(string, string) bool { return true }, scheduler.SlotLight},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			e := newEnv(t)
-			if tc.light != nil {
-				e.eng.SetLightLookup(tc.light)
-			}
-			j := job("o/r", 1, "build")
-			j.RunnerName = "crsp-light-r-linux"
-			if tc.name == "registry says light" {
-				j.RunnerName = "box-7"
-			}
-			if g := goes(t, e.gate(e.req("a", j, 1, quiet))); g.Kind != tc.want {
-				t.Fatalf("grant %+v, want kind %v", g, tc.want)
-			}
-		})
+	s := job("o/r", 2, "smoke")
+	s.RunnerName = "box-7"
+	if g := goes(t, e.gate(e.req("b", s, 1, quiet))); g.Kind != scheduler.SlotLight {
+		t.Fatalf("grant %+v, want a light slot for a light job name", g)
 	}
 }
 
