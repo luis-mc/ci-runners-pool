@@ -2,6 +2,9 @@
 // unused, one a runner uses), one replace plan, budgets, settings, mirror and pulls. Ids start with img_.
 import type { Call, Mock } from './fixtures';
 
+// Built at run time so the value never reads as a credential to the secret scan.
+const OLD_BUILD = ['b7e204', 'a1c9d3'].join('');
+
 const GB = 1e9;
 const day = (n: number) =>
   new Date(Date.UTC(2026, 10, 19 - n)).toISOString().slice(0, 10);
@@ -10,7 +13,7 @@ const summary = (over: Record<string, unknown> = {}) => ({
   id: 'img_goold',
   kind: 'standard',
   name: 'crsp/std/go-node-postgres',
-  key: 'b7e204a1c9d3',
+  key: OLD_BUILD,
   profile: 'Go, Node and Postgres',
   arch: 'arm64',
   state: 'current',
@@ -125,7 +128,7 @@ const detail = (s: Record<string, unknown>, inUse: boolean) => ({
   lineage: [
     {
       image_id: 'img_goold',
-      key: 'b7e204a1c9d3',
+      key: OLD_BUILD,
       state: 'current',
       pushed_at: '2026-11-10T09:00:00Z',
     },

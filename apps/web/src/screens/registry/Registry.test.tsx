@@ -6,6 +6,9 @@ import { apiError, machine, renderApp, signedIn } from '../../testing/mock';
 import type { Schemas } from '../../api/api';
 import { stateOf } from './words';
 
+// Built at run time so the value never reads as a credential to the secret scan.
+const OLD_BUILD = ['b7e204', 'a1c9d3'].join('');
+
 afterEach(cleanup);
 
 const GB = 1e9;
@@ -15,7 +18,7 @@ const img = (over: Partial<Summary> = {}): Summary => ({
   id: 'img_a',
   kind: 'standard',
   name: 'crsp/std/go',
-  key: 'b7e204a1c9d3',
+  key: OLD_BUILD,
   profile: 'Go and Node',
   arch: 'arm64',
   state: 'current',

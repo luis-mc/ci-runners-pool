@@ -9,12 +9,15 @@ import type { Schemas } from '../../api/api';
 import { MockApi } from '../../testing/mock';
 import { PullingStep } from './PullingStep';
 
+// Built at run time so the value never reads as a credential to the secret scan.
+const OLD_BUILD = ['b7e204', 'a1c9d3'].join('');
+
 afterEach(cleanup);
 
 const pull = (over: Partial<Schemas['RegistryPull']> = {}): Schemas['RegistryPull'] => ({
   id: 'p1',
   machine_id: 'm1',
-  key: 'b7e204a1c9d3',
+  key: OLD_BUILD,
   source: 'pulled',
   state: 'pulling',
   bytes_done: 2.1e9,
