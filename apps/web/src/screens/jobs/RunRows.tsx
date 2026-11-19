@@ -59,7 +59,7 @@ export function runStatus(r: Pick<RunRow, 'state' | 'result'>) {
   return jobStatus(r);
 }
 
-export function runColumns(kind: RunKind, now: number): Column<RunRow>[] {
+export function runColumns(kind: RunKind, _now: number): Column<RunRow>[] {
   const repo: Column<RunRow> = {
     id: 'repo',
     header: 'Repository',
