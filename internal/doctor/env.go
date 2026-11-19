@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/github"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/leftovers"
 )
 
 // Env is what a check may read (spec 7.1). Every source is read-only; a
@@ -119,6 +120,14 @@ type CacheUsage struct {
 // (caches R5.42). A Fleet that does not have it makes the cache checks skip.
 type CacheFleet interface {
 	Caches(ctx context.Context) ([]CacheUsage, error)
+}
+
+// LeftoverFleet is the optional part of Fleet that scans a machine for runner
+// leftovers no controller owns (R5.48). The scan reads only. ErrUnreachable
+// when the agent does not answer; any other error is shown as the reason the
+// check skipped. A Fleet that does not have it makes machine.runner_leftovers skip.
+type LeftoverFleet interface {
+	Leftovers(ctx context.Context, machineID string) (leftovers.Scan, error)
 }
 
 // Machine is a machine as the checks need it.

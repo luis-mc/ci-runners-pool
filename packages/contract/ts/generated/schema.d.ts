@@ -959,6 +959,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/machines/{machineId}/runner-leftovers/remove": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Remove runner leftovers no controller owns
+         * @description doctor R5.48 (OPS33). Removes the named items from the machine through its agent: the service by its exact name, the folder, the local account and the download. Only items the latest doctor scan of this machine listed and that this controller still does not own are removed; anything owned, or outside the crsp runners folders, is refused. The agent needs administrator rights. Each item has its own result; a partial failure answers 200 with the failed items in `results`.
+         */
+        post: operations["removeRunnerLeftovers"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/machines/{machineId}/resume": {
         parameters: {
             query?: never;
@@ -4572,6 +4592,36 @@ export interface components {
             };
             findings: components["schemas"]["DoctorFinding"][];
         };
+        /** @enum {string} */
+        RunnerLeftoverKind: "service" | "folder" | "account" | "download";
+        /** @description One runner service, folder, local account or download that no runner of this controller owns (doctor R5.48). */
+        RunnerLeftover: {
+            kind: components["schemas"]["RunnerLeftoverKind"];
+            /** @description The service name, the account name, or the full path of a folder or file. */
+            name: string;
+            path?: string;
+            /** Format: int64 */
+            size_bytes?: number;
+            account?: string;
+            /** @description Why it is not owned, in words for people. */
+            why: string;
+        };
+        RemoveRunnerLeftoversRequest: {
+            items: {
+                kind: components["schemas"]["RunnerLeftoverKind"];
+                name: string;
+            }[];
+        };
+        RemoveRunnerLeftoversResult: {
+            results: {
+                kind: components["schemas"]["RunnerLeftoverKind"];
+                name: string;
+                /** @enum {string} */
+                outcome: "removed" | "already_gone" | "refused" | "failed";
+                error?: string;
+                steps: string[];
+            }[];
+        };
         /**
          * @example {
          *       "check": "workflow.labels",
@@ -4609,6 +4659,14 @@ export interface components {
                 link?: string;
             };
             needs_admin: boolean;
+            /** @description The things the finding lists, for example the runner leftovers of a machine (doctor R5.48). */
+            items?: components["schemas"]["RunnerLeftover"][];
+            /** @description The one button the finding offers. `remove_runner_leftovers` removes `items` through POST /api/v1/machines/{machineId}/runner-leftovers/remove (the subject is the machine). */
+            action?: {
+                /** @enum {string} */
+                id: "remove_runner_leftovers";
+                label: string;
+            };
             milestone: number;
             /** Format: date-time */
             checked_at: string;
@@ -6481,6 +6539,33 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HostCommandResult"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    removeRunnerLeftovers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                machineId: components["parameters"]["MachineId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RemoveRunnerLeftoversRequest"];
+            };
+        };
+        responses: {
+            /** @description One result per requested item. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RemoveRunnerLeftoversResult"];
                 };
             };
             default: components["responses"]["Error"];

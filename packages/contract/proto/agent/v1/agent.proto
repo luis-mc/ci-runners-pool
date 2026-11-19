@@ -107,6 +107,8 @@ message SessionRequest {
     AcceptingReport accepting_report = 23;
     // How the clean-up of each persistent runner went (OPS28, runners R5.91).
     RunnerClean runner_clean = 24;
+    // The answer to ScanRunnerLeftovers and RemoveRunnerLeftovers (OPS33).
+    RunnerLeftoversReport runner_leftovers_report = 25;
   }
 }
 
@@ -138,6 +140,10 @@ message SessionResponse {
     RunHostCommand run_host_command = 24;
     // The hygiene settings of one persistent runner and a Clear now (OPS28, runners R5.90).
     RunnerHygiene runner_hygiene = 25;
+    // OPS33: look for runner leftovers no controller owns, and remove chosen ones.
+    // The controller sends them only when the machine's report says `runner_leftovers`.
+    ScanRunnerLeftovers scan_runner_leftovers = 26;
+    RemoveRunnerLeftovers remove_runner_leftovers = 27;
   }
 }
 
@@ -839,6 +845,87 @@ message MachineReport {
   // logon right (runners R5.89). Empty on a machine without persistent runner
   // services, and from an older agent.
   repeated RunnerServiceReport runner_services = 13;
+  // True when this agent understands ScanRunnerLeftovers and RemoveRunnerLeftovers (OPS33).
+  bool runner_leftovers = 14;
+}
+
+// ---------------------------------------------------------------- runner leftovers (OPS33)
+
+// OwnedRunner is a runner this controller owns on the machine. The agent never
+// reports or removes anything that belongs to one: not its service, folder or
+// account. The folder is the runner's name under the agent's runners folder.
+message OwnedRunner {
+  string name = 1;
+  // The OS service name of the runner; empty when it has none yet.
+  string service_name = 2;
+}
+
+// ScanRunnerLeftovers asks the agent to look for runner services, folders, local
+// accounts and download files made by a controller that is not this one. The
+// scan reads only and never touches anything. The agent answers with one
+// RunnerLeftoversReport with items.
+message ScanRunnerLeftovers {
+  string command_id = 1;
+  repeated OwnedRunner owned = 2;
+}
+
+// LeftoverRef names one item to remove. kind and name are those of the item in the scan.
+message LeftoverRef {
+  // service, folder, account or download.
+  string kind = 1;
+  // The service name, the account name, or the full path of the folder or file.
+  string name = 2;
+}
+
+// RemoveRunnerLeftovers removes the named items, each only when a fresh scan of
+// the agent still finds it, it is still not owned (by owned) and it lies inside
+// the crsp runners folder or is a crsp runner service or account. The agent
+// answers with one RunnerLeftoversReport with results, one per ref, in order.
+message RemoveRunnerLeftovers {
+  string command_id = 1;
+  repeated OwnedRunner owned = 2;
+  repeated LeftoverRef items = 3;
+}
+
+// Leftover is one item of the scan.
+message Leftover {
+  // service, folder, account or download.
+  string kind = 1;
+  string name = 2;
+  // The folder or file path; for a service, the folder of its binary.
+  string path = 3;
+  // Bytes on disk of a folder or download; 0 for a service or an account.
+  int64 size_bytes = 4;
+  // The account a service runs as; for an account, its own name.
+  string account = 5;
+  // Why it is not owned, in words for people.
+  string why = 6;
+}
+
+// LeftoverResult is what happened to one requested item.
+message LeftoverResult {
+  string kind = 1;
+  string name = 2;
+  // removed, already_gone, refused or failed.
+  string outcome = 3;
+  // Why it was refused or failed, redacted; empty when removed.
+  string error = 4;
+  // What the agent did, one line per step, in order.
+  repeated string steps = 5;
+}
+
+// RunnerLeftoversReport answers ScanRunnerLeftovers (items) and
+// RemoveRunnerLeftovers (results).
+message RunnerLeftoversReport {
+  string command_id = 1;
+  // False when the scan or the removal could not run at all; error says why.
+  bool ok = 2;
+  string error = 3;
+  // True when the agent has the rights to remove services and accounts.
+  bool admin = 4;
+  repeated Leftover items = 5;
+  repeated LeftoverResult results = 6;
+  int64 scanned_at_unix_ms = 7;
 }
 
 // RunnerServiceReport is one runner service as the agent left it after it

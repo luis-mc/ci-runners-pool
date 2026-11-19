@@ -400,6 +400,21 @@ func (e DockerCompactMode) Valid() bool {
 	}
 }
 
+// Defines values for DoctorFindingActionId.
+const (
+	RemoveRunnerLeftovers DoctorFindingActionId = "remove_runner_leftovers"
+)
+
+// Valid indicates whether the value is a known member of the DoctorFindingActionId enum.
+func (e DoctorFindingActionId) Valid() bool {
+	switch e {
+	case RemoveRunnerLeftovers:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for DoctorRunState.
 const (
 	DoctorRunStateDone    DoctorRunState = "done"
@@ -1507,6 +1522,30 @@ func (e RegistryLoginInputKind) Valid() bool {
 	}
 }
 
+// Defines values for RemoveRunnerLeftoversResultResultsOutcome.
+const (
+	RemoveRunnerLeftoversResultResultsOutcomeAlreadyGone RemoveRunnerLeftoversResultResultsOutcome = "already_gone"
+	RemoveRunnerLeftoversResultResultsOutcomeFailed      RemoveRunnerLeftoversResultResultsOutcome = "failed"
+	RemoveRunnerLeftoversResultResultsOutcomeRefused     RemoveRunnerLeftoversResultResultsOutcome = "refused"
+	RemoveRunnerLeftoversResultResultsOutcomeRemoved     RemoveRunnerLeftoversResultResultsOutcome = "removed"
+)
+
+// Valid indicates whether the value is a known member of the RemoveRunnerLeftoversResultResultsOutcome enum.
+func (e RemoveRunnerLeftoversResultResultsOutcome) Valid() bool {
+	switch e {
+	case RemoveRunnerLeftoversResultResultsOutcomeAlreadyGone:
+		return true
+	case RemoveRunnerLeftoversResultResultsOutcomeFailed:
+		return true
+	case RemoveRunnerLeftoversResultResultsOutcomeRefused:
+		return true
+	case RemoveRunnerLeftoversResultResultsOutcomeRemoved:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for RepositoryPoolOffReason.
 const (
 	LeftInstallation RepositoryPoolOffReason = "left_installation"
@@ -1804,6 +1843,30 @@ func (e RunnerKind) Valid() bool {
 	case RunnerKindEphemeral:
 		return true
 	case RunnerKindPersistent:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RunnerLeftoverKind.
+const (
+	Account  RunnerLeftoverKind = "account"
+	Download RunnerLeftoverKind = "download"
+	Folder   RunnerLeftoverKind = "folder"
+	Service  RunnerLeftoverKind = "service"
+)
+
+// Valid indicates whether the value is a known member of the RunnerLeftoverKind enum.
+func (e RunnerLeftoverKind) Valid() bool {
+	switch e {
+	case Account:
+		return true
+	case Download:
+		return true
+	case Folder:
+		return true
+	case Service:
 		return true
 	default:
 		return false
@@ -2962,6 +3025,11 @@ type DockerCompactStatus struct {
 
 // DoctorFinding defines model for DoctorFinding.
 type DoctorFinding struct {
+	// Action The one button the finding offers. `remove_runner_leftovers` removes `items` through POST /api/v1/machines/{machineId}/runner-leftovers/remove (the subject is the machine).
+	Action *struct {
+		Id    DoctorFindingActionId `json:"id"`
+		Label string                `json:"label"`
+	} `json:"action,omitempty"`
 	Check     string    `json:"check"`
 	CheckedAt time.Time `json:"checked_at"`
 	Detail    *string   `json:"detail,omitempty"`
@@ -2970,9 +3038,12 @@ type DoctorFinding struct {
 		Link    *string `json:"link,omitempty"`
 		Text    string  `json:"text"`
 	} `json:"fix"`
-	Milestone  int      `json:"milestone"`
-	NeedsAdmin bool     `json:"needs_admin"`
-	Severity   Severity `json:"severity"`
+
+	// Items The things the finding lists, for example the runner leftovers of a machine (doctor R5.48).
+	Items      *[]RunnerLeftover `json:"items,omitempty"`
+	Milestone  int               `json:"milestone"`
+	NeedsAdmin bool              `json:"needs_admin"`
+	Severity   Severity          `json:"severity"`
 	Subject    struct {
 		Id   string `json:"id"`
 		Kind string `json:"kind"`
@@ -2980,6 +3051,9 @@ type DoctorFinding struct {
 	} `json:"subject"`
 	Title string `json:"title"`
 }
+
+// DoctorFindingActionId defines model for DoctorFinding.Action.Id.
+type DoctorFindingActionId string
 
 // DoctorFindingList defines model for DoctorFindingList.
 type DoctorFindingList struct {
@@ -4438,6 +4512,28 @@ type RegistrySettings struct {
 	Logins      []RegistryLogin `json:"logins"`
 }
 
+// RemoveRunnerLeftoversRequest defines model for RemoveRunnerLeftoversRequest.
+type RemoveRunnerLeftoversRequest struct {
+	Items []struct {
+		Kind RunnerLeftoverKind `json:"kind"`
+		Name string             `json:"name"`
+	} `json:"items"`
+}
+
+// RemoveRunnerLeftoversResult defines model for RemoveRunnerLeftoversResult.
+type RemoveRunnerLeftoversResult struct {
+	Results []struct {
+		Error   *string                                   `json:"error,omitempty"`
+		Kind    RunnerLeftoverKind                        `json:"kind"`
+		Name    string                                    `json:"name"`
+		Outcome RemoveRunnerLeftoversResultResultsOutcome `json:"outcome"`
+		Steps   []string                                  `json:"steps"`
+	} `json:"results"`
+}
+
+// RemoveRunnerLeftoversResultResultsOutcome defines model for RemoveRunnerLeftoversResult.Results.Outcome.
+type RemoveRunnerLeftoversResultResultsOutcome string
+
 // Repository defines model for Repository.
 type Repository struct {
 	DefaultBranch *string `json:"default_branch,omitempty"`
@@ -4797,6 +4893,23 @@ type RunnerEnv struct {
 
 // RunnerKind defines model for RunnerKind.
 type RunnerKind string
+
+// RunnerLeftover One runner service, folder, local account or download that no runner of this controller owns (doctor R5.48).
+type RunnerLeftover struct {
+	Account *string            `json:"account,omitempty"`
+	Kind    RunnerLeftoverKind `json:"kind"`
+
+	// Name The service name, the account name, or the full path of a folder or file.
+	Name      string  `json:"name"`
+	Path      *string `json:"path,omitempty"`
+	SizeBytes *int64  `json:"size_bytes,omitempty"`
+
+	// Why Why it is not owned, in words for people.
+	Why string `json:"why"`
+}
+
+// RunnerLeftoverKind defines model for RunnerLeftoverKind.
+type RunnerLeftoverKind string
 
 // RunnerList defines model for RunnerList.
 type RunnerList struct {
@@ -5800,6 +5913,9 @@ type DrainMachineJSONRequestBody = DrainRequest
 // CheckMachinePoolSizeJSONRequestBody defines body for CheckMachinePoolSize for application/json ContentType.
 type CheckMachinePoolSizeJSONRequestBody = PoolSizeCheckRequest
 
+// RemoveRunnerLeftoversJSONRequestBody defines body for RemoveRunnerLeftovers for application/json ContentType.
+type RemoveRunnerLeftoversJSONRequestBody = RemoveRunnerLeftoversRequest
+
 // FreeStaleSlotsJSONRequestBody defines body for FreeStaleSlots for application/json ContentType.
 type FreeStaleSlotsJSONRequestBody = FreeSlotsRequest
 
@@ -6599,6 +6715,24 @@ type ClientInterface interface {
 	//
 	// Corresponds with POST /api/v1/machines/{machineId}/resume (the `ResumeMachine` operationId).
 	ResumeMachine(ctx context.Context, machineId MachineId, params *ResumeMachineParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// RemoveRunnerLeftoversWithBody Remove runner leftovers no controller owns
+	//
+	// doctor R5.48 (OPS33). Removes the named items from the machine through its agent: the service by its exact name, the folder, the local account and the download. Only items the latest doctor scan of this machine listed and that this controller still does not own are removed; anything owned, or outside the crsp runners folders, is refused. The agent needs administrator rights. Each item has its own result; a partial failure answers 200 with the failed items in `results`.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with POST /api/v1/machines/{machineId}/runner-leftovers/remove (the `RemoveRunnerLeftovers` operationId).
+	RemoveRunnerLeftoversWithBody(ctx context.Context, machineId MachineId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// RemoveRunnerLeftovers Remove runner leftovers no controller owns
+	//
+	// doctor R5.48 (OPS33). Removes the named items from the machine through its agent: the service by its exact name, the folder, the local account and the download. Only items the latest doctor scan of this machine listed and that this controller still does not own are removed; anything owned, or outside the crsp runners folders, is refused. The agent needs administrator rights. Each item has its own result; a partial failure answers 200 with the failed items in `results`.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with POST /api/v1/machines/{machineId}/runner-leftovers/remove (the `RemoveRunnerLeftovers` operationId).
+	RemoveRunnerLeftovers(ctx context.Context, machineId MachineId, body RemoveRunnerLeftoversJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListSlots Slot holders and the waiting queue of a machine
 	//
@@ -8879,6 +9013,44 @@ func (c *Client) RedetectMachine(ctx context.Context, machineId MachineId, reqEd
 // Corresponds with POST /api/v1/machines/{machineId}/resume (the `ResumeMachine` operationId).
 func (c *Client) ResumeMachine(ctx context.Context, machineId MachineId, params *ResumeMachineParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewResumeMachineRequest(c.Server, machineId, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// RemoveRunnerLeftoversWithBody Remove runner leftovers no controller owns
+//
+// doctor R5.48 (OPS33). Removes the named items from the machine through its agent: the service by its exact name, the folder, the local account and the download. Only items the latest doctor scan of this machine listed and that this controller still does not own are removed; anything owned, or outside the crsp runners folders, is refused. The agent needs administrator rights. Each item has its own result; a partial failure answers 200 with the failed items in `results`.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with POST /api/v1/machines/{machineId}/runner-leftovers/remove (the `RemoveRunnerLeftovers` operationId).
+func (c *Client) RemoveRunnerLeftoversWithBody(ctx context.Context, machineId MachineId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewRemoveRunnerLeftoversRequestWithBody(c.Server, machineId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// RemoveRunnerLeftovers Remove runner leftovers no controller owns
+//
+// doctor R5.48 (OPS33). Removes the named items from the machine through its agent: the service by its exact name, the folder, the local account and the download. Only items the latest doctor scan of this machine listed and that this controller still does not own are removed; anything owned, or outside the crsp runners folders, is refused. The agent needs administrator rights. Each item has its own result; a partial failure answers 200 with the failed items in `results`.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with POST /api/v1/machines/{machineId}/runner-leftovers/remove (the `RemoveRunnerLeftovers` operationId).
+func (c *Client) RemoveRunnerLeftovers(ctx context.Context, machineId MachineId, body RemoveRunnerLeftoversJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewRemoveRunnerLeftoversRequest(c.Server, machineId, body)
 	if err != nil {
 		return nil, err
 	}
@@ -14321,6 +14493,53 @@ func NewResumeMachineRequest(server string, machineId MachineId, params *ResumeM
 	return req, nil
 }
 
+// NewRemoveRunnerLeftoversRequest calls the generic RemoveRunnerLeftovers builder with application/json body
+func NewRemoveRunnerLeftoversRequest(server string, machineId MachineId, body RemoveRunnerLeftoversJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewRemoveRunnerLeftoversRequestWithBody(server, machineId, "application/json", bodyReader)
+}
+
+// NewRemoveRunnerLeftoversRequestWithBody constructs an http.Request for the RemoveRunnerLeftovers method, with any body, and a specified content type
+func NewRemoveRunnerLeftoversRequestWithBody(server string, machineId MachineId, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "machineId", machineId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/machines/%s/runner-leftovers/remove", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
 // NewListSlotsRequest constructs an http.Request for the ListSlots method
 func NewListSlotsRequest(server string, machineId MachineId) (*http.Request, error) {
 	var err error
@@ -18217,6 +18436,24 @@ type ClientWithResponsesInterface interface {
 	//
 	// Corresponds with POST /api/v1/machines/{machineId}/resume (the `ResumeMachine` operationId).
 	ResumeMachineWithResponse(ctx context.Context, machineId MachineId, params *ResumeMachineParams, reqEditors ...RequestEditorFn) (*ResumeMachineResponse, error)
+
+	// RemoveRunnerLeftoversWithBodyWithResponse Remove runner leftovers no controller owns
+	//
+	// doctor R5.48 (OPS33). Removes the named items from the machine through its agent: the service by its exact name, the folder, the local account and the download. Only items the latest doctor scan of this machine listed and that this controller still does not own are removed; anything owned, or outside the crsp runners folders, is refused. The agent needs administrator rights. Each item has its own result; a partial failure answers 200 with the failed items in `results`.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /api/v1/machines/{machineId}/runner-leftovers/remove (the `RemoveRunnerLeftovers` operationId).
+	RemoveRunnerLeftoversWithBodyWithResponse(ctx context.Context, machineId MachineId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*RemoveRunnerLeftoversResponse, error)
+
+	// RemoveRunnerLeftoversWithResponse Remove runner leftovers no controller owns
+	//
+	// doctor R5.48 (OPS33). Removes the named items from the machine through its agent: the service by its exact name, the folder, the local account and the download. Only items the latest doctor scan of this machine listed and that this controller still does not own are removed; anything owned, or outside the crsp runners folders, is refused. The agent needs administrator rights. Each item has its own result; a partial failure answers 200 with the failed items in `results`.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /api/v1/machines/{machineId}/runner-leftovers/remove (the `RemoveRunnerLeftovers` operationId).
+	RemoveRunnerLeftoversWithResponse(ctx context.Context, machineId MachineId, body RemoveRunnerLeftoversJSONRequestBody, reqEditors ...RequestEditorFn) (*RemoveRunnerLeftoversResponse, error)
 
 	// ListSlotsWithResponse Slot holders and the waiting queue of a machine
 	//
@@ -22406,6 +22643,54 @@ func (r ResumeMachineResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r ResumeMachineResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type RemoveRunnerLeftoversResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *RemoveRunnerLeftoversResult
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r RemoveRunnerLeftoversResponse) GetJSON200() *RemoveRunnerLeftoversResult {
+	return r.JSON200
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r RemoveRunnerLeftoversResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r RemoveRunnerLeftoversResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r RemoveRunnerLeftoversResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r RemoveRunnerLeftoversResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r RemoveRunnerLeftoversResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -27195,6 +27480,36 @@ func (c *ClientWithResponses) ResumeMachineWithResponse(ctx context.Context, mac
 	return ParseResumeMachineResponse(rsp)
 }
 
+// RemoveRunnerLeftoversWithBodyWithResponse Remove runner leftovers no controller owns
+//
+// doctor R5.48 (OPS33). Removes the named items from the machine through its agent: the service by its exact name, the folder, the local account and the download. Only items the latest doctor scan of this machine listed and that this controller still does not own are removed; anything owned, or outside the crsp runners folders, is refused. The agent needs administrator rights. Each item has its own result; a partial failure answers 200 with the failed items in `results`.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /api/v1/machines/{machineId}/runner-leftovers/remove (the `RemoveRunnerLeftovers` operationId).
+func (c *ClientWithResponses) RemoveRunnerLeftoversWithBodyWithResponse(ctx context.Context, machineId MachineId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*RemoveRunnerLeftoversResponse, error) {
+	rsp, err := c.RemoveRunnerLeftoversWithBody(ctx, machineId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseRemoveRunnerLeftoversResponse(rsp)
+}
+
+// RemoveRunnerLeftoversWithResponse Remove runner leftovers no controller owns
+//
+// doctor R5.48 (OPS33). Removes the named items from the machine through its agent: the service by its exact name, the folder, the local account and the download. Only items the latest doctor scan of this machine listed and that this controller still does not own are removed; anything owned, or outside the crsp runners folders, is refused. The agent needs administrator rights. Each item has its own result; a partial failure answers 200 with the failed items in `results`.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /api/v1/machines/{machineId}/runner-leftovers/remove (the `RemoveRunnerLeftovers` operationId).
+func (c *ClientWithResponses) RemoveRunnerLeftoversWithResponse(ctx context.Context, machineId MachineId, body RemoveRunnerLeftoversJSONRequestBody, reqEditors ...RequestEditorFn) (*RemoveRunnerLeftoversResponse, error) {
+	rsp, err := c.RemoveRunnerLeftovers(ctx, machineId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseRemoveRunnerLeftoversResponse(rsp)
+}
+
 // ListSlotsWithResponse Slot holders and the waiting queue of a machine
 //
 // scheduling R5.58 (status).
@@ -31014,6 +31329,39 @@ func ParseResumeMachineResponse(rsp *http.Response) (*ResumeMachineResponse, err
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest Machine
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseRemoveRunnerLeftoversResponse parses an HTTP response from a RemoveRunnerLeftoversWithResponse call
+func ParseRemoveRunnerLeftoversResponse(rsp *http.Response) (*RemoveRunnerLeftoversResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &RemoveRunnerLeftoversResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest RemoveRunnerLeftoversResult
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}

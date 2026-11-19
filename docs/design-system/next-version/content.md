@@ -1089,3 +1089,20 @@ One word set for the button at the end of a table row. The guard reads this tabl
 | Open job | Row action of a job row (Jobs view of Queue, Running, Done): opens the Job page. |
 | Open run page | Button inside an opened run, to the Run page. |
 | Why, Details | Button inside a cell that has a long text, to read it whole. Not a row action. |
+
+## Runner leftover words
+
+The words of the Doctor finding that lists runner services, folders, accounts and downloads no controller owns, and removes them (doctor R5.48, web-console 4.8, OPS33). Here Remove takes the leftover off the machine for good, and the card says so.
+
+| Word | Where and meaning |
+|---|---|
+| Remove | The one button of the finding, and the action of its question card. Admin only (busy word: Removing). |
+| Remove these leftovers from {machine}? | The title of the question card. |
+| Each item below is removed from this machine. This cannot be undone. | The line above the items of the card: what happens. |
+| Service, Folder, Account, Download | The kind word that starts each leftover. |
+| {kind} {name} ({size}) | One leftover in the card: its kind, its name and its size when it has one. |
+| {kind} {name} ({size}), account {account}. {why} | One leftover in the finding. |
+| Removed, Already gone, Refused, Failed | The result word of each item after the call. A reason follows Refused and Failed. |
+| {kind} {name}: {result}. {reason} | One line of the result list in the finding. |
+| Runner leftovers on {machine}: {kind} {name} removed, ... | Done message when every item went and the finding is gone. |
+| The agent has no administrator rights. Run it as a service with rights. | The reason beside a disabled Remove when the finding says the agent needs rights. |

@@ -131,6 +131,8 @@ type Service struct {
 	// stuckSent holds the changes whose stuck alert went out, so the tick and a
 	// status report that read the same change cannot both raise it.
 	stuckSent map[string]bool
+	// lo holds the runner leftovers sources and the latest scan per machine.
+	lo leftoverState
 }
 
 // New returns a Service.

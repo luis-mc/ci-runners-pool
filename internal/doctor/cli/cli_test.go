@@ -147,6 +147,32 @@ func TestFlagsAndTextOutput(t *testing.T) {
 	}
 }
 
+// R5.48: the items of a finding are listed under it in the text and carried in the JSON document.
+func TestItemsAreListedAndCarried(t *testing.T) {
+	f := finding("machine.runner_leftovers", gen.SeverityFail, "alpha", "1 runner leftover no controller owns on alpha")
+	f.Detail = sp("Service actions.runner.old: no owner")
+	items := []gen.RunnerLeftover{
+		{Kind: gen.Service, Name: "actions.runner.old", Why: "no owner"},
+		{Kind: gen.Folder, Name: `C:\crsp\runners\old`, Why: "no runner uses it"},
+	}
+	f.Items = &items
+	f.Action = &struct {
+		Id    gen.DoctorFindingActionId `json:"id"`
+		Label string                    `json:"label"`
+	}{Id: gen.RemoveRunnerLeftovers, Label: "Remove"}
+	run := runWith(gen.SeverityFail, f)
+	var buf bytes.Buffer
+	Text(&buf, run, "warn")
+	out := buf.String()
+	if !strings.Contains(out, `- folder C:\crsp\runners\old: no runner uses it`) || strings.Contains(out, "- service actions.runner.old") {
+		t.Fatalf("text:\n%s", out)
+	}
+	b, err := json.Marshal(JSON(run))
+	if err != nil || !strings.Contains(string(b), `"items":[`) || !strings.Contains(string(b), `"action":{"id":"remove_runner_leftovers","label":"Remove"}`) {
+		t.Fatalf("json %s %v", b, err)
+	}
+}
+
 func TestNothingToShow(t *testing.T) {
 	_, out, _ := do(&fake{run: runWith(gen.SeverityOk, finding("machine.online", gen.SeverityOk, "a", "fine"))})
 	if !strings.Contains(out, "Nothing at warn or worse.") || !strings.Contains(out, "1 ok") {
