@@ -243,6 +243,24 @@ const MEASURES = {
   hintKeys: `${VISIBLE}
     const keys = Array.from(document.querySelectorAll('.ds-keyhints kbd')).map((k) => (k.textContent || '').toLowerCase().replace(/[\\s\\/,]+/g, ''));
     return keys.filter((k, i) => keys.indexOf(k) !== i).map((k) => 'key hint ' + k + ' is listed twice');`,
+  /** OPS48 (UX-10, UX-51): the title of a pane never covers the title of the pane it sits in (a Card in a Section). */
+  titleOverlap: `${VISIBLE}
+    const bad = [];
+    for (const t of document.querySelectorAll('.ds-pane__title')) {
+      if (!visible(t)) continue;
+      const a = t.getBoundingClientRect();
+      let outer = t.closest('.ds-pane')?.parentElement?.closest('.ds-pane');
+      while (outer) {
+        const o = outer.querySelector(':scope > .ds-pane__title');
+        if (o && visible(o)) {
+          const b = o.getBoundingClientRect();
+          if (a.left < b.right - 0.5 && a.right > b.left + 0.5 && a.top < b.bottom - 0.5 && a.bottom > b.top + 0.5)
+            bad.push('title "' + (t.textContent || '').trim().slice(0, 30) + '" covers the title "' + (o.textContent || '').trim().slice(0, 30) + '" of its section');
+        }
+        outer = outer.parentElement?.closest('.ds-pane');
+      }
+    }
+    return bad;`,
   /** Look Option B: every page section, list and table of the main area sits inside a Pane. */
   pane: `${VISIBLE}
     const main = document.querySelector('main');
