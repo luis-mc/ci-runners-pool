@@ -34,6 +34,9 @@
     "internal/agent/**": [
       "docs/features/machines/spec.md"
     ],
+    "internal/agent/registry.go": [
+      "docs/features/registry/spec.md"
+    ],
     "internal/agentlink/registry.go": [
       "docs/features/registry/spec.md"
     ],
@@ -54,6 +57,9 @@
     ],
     "internal/backend/**": [
       "docs/features/runners/spec.md"
+    ],
+    "internal/backend/container/ensure.go": [
+      "docs/features/registry/spec.md"
     ],
     "internal/backup/**": [
       "docs/features/operations/spec.md"

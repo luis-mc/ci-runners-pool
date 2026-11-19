@@ -7,7 +7,7 @@ status: building
 version: 0.1.0
 owner: owner
 type: reference
-code: ["internal/registry/**", "internal/agentlink/registry.go", "internal/api/handlers_registry*.go", "internal/api/stubs_registry_*.go", "internal/store/queries/registry_*.sql", "internal/store/queries/image_builds.sql", "internal/store/migrations/00019_registry.sql", "apps/web/src/screens/registry/**"]
+code: ["internal/registry/**", "internal/agentlink/registry.go", "internal/agent/registry.go", "internal/backend/container/ensure.go", "internal/api/handlers_registry*.go", "internal/api/stubs_registry_*.go", "internal/store/queries/registry_*.sql", "internal/store/queries/image_builds.sql", "internal/store/migrations/00019_registry.sql", "apps/web/src/screens/registry/**"]
 design_system: [UX-4, UX-5, UX-13, UX-16, UX-19, UX-25, UX-28, UX-29, UX-30, UX-34, UX-38, UX-41, UX-49, UX-54, UX-58, UX-62, UX-71, UX-72, UX-73]
 last_verified: 2026-11-19
 artifact:
@@ -17,7 +17,7 @@ generator: luismc-docs 2.6.1
 
 The top half (sections 1 to 4) is for every reader. The bottom half (5 to 12) is for engineers.
 
-**CONTRACT ONLY (REG10).** The shared contract is built: the image key (`internal/registry/key.go`, R5.21, R5.22), the Go types and interfaces, the store tables and queries (migration 00019), the agent link messages (protocol version 3) and the API under `/api/v1/registry/*`, which answers 501 "not built yet". Every other requirement below is **NOT YET IMPLEMENTED**; the owning task of each group is named in its heading.
+**CONTRACT ONLY (REG10).** The shared contract is built: the image key (`internal/registry/key.go`, R5.21, R5.22), the Go types and interfaces, the store tables and queries (migration 00019), the agent link messages (protocol version 3) and the API under `/api/v1/registry/*`, which answers 501 "not built yet". The agent side is built too (REG2, R5.13 to R5.20). Every other requirement below is **NOT YET IMPLEMENTED**; the owning task of each group is named in its heading.
 
 ## 1. In one paragraph
 
@@ -336,7 +336,7 @@ All under `/api/v1/registry/*` with `x-cli: none` for now. `GET /api/v1/registry
 
 ## 9. How it is proven
 
-Rows for R5.21 and R5.22 (key) and R5.20 (agent link stub) are built and run in CI. Every other row is planned: none of those tests exist yet (NOT YET IMPLEMENTED). Paths are written without code marks until the files exist.
+Rows for R5.13 to R5.20 (agent ensure-image) and R5.21 and R5.22 (key) are built and run in CI. Every other row is planned: none of those tests exist yet (NOT YET IMPLEMENTED). Paths are written without code marks until the files exist.
 
 | Requirement | Test |
 |---|---|
@@ -345,11 +345,11 @@ Rows for R5.21 and R5.22 (key) and R5.20 (agent link stub) are built and run in 
 | R5.4 | internal/registry/key_test.go (names; planned case) |
 | R5.5, R5.6, R5.7 | internal/registry/core/promote_test.go (digest, labels, key, tag exists, refused state) |
 | R5.8 | internal/registry/core/budget_guard_test.go |
-| R5.9 | internal/backend/container/ensure_test.go (digest mismatch refused) |
+| R5.9 | `internal/backend/container/ensure_test.go` (built: TestEnsurePullDigestMismatchBuildsLocally) |
 | R5.10, R5.11 | internal/registry/core/token_test.go (10 min, scopes, other machine's staging refused) |
 | R5.12 | internal/backend/container/cainstall_test.go |
-| R5.13 to R5.18 | internal/backend/container/ensure_test.go (order, wait when offline, busy, push in background, progress lines, fallback) |
-| R5.19, R5.20 | `internal/agentlink/registry_test.go` (built: stub answers, request ids, capability); internal/agent/registry_test.go (planned) |
+| R5.13 to R5.18 | `internal/backend/container/ensure_test.go` (built: local first, no registry, found and pulled by digest, digest mismatch, transfer failure, token refused, not found and pushed in the background, no staging name, wait for the controller, wait ends with the job, busy, unclear answer, push waits, push fails and is retried, push refused, progress text) |
+| R5.19, R5.20 | `internal/agentlink/registry_test.go` (built: stub answers, request ids, capability); `internal/agent/registry_test.go` (built: version 3 only on the ack, no session, round trip, link drop, MachineReport flag); `internal/machines/recovery_test.go` (built: TestHelloAckVersionFollowsRegistry) |
 | R5.21, R5.22, R5.23 | `internal/registry/key_test.go` (built: TestKeyVectors, TestStackHashVector, TestStackHashIgnoresOrderAndCRLFOnly, TestKeyChangesWithEveryPart, TestKeyRefusesBadInput) |
 | R5.21, R5.23, R5.7 labels | `internal/registry/keys/keys_test.go` (built: TestSameStackFilesSameKey, TestLockFileChangeGivesNewKey, TestLabels) |
 | R5.24, R5.27 | `internal/registry/keys/update_test.go` (built: TestStandardPointerMovesAloneCustomNever, TestPointerPerRepository), `internal/store/registry_keys_test.go` (built) |
@@ -391,9 +391,15 @@ Rows for R5.21 and R5.22 (key) and R5.20 (agent link stub) are built and run in 
 
 ## 11. Not built yet
 
-Everything but the contract (key, types, interfaces, tables, queries, agent link messages and API stubs). Later, not in this wave: cosign signatures, a registry holder other than the controller, export of the registry.
+Everything but the contract (key, types, interfaces, tables, queries, agent link messages and API stubs) and the agent side (REG2). Known gaps of REG2: the agent sends the registry key of the backend (`runners.ImageKey`) until REG3 gives the profile key through `Config.RegistryRequest`; the pull and push token folder is passed with `docker --config`, which a `wsl docker` route cannot read from a Windows path; `Hooks.Registry` (HelloAck version 3) is set by the REG1 and REG4 wiring. Later, not in this wave: cosign signatures, a registry holder other than the controller, export of the registry.
 
 ## 12. Code map
+
+Built (REG2):
+
+- internal/backend/container/ensure.go (`Controller`, `ControllerSlot` `Link`, the wait, the pull by digest, the push in the background, the progress text), `images.go` (`PrepareImage` order), `internal/backend/sys` (`StreamCommands`)
+- internal/agent/registry.go (`RegistryClient`, protocol version 3 in Hello, `registry: true` in the MachineReport)
+- internal/machines/link.go (`Hooks.Registry`: HelloAck version 3)
 
 Built (REG10):
 

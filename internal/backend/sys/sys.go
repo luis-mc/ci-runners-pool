@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -43,6 +44,15 @@ type Result struct {
 // Commands runs programs.
 type Commands interface {
 	Run(ctx context.Context, c Command) (Result, error)
+}
+
+// StreamCommands is a Commands that can also hand each output line to a
+// callback while the program runs (a registry pull shows its progress this
+// way). A Commands without it still works; the caller then has no lines until
+// the end.
+type StreamCommands interface {
+	Commands
+	RunStream(ctx context.Context, c Command, onLine func(line string)) (Result, error)
 }
 
 // FS is the small file system the backends need.
@@ -80,7 +90,48 @@ type Deps struct {
 type ExecCommands struct{}
 
 // Run runs the program with its arguments, never through a shell.
-func (ExecCommands) Run(ctx context.Context, c Command) (Result, error) {
+func (e ExecCommands) Run(ctx context.Context, c Command) (Result, error) {
+	return e.RunStream(ctx, c, nil)
+}
+
+// lineWriter collects output and gives each finished line (split at \n or \r)
+// to onLine.
+type lineWriter struct {
+	mu     sync.Mutex
+	buf    strings.Builder
+	part   strings.Builder
+	onLine func(string)
+}
+
+func (w *lineWriter) Write(p []byte) (int, error) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	w.buf.Write(p)
+	if w.onLine == nil {
+		return len(p), nil
+	}
+	for _, b := range p {
+		if b == '\n' || b == '\r' {
+			if w.part.Len() > 0 {
+				w.onLine(w.part.String())
+				w.part.Reset()
+			}
+			continue
+		}
+		w.part.WriteByte(b)
+	}
+	return len(p), nil
+}
+
+func (w *lineWriter) String() string {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	return w.buf.String()
+}
+
+// RunStream is Run that also gives each output line of stdout and stderr to
+// onLine (nil: none).
+func (ExecCommands) RunStream(ctx context.Context, c Command, onLine func(string)) (Result, error) {
 	cmd := exec.CommandContext(ctx, c.Name, c.Args...) //nolint:gosec // the backends build every call from fixed programs.
 	cmd.Dir = c.Dir
 	cmd.Env = os.Environ()
@@ -93,8 +144,8 @@ func (ExecCommands) Run(ctx context.Context, c Command) (Result, error) {
 	if c.Stdin != "" {
 		cmd.Stdin = strings.NewReader(c.Stdin)
 	}
-	var out, errb strings.Builder
-	cmd.Stdout, cmd.Stderr = &out, &errb
+	out, errb := &lineWriter{onLine: onLine}, &lineWriter{onLine: onLine}
+	cmd.Stdout, cmd.Stderr = out, errb
 	err := cmd.Run()
 	res := Result{Stdout: out.String(), Stderr: errb.String()}
 	if ee, ok := err.(*exec.ExitError); ok {

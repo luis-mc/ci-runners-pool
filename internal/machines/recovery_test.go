@@ -160,3 +160,22 @@ func TestHealthyMachineCannotBeArmed(t *testing.T) {
 		t.Fatal("healthy machine is armed")
 	}
 }
+
+// R5.19: HelloAck carries protocol version 3 only when the controller answers
+// the registry calls; an agent asks only on that.
+func TestHelloAckVersionFollowsRegistry(t *testing.T) {
+	for _, reg := range []bool{false, true} {
+		e := newEnv(t)
+		e.Svc.SetHooks(machines.Hooks{ControllerVersion: "1.2.0", Registry: reg})
+		r, _ := e.joined("box")
+		fa, err := e.session(r.GetMachineId(), r.GetMachineCredential(), hello("1.2.0", agentv1.ProtocolVersion_PROTOCOL_VERSION_3))
+		if err != nil {
+			t.Fatal(err)
+		}
+		got := fa.Ack.GetProtocolVersion() >= agentv1.ProtocolVersion_PROTOCOL_VERSION_3
+		fa.Close()
+		if got != reg {
+			t.Fatalf("registry=%v: ack version %v", reg, fa.Ack.GetProtocolVersion())
+		}
+	}
+}
