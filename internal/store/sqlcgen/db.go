@@ -432,6 +432,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.listExpiredTicketsStmt, err = db.PrepareContext(ctx, listExpiredTickets); err != nil {
 		return nil, fmt.Errorf("error preparing query ListExpiredTickets: %w", err)
 	}
+	if q.listImageBuildsStmt, err = db.PrepareContext(ctx, listImageBuilds); err != nil {
+		return nil, fmt.Errorf("error preparing query ListImageBuilds: %w", err)
+	}
 	if q.listImageBuildsInFlightStmt, err = db.PrepareContext(ctx, listImageBuildsInFlight); err != nil {
 		return nil, fmt.Errorf("error preparing query ListImageBuildsInFlight: %w", err)
 	}
@@ -1549,6 +1552,11 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing listExpiredTicketsStmt: %w", cerr)
 		}
 	}
+	if q.listImageBuildsStmt != nil {
+		if cerr := q.listImageBuildsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listImageBuildsStmt: %w", cerr)
+		}
+	}
 	if q.listImageBuildsInFlightStmt != nil {
 		if cerr := q.listImageBuildsInFlightStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing listImageBuildsInFlightStmt: %w", cerr)
@@ -2444,6 +2452,7 @@ type Queries struct {
 	listDanglingRegistryLayersStmt              *sql.Stmt
 	listExpiredSlotsStmt                        *sql.Stmt
 	listExpiredTicketsStmt                      *sql.Stmt
+	listImageBuildsStmt                         *sql.Stmt
 	listImageBuildsInFlightStmt                 *sql.Stmt
 	listImageBuildsOfMachineStmt                *sql.Stmt
 	listImageProfilesStmt                       *sql.Stmt
@@ -2730,6 +2739,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		listDanglingRegistryLayersStmt:              q.listDanglingRegistryLayersStmt,
 		listExpiredSlotsStmt:                        q.listExpiredSlotsStmt,
 		listExpiredTicketsStmt:                      q.listExpiredTicketsStmt,
+		listImageBuildsStmt:                         q.listImageBuildsStmt,
 		listImageBuildsInFlightStmt:                 q.listImageBuildsInFlightStmt,
 		listImageBuildsOfMachineStmt:                q.listImageBuildsOfMachineStmt,
 		listImageProfilesStmt:                       q.listImageProfilesStmt,

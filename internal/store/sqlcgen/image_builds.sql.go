@@ -103,6 +103,55 @@ func (q *Queries) InsertImageBuild(ctx context.Context, arg InsertImageBuildPara
 	return err
 }
 
+const listImageBuilds = `-- name: ListImageBuilds :many
+SELECT id, machine_id, profile_id, arch, image_tag, reason, state, step, steps_total, step_name, typical_seconds, size_bytes, failure_step, failure_class, failure_why, log_tail, push_state, queued_at, started_at, finished_at, updated_at FROM image_builds ORDER BY queued_at DESC LIMIT ?
+`
+
+func (q *Queries) ListImageBuilds(ctx context.Context, limit int64) ([]ImageBuild, error) {
+	rows, err := q.query(ctx, q.listImageBuildsStmt, listImageBuilds, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ImageBuild
+	for rows.Next() {
+		var i ImageBuild
+		if err := rows.Scan(
+			&i.ID,
+			&i.MachineID,
+			&i.ProfileID,
+			&i.Arch,
+			&i.ImageTag,
+			&i.Reason,
+			&i.State,
+			&i.Step,
+			&i.StepsTotal,
+			&i.StepName,
+			&i.TypicalSeconds,
+			&i.SizeBytes,
+			&i.FailureStep,
+			&i.FailureClass,
+			&i.FailureWhy,
+			&i.LogTail,
+			&i.PushState,
+			&i.QueuedAt,
+			&i.StartedAt,
+			&i.FinishedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listImageBuildsInFlight = `-- name: ListImageBuildsInFlight :many
 SELECT id, machine_id, profile_id, arch, image_tag, reason, state, step, steps_total, step_name, typical_seconds, size_bytes, failure_step, failure_class, failure_why, log_tail, push_state, queued_at, started_at, finished_at, updated_at FROM image_builds WHERE state IN ('queued', 'building') OR push_state IN ('pushing', 'waiting_controller')
 ORDER BY queued_at

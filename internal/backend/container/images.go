@@ -76,6 +76,17 @@ func (b *Backend) PrepareImage(ctx context.Context, spec backend.ImageSpec) (bac
 			stage = ans
 		}
 	}
+	// One build per machine at a time (decision D20): a second asker waits, then
+	// finds the image built by the first.
+	release, err := b.buildGate.Acquire(ctx)
+	if err != nil {
+		return backend.ImageRef{}, err
+	}
+	defer release()
+	if mb, ok, err := b.imageSize(ctx, tag); err == nil && ok {
+		b.log("prepare image", "image "+key+" was built while this one waited")
+		return backend.ImageRef{ID: tag, SizeMB: mb}, nil
+	}
 	buildStart := b.now()
 	dockerfile, buildContext := b.cfg.Dockerfile, b.cfg.BuildContext
 	if dockerfile == "" || buildContext == "" {
@@ -92,14 +103,12 @@ func (b *Backend) PrepareImage(ctx context.Context, spec backend.ImageSpec) (bac
 	}
 	layers := strings.Join(runners.NormalizeLayers(spec.Layers), ",")
 	b.log("prepare image", "building image "+key+" with layers ["+layers+"]")
-	if err := b.step(ctx, "build", []string{"build", "-t", tag,
+	args := []string{"build", "-t", tag,
 		"--label", LabelImage + "=" + key, "--label", labelLayers + "=" + layers, "--label", labelOS + "=linux",
-		"--build-arg", "CRSP_LAYERS=" + layers, "--build-arg", "EXTRA_PACKAGES=" + strings.Join(runners.NormalizeLayers(spec.Extras), " "), "-f", dockerfile, buildContext}, ""); err != nil {
+		"--build-arg", "CRSP_LAYERS=" + layers, "--build-arg", "EXTRA_PACKAGES=" + strings.Join(runners.NormalizeLayers(spec.Extras), " "), "-f", dockerfile, buildContext}
+	mb, err := b.streamBuild(ctx, spec, key, args)
+	if err != nil {
 		return backend.ImageRef{}, err
-	}
-	mb, ok, err := b.imageSize(ctx, tag)
-	if err != nil || !ok {
-		return backend.ImageRef{}, fmt.Errorf("the image %s was built but cannot be read: %v", key, err)
 	}
 	if ctl != nil {
 		b.pullReport(ctl, nextID("pull"), req, "", agentv1.PullReport_SOURCE_BUILT, agentv1.PullReport_STATE_DONE, 0, 0, b.now().Sub(buildStart).Seconds(), "")

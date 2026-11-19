@@ -32,3 +32,6 @@ SELECT coalesce(avg(julianday(finished_at) - julianday(started_at)) * 86400.0, 0
 FROM (SELECT started_at, finished_at FROM image_builds
       WHERE profile_id = ? AND arch = ? AND state = 'done' AND started_at <> '' AND finished_at <> ''
       ORDER BY finished_at DESC LIMIT 5);
+
+-- name: ListImageBuilds :many
+SELECT * FROM image_builds ORDER BY queued_at DESC LIMIT ?;

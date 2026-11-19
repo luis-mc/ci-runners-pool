@@ -46,10 +46,10 @@ type Commands interface {
 	Run(ctx context.Context, c Command) (Result, error)
 }
 
-// StreamCommands is a Commands that can also hand each output line to a
-// callback while the program runs (a registry pull shows its progress this
-// way). A Commands without it still works; the caller then has no lines until
-// the end.
+// StreamCommands is a Commands that can hand over output while the program
+// runs (IMG1, R5.68). OnLine gets each line of stdout and stderr as it
+// appears, without the line end. A runner that does not implement it is run
+// whole and its output is read after the end.
 type StreamCommands interface {
 	Commands
 	RunStream(ctx context.Context, c Command, onLine func(line string)) (Result, error)
@@ -94,11 +94,11 @@ func (e ExecCommands) Run(ctx context.Context, c Command) (Result, error) {
 	return e.RunStream(ctx, c, nil)
 }
 
-// lineWriter collects output and gives each finished line (split at \n or \r)
-// to onLine.
+// lineWriter collects the text and calls onLine for each finished line. A
+// carriage return also ends a line: a progress bar rewrites its line.
 type lineWriter struct {
 	mu     sync.Mutex
-	buf    strings.Builder
+	sb     *strings.Builder
 	part   strings.Builder
 	onLine func(string)
 }
@@ -106,31 +106,33 @@ type lineWriter struct {
 func (w *lineWriter) Write(p []byte) (int, error) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
-	w.buf.Write(p)
+	w.sb.Write(p)
 	if w.onLine == nil {
 		return len(p), nil
 	}
-	for _, b := range p {
-		if b == '\n' || b == '\r' {
+	for _, c := range string(p) {
+		if c == '\n' || c == '\r' {
 			if w.part.Len() > 0 {
 				w.onLine(w.part.String())
 				w.part.Reset()
 			}
 			continue
 		}
-		w.part.WriteByte(b)
+		w.part.WriteRune(c)
 	}
 	return len(p), nil
 }
 
-func (w *lineWriter) String() string {
+func (w *lineWriter) flush() {
 	w.mu.Lock()
 	defer w.mu.Unlock()
-	return w.buf.String()
+	if w.onLine != nil && w.part.Len() > 0 {
+		w.onLine(w.part.String())
+		w.part.Reset()
+	}
 }
 
-// RunStream is Run that also gives each output line of stdout and stderr to
-// onLine (nil: none).
+// RunStream is Run with a line callback (StreamCommands).
 func (ExecCommands) RunStream(ctx context.Context, c Command, onLine func(string)) (Result, error) {
 	cmd := exec.CommandContext(ctx, c.Name, c.Args...) //nolint:gosec // the backends build every call from fixed programs.
 	cmd.Dir = c.Dir
@@ -144,9 +146,23 @@ func (ExecCommands) RunStream(ctx context.Context, c Command, onLine func(string
 	if c.Stdin != "" {
 		cmd.Stdin = strings.NewReader(c.Stdin)
 	}
-	out, errb := &lineWriter{onLine: onLine}, &lineWriter{onLine: onLine}
-	cmd.Stdout, cmd.Stderr = out, errb
+	var out, errb strings.Builder
+	// One callback guard for both pipes: lines from the two never overlap.
+	var cb sync.Mutex
+	guarded := func(l string) {
+		if onLine == nil {
+			return
+		}
+		cb.Lock()
+		defer cb.Unlock()
+		onLine(l)
+	}
+	ow := &lineWriter{sb: &out, onLine: guarded}
+	ew := &lineWriter{sb: &errb, onLine: guarded}
+	cmd.Stdout, cmd.Stderr = ow, ew
 	err := cmd.Run()
+	ow.flush()
+	ew.flush()
 	res := Result{Stdout: out.String(), Stderr: errb.String()}
 	if ee, ok := err.(*exec.ExitError); ok {
 		res.ExitCode = ee.ExitCode()

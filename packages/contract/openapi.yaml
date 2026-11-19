@@ -7957,6 +7957,7 @@ components:
               plan.progress,
               change.progress,
               image.state,
+              image.build,
               cache.state,
               update.status,
             ]
@@ -7992,6 +7993,8 @@ components:
           $ref: '#/components/schemas/MachineChange'
         image:
           $ref: '#/components/schemas/Image'
+        image_build:
+          $ref: '#/components/schemas/ImageBuild'
         cache:
           $ref: '#/components/schemas/Cache'
         update:
