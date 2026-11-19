@@ -497,10 +497,9 @@ func (s *Service) fillPulls(ctx context.Context, d *ImageDetail) error {
 			best, bestDay = n, day
 		}
 	}
-	switch {
-	case total == 0:
+	if total == 0 {
 		d.PullsText = "Not pulled in the last 14 days."
-	default:
+	} else {
 		t, _ := time.ParseInLocation(dayLayout, bestDay, s.cfg.Loc)
 		d.PullsText = fmt.Sprintf("Pulled %s in the last 14 days; most on %s (%d).", times(total), t.Format("Mon 2 Jan"), best)
 	}

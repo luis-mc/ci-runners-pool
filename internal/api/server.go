@@ -80,6 +80,9 @@ type Options struct {
 	EnvSets *envsets.Service
 	// Registry serves the registry login and CA bundle routes. Nil answers 501.
 	Registry *regcreds.Store
+	// RegistryRead serves the pool registry read routes: overview, images, image page, pulls (handlers_registry_reg4.go,
+	// registry R5.33 to R5.36). Nil answers 501.
+	RegistryRead RegistryReadService
 	// Compare serves the speed comparison route (handlers_compare.go). Nil answers 501.
 	Compare CompareService
 	// Trial serves the trial mode routes (handlers_trial.go). Nil answers 501.

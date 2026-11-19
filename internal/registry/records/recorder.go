@@ -98,7 +98,7 @@ func (s *Service) RecordPull(ctx context.Context, r registry.PullRecord) error {
 			return err
 		}
 	}
-	if r.State == "done" && known && r.Source == registry.SourcePulled && !(existed && prev.State == "done") {
+	if r.State == "done" && known && r.Source == registry.SourcePulled && (!existed || prev.State != "done") {
 		if err := s.q.AddRegistryPullDaily(ctx, sqlcgen.AddRegistryPullDailyParams{
 			ImageID: imageID, Day: s.day(at), BuildsSaved: 1, SavedSeconds: saved}); err != nil {
 			return err
