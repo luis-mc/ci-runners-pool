@@ -1423,8 +1423,6 @@ paths:
   /api/v1/machines/{machineId}/runner-leftovers/remove:
     post:
       operationId: removeRunnerLeftovers
-      x-cli: none
-      x-cli-reason: 'The leftovers to remove are chosen item by item on the doctor finding in the console (doctor R5.48).'
       tags: [machines]
       summary: Remove runner leftovers no controller owns
       description: >-

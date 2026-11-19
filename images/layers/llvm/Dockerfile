@@ -16,6 +16,11 @@ ARG LLVM_SHA256_ARM64=b855cc17d935fdd83da82206b7a7cfc680095efd1e9e8182c4a05e7619
 
 USER root
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+# apt retries and timeouts: a slow or flaky mirror retries instead of hanging
+# for the whole job (OPS41). The base image has it; written again so the layer holds without it.
+RUN printf '%s\n' 'Acquire::Retries "5";' 'Acquire::http::Timeout "30";' 'Acquire::https::Timeout "30";' \
+      > /etc/apt/apt.conf.d/80-crsp-retries
+
 # The tools link libxml2 (libicu is in the base image).
 RUN apt-get update \
  && apt-get install -y --no-install-recommends libxml2 \

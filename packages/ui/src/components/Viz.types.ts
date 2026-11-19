@@ -36,6 +36,12 @@ export interface WaterfallProps {
   totalSec?: number | undefined;
   /** A marker for "now" on a live chart. */
   nowSec?: number | undefined;
+  /**
+   * A text alternative that lives elsewhere on the page: the id of the element that holds a table of the same
+   * items. The chart then draws no "Show as table" of its own and points to that element (aria-describedby).
+   * Without it the chart folds its own table under it (UX-41).
+   */
+  altTable?: string | undefined;
   emptyText: string;
 }
 
@@ -57,6 +63,12 @@ export interface JobGraphProps {
   /** `needs`: edge [a, b] means b needs a. */
   edges: readonly (readonly [string, string])[];
   emptyText: string;
+  /**
+   * A text alternative that lives elsewhere on the page: the id of the element that holds a table of the same
+   * items. The chart then draws no "Show as table" of its own and points to that element (aria-describedby).
+   * Without it the chart folds its own table under it (UX-41).
+   */
+  altTable?: string | undefined;
 }
 
 export interface Point {

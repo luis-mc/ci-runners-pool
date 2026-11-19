@@ -2,6 +2,7 @@ package tray
 
 import (
 	"reflect"
+	"strings"
 	"sync/atomic"
 	"testing"
 )
@@ -73,14 +74,17 @@ func TestOnlyChangedItemsAreTouched(t *testing.T) {
 	var open atomic.Bool
 	a, f, first := newApplier(&open)
 	a.Update(first)
-	if len(f.calls) != 0 {
-		t.Fatalf("same status must change nothing, got %v", f.calls)
+	for _, c := range f.calls { // visibility is re-asserted (TRAY8); nothing else is touched
+		if !strings.HasPrefix(c, "show ") && !strings.HasPrefix(c, "hide ") {
+			t.Fatalf("same status must change nothing but visibility, got %v", f.calls)
+		}
 	}
+	f.calls = nil
 	next := first
 	next.Running = 4
 	a.Update(next)
 	for _, c := range f.calls {
-		if c == "show "+IDUpdate || c == "hide "+IDUpdate || c == "icon "+string(first.State) {
+		if strings.HasPrefix(c, "icon ") {
 			t.Fatalf("untouched item was written: %v", f.calls)
 		}
 	}
@@ -88,10 +92,12 @@ func TestOnlyChangedItemsAreTouched(t *testing.T) {
 		t.Fatal("changed counts must reach the status line and tooltip")
 	}
 	a.Update(next)
-	n := len(f.calls)
+	f.calls = nil
 	a.Update(next)
-	if len(f.calls) != n {
-		t.Fatalf("repeat status wrote again: %v", f.calls[n:])
+	for _, c := range f.calls {
+		if !strings.HasPrefix(c, "show ") && !strings.HasPrefix(c, "hide ") {
+			t.Fatalf("repeat status wrote again: %v", f.calls)
+		}
 	}
 }
 
@@ -114,4 +120,47 @@ func filter(in []string, want string) []string {
 		}
 	}
 	return out
+}
+
+// dropFirstHide wraps a surface and loses the first hide call, as a flaky host menu can.
+type dropFirstHide struct {
+	*fakeSurface
+	dropped bool
+}
+
+func (d *dropFirstHide) SetVisible(id string, v bool) {
+	if !v && !d.dropped {
+		d.dropped = true
+		return
+	}
+	d.fakeSurface.SetVisible(id, v)
+}
+
+// TRAY8: a missed hide of the Update line is repaired by the next status, whatever changed.
+func TestMissedHideOfTheUpdateLineIsReasserted(t *testing.T) {
+	var open atomic.Bool
+	f := &fakeSurface{}
+	d := &dropFirstHide{fakeSurface: f}
+	build := func(s Status) []MenuItem { return BuildMenu("1.4.0", s, false) }
+	first := Status{State: StateHealthy, Version: "1.4.0", Update: UpdateInfo{State: "idle", Available: true, Latest: "1.5.0"},
+		Policy: MachinePolicy{Known: true, Mode: ModeAutomatic, Accepting: true}}
+	a := &Applier{Surf: d, Build: build, Open: open.Load}
+	a.Seed(build(first), first)
+	next := first
+	next.Update = UpdateInfo{State: "idle"} // the update line goes
+	a.Update(next)
+	if !d.dropped {
+		t.Fatal("the fake did not drop a hide")
+	}
+	f.calls = nil
+	a.Update(next) // the same status again repairs it
+	hid := false
+	for _, c := range f.calls {
+		if c == "hide "+IDUpdate {
+			hid = true
+		}
+	}
+	if !hid {
+		t.Fatalf("Update line not hidden again: %v", f.calls)
+	}
 }

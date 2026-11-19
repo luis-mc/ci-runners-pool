@@ -156,8 +156,66 @@ func Newer(current, latest string) bool {
 	return l.Patch > c.Patch
 }
 
-// AssetName is the release asset this OS and architecture installs from:
-// the MSI on Windows (task CRSP18), crsp-<os>-<arch>.tar.gz elsewhere.
+// VersionedName puts the release version into a plain asset name, before the
+// extension: crsp-windows-amd64.msi and 0.1.15 give crsp-windows-amd64_0.1.15.msi
+// (OPS40, DL-96). The version has no leading v.
+func VersionedName(plain, version string) string {
+	version = strings.TrimPrefix(version, "v")
+	if version == "" {
+		return plain
+	}
+	for _, ext := range []string{".tar.gz", ".zip", ".msi", ".pkg", ".deb", ".rpm"} {
+		if strings.HasSuffix(plain, ext) {
+			return strings.TrimSuffix(plain, ext) + "_" + version + ext
+		}
+	}
+	return plain
+}
+
+// PlainName is the reverse of VersionedName: crsp-windows-amd64_0.1.15.msi gives
+// crsp-windows-amd64.msi. A name without a version part comes back unchanged.
+func PlainName(name string) string {
+	for _, ext := range []string{".tar.gz", ".zip", ".msi", ".pkg", ".deb", ".rpm"} {
+		if base, ok := strings.CutSuffix(name, ext); ok {
+			if i := strings.LastIndex(base, "_"); i > 0 {
+				return base[:i] + ext
+			}
+			return name
+		}
+	}
+	return name
+}
+
+// PickAsset chooses the asset of a release for a plain name: the versioned name
+// first, the plain name as the fallback for releases up to 0.1.14. When neither
+// is there it returns the versioned name, so the error names what is expected.
+func PickAsset(rel Release, plain string) string {
+	v := VersionedName(plain, rel.Version)
+	if _, ok := rel.Assets[v]; ok {
+		return v
+	}
+	if _, ok := rel.Assets[plain]; ok {
+		return plain
+	}
+	return v
+}
+
+// PickFromSums is PickAsset for a SHA256SUMS text.
+func PickFromSums(sums []byte, plain, version string) string {
+	v := VersionedName(plain, version)
+	if _, ok := SumFor(sums, v); ok {
+		return v
+	}
+	if _, ok := SumFor(sums, plain); ok {
+		return plain
+	}
+	return v
+}
+
+// AssetName is the plain release asset name this OS and architecture installs
+// from (the name up to release 0.1.14): the MSI on Windows (task CRSP18),
+// crsp-<os>-<arch>.tar.gz elsewhere. A release since OPS40 carries the version
+// in the name; PickAsset finds either.
 func AssetName(goos, goarch string) string {
 	if goos == "windows" {
 		return "crsp-windows-" + goarch + ".msi"
@@ -214,7 +272,7 @@ func InstallKindFor(exe, goos string) string {
 	return def
 }
 
-// AssetFor is the release asset that matches the install kind.
+// AssetFor is the plain release asset name that matches the install kind.
 func AssetFor(kind, goos, goarch string) string {
 	switch kind {
 	case KindMSI:

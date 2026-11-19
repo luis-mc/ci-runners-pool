@@ -23,6 +23,20 @@ const status = (extra: object = {}) => ({
 });
 
 describe('Updates settings', () => {
+  it('offers no update when the latest version is not newer than the running one (TRAY8)', async () => {
+    renderApp(
+      signedIn().on(
+        'GET',
+        '/api/v1/update',
+        status({ current_version: '1.5.0', latest_version: '1.5.0' }),
+      ),
+      '/settings/updates',
+    );
+    await screen.findByRole('switch', { name: 'Automatic updates' });
+    expect(screen.queryByRole('button', { name: /Update to/ })).toBeNull();
+    expect(screen.queryByText(/is waiting for your yes/)).toBeNull();
+  });
+
   it('shows Automatic updates on by default and the versions', async () => {
     renderApp(signedIn().on('GET', '/api/v1/update', status()), '/settings/updates');
     const sw = await screen.findByRole('switch', { name: 'Automatic updates' });

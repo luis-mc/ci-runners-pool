@@ -107,3 +107,53 @@ func TestVMRunPrepareSELinuxUsageAndExitCodes(t *testing.T) {
 		t.Fatalf("run no kvm %d %q", code, e.String())
 	}
 }
+
+type seenNet struct{ urls []string }
+
+func (n *seenNet) Text(_ context.Context, u string) (string, error) {
+	n.urls = append(n.urls, u)
+	return "", errors.New("offline")
+}
+func (n *seenNet) Get(context.Context, string) (io.ReadCloser, error) {
+	return nil, errors.New("offline")
+}
+
+// OPS37: CRSP_VM_IMAGE_MIRROR in the job's environment is the base of the
+// image download; without it the catalogue hosts are used.
+func TestVMPrepareUsesTheMirrorFromTheEnvironment(t *testing.T) {
+	for _, tc := range []struct{ mirror, want string }{
+		{"", "https://dl.rockylinux.org/pub/rocky/9/images/x86_64/Rocky-9-GenericCloud-Base.latest.x86_64.qcow2.CHECKSUM"},
+		{"https://mirror.corp/vm", "https://mirror.corp/vm/rocky-9/Rocky-9-GenericCloud-Base.latest.x86_64.qcow2.CHECKSUM"},
+	} {
+		net := &seenNet{}
+		var o, e strings.Builder
+		env := vmEnv(true, &o, &e)
+		env.VMDeps.Fetch = net
+		env.Getenv = func(k string) string {
+			if k == "CRSP_VM_IMAGE_MIRROR" {
+				return tc.mirror
+			}
+			return ""
+		}
+		if code := VM([]string{"prepare", "rocky-9", "--cache", t.TempDir()}, env); code != ExitVMFail {
+			t.Fatalf("mirror %q: exit %d %q", tc.mirror, code, e.String())
+		}
+		if len(net.urls) == 0 || net.urls[0] != tc.want {
+			t.Errorf("mirror %q: fetched %v, want %s first", tc.mirror, net.urls, tc.want)
+		}
+	}
+}
+
+func TestVMRefusesABadMirror(t *testing.T) {
+	var o, e strings.Builder
+	env := vmEnv(true, &o, &e)
+	env.Getenv = func(k string) string {
+		if k == "CRSP_VM_IMAGE_MIRROR" {
+			return "ftp://x"
+		}
+		return ""
+	}
+	if code := VM([]string{"list"}, env); code != ExitVMUsage || !strings.Contains(e.String(), "CRSP_VM_IMAGE_MIRROR") {
+		t.Fatalf("%d %q", code, e.String())
+	}
+}

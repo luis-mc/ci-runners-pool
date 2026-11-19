@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"errors"
-	"fmt"
 	"log/slog"
 	"net"
 	"path/filepath"
@@ -113,19 +112,23 @@ func (d machineDrainer) DrainTimeoutMinutes(ctx context.Context) int {
 	return machines.DefaultSettings().DrainTimeoutMinutes
 }
 
+// healthURL is the address the update helper asks after a restart. It is always on
+// loopback with the listen port: the controller keeps 127.0.0.1 open next to any other
+// address, and a listen address that changed (a new DHCP lease) must not fail a good restart.
+func healthURL(listen string) string {
+	_, port, err := net.SplitHostPort(listen)
+	if err != nil || port == "" {
+		port = "8460"
+	}
+	return "http://" + net.JoinHostPort("127.0.0.1", port) + "/healthz"
+}
+
 // startUpdates builds the update manager, binds it to the machines drain and
 // starts the 6-hourly check (operations R5.11).
 func startUpdates(ctx context.Context, cfg config.Config, logger *slog.Logger, mr *machinesRuntime, set *settings.Service, idle *idleHook) *update.Manager {
 	exe, err := update.ExecutablePath()
 	if err != nil {
 		logger.Warn("self-update: cannot find the running binary", "err", err)
-	}
-	host, port, err := net.SplitHostPort(cfg.ListenAddr)
-	if err != nil || host == "" || host == "0.0.0.0" || host == "::" || host == "[::]" {
-		host = "127.0.0.1"
-	}
-	if port == "" {
-		port = "8460"
 	}
 	m := update.New(update.Options{
 		Current:  version,
@@ -140,7 +143,7 @@ func startUpdates(ctx context.Context, cfg config.Config, logger *slog.Logger, m
 			return err != nil || s.AutoUpdate
 		},
 		Dir:       filepath.Join(cfg.DataDir, "updates"),
-		HealthURL: fmt.Sprintf("%s://%s/healthz", consoleScheme(host), net.JoinHostPort(host, port)),
+		HealthURL: healthURL(cfg.ListenAddr),
 		Exe:       exe,
 		Logger:    logger.With("component", "update"),
 		// The MSI ends every tray; after it the service starts the tray again for the signed-in user (CRSP147).

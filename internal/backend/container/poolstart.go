@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/luis-mc/ci-runners-shared-pool/internal/addresses"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backend"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backend/sys"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/poolsize"
@@ -161,6 +162,9 @@ func PlanPool(cfg Config, r backend.RunnerSpec, owner, repo string, kvm KVMFacts
 	}
 	if r.Pool.Database != nil {
 		plan.RunnerEnv["CRSP_DB_ENV_FILE"] = jobDir(r.Name) + "/" + DBEnvFileName
+	}
+	if cfg.VMImageMirror != "" {
+		plan.RunnerEnv[addresses.EnvVMImageMirror] = cfg.VMImageMirror
 	}
 	plan.Pool = p
 	return plan, nil

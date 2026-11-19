@@ -105,7 +105,9 @@ func (a *Applier) apply(s Status) {
 		if known && old.Label != it.Label {
 			a.Surf.SetTitle(it.ID, it.Label)
 		}
-		if known && old.Hidden != it.Hidden {
+		// Visibility is asserted from every status, not only on a change: a dropped call
+		// must not leave an item (the Update line) shown or hidden for good. It is idempotent.
+		if known {
 			a.Surf.SetVisible(it.ID, !it.Hidden)
 		}
 		// Start at login is the user's own tick, not the service's: the status never changes it.

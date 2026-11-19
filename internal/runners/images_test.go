@@ -25,7 +25,7 @@ func readFile(t *testing.T, path string) string {
 // user with no sudo, and a build-time self-check of each tool.
 func TestBaseImageToolListAndSelfCheck(t *testing.T) {
 	d := readDockerfile(t)
-	if !regexp.MustCompile(`(?m)^FROM ubuntu:24\.04@sha256:[0-9a-f]{64}$`).MatchString(d) {
+	if !regexp.MustCompile(`(?m)^FROM ubuntu:24\.04@sha256:[0-9a-f]{64}( AS tools)?$`).MatchString(d) {
 		t.Error("base image is not pinned by digest")
 	}
 	for _, pkg := range []string{"build-essential", "ca-certificates", "curl", "git", "jq", "libatomic1", "libicu74", "pkg-config", "postgresql-client", "python3", "unzip", "xz-utils", "zip"} {

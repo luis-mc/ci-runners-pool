@@ -25,6 +25,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/luis-mc/ci-runners-shared-pool/internal/addresses"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backend"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backend/persistent"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backend/sys"
@@ -207,6 +208,9 @@ func (b *Backend) want(r backend.RunnerSpec, account string) (persistent.Meta, s
 	kv[hygiene.EnvRunnerDir] = folder
 	if r.MaxParallel > 0 {
 		maps.Copy(kv, poolsize.Env(r.MaxParallel))
+	}
+	if m := b.d.Addresses.VMImageMirror; m != "" {
+		kv[addresses.EnvVMImageMirror] = m // `crsp vm` downloads from the mirror (operations R5.96)
 	}
 	kv["ACTIONS_RUNNER_HOOK_JOB_STARTED"] = Join(hookDir, "job-started.ps1")
 	kv["ACTIONS_RUNNER_HOOK_JOB_COMPLETED"] = Join(hookDir, "job-completed.ps1")

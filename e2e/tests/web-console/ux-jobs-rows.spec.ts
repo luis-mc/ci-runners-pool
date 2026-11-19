@@ -98,6 +98,25 @@ const CARD_SOURCE = `(() => [...document.querySelectorAll('table.ds-table')]
     return [...seen];
   }))()`;
 
+/** Runs in the page: where a Repository or Workflow column is narrower than the Branch column of its table (D102). */
+const WEIGHT_SOURCE = `(() => {
+  const out = [];
+  document.querySelectorAll('table.ds-table').forEach((t, n) => {
+    if (!t.getClientRects().length || t.closest('.ds-table__expanded')) return;
+    const width = (text) => {
+      const th = [...t.querySelectorAll('thead th')].find((h) => (h.textContent || '').trim() === text);
+      return th ? th.getBoundingClientRect().width : 0;
+    };
+    const branch = width('Branch');
+    if (!branch) return;
+    for (const head of ['Repository', 'Workflow', 'Workflow and job']) {
+      const w = width(head);
+      if (w && w < branch - 1) out.push('table #' + n + ': ' + head + ' (' + Math.round(w) + ' px) is narrower than Branch (' + Math.round(branch) + ' px)');
+    }
+  });
+  return out;
+})()`;
+
 for (const s of SCREENS) {
   test(`rows of ${s.name} are one line with one set of words`, async ({ page }) => {
     await openRoute(page, { url: s.url, signedOut: false }, { width: 1300 });
@@ -111,6 +130,15 @@ for (const s of SCREENS) {
     expect(await page.evaluate<string[]>(ROW_SOURCE([...allowedLabels()]))).toEqual([]);
   });
 
+  for (const width of [1300, 1220]) {
+    test(`Repository and Workflow of ${s.name} at ${width} px are not narrower than Branch`, async ({
+      page,
+    }) => {
+      await openRoute(page, { url: s.url, signedOut: false }, { width });
+      expect(await page.evaluate<string[]>(WEIGHT_SOURCE)).toEqual([]);
+    });
+  }
+
   test(`cards of ${s.name} at 393 px have the action in the same place`, async ({
     page,
   }) => {
@@ -120,12 +148,16 @@ for (const s of SCREENS) {
   });
 }
 
-test('a run row opened in place keeps the page from scrolling sideways at 1300 px', async ({
+test('Open run lands on the Run page and the page does not scroll sideways at 1300 px', async ({
   page,
 }) => {
   await openRoute(page, { url: '/jobs/done', signedOut: false }, { width: 1300 });
-  await page.getByRole('button', { name: 'Open run' }).first().click();
-  await expect(page.getByText(/queue wait is the light part of a bar/)).toBeVisible();
+  await page
+    .getByRole('button', { name: /^Open run/ })
+    .first()
+    .click();
+  await expect(page).toHaveURL(/\/jobs\/run\/\d+\?attempt=\d+/);
+  await expect(page.getByRole('region', { name: 'Job graph' })).toBeVisible();
   const wide = await page.evaluate(
     () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
   );

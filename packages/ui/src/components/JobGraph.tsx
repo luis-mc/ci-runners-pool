@@ -3,7 +3,7 @@
 // at phone width they are a vertical list of stages and each job says "after: a, b" (UX-49). A job that opens is a
 // real button (UX-57). Status is a glyph as well as a colour, the critical path a thick outline and the words
 // "critical path" (UX-58). A loop in the edges never crashes: the edge that closes it is dropped. The text
-// alternative is a table under "Show as table".
+// alternative is a table under "Show as table", or the table of `altTable` elsewhere on the page.
 import { STATUS_GLYPH } from './Status';
 import { Empty } from './State';
 import { VizAlt } from './VizAlt';
@@ -95,7 +95,7 @@ function detailOf(node: JobGraphNode): string {
 const CELL = 100;
 const INSET = 8;
 
-export function JobGraph({ label, nodes, edges, emptyText }: JobGraphProps) {
+export function JobGraph({ label, nodes, edges, emptyText, altTable }: JobGraphProps) {
   if (nodes.length === 0) return <Empty title={emptyText} />;
   const byId = new Map(nodes.map((n) => [n.id, n]));
   const { stages, edges: kept } = layoutGraph(
@@ -130,6 +130,7 @@ export function JobGraph({ label, nodes, edges, emptyText }: JobGraphProps) {
                 .join('; ')}`,
           )
           .join('. ')}`}
+        aria-describedby={altTable}
         className="ds-jobgraph__chart"
       >
         <div
@@ -237,21 +238,23 @@ export function JobGraph({ label, nodes, edges, emptyText }: JobGraphProps) {
           ))}
         </div>
       </div>
-      <VizAlt
-        caption={label}
-        head={[
-          JOB_GRAPH_WORDS.job,
-          JOB_GRAPH_WORDS.stage,
-          JOB_GRAPH_WORDS.after,
-          JOB_GRAPH_WORDS.detail,
-        ]}
-        rows={stages.flatMap((ids, i) =>
-          ids.map((id) => {
-            const n = byId.get(id) as JobGraphNode;
-            return [n.label, String(i + 1), after(id).join(', '), detailOf(n)];
-          }),
-        )}
-      />
+      {altTable ? null : (
+        <VizAlt
+          caption={label}
+          head={[
+            JOB_GRAPH_WORDS.job,
+            JOB_GRAPH_WORDS.stage,
+            JOB_GRAPH_WORDS.after,
+            JOB_GRAPH_WORDS.detail,
+          ]}
+          rows={stages.flatMap((ids, i) =>
+            ids.map((id) => {
+              const n = byId.get(id) as JobGraphNode;
+              return [n.label, String(i + 1), after(id).join(', '), detailOf(n)];
+            }),
+          )}
+        />
+      )}
     </div>
   );
 }

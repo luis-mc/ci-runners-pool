@@ -44,7 +44,6 @@ func releaseTarget(apiBase, version string) func(ctx context.Context, req recove
 		if err != nil {
 			return recovery.Target{}, err
 		}
-		asset := update.AssetName(req.OS, req.Arch)
 		sumsURL, ok := rel.Assets["SHA256SUMS"]
 		if !ok {
 			return recovery.Target{}, fmt.Errorf("release %s has no SHA256SUMS", rel.Version)
@@ -65,6 +64,7 @@ func releaseTarget(apiBase, version string) func(ctx context.Context, req recove
 		if err != nil {
 			return recovery.Target{}, err
 		}
+		asset := update.PickFromSums(sums, update.AssetName(req.OS, req.Arch), rel.Version)
 		sum, ok := update.SumFor(sums, asset)
 		if !ok {
 			return recovery.Target{}, fmt.Errorf("%s is not listed in SHA256SUMS", asset)
