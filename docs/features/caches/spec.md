@@ -179,11 +179,11 @@ Owner decision of 2026-11-14 (CRSP21, CRSP26; dev-standards D302): on 14 Nov an 
 
 ### Registry mirror (milestone 7)
 
-**R5.24** — Each pool has one pull-through mirror for container images that speaks the OCI distribution API. It mirrors Docker Hub and `ghcr.io` by default; the owner can add other registries.
+**R5.24** — Each pool has one pull-through mirror for container images that speaks the OCI distribution API. It mirrors Docker Hub and `ghcr.io` by default; the owner can add other registries. Built (REG9, registry R5.63).
 
-**R5.25** — The agent sets every container engine it manages to pull through the mirror: Docker's mirror setting for Docker Hub, and per-registry mirror settings (containerd `hosts.toml`, Podman `registries.conf`) for the others. The product's own image builds pull through it.
+**R5.25** — The agent sets every container engine it manages to pull through the mirror: Docker's mirror setting for Docker Hub, and per-registry mirror settings (containerd `hosts.toml`, Podman `registries.conf`) for the others. The product's own image builds pull through it. Partly built (REG9, registry R5.65): the host step that writes the three engine settings is built; sending it and the builds' pull are not.
 
-**R5.26** — The mirror stores content by digest and serves a blob only when its digest matches. A tag is checked with the upstream registry again after 1 hour (configurable). When the upstream cannot be reached, a cached tag is served and the console shows it as stale.
+**R5.26** — The mirror stores content by digest and serves a blob only when its digest matches. A tag is checked with the upstream registry again after 1 hour (configurable). When the upstream cannot be reached, a cached tag is served and the console shows it as stale. Partly built (REG9, registry R5.66): the offline fallback and the setting are built; the re-check interval and the stale mark are not.
 
 ### Cache warmth (milestone 7)
 
@@ -382,8 +382,8 @@ Rows for R5.36 to R5.40, R5.42, R5.43, R5.44, R5.45, R5.48, R5.49 and R5.51 to R
 | R5.21 | internal/tools/fetch_test.go (port of test_dl115_ci_tool.py test_retries_after_504, test_always_failing_server_stops_after_5_attempts) |
 | R5.22 | internal/tools/unpack_test.go (port of test_ds199_tool_fetch.py test_archive_kind_and_exe, test_zip_archive, test_unsafe_archive_path_rejected, test_unpacks_once, test_crate_kind_builds_once_with_cargo_install, test_failed_cargo_leaves_nothing) |
 | R5.23 | internal/tools/cli_test.go (port of test_dl115_ci_tool.py test_usage_error_exits_2, test_gitleaks_extracts_binary_once; test_dl189_ci_tool_file_name.py; one path on stdout) |
-| R5.24 | internal/mirror/registry_test.go (pull through for Docker Hub, ghcr.io and an added registry) |
-| R5.25 | internal/mirror/engine_config_test.go (Docker, containerd and Podman settings written) |
+| R5.24 | `internal/registry/mirror/mirror_test.go` (a proxy per upstream, added registries) |
+| R5.25 | `internal/registry/mirror/engineconf/engineconf_test.go` (Docker, containerd and Podman settings written, idempotent) |
 | R5.26 | internal/mirror/registry_test.go (digest check, tag re-check after 1 hour, stale tag when offline) |
 | R5.27 | internal/cache/warmth_test.go (report after job sets the value) |
 | R5.28 | internal/cache/warmth_test.go (decay to 0 after 24 hours; 0 after a wipe) |

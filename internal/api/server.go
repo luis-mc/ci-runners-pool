@@ -71,6 +71,8 @@ type Options struct {
 	Live LiveService
 	// Doctor serves the doctor routes (handlers_doctor.go). Nil answers 501.
 	Doctor DoctorService
+	// RegistryMirror serves the pull-through mirror settings routes (handlers_registry_reg9.go). Nil answers 501.
+	RegistryMirror RegistryMirrorService
 	// Caches serves the caches routes (handlers_caches.go). Nil answers 501.
 	Caches CachesService
 	// Notify serves the notification channel routes (handlers_notify.go). Nil answers 501.

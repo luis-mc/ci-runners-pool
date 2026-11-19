@@ -242,15 +242,15 @@ Canonical JSON (`registry.CanonicalJSON`): one object, no whitespace, keys in by
 
 ### REG9: pull-through mirror (R5.63 to R5.67)
 
-**R5.63** — A second Distribution instance in proxy mode on the same controller listener mirrors upstream bases (default docker.io, ghcr.io, mcr.microsoft.com, quay.io); it builds caches R5.24 to R5.26.
+**R5.63** — A second Distribution instance in proxy mode on the same controller listener mirrors upstream bases (default docker.io, ghcr.io, mcr.microsoft.com, quay.io); it builds caches R5.24 to R5.26. Distribution proxies one remote per instance, so there is one proxy per upstream, each under `/mirror/<upstream>/v2/` (`mirror.PathPrefix`), started on its first request so a controller whose upstream is offline still starts. Built (REG9).
 
-**R5.64** — Its folder (default `<data_dir>/registry-mirror`) and budget are separate from R5.41.
+**R5.64** — Its folder (default `<data_dir>/registry-mirror`) and budget are separate from R5.41. Each upstream has its own subfolder (`docker.io`, `registry.example.com_5000`). A full mirror (folder over budget) answers 503, and engines then pull from the upstream; it never evicts, the owner wipes it (caches R5.30). Built (REG9).
 
-**R5.65** — Engines on machines are pointed at the mirror (caches R5.25), and the base pull of a build goes through it.
+**R5.65** — Engines on machines are pointed at the mirror (caches R5.25), and the base pull of a build goes through it. The host command `engine-mirror <host:port> on|off <upstreams>` (`internal/registry/mirror/engineconf`, run by the agent while the machine is drained) writes Docker's `registry-mirrors` (Docker Hub only), a containerd `certs.d/<upstream>/hosts.toml` per upstream and a Podman `registries.conf.d/50-crsp-mirror.conf`; it changes only what it owns, writes nothing when the files already hold the settings, and says which engine to restart. Docker Desktop (Windows, macOS) is a setting of the app: no file is written there. Partly built (REG9): the controller does not send this host command yet, and the build's base pull is IMG1's.
 
-**R5.66** — A mirrored tag is re-checked upstream after `tag_recheck_minutes` (default 60); a stale tag is served when upstream is offline.
+**R5.66** — A mirrored tag is re-checked upstream after `tag_recheck_minutes` (default 60); a stale tag is served when upstream is offline. Partly built (REG9): the setting is saved, validated (1 minute to 7 days) and sets the proxy's content lifetime (never under 7 days). Distribution asks the upstream for a tag on every pull and, when it cannot answer, serves the cached tag; a re-check interval and the "stale" mark in the console are not built.
 
-**R5.67** — The mirror follows the same private address and token rules (R5.2, R5.3).
+**R5.67** — The mirror follows the same private address and token rules (R5.2, R5.3). Built (REG9): the mirror is served only through a token `Guard` that REG1 passes in; with none it answers 401 to every request, so it is never anonymous. The private address rule is the listener's (REG1).
 
 ### IMG1: build truth (R5.68 to R5.72)
 
@@ -373,7 +373,7 @@ Rows for R5.13 to R5.20 (agent ensure-image), R5.21 and R5.22 (key), R5.59 to R5
 | R5.51 | internal/api/handlers_registry_retention_test.go (built, REG6: audit entries; the store test checks each action is recorded) |
 | R5.53 to R5.58 | `internal/registry/replace/replace_test.go` (built: TestPlanLifecycle, TestAnotherRepositoryKeepsTheOldImage, TestRollbackRestoresThePointer, TestRollbackAfterKeepUntilIsRefused, TestStopAfterCurrentStepThenResume, TestRecoverStopsOrphanedRunningPlans, TestCompare); `internal/store/registry_replace_test.go` (built: plan survives a reopen); `internal/api/handlers_registry_reg7_test.go` (built: error mapping) |
 | R5.59 to R5.62 | internal/registry/scan/scan_test.go |
-| R5.63 to R5.67 | internal/registry/mirror/mirror_test.go |
+| R5.63 to R5.67 | `internal/registry/mirror/mirror_test.go` (proxy config per upstream, folders, routing, no guard refused, budget); `internal/registry/mirror/service_test.go` (settings round trip through the store); `internal/api/handlers_registry_reg9_test.go` (settings API, refusals, admin only); `internal/registry/mirror/engineconf/engineconf_test.go` and `internal/agent/engine_mirror_test.go` (engine files written once, idempotent) |
 | R5.68 to R5.72 | `internal/registry/builds/progress_test.go`, `internal/registry/builds/tail_test.go`, `internal/registry/builds/gate_test.go` (built: parser, failure class, redacted tail, one build at a time, half the cores); `internal/backend/container/buildstream_test.go` (built: streamed steps, record, failure, concurrency, cores); `internal/store/imagebuilds_test.go` (built: record life, typical seconds, time left, list order); `internal/api/handlers_builds_test.go` (built: list, get, 404, 501); `internal/backend/sys/stream_test.go` (built: streamed lines) |
 | R5.73 to R5.76 | `internal/stackscan/scan_test.go` (built: recorded tree in internal/stackscan/testdata/tree.json); `internal/github/webhook_steps_test.go` (built: TestRESTListBlobsAt, TestRESTListBlobsAtHeldBackOnLowBudget) |
 | R5.77 to R5.80 | `internal/profiles/profiles_test.go` (built: defaults, mapping, precedence, ref, views, older generation); `internal/store/profilestore_test.go` (built: tables) |
@@ -417,7 +417,7 @@ Built (REG10):
 - internal/store/migrations/00019_registry.sql and the query files `registry_core.sql` (REG1), `registry_keys.sql` (REG3), `registry_records.sql` (REG4), `registry_retention.sql` (REG6), `registry_replace.sql` (REG7), `registry_scan.sql` (REG8), `registry_mirror.sql` (REG9), `image_builds.sql` (IMG1)
 - internal/registry/keys/ (REG3: Keyer, labels, pointer rules, Detector, similar) and internal/store/registry_keys.go (pointer and lineage store)
 - internal/registry/scan/ (REG8: `scanner.go`, `run.go`, `referrers.go`, `fetch.go`)
-- internal/api/stubs_registry_reg4.go, `_reg6.go`, `_reg9.go` (501 per owning task); IMG1's stub is replaced by `handlers_registry_img1.go`; REG7's stub is replaced by `handlers_registry_reg7.go`, `internal/registry/replace/` and `internal/store/registry_replace.go`
+- internal/api/stubs_registry_reg4.go, `_reg6.go` (501 per owning task); REG9's stub is replaced by `handlers_registry_reg9.go`; IMG1's stub is replaced by `handlers_registry_img1.go`; REG7's stub is replaced by `handlers_registry_reg7.go`, `internal/registry/replace/` and `internal/store/registry_replace.go`
 
 Built (REG6):
 
@@ -428,3 +428,5 @@ Built (REG6):
 Built (IMG1): internal/registry/builds/ (`progress.go` parser, `tail.go` redacted tail and failure class, `gate.go` one build at a time and the cores, `record.go` records and events, `api.go` the API view), internal/backend/container/buildstream.go (the streamed build), `Runner.RunStream` in internal/backend/sys, internal/store/imagebuilds.go, internal/api/handlers_registry_img1.go (replaces `stubs_registry_img1.go`), the `image.build` event (`events.ImageBuild`; `LiveEvent` of the contract gained `image.build` and `image_build`).
 
 Migration numbers reserved for the wave, so parallel tasks never collide: 00020 IMG2, 00021 IMG3, 00022 REG1, 00023 REG3, 00024 REG4, 00025 REG6, 00026 REG7, 00027 REG8, 00028 REG9, 00029 IMG1. A task that needs no new column uses none.
+
+Built (REG9): internal/registry/mirror/ (`config.go`, `mirror.go`, `service.go`), internal/registry/mirror/engineconf/, internal/store/registry_mirror.go, internal/api/handlers_registry_reg9.go, internal/agent/engine_mirror.go, cmd/crsp/registry_mirror_wiring.go. No new migration: the columns of `registry_mirror_settings` in 00019 are enough (00028 stays unused).

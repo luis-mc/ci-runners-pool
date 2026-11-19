@@ -21,6 +21,7 @@ import (
 	"github.com/luis-mc/ci-runners-shared-pool/internal/machines"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/recovery"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/redact"
+	enginemirror "github.com/luis-mc/ci-runners-shared-pool/internal/registry/mirror/engineconf"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/runnercache"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/runners"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/secrets"
@@ -97,6 +98,9 @@ type Config struct {
 	// DockerHost is the OS access of the docker-compact helper (caches R5.51 to R5.54); nil
 	// is the real one. Tests give a fake: the real compact never runs in tests.
 	DockerHost dockercompact.Host
+	// EngineMirrorPaths are the engine files the engine-mirror host step writes (registry
+	// R5.65); nil uses the system locations on Linux and writes nothing elsewhere.
+	EngineMirrorPaths *enginemirror.Paths
 
 	// DiskFloorGiB is the free space the DataDir volume needs before a job or VM
 	// starts, in GiB (runners R5.83). 0 sets no floor here; the commands resolve
