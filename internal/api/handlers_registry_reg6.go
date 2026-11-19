@@ -56,20 +56,6 @@ func (s *server) retentionFail(err error) (int, gen.ErrorEnvelope) {
 	return http.StatusInternalServerError, errEnvelope(CodeInternal, "internal error")
 }
 
-func timePtr(t time.Time) *time.Time {
-	if t.IsZero() {
-		return nil
-	}
-	return &t
-}
-
-func strPtr(v string) *string {
-	if v == "" {
-		return nil
-	}
-	return &v
-}
-
 // inUseDetails names what uses an image, for the question card and the refusal.
 func inUseDetails(u registry.InUse, keepUntil time.Time) []gen.ErrorDetail {
 	var d []gen.ErrorDetail
