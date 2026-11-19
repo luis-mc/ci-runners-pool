@@ -43,8 +43,10 @@ jobs:
     permissions:
       contents: read
       actions: read
+      pull-requests: read
     outputs:
       skip: ${{ steps.check.outputs.skip }}
+      image: ${{ steps.image-scope.outputs.image }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -53,6 +55,15 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: python3 scripts/ci/ci_skip_check.py
+      # OPS41: the base image build is slow. It runs on a release pull request
+      # (head branch *-integration), on main and on a manual run; on any other
+      # pull request only when images/** or the build or ci workflow changed.
+      - id: image-scope
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_HEAD_REF: ${{ github.head_ref }}
+        run: python3 scripts/ci/image_scope.py
 
   verify:
     name: verify
@@ -209,25 +220,37 @@ jobs:
   # runners R5.49: the Linux base job image builds. Build only, no push.
   # runners R5.43: the matrix lists amd64 and arm64. Every layer builds on
   # amd64; arm64 builds the base image and the llvm layer, the only layer with
-  # an arm64 pin (the others carry amd64-only tools). amd64 builds every layer and
-  # takes 15 to 18 min, so its limit is 35 (20 cancelled it twice on 19 Nov).
+  # an arm64 pin (the others carry amd64-only tools). amd64 took 15 to 18 min
+  # from scratch, so its limit is 35 (20 cancelled it twice on 19 Nov).
+  #
+  # OPS41: the job runs only when decide says so (image-scope). Every image is
+  # built with buildx and the GitHub Actions cache, one cache scope per arch
+  # and image, so an unchanged layer is reused. The crsp binary changes on every
+  # commit, so the slow layers sit in the `tools` stage of the base Dockerfile
+  # (built with --target tools, cached) and the tool layers build on that stage
+  # through a local registry on the runner; the base image itself is the tools
+  # stage plus the crsp binary. Every self-check step stays.
   image:
     name: base image ${{ matrix.arch }} (build only)
     needs: [decide, build]
-    if: ${{ always() && needs.decide.outputs.skip != 'true' && needs.build.result == 'success' }}
+    if: ${{ always() && needs.decide.outputs.skip != 'true' && needs.decide.outputs.image != 'false' && needs.build.result == 'success' }}
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 35
     strategy:
       fail-fast: false
       matrix:
         include:
-          - {
-              arch: amd64,
-              runner: ubuntu-latest,
-              all: true,
-              layers: 'windows-packaging linux-packaging llvm kvm',
-            }
-          - { arch: arm64, runner: ubuntu-24.04-arm, all: false, layers: 'llvm' }
+          - { arch: amd64, runner: ubuntu-latest, all: true }
+          - { arch: arm64, runner: ubuntu-24.04-arm, all: false }
+    services:
+      # Holds the tools-stage base image and the linux-packaging layer for the
+      # layers that build on them. Local to the job, never published.
+      registry:
+        image: registry:2
+        ports:
+          - 5000:5000
+    env:
+      REG: localhost:5000
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
@@ -235,8 +258,29 @@ jobs:
           name: crsp-linux-${{ matrix.arch }}
           path: images/linux-base
       - run: chmod +x images/linux-base/crsp
-      - name: docker build (no push)
-        run: docker build --build-arg TARGETARCH=${{ matrix.arch }} --tag crsp-linux-base:ci images/linux-base
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+        with:
+          # host network: the builder reaches the registry service on localhost.
+          driver-opts: network=host
+      # The slow part: the tools stage (apt, node, gh, the Actions runner).
+      - name: docker build base tools stage (no publish)
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
+        with:
+          context: images/linux-base
+          target: tools
+          build-args: TARGETARCH=${{ matrix.arch }}
+          tags: ${{ env.REG }}/crsp-linux-base-tools:ci
+          push: true
+          cache-from: type=gha,scope=base-${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=base-${{ matrix.arch }}
+      - name: docker build base image (no push)
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
+        with:
+          context: images/linux-base
+          build-args: TARGETARCH=${{ matrix.arch }}
+          tags: crsp-linux-base:ci
+          load: true
+          cache-from: type=gha,scope=base-${{ matrix.arch }}
       - name: Job user is not root and tools run
         run: |
           docker run --rm crsp-linux-base:ci bash -ec 'test "$(id -u)" != 0; node --version; corepack --version; command -v pnpm; gh --version | head -1; crsp version'
@@ -251,35 +295,94 @@ jobs:
       # launches each browser headless as the self-check). Build only, no push.
       - name: docker build browsers layer (no push)
         if: ${{ matrix.all }}
-        run: docker build --build-arg BASE_IMAGE=crsp-linux-base:ci --tag crsp-linux-browsers:ci images/layers/browsers
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
+        with:
+          context: images/layers/browsers
+          build-args: BASE_IMAGE=${{ env.REG }}/crsp-linux-base-tools:ci
+          tags: crsp-linux-browsers:ci
+          load: true
+          cache-from: type=gha,scope=browsers-${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=browsers-${{ matrix.arch }}
       - name: Browsers sit at the fixed path
         if: ${{ matrix.all }}
         run: |
           docker run --rm crsp-linux-browsers:ci bash -ec 'test "$PLAYWRIGHT_BROWSERS_PATH" = /opt/crsp/browsers; test -n "$(ls /opt/crsp/browsers)"; test "$(id -u)" != 0'
       # runners R5.50: each layer builds on the base image. Build only, no push.
       # The build runs the layer's self-check, so a missing tool fails here.
-      - name: docker build layers (no push)
-        env:
-          LAYERS: ${{ matrix.layers }}
-          ARCH: ${{ matrix.arch }}
-        run: |
-          set -eu
-          for layer in $LAYERS; do
-            docker build --build-arg BASE_IMAGE=crsp-linux-base:ci --build-arg "TARGETARCH=${ARCH}" --tag "crsp-layer-${layer}:ci" "images/layers/${layer}"
-          done
+      - name: docker build windows-packaging layer (no push)
+        if: ${{ matrix.all }}
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
+        with:
+          context: images/layers/windows-packaging
+          build-args: |
+            BASE_IMAGE=${{ env.REG }}/crsp-linux-base-tools:ci
+            TARGETARCH=${{ matrix.arch }}
+          tags: crsp-layer-windows-packaging:ci
+          load: true
+          cache-from: type=gha,scope=windows-packaging-${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=windows-packaging-${{ matrix.arch }}
+      # The extra packages layer builds on this one, so it goes to the registry.
+      - name: docker build linux-packaging layer (no push)
+        if: ${{ matrix.all }}
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
+        with:
+          context: images/layers/linux-packaging
+          build-args: |
+            BASE_IMAGE=${{ env.REG }}/crsp-linux-base-tools:ci
+            TARGETARCH=${{ matrix.arch }}
+          tags: ${{ env.REG }}/crsp-layer-linux-packaging:ci
+          push: true
+          cache-from: type=gha,scope=linux-packaging-${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=linux-packaging-${{ matrix.arch }}
+      - name: docker build llvm layer (no push)
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
+        with:
+          context: images/layers/llvm
+          build-args: |
+            BASE_IMAGE=${{ env.REG }}/crsp-linux-base-tools:ci
+            TARGETARCH=${{ matrix.arch }}
+          tags: crsp-layer-llvm:ci
+          load: true
+          cache-from: type=gha,scope=llvm-${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=llvm-${{ matrix.arch }}
+      - name: docker build kvm layer (no push)
+        if: ${{ matrix.all }}
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
+        with:
+          context: images/layers/kvm
+          build-args: |
+            BASE_IMAGE=${{ env.REG }}/crsp-linux-base-tools:ci
+            TARGETARCH=${{ matrix.arch }}
+          tags: crsp-layer-kvm:ci
+          load: true
+          cache-from: type=gha,scope=kvm-${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=kvm-${{ matrix.arch }}
       # runners R5.51: the extra packages layer is last, on top of a packaging
       # layer, with a list of names (CRSP60). Build only, no push.
       - name: docker build extra packages layer (no push)
         if: ${{ matrix.all }}
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
+        with:
+          context: images/layers/extra-packages
+          build-args: |
+            BASE_IMAGE=${{ env.REG }}/crsp-layer-linux-packaging:ci
+            EXTRA_PACKAGES=zlib1g-dev libc++-dev
+          tags: crsp-layer-extra-packages:ci
+          load: true
+          cache-from: type=gha,scope=extra-packages-${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=extra-packages-${{ matrix.arch }}
+      - name: Extra packages layer refuses a bad name
+        if: ${{ matrix.all }}
         run: |
-          docker build --build-arg BASE_IMAGE=crsp-layer-linux-packaging:ci --build-arg "EXTRA_PACKAGES=zlib1g-dev libc++-dev" --tag crsp-layer-extra-packages:ci images/layers/extra-packages
-          if docker build --build-arg BASE_IMAGE=crsp-linux-base:ci --build-arg "EXTRA_PACKAGES=ok;rm" images/layers/extra-packages; then echo "a bad name was accepted"; exit 1; fi
+          if docker buildx build --output type=cacheonly --build-arg "BASE_IMAGE=${REG}/crsp-linux-base-tools:ci" --build-arg "EXTRA_PACKAGES=ok;rm" images/layers/extra-packages; then echo "a bad name was accepted"; exit 1; fi
       - name: llvm layer tools run as the job user
         run: |
           docker run --rm crsp-layer-llvm:ci bash -ec 'test "$(id -u)" != 0; clang-cl --version | head -1; lld-link --version | head -1; command -v llvm-lib'
       - name: Layer tools run as the job user
         if: ${{ matrix.all }}
         run: |
+          docker pull "${REG}/crsp-layer-linux-packaging:ci"
+          docker tag "${REG}/crsp-layer-linux-packaging:ci" crsp-layer-linux-packaging:ci
           docker run --rm crsp-layer-linux-packaging:ci bash -ec 'test "$(id -u)" != 0; dpkg-buildpackage --version | head -1; fakeroot --version | head -1; rpmbuild --version'
           docker run --rm crsp-layer-windows-packaging:ci bash -ec 'test "$(id -u)" != 0; dotnet --version; wine --version; command -v xvfb-run xauth msiinfo'
           docker run --rm crsp-layer-extra-packages:ci bash -ec 'test "$(id -u)" != 0; dpkg -s zlib1g-dev libc++-dev >/dev/null; command -v dpkg-deb'

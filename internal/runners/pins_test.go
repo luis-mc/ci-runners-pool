@@ -85,7 +85,7 @@ func TestDockerfileBaseIsThePinnedDigest(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	m := regexp.MustCompile(`(?m)^FROM (\S+)$`).FindStringSubmatch(readDockerfile(t))
+	m := regexp.MustCompile(`(?m)^FROM (\S+)( AS tools)?$`).FindStringSubmatch(readDockerfile(t))
 	if m == nil || m[1] != want {
 		t.Errorf("Dockerfile FROM %v, pins file %s", m, want)
 	}
@@ -100,8 +100,13 @@ func TestDockerfileBaseIsThePinnedDigest(t *testing.T) {
 			t.Error(rerr)
 			return nil
 		}
+		// A FROM may also name an earlier stage of the same file (`AS name`).
+		stages := map[string]bool{}
+		for _, s := range regexp.MustCompile(`(?m)^FROM \S+ AS (\S+)`).FindAllStringSubmatch(string(b), -1) {
+			stages[s[1]] = true
+		}
 		for _, f := range regexp.MustCompile(`(?m)^FROM (\S+)`).FindAllStringSubmatch(string(b), -1) {
-			if f[1] != "${BASE_IMAGE}" && !ValidDigestRef(f[1]) {
+			if f[1] != "${BASE_IMAGE}" && !stages[f[1]] && !ValidDigestRef(f[1]) {
 				t.Errorf("%s: FROM %s is not by digest", p, f[1])
 			}
 		}
