@@ -55,6 +55,9 @@
     "internal/backend/**": [
       "docs/features/runners/spec.md"
     ],
+    "internal/backend/container/buildstream.go": [
+      "docs/features/registry/spec.md"
+    ],
     "internal/backup/**": [
       "docs/features/operations/spec.md"
     ],
@@ -155,6 +158,9 @@
     ],
     "internal/secrets/**": [
       "docs/features/github-integration/spec.md"
+    ],
+    "internal/store/imagebuilds.go": [
+      "docs/features/registry/spec.md"
     ],
     "internal/store/migrations/00019_registry.sql": [
       "docs/features/registry/spec.md"
