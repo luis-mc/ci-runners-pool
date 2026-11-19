@@ -18,6 +18,8 @@ import (
 	"reflect"
 	"sort"
 	"strings"
+
+	"github.com/luis-mc/ci-runners-shared-pool/internal/addresses"
 )
 
 // Command is the first argument of the host command that runs this step.
@@ -92,12 +94,7 @@ func ParseArgs(args []string) (Settings, error) {
 func (s Settings) mirrorURL(up string) string { return "https://" + s.Host + pathPrefix + up }
 
 // serverURL is the upstream's own endpoint, the fallback of a mirror entry.
-func serverURL(up string) string {
-	if up == "docker.io" {
-		return "https://registry-1.docker.io"
-	}
-	return "https://" + up
-}
+func serverURL(up string) string { return addresses.RegistryAPIURL(up) }
 
 func (s Settings) active() []string {
 	if !s.Enabled {

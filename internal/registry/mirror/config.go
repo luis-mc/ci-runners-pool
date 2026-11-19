@@ -16,6 +16,7 @@ import (
 
 	"github.com/distribution/distribution/v3/configuration"
 
+	"github.com/luis-mc/ci-runners-shared-pool/internal/addresses"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/registry"
 )
 
@@ -94,13 +95,7 @@ func UpstreamDir(folder, upstream string) string {
 
 // RemoteURL is the API endpoint of an upstream: Docker Hub's registry API is not
 // on docker.io, every other registry answers on its own host.
-func RemoteURL(upstream string) string {
-	switch upstream {
-	case "docker.io", "index.docker.io", "registry-1.docker.io":
-		return "https://registry-1.docker.io"
-	}
-	return "https://" + upstream
-}
+func RemoteURL(upstream string) string { return addresses.RegistryAPIURL(upstream) }
 
 // ProxyConfig is the Distribution configuration of one upstream in proxy mode.
 // The instance is never reachable on its own: the controller serves it under
