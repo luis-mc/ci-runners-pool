@@ -8,6 +8,15 @@
       },
       "digest": "f2b2d3fe4b2c860d57df1ab783b108a6c4ac9924dab4c0b9e5a3f13cd20257c0",
       "implementation": null
+    },
+    "v2": {
+      "approved": {
+        "by": "Luis Carvalho",
+        "date": "2026-11-19",
+        "evidence": "chat, 2026-11-19: 'Promote next-version as v2' (RES21 G1, decision D46)"
+      },
+      "digest": "be29422eadcccf7222bf678d772f44cc8c155e8934af77b09ffbce92eaa64183",
+      "implementation": null
     }
   }
 }
