@@ -146,3 +146,7 @@ GROUP BY l.charged_to;
 
 -- name: SumRegistryUsedByKind :many
 SELECT charged_to, CAST(coalesce(sum(size_bytes), 0) AS INTEGER) AS bytes FROM registry_layers GROUP BY charged_to;
+
+-- name: SetRegistryImageState :exec
+UPDATE registry_images SET state = ?, keep_until = ?, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+WHERE id = ? AND state <> 'deleted';

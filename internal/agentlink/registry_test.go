@@ -6,6 +6,7 @@ import (
 	"time"
 
 	agentv1 "github.com/luis-mc/ci-runners-shared-pool/internal/gen/agent/v1"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/registry/builds"
 )
 
 type fakeRegistry struct {
@@ -103,4 +104,56 @@ func TestSupportsRegistryFollowsTheMachineReport(t *testing.T) {
 	if !l.SupportsRegistry("m1") || l.SupportsRegistry("m2") {
 		t.Fatal("SupportsRegistry")
 	}
+}
+
+type fakeBuilds struct {
+	calls []string
+	meta  builds.Meta
+	out   builds.Outcome
+}
+
+func (f *fakeBuilds) Begin(_ context.Context, m builds.Meta) (builds.Handle, error) {
+	f.meta = m
+	f.calls = append(f.calls, "begin")
+	return builds.Handle{ID: "bld_1"}, nil
+}
+func (f *fakeBuilds) Progress(_ context.Context, id string, p builds.Progress) {
+	f.calls = append(f.calls, "progress "+id+" "+p.Name)
+}
+func (f *fakeBuilds) End(_ context.Context, id string, o builds.Outcome) {
+	f.calls = append(f.calls, "end "+id)
+	f.out = o
+}
+
+// IMG1: an agent's build reports become one build record; the machine is the
+// one of the session; a report for a build never begun is dropped.
+func TestBuildReportsBecomeABuildRecord(t *testing.T) {
+	l, _ := registryLink(nil)
+	f := &fakeBuilds{}
+	l.Builds = f
+	send := func(rep *agentv1.BuildReport) {
+		if !l.OnMessage("m7", &agentv1.SessionRequest{Message: &agentv1.SessionRequest_BuildReport{BuildReport: rep}}) {
+			t.Fatal("BuildReport not handled")
+		}
+	}
+	send(&agentv1.BuildReport{BuildId: "a1", Phase: agentv1.BuildReport_PHASE_PROGRESS, StepName: "early"}) // never begun
+	send(&agentv1.BuildReport{BuildId: "a1", Phase: agentv1.BuildReport_PHASE_BEGIN, Profile: "node-web", Arch: "amd64", Key: "37fef5dbb41b", Reason: "not_in_registry"})
+	send(&agentv1.BuildReport{BuildId: "a1", Phase: agentv1.BuildReport_PHASE_PROGRESS, StepName: "RUN x"})
+	send(&agentv1.BuildReport{BuildId: "a1", Phase: agentv1.BuildReport_PHASE_END, State: "failed", FailureClass: "disk"})
+	send(&agentv1.BuildReport{BuildId: "a1", Phase: agentv1.BuildReport_PHASE_END, State: "failed"}) // a second end is dropped
+	want := []string{"begin", "progress bld_1 RUN x", "end bld_1"}
+	if len(f.calls) != len(want) {
+		t.Fatalf("calls %v", f.calls)
+	}
+	for i := range want {
+		if f.calls[i] != want[i] {
+			t.Fatalf("calls %v", f.calls)
+		}
+	}
+	if f.meta.MachineID != "m7" || f.meta.Profile != "node-web" || f.meta.Reason != "not_in_registry" || f.out.FailureClass != "disk" {
+		t.Fatalf("meta %+v out %+v", f.meta, f.out)
+	}
+	// With no sink the reports are handled and dropped.
+	l.Builds = nil
+	send(&agentv1.BuildReport{BuildId: "a2", Phase: agentv1.BuildReport_PHASE_BEGIN})
 }

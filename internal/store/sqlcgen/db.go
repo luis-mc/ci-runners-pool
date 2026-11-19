@@ -708,6 +708,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.setRegistryImageSizesStmt, err = db.PrepareContext(ctx, setRegistryImageSizes); err != nil {
 		return nil, fmt.Errorf("error preparing query SetRegistryImageSizes: %w", err)
 	}
+	if q.setRegistryImageStateStmt, err = db.PrepareContext(ctx, setRegistryImageState); err != nil {
+		return nil, fmt.Errorf("error preparing query SetRegistryImageState: %w", err)
+	}
 	if q.setRegistryLayerChargeStmt, err = db.PrepareContext(ctx, setRegistryLayerCharge); err != nil {
 		return nil, fmt.Errorf("error preparing query SetRegistryLayerCharge: %w", err)
 	}
@@ -2012,6 +2015,11 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing setRegistryImageSizesStmt: %w", cerr)
 		}
 	}
+	if q.setRegistryImageStateStmt != nil {
+		if cerr := q.setRegistryImageStateStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing setRegistryImageStateStmt: %w", cerr)
+		}
+	}
 	if q.setRegistryLayerChargeStmt != nil {
 		if cerr := q.setRegistryLayerChargeStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing setRegistryLayerChargeStmt: %w", cerr)
@@ -2544,6 +2552,7 @@ type Queries struct {
 	setRegistryImageLineageStmt                 *sql.Stmt
 	setRegistryImageScanStateStmt               *sql.Stmt
 	setRegistryImageSizesStmt                   *sql.Stmt
+	setRegistryImageStateStmt                   *sql.Stmt
 	setRegistryLayerChargeStmt                  *sql.Stmt
 	setRegistryReadOnlyStmt                     *sql.Stmt
 	setRegistryReplacePlanRolledBackStmt        *sql.Stmt
@@ -2831,6 +2840,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		setRegistryImageLineageStmt:                 q.setRegistryImageLineageStmt,
 		setRegistryImageScanStateStmt:               q.setRegistryImageScanStateStmt,
 		setRegistryImageSizesStmt:                   q.setRegistryImageSizesStmt,
+		setRegistryImageStateStmt:                   q.setRegistryImageStateStmt,
 		setRegistryLayerChargeStmt:                  q.setRegistryLayerChargeStmt,
 		setRegistryReadOnlyStmt:                     q.setRegistryReadOnlyStmt,
 		setRegistryReplacePlanRolledBackStmt:        q.setRegistryReplacePlanRolledBackStmt,

@@ -5,6 +5,7 @@ import (
 	"time"
 
 	agentv1 "github.com/luis-mc/ci-runners-shared-pool/internal/gen/agent/v1"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/registry/builds"
 )
 
 // The image registry calls (REG10 contract, docs/features/registry R5.20,
@@ -83,6 +84,9 @@ func (l *Link) onRegistry(machineID string, msg *agentv1.SessionRequest) bool {
 			go sink.PushReport(context.Background(), machineID, m.PushReport)
 		}
 		return true
+	case *agentv1.SessionRequest_BuildReport:
+		l.onBuildReport(machineID, m.BuildReport)
+		return true
 	case *agentv1.SessionRequest_PullReport:
 		if sink != nil {
 			go sink.PullReport(context.Background(), machineID, m.PullReport)
@@ -90,4 +94,55 @@ func (l *Link) onRegistry(machineID string, msg *agentv1.SessionRequest) bool {
 		return true
 	}
 	return false
+}
+
+// onBuildReport turns the report of an agent into the life of a build record
+// (IMG1, R5.68, R5.69). The machine is the one of the session, whatever the
+// report says. A report for a build the controller never saw begin is dropped.
+func (l *Link) onBuildReport(machineID string, rep *agentv1.BuildReport) {
+	sink := l.Builds
+	if sink == nil || rep.GetBuildId() == "" {
+		return
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), RegistryCallTimeout)
+	defer cancel()
+	id := machineID + "/" + rep.GetBuildId()
+	switch rep.GetPhase() {
+	case agentv1.BuildReport_PHASE_BEGIN:
+		h, err := sink.Begin(ctx, builds.Meta{
+			MachineID: machineID, Profile: rep.GetProfile(), Arch: rep.GetArch(), Key: rep.GetKey(), Reason: rep.GetReason(),
+		})
+		if err != nil || h.ID == "" {
+			return
+		}
+		l.mu.Lock()
+		if l.buildIDs == nil {
+			l.buildIDs = map[string]string{}
+		}
+		l.buildIDs[id] = h.ID
+		l.mu.Unlock()
+	case agentv1.BuildReport_PHASE_PROGRESS:
+		if rid, ok := l.buildID(id); ok {
+			sink.Progress(ctx, rid, builds.Progress{Step: int(rep.GetStep()), Total: int(rep.GetTotal()), Name: rep.GetStepName()})
+		}
+	case agentv1.BuildReport_PHASE_END:
+		rid, ok := l.buildID(id)
+		if !ok {
+			return
+		}
+		sink.End(ctx, rid, builds.Outcome{
+			State: rep.GetState(), SizeBytes: rep.GetSizeBytes(), FailureStep: rep.GetFailureStep(),
+			FailureClass: rep.GetFailureClass(), FailureWhy: rep.GetFailureWhy(), LogTail: rep.GetLogTail(),
+		})
+		l.mu.Lock()
+		delete(l.buildIDs, id)
+		l.mu.Unlock()
+	}
+}
+
+func (l *Link) buildID(id string) (string, bool) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	rid, ok := l.buildIDs[id]
+	return rid, ok
 }

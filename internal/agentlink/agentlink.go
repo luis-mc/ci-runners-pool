@@ -19,6 +19,7 @@ import (
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backend"
 	agentv1 "github.com/luis-mc/ci-runners-shared-pool/internal/gen/agent/v1"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/registry/builds"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/runners"
 )
 
@@ -48,6 +49,11 @@ type Link struct {
 	// Registry answers the image registry calls (protocol version 3, REG10).
 	// Nil answers "not in the registry" with no staging name (registry.go).
 	Registry RegistrySink
+
+	// Builds keeps the build reports of agents as build records (IMG1, R5.68).
+	// Nil drops them.
+	Builds   builds.Sink
+	buildIDs map[string]string // machine id + agent build id -> record id
 
 	mu      sync.Mutex
 	pending map[string]chan *agentv1.RunnerResult

@@ -12,6 +12,7 @@ import (
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backend"
 	agentv1 "github.com/luis-mc/ci-runners-shared-pool/internal/gen/agent/v1"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/registry/builds"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/runners"
 )
 
@@ -72,8 +73,16 @@ func (b *Backend) PrepareImage(ctx context.Context, spec backend.ImageSpec) (bac
 				return backend.ImageRef{}, ctx.Err()
 			}
 			b.log("prepare image", "The pull from the registry failed ("+b.redact(perr.Error())+"); building the image here instead")
-		} else if ans.GetStagingName() != "" {
-			stage = ans
+		} else {
+			if ans.GetOutcome() == agentv1.EnsureImageAnswer_OUTCOME_NOT_FOUND {
+				// The controller said the registry has no such image (R5.71).
+				m := builds.MetaFrom(ctx)
+				m.Reason = "not_in_registry"
+				ctx = builds.WithMeta(ctx, m)
+			}
+			if ans.GetStagingName() != "" {
+				stage = ans
+			}
 		}
 	}
 	// One build per machine at a time (decision D20): a second asker waits, then

@@ -7,7 +7,7 @@ status: building
 version: 0.1.0
 owner: owner
 type: reference
-code: ["internal/registry/**", "internal/agentlink/registry.go", "internal/agent/registry.go", "internal/backend/container/ensure.go", "internal/backend/container/buildstream.go", "internal/store/imagebuilds.go", "internal/api/handlers_registry*.go", "internal/api/stubs_registry_*.go", "internal/store/queries/registry_*.sql", "internal/store/queries/image_builds.sql", "internal/store/migrations/00019_registry.sql", "apps/web/src/screens/registry/**"]
+code: ["internal/registry/**", "internal/agentlink/registry.go", "internal/agent/registry.go", "internal/backend/container/ensure.go", "cmd/crsp/registry*wiring.go", "internal/backend/container/buildstream.go", "internal/store/imagebuilds.go", "internal/api/handlers_registry*.go", "internal/api/stubs_registry_*.go", "internal/store/queries/registry_*.sql", "internal/store/queries/image_builds.sql", "internal/store/migrations/00019_registry.sql", "apps/web/src/screens/registry/**"]
 design_system: [UX-4, UX-5, UX-13, UX-16, UX-19, UX-25, UX-28, UX-29, UX-30, UX-34, UX-38, UX-41, UX-49, UX-54, UX-58, UX-62, UX-71, UX-72, UX-73]
 last_verified: 2026-11-19
 artifact:
@@ -250,11 +250,13 @@ Canonical JSON (`registry.CanonicalJSON`): one object, no whitespace, keys in by
 
 **R5.66** — A mirrored tag is re-checked upstream after `tag_recheck_minutes` (default 60); a stale tag is served when upstream is offline. Partly built (REG9): the setting is saved, validated (1 minute to 7 days) and sets the proxy's content lifetime (never under 7 days). Distribution asks the upstream for a tag on every pull and, when it cannot answer, serves the cached tag; a re-check interval and the "stale" mark in the console are not built.
 
-**R5.67** — The mirror follows the same private address and token rules (R5.2, R5.3). Built (REG9): the mirror is served only through a token `Guard` that REG1 passes in; with none it answers 401 to every request, so it is never anonymous. The private address rule is the listener's (REG1).
+**R5.67** — The mirror follows the same private address and token rules (R5.2, R5.3). Built (REG11, the join): `cmd/crsp/registry_wiring.go` (`wireRegistry`, `openRegistryCore`, the seam REG1 fills; nil-safe, so a build with no registry core runs as before), `internal/registry/sink/` (the controller's answers to the agent registry calls over `Locator`, `TokenIssuer`, `Recorder` and `Promoter`), `internal/registry/records/imagestore.go` (`registry.ImageStore` for REG3, REG7 and REG1; query `SetRegistryImageState`), the `BuildReport` agent message and its two ends (`internal/agent/registry.go`, `internal/agentlink/registry.go`), `container.BuildLink` (the build sink slot of the agent process). The mirror was wired by REG9; the stack scan, the profile resolver and the keyer are built in `wireRegistry`; `machines.Hooks.Registry` is `registryAvailable()`.
+
+Built (REG9): the mirror is served only through a token `Guard` that REG1 passes in; with none it answers 401 to every request, so it is never anonymous. The private address rule is the listener's (REG1).
 
 ### IMG1: build truth (R5.68 to R5.72)
 
-**Built (IMG1).** The parser, the build record, the read API, the `image.build` event and the one-build rule are built and tested. Not yet wired: the agent sends its build progress to the controller's `builds.Recorder` over the agent link, and `cmd` sets `api.Options.Builds`; until then the agent's `Config.Builds` is nil, the build streams to the agent log and the read routes answer 501. A machine builds one image at a time, and while a job runs the build gets half the cores (RES19 decision D20, `--cpu-quota`).
+**Built (IMG1).** The parser, the build record, the read API, the `image.build` event and the one-build rule are built and tested. Wired by the join (REG11): the agent sends its build progress to the controller's `builds.Recorder` over the agent link (`BuildReport`, protocol version 3, so only while the registry path is on) and `cmd` sets `api.Options.Builds`; on a machine with no registry path the build streams to the agent log only. A machine builds one image at a time, and while a job runs the build gets half the cores (RES19 decision D20, `--cpu-quota`).
 
 **R5.68** — Builds stream (`docker build --progress=plain` or `rawjson`) and are parsed into step, of, name, state (RES19 7).
 
@@ -399,7 +401,7 @@ Rows for R5.13 to R5.20 (agent ensure-image), R5.21 and R5.22 (key), R5.59 to R5
 
 ## 11. Not built yet
 
-Everything but the contract (key, types, interfaces, tables, queries, agent link messages and API stubs) and the agent side (REG2). Known gaps of IMG1: the agent-to-controller link of build progress is not wired yet. Known gaps of REG2: the agent sends the registry key of the backend (`runners.ImageKey`) until REG3 gives the profile key through `Config.RegistryRequest`; the pull and push token folder is passed with `docker --config`, which a `wsl docker` route cannot read from a Windows path; `Hooks.Registry` (HelloAck version 3) is set by the REG1 and REG4 wiring. Later, not in this wave: cosign signatures, a registry holder other than the controller, export of the registry.
+Not built: the registry core (REG1: Distribution under `/v2/`, the token issuer, the promoter, the disk-free implementation of `registry.DiskInfo`), on branch REG1-registry-core. Everything else is built and wired by the join (REG11); until REG1 sets `openRegistryCore` the controller runs with no registry: the registry routes answer 501, agents are not offered protocol version 3, and the build records, the profiles and the key choice are the only parts running. Still open after the join: the agent does not yet receive the profile key (the agent asks with the registry key of the backend, `Config.RegistryRequest`, until a controller message carries `Keyer.KeyFor`); the scan claim and result messages between agent and controller (`Scanner.Claim` and `Record` have no agent message yet); replace does not warm machines (`replace.Warmer` and `Holders` are nil); the overview shows machine ids for names (`records.Config.Machines` is nil); the disk-full push refusal calling `PushRefused`. Known gaps of REG2: the agent sends the registry key of the backend (`runners.ImageKey`) until REG3 gives the profile key through `Config.RegistryRequest`; the pull and push token folder is passed with `docker --config`, which a `wsl docker` route cannot read from a Windows path; `Hooks.Registry` (HelloAck version 3) is set by the REG1 and REG4 wiring. Later, not in this wave: cosign signatures, a registry holder other than the controller, export of the registry.
 
 ## 12. Code map
 
@@ -425,7 +427,7 @@ Built (REG6):
 
 - internal/registry/retention/ (budgets, settings, recommendations, safe delete, cleanup and its weekly `Tick`)
 - internal/store/registry_retention.go (the retention data adapter over `queries/registry_retention.sql`); internal/api/handlers_registry_reg6.go replaces `stubs_registry_reg6.go`
-- Not wired yet: `retention.New` and `retention.Service.Tick` in the controller's start-up (the owner of that wiring is the join), and the disk-full push refusal calling `PushRefused` (REG1).
+- Wired by the join (REG11): `retention.New` in `cmd/crsp/registry_wiring.go`; `Service.Tick` runs every 5 minutes once a registry core is present.
 
 Built (IMG1): internal/registry/builds/ (`progress.go` parser, `tail.go` redacted tail and failure class, `gate.go` one build at a time and the cores, `record.go` records and events, `api.go` the API view), internal/backend/container/buildstream.go (the streamed build), `Runner.RunStream` in internal/backend/sys, internal/store/imagebuilds.go, internal/api/handlers_registry_img1.go (replaces `stubs_registry_img1.go`), the `image.build` event (`events.ImageBuild`; `LiveEvent` of the contract gained `image.build` and `image_build`).
 

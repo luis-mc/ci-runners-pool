@@ -743,6 +743,22 @@ func (q *Queries) SetRegistryImageSizes(ctx context.Context, arg SetRegistryImag
 	return err
 }
 
+const setRegistryImageState = `-- name: SetRegistryImageState :exec
+UPDATE registry_images SET state = ?, keep_until = ?, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+WHERE id = ? AND state <> 'deleted'
+`
+
+type SetRegistryImageStateParams struct {
+	State     string
+	KeepUntil string
+	ID        string
+}
+
+func (q *Queries) SetRegistryImageState(ctx context.Context, arg SetRegistryImageStateParams) error {
+	_, err := q.exec(ctx, q.setRegistryImageStateStmt, setRegistryImageState, arg.State, arg.KeepUntil, arg.ID)
+	return err
+}
+
 const setRegistryLayerCharge = `-- name: SetRegistryLayerCharge :exec
 UPDATE registry_layers SET charged_to = ? WHERE digest = ? AND charged_to <> ?
 `

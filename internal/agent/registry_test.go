@@ -9,6 +9,7 @@ import (
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backend/container"
 	agentv1 "github.com/luis-mc/ci-runners-shared-pool/internal/gen/agent/v1"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/registry/builds"
 )
 
 type sentLog struct {
@@ -161,5 +162,42 @@ func TestMachineReportSaysRegistry(t *testing.T) {
 	rep := buildMachineReportWith(context.Background(), OSSys{}, &agentv1.Facts{}, nil, nil, nil, time.Unix(1, 0))
 	if !rep.GetRegistry() {
 		t.Fatal("the machine report does not say registry")
+	}
+}
+
+// IMG1: the agent reports each image build to the controller over the session;
+// with no session, or a controller without the registry, nothing is sent and
+// the build goes on.
+func TestRegistryClientBuildReports(t *testing.T) {
+	c := NewRegistryClient()
+	ctx := context.Background()
+	if _, err := c.Begin(ctx, builds.Meta{Key: "37fef5dbb41b"}); err == nil {
+		t.Fatal("no session: the build is not recorded")
+	}
+	log := newSentLog()
+	c.attach(log.send, false)
+	if _, err := c.Begin(ctx, builds.Meta{Key: "37fef5dbb41b"}); err == nil {
+		t.Fatal("a controller without the registry gets no build reports")
+	}
+	log = newSentLog()
+	c.attach(log.send, true)
+	h, err := c.Begin(ctx, builds.Meta{Profile: "node-web", Arch: "amd64", Key: "37fef5dbb41b", Reason: "not_in_registry"})
+	if err != nil || h.ID == "" {
+		t.Fatalf("begin %+v %v", h, err)
+	}
+	c.Progress(ctx, h.ID, builds.Progress{Step: 2, Total: 9, Name: "RUN apt-get update"})
+	c.End(ctx, h.ID, builds.Outcome{State: builds.StateFailed, FailureClass: builds.ClassDisk, FailureStep: "RUN x", FailureWhy: "no space", LogTail: "tail"})
+
+	b := waitMsg(t, log).GetBuildReport()
+	if b.GetPhase() != agentv1.BuildReport_PHASE_BEGIN || b.GetBuildId() != h.ID || b.GetProfile() != "node-web" || b.GetReason() != "not_in_registry" {
+		t.Fatalf("begin %+v", b)
+	}
+	p := waitMsg(t, log).GetBuildReport()
+	if p.GetPhase() != agentv1.BuildReport_PHASE_PROGRESS || p.GetStep() != 2 || p.GetTotal() != 9 || p.GetStepName() != "RUN apt-get update" {
+		t.Fatalf("progress %+v", p)
+	}
+	e := waitMsg(t, log).GetBuildReport()
+	if e.GetPhase() != agentv1.BuildReport_PHASE_END || e.GetState() != builds.StateFailed || e.GetFailureClass() != builds.ClassDisk || e.GetLogTail() != "tail" {
+		t.Fatalf("end %+v", e)
 	}
 }

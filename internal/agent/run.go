@@ -226,6 +226,7 @@ func SettingsFromProto(p *agentv1.MachineSettings) machines.Settings {
 func Run(ctx context.Context, cfg Config) error {
 	cfg.defaults()
 	container.Link.Set(cfg.Registry)
+	container.BuildLink.Set(cfg.Registry) // the build records live on the controller (IMG1)
 	log := cfg.Logger
 	if s, state, ok := cfg.cache().Load(); ok {
 		cfg.Gate.SetSettings(s, state) // R5.24: apply the last settings while the link is down

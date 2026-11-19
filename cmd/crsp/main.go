@@ -253,13 +253,24 @@ func runController() error {
 	})
 
 	// The pull-through mirror of upstream bases, under its own route prefix (registry R5.63).
-	mirrorSvc, mirrorProxy := startRegistryMirror(ctx, logger, cfg.DataDir, db, audit.New(db), nil)
+	// The registry core guards the mirror with its token check; without a core
+	// the mirror has no guard and answers 401 to everyone.
+	var mirrorGuard mirror.Guard
+	if ctl.Registry.Core != nil {
+		mirrorGuard = ctl.Registry.Core.MirrorGuard
+	}
+	mirrorSvc, mirrorProxy := startRegistryMirror(ctx, logger, cfg.DataDir, db, audit.New(db), mirrorGuard)
 	defer func() { _ = mirrorProxy.Close() }()
 	ctl.Options.RegistryMirror = mirrorSvc
 
 	mux := http.NewServeMux()
 	api.Register(mux, ctl.Options)
 	mux.Handle(mirror.PathPrefix, mirrorProxy.Handler())
+	// The image registry itself, on the same listener (registry R5.1): only
+	// when a registry core is present; people never talk to /v2/.
+	if ctl.Registry.Core != nil && ctl.Registry.Core.Registry != nil {
+		mux.Handle("/v2/", ctl.Registry.Core.Registry.Handler())
+	}
 	mux.Handle("/", webui.Handler())
 
 	handler := api.Recover(logger, mux)

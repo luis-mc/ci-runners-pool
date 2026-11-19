@@ -120,6 +120,8 @@ message SessionRequest {
     RegistryTokenRequest registry_token_request = 27;
     PushReport push_report = 28;
     PullReport pull_report = 29;
+    // IMG1: the life of one image build (R5.68, R5.69). Protocol version 3.
+    BuildReport build_report = 30;
   }
 }
 
@@ -1181,6 +1183,37 @@ message PushReport {
   string branch = 15;
   // The IMG1 build record this push follows, if any.
   string build_id = 16;
+}
+
+// BuildReport tells the controller about one image build of the agent: it
+// begins, moves from step to step and ends (registry R5.68, R5.69). The agent
+// chooses build_id; the controller keeps its own record id and maps the two.
+// The controller answers nothing; a lost report only leaves the record short.
+message BuildReport {
+  string build_id = 1;
+  enum Phase {
+    PHASE_UNSPECIFIED = 0;
+    PHASE_BEGIN = 1;
+    PHASE_PROGRESS = 2;
+    PHASE_END = 3;
+  }
+  Phase phase = 2;
+  // PHASE_BEGIN: what is built and why.
+  string profile = 3;
+  string arch = 4;
+  string key = 5;
+  string reason = 6;
+  // PHASE_PROGRESS: the step now running.
+  int32 step = 7;
+  int32 total = 8;
+  string step_name = 9;
+  // PHASE_END: done, failed or cancelled, and what to show of a failure.
+  string state = 10;
+  int64 size_bytes = 11;
+  string failure_step = 12;
+  string failure_class = 13;
+  string failure_why = 14;
+  string log_tail = 15;
 }
 
 // PullReport tells the controller how the machine got an image and how a pull

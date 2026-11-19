@@ -7,6 +7,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backend"
@@ -68,8 +69,9 @@ func (b *Backend) streamBuild(ctx context.Context, spec backend.ImageSpec, key s
 	meta := builds.MetaFrom(ctx)
 	meta.MachineID, meta.Key, meta.Arch = b.cfg.MachineID, key, normArch(spec.Arch)
 	var h builds.Handle
-	if b.cfg.Builds != nil {
-		got, err := b.cfg.Builds.Begin(ctx, meta)
+	sink := b.buildSink()
+	if sink != nil {
+		got, err := sink.Begin(ctx, meta)
 		if err != nil {
 			b.log("prepare image", "the build is not recorded: "+err.Error())
 		} else {
@@ -88,8 +90,8 @@ func (b *Backend) streamBuild(ctx context.Context, spec backend.ImageSpec, key s
 		lastSent, lastAt = p, time.Now()
 		p.Elapsed = time.Since(start).Seconds()
 		b.log("build", describe(p, h.TypicalSeconds))
-		if b.cfg.Builds != nil && h.ID != "" {
-			b.cfg.Builds.Progress(ctx, h.ID, p)
+		if sink != nil && h.ID != "" {
+			sink.Progress(ctx, h.ID, p)
 		}
 	}
 	onLine := func(line string) {
@@ -112,9 +114,9 @@ func (b *Backend) streamBuild(ctx context.Context, spec backend.ImageSpec, key s
 		}
 	}
 	finish := func(o builds.Outcome) {
-		if b.cfg.Builds != nil && h.ID != "" {
+		if sink != nil && h.ID != "" {
 			// The context may be the cancelled one; the record is still written.
-			b.cfg.Builds.End(context.WithoutCancel(ctx), h.ID, o)
+			sink.End(context.WithoutCancel(ctx), h.ID, o)
 		}
 	}
 	fail := func(state string, cause error) (int64, error) {
@@ -178,4 +180,53 @@ func secText(s float64) string {
 		return strconv.Itoa(d) + " s"
 	}
 	return strconv.Itoa(d/60) + " min " + strconv.Itoa(d%60) + " s"
+}
+
+// BuildLink is the build sink of the agent process, set by the agent when it
+// runs: the build records live on the controller. A backend whose Config has
+// no Builds uses it.
+var BuildLink = &BuildSlot{}
+
+// BuildSlot forwards to the builds.Sink set into it; empty it records nothing.
+type BuildSlot struct {
+	mu sync.RWMutex
+	s  builds.Sink
+}
+
+// Set puts the sink into the slot.
+func (s *BuildSlot) Set(k builds.Sink) { s.mu.Lock(); s.s = k; s.mu.Unlock() }
+
+func (s *BuildSlot) get() builds.Sink { s.mu.RLock(); defer s.mu.RUnlock(); return s.s }
+
+var _ builds.Sink = (*BuildSlot)(nil)
+
+// Begin implements builds.Sink.
+func (s *BuildSlot) Begin(ctx context.Context, m builds.Meta) (builds.Handle, error) {
+	if k := s.get(); k != nil {
+		return k.Begin(ctx, m)
+	}
+	return builds.Handle{}, nil
+}
+
+// Progress implements builds.Sink.
+func (s *BuildSlot) Progress(ctx context.Context, id string, p builds.Progress) {
+	if k := s.get(); k != nil {
+		k.Progress(ctx, id, p)
+	}
+}
+
+// End implements builds.Sink.
+func (s *BuildSlot) End(ctx context.Context, id string, o builds.Outcome) {
+	if k := s.get(); k != nil {
+		k.End(ctx, id, o)
+	}
+}
+
+// buildSink is where this backend's build records go: its own sink, else the
+// agent's link to the controller, else none.
+func (b *Backend) buildSink() builds.Sink {
+	if b.cfg.Builds != nil {
+		return b.cfg.Builds
+	}
+	return BuildLink
 }

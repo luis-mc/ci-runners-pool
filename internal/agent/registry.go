@@ -2,11 +2,14 @@ package agent
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"sync"
 	"time"
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backend/container"
 	agentv1 "github.com/luis-mc/ci-runners-shared-pool/internal/gen/agent/v1"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/registry/builds"
 )
 
 // The agent side of the image registry calls (registry R5.19, R5.20, protocol
@@ -184,4 +187,63 @@ func (c *RegistryClient) onToken(t *agentv1.RegistryToken) {
 		default:
 		}
 	}
+}
+
+// The build records (IMG1, R5.68, R5.69): the agent tells the controller about
+// each image build as it goes. The reports are best effort: with no session,
+// or a controller that does not say it has the registry, the build goes on and
+// is recorded nowhere.
+var _ builds.Sink = (*RegistryClient)(nil)
+
+// buildSession is the session to report to, or nil when none can take it.
+func (c *RegistryClient) buildSession() *registrySession {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if !c.supported {
+		return nil
+	}
+	return c.cur
+}
+
+func (c *RegistryClient) buildReport(rep *agentv1.BuildReport) error {
+	s := c.buildSession()
+	if s == nil {
+		return container.ErrNoController
+	}
+	return s.send(&agentv1.SessionRequest{Message: &agentv1.SessionRequest_BuildReport{BuildReport: rep}})
+}
+
+// Begin implements builds.Sink. The id is the agent's own; the controller maps
+// it to its record.
+func (c *RegistryClient) Begin(_ context.Context, m builds.Meta) (builds.Handle, error) {
+	var b [8]byte
+	if _, err := rand.Read(b[:]); err != nil {
+		return builds.Handle{}, err
+	}
+	id := "abld_" + hex.EncodeToString(b[:])
+	err := c.buildReport(&agentv1.BuildReport{
+		BuildId: id, Phase: agentv1.BuildReport_PHASE_BEGIN,
+		Profile: m.Profile, Arch: m.Arch, Key: m.Key, Reason: m.Reason,
+	})
+	if err != nil {
+		return builds.Handle{}, err
+	}
+	return builds.Handle{ID: id}, nil
+}
+
+// Progress implements builds.Sink.
+func (c *RegistryClient) Progress(_ context.Context, id string, p builds.Progress) {
+	_ = c.buildReport(&agentv1.BuildReport{
+		BuildId: id, Phase: agentv1.BuildReport_PHASE_PROGRESS,
+		Step: int32(p.Step), Total: int32(p.Total), StepName: p.Name,
+	})
+}
+
+// End implements builds.Sink.
+func (c *RegistryClient) End(_ context.Context, id string, o builds.Outcome) {
+	_ = c.buildReport(&agentv1.BuildReport{
+		BuildId: id, Phase: agentv1.BuildReport_PHASE_END,
+		State: o.State, SizeBytes: o.SizeBytes, FailureStep: o.FailureStep,
+		FailureClass: o.FailureClass, FailureWhy: o.FailureWhy, LogTail: o.LogTail,
+	})
 }
