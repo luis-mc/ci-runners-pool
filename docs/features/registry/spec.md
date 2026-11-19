@@ -232,6 +232,8 @@ Canonical JSON (`registry.CanonicalJSON`): one object, no whitespace, keys in by
 
 **R5.62** — Tool binaries come through pinned, sha256-checked downloads (DL-94).
 
+**Built by REG8:** R5.59 to R5.62, in `internal/registry/scan/` and tested with fake scanner binaries. `Scanner` implements `registry.Scanner` over `queries/registry_scan.sql` (no new column, so migration 00027 is unused): `Hook()` is the promoted hook that queues the row, `Claim` offers the pusher's images first and takes a row once, `Record` stores counts, or marks the row `failed` with the reason when the tool failed or a referrer could not be stored; a failed scan never returns an error to a pull or a promotion. `Runner` runs `syft registry:<ref>` and `trivy image <ref>` by digest only (a tag is refused) and counts packages from the SPDX SBOM and vulnerabilities by severity from the Trivy JSON report. `RegistryClient` stores each document as an OCI 1.1 artifact manifest whose `subject` is the image manifest digest. `Fetcher` and `LoadPin` read `scripts/delivery/tools.json` (the file CI uses) and accept a download only when its sha256 equals the pin. **Not yet:** the Trivy pin (`tools_pin.py entry trivy ...` needs the release hashes, which the REG8 sandbox could not reach), the agent side that calls `Claim` over the agent link and runs `Runner`, and the controller wiring of `Hook()`; REG1 and REG2 join them.
+
 ### REG9: pull-through mirror (R5.63 to R5.67)
 
 **R5.63** — A second Distribution instance in proxy mode on the same controller listener mirrors upstream bases (default docker.io, ghcr.io, mcr.microsoft.com, quay.io); it builds caches R5.24 to R5.26.
@@ -334,7 +336,7 @@ All under `/api/v1/registry/*` with `x-cli: none` for now. `GET /api/v1/registry
 
 ## 9. How it is proven
 
-Rows for R5.21 and R5.22 (key) and R5.20 (agent link stub) are built and run in CI. Every other row is planned: none of those tests exist yet (NOT YET IMPLEMENTED). Paths are written without code marks until the files exist.
+Rows for R5.21, R5.22 (key), R5.20 (agent link stub) and R5.59 to R5.62 (scan) are built and run in CI. Every other row is planned: none of those tests exist yet (NOT YET IMPLEMENTED). Paths are written without code marks until the files exist.
 
 | Requirement | Test |
 |---|---|
@@ -395,6 +397,7 @@ Built (REG10):
 - internal/registry/ (`key.go` with the key and names, `types.go`, `interfaces.go`, `doc.go`)
 - internal/agentlink/registry.go (controller side stub of the protocol version 3 calls)
 - internal/store/migrations/00019_registry.sql and the query files `registry_core.sql` (REG1), `registry_keys.sql` (REG3), `registry_records.sql` (REG4), `registry_retention.sql` (REG6), `registry_replace.sql` (REG7), `registry_scan.sql` (REG8), `registry_mirror.sql` (REG9), `image_builds.sql` (IMG1)
+- internal/registry/scan/ (REG8: `scanner.go`, `run.go`, `referrers.go`, `fetch.go`)
 - internal/api/stubs_registry_reg4.go, `_reg6.go`, `_reg7.go`, `_reg9.go`, `_img1.go` (501 per owning task)
 
 Migration numbers reserved for the wave, so parallel tasks never collide: 00020 IMG2, 00021 IMG3, 00022 REG1, 00023 REG3, 00024 REG4, 00025 REG6, 00026 REG7, 00027 REG8, 00028 REG9, 00029 IMG1. A task that needs no new column uses none.
