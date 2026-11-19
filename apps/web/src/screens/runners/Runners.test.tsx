@@ -98,7 +98,7 @@ describe('Runners list', () => {
           os: 'windows',
           arch: 'x64',
           backend: 'persistent',
-          labels: ['self-hosted', 'windows', 'x64', 'crsp-light'],
+          labels: ['self-hosted', 'windows', 'x64', 'docker'],
         }),
       ],
     });
@@ -109,7 +109,7 @@ describe('Runners list', () => {
     expect(within(table).getByText('windows x64, persistent')).toBeTruthy();
     expect(within(table).getByText('self-hosted, windows +2')).toBeTruthy();
     expect(
-      within(table).getByText('self-hosted, windows, x64, crsp-light').className,
+      within(table).getByText('self-hosted, windows, x64, docker').className,
     ).toContain('ds-visually-hidden');
   });
 
@@ -201,7 +201,7 @@ describe('Runners list', () => {
   });
 
   it('shows no problem for a runner that is already gone, and the row leaves live (OPS19)', async () => {
-    let list = [runner({ id: 'r1', name: 'crsp-light-home-automation-windows' })];
+    let list = [runner({ id: 'r1', name: 'crsp-home-automation-windows' })];
     const api = signedIn()
       .on('GET', '/api/v1/runners', () => ({ items: list }))
       .on('DELETE', '/api/v1/runners/:id', () => {
@@ -211,7 +211,7 @@ describe('Runners list', () => {
     renderApp(api, '/runners');
     await screen.findByRole('table', { name: /^Runners on/ });
     fireEvent.click(
-      screen.getByRole('checkbox', { name: 'Select crsp-light-home-automation-windows' }),
+      screen.getByRole('checkbox', { name: 'Select crsp-home-automation-windows' }),
     );
     fireEvent.click(screen.getByRole('button', { name: 'Delete 1 runner' }));
     const dialog = await screen.findByRole('dialog', { name: 'Delete these runners?' });

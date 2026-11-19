@@ -107,10 +107,6 @@ func (s *Service) planOn(ctx context.Context, r Repository) ([]Step, error) {
 				Text: "Write variable " + name + " of " + r.FullName + " = " + val})
 		}
 	}
-	// RUNS_ON_LIGHT is written by the controller once the light runner is placed (R5.65).
-	if pol.LightRunner && s.cfg.Light != nil && len(want) > 0 {
-		steps[0].Text += ", with a light runner for jobs that last seconds"
-	}
 	return steps, nil
 }
 
@@ -344,13 +340,8 @@ func (s *Service) runStep(ctx context.Context, p auth.Principal, r Repository, s
 		if err := s.migrateLegacy(ctx, p, r); err != nil { // CRSP25: old CRSP_RUNS_ON_* names
 			return err
 		}
-		// The light runner is best effort: the pool is on either way, and the
-		// doctor says why a light runner is missing (R5.65).
 		r.PoolOn = true
 		s.syncRegistrations(ctx, p, r) // the pool runners get a registration for this repository
-		if err := s.syncLight(ctx, p, r, pol); err != nil {
-			s.cfg.Audit.Audit(ctx, p, "light.failed", "repository", r.FullName, err.Error())
-		}
 	case ActPoolOff:
 		if err := s.cfg.Store.SetRepositoryPool(ctx, r.ID, false, p.Login, s.cfg.Now()); err != nil {
 			return err
@@ -358,11 +349,6 @@ func (s *Service) runStep(ctx context.Context, p auth.Principal, r Repository, s
 		s.cfg.Audit.Audit(ctx, p, "pool.off", "repository", r.FullName, "no new runner is registered; running jobs finish")
 		if err := s.SyncOrgGroup(ctx, r.InstallationID); err != nil {
 			s.cfg.Audit.Audit(ctx, p, "org_pool.sync_failed", "repository", r.FullName, err.Error())
-		}
-		if s.cfg.Light != nil {
-			if err := s.cfg.Light.RemoveLight(ctx, r, p.Login); err != nil {
-				s.cfg.Audit.Audit(ctx, p, "light.failed", "repository", r.FullName, err.Error())
-			}
 		}
 		s.syncRegistrations(ctx, p, r) // drain and remove this repository's registrations
 	case ActWriteVariable:

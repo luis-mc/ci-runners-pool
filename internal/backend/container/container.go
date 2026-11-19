@@ -382,15 +382,24 @@ func (b *Backend) Stop(ctx context.Context, h backend.Handle) error {
 // CleanUp implements backend.Backend. It removes the runner's folder and any
 // config file, so nothing passes to the next job (runners R5.26). It is safe to
 // call twice, and when the container is already gone (R5.10).
+//
+// With no container engine at all no container can exist, so there is nothing
+// to clean and the call succeeds (a failed runner can then be removed).
 func (b *Backend) CleanUp(ctx context.Context, h backend.Handle) error {
 	pool, name, ok := splitRef(h.Ref)
 	if !ok {
 		return fmt.Errorf("bad runner reference %q", h.Ref)
 	}
 	if IsPersistentPool(pool) {
-		return b.cleanUpPersistent(ctx, name)
+		if err := b.cleanUpPersistent(ctx, name); err != nil && !errors.Is(err, ErrNoEngine) {
+			return err
+		}
+		return nil
 	}
 	if err := b.cleanUp(ctx, pool, name); err != nil {
+		if errors.Is(err, ErrNoEngine) {
+			return nil
+		}
 		return err
 	}
 	b.releaseIfGone(ctx, pool)

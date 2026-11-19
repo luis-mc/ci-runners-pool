@@ -41,12 +41,6 @@ import {
   type Repository,
 } from './plans';
 
-/** Why light runners appear when the pool is turned on (scheduling R5.65). */
-export const LIGHT_RUNNER_WHY =
-  'Turning the pool on also makes one light runner per system, on a machine that is up. Jobs that last seconds use it, so they do not wait behind a long build. Turn it off for a repository on its page.';
-export const LIGHT_RUNNER_DONE =
-  'The pool made light runners for short jobs. They show in Runners.';
-
 const STEPS = ['Repositories', 'Review', 'Turning on', 'Done'] as const;
 
 export function TurnOnPoolWizard({ onDone }: { onDone?: () => void }) {
@@ -350,7 +344,6 @@ export function TurnOnPoolWizard({ onDone }: { onDone?: () => void }) {
               (s) => `${s.text}${s.needs_yes ? ' (needs your yes)' : ''}`,
             )}
           />
-          <Message tone="note">{LIGHT_RUNNER_WHY}</Message>
         </Stack>
       </Pane>
     );
@@ -403,8 +396,7 @@ export function TurnOnPoolWizard({ onDone }: { onDone?: () => void }) {
           ) : null}
           {phase === 'done' || phase === 'done-after-reload' ? (
             <Message tone="done">
-              The pool is on. {done.length} {done.length === 1 ? 'step' : 'steps'} done.{' '}
-              {LIGHT_RUNNER_DONE}
+              The pool is on. {done.length} {done.length === 1 ? 'step' : 'steps'} done.
             </Message>
           ) : null}
           <Facts

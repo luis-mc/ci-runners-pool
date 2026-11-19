@@ -641,8 +641,8 @@ func TestACLResetFailureStopsBeforeLock(t *testing.T) {
 	r := newRig(t)
 	r.cmd.Rules = append(r.cmd.Rules, sysfake.Rule{Match: "icacls", Result: sys.Result{ExitCode: 5, Stderr: "Access is denied."}})
 	err := start(t, r, r.spec(), backend.StartConfig{Registration: "REGTOKEN"})
-	if err == nil || !strings.HasPrefix(err.Error(), ErrPrepareFolder) || strings.Contains(err.Error(), "icacls") {
-		t.Fatalf("err = %v, want the one short line", err)
+	if err == nil || !strings.HasPrefix(err.Error(), ErrPrepareFolder) || !strings.Contains(err.Error(), "set owner") || !strings.Contains(err.Error(), "exited 5") || !strings.Contains(err.Error(), "Access is denied") {
+		t.Fatalf("err = %v, want the short line with the step, the exit code and the message", err)
 	}
 	var fe *FolderResetError
 	if !errors.As(err, &fe) || !strings.Contains(fe.Detail, "Access is denied") || !strings.Contains(fe.Detail, "reset folder owner") {

@@ -22,14 +22,14 @@ func (f *fakeFleet) RemoveRepositoryRunners(_ context.Context, id int64, _ strin
 	return []string{"crsp-job-1"}, nil
 }
 
-func publicEnv(t *testing.T) (*env, *fakeLight, *fakeFleet) {
+func publicEnv(t *testing.T) (*env, *fakeFleet) {
 	t.Helper()
-	l, f := &fakeLight{}, &fakeFleet{}
+	f := &fakeFleet{}
 	e := newEnv(t)
-	e.svc.cfg.Light, e.svc.cfg.Fleet = l, f
+	e.svc.cfg.Fleet = f
 	e.world()
 	e.turnOn(101)
-	return e, l, f
+	return e, f
 }
 
 func (e *env) variable(name string) string {
@@ -42,7 +42,7 @@ func (e *env) variable(name string) string {
 // (R5.41): it keeps working, the visibility is stored, and while the setting is
 // off the repository carries the problem public_pool_on_while_off.
 func TestPublicizedKeepsServingAndShowsProblem(t *testing.T) {
-	e, light, fleet := publicEnv(t)
+	e, fleet := publicEnv(t)
 	ctx := context.Background()
 	e.setPublic(false)
 	before := e.variable("RUNS_ON_LINUX")
@@ -57,8 +57,8 @@ func TestPublicizedKeepsServingAndShowsProblem(t *testing.T) {
 	if v := e.variable("RUNS_ON_LINUX"); v != before {
 		t.Errorf("RUNS_ON_LINUX changed to %s", v)
 	}
-	if len(light.removed) != 0 || len(fleet.removed) != 0 {
-		t.Errorf("nothing may be removed: light %v fleet %v", light.removed, fleet.removed)
+	if len(fleet.removed) != 0 {
+		t.Errorf("nothing may be removed: fleet %v", fleet.removed)
 	}
 	if !e.audit.has("repository.publicized|controller|alice/secret") || e.audit.has("pool.off") {
 		t.Errorf("audit: %v", e.audit.events)
@@ -89,7 +89,7 @@ func TestPublicizedKeepsServingAndShowsProblem(t *testing.T) {
 // CRSP131: the periodic visibility check only stores what it reads; a public
 // repository already on the pool stays on.
 func TestReconcileKeepsPublicRepositoryServed(t *testing.T) {
-	e, _, fleet := publicEnv(t)
+	e, fleet := publicEnv(t)
 	ctx := context.Background()
 	e.setPublic(false)
 	e.fake.Lock(func() { e.fake.Repos[101].Private = false })
@@ -184,8 +184,8 @@ func TestTurnOnPublicRefusedWhileOff(t *testing.T) {
 // pool, keeps its policy, and leaves private ones alone. It reports how many.
 func TestStopPublicOnPoolKeepsPolicyAndCounts(t *testing.T) {
 	e := newEnv(t)
-	l, f := &fakeLight{}, &fakeFleet{}
-	e.svc.cfg.Light, e.svc.cfg.Fleet = l, f
+	f := &fakeFleet{}
+	e.svc.cfg.Fleet = f
 	e.world()
 	ctx := context.Background()
 	e.turnOn(100, 101)
@@ -217,8 +217,8 @@ func TestStopPublicOnPoolKeepsPolicyAndCounts(t *testing.T) {
 			t.Errorf("public variable %s, want the hosted label", v)
 		}
 	})
-	if len(f.removed) != 1 || f.removed[0] != 100 || len(l.removed) == 0 {
-		t.Errorf("fleet %v light %v", f.removed, l.removed)
+	if len(f.removed) != 1 || f.removed[0] != 100 {
+		t.Errorf("fleet %v", f.removed)
 	}
 	if !e.audit.has("pool.off|owner1|alice/web|the repository is public") || !e.audit.has("runners.removed|owner1|alice/web") {
 		t.Errorf("audit: %v", e.audit.events)
@@ -231,7 +231,7 @@ func TestStopPublicOnPoolKeepsPolicyAndCounts(t *testing.T) {
 
 // A private repository is left alone by both paths.
 func TestPrivateRepositoryStaysServed(t *testing.T) {
-	e, _, fleet := publicEnv(t)
+	e, fleet := publicEnv(t)
 	ctx := context.Background()
 	if err := e.svc.ReconcileInstallations(ctx); err != nil {
 		t.Fatal(err)

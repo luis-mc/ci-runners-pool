@@ -6,24 +6,17 @@ import (
 	"testing"
 )
 
-// OPS19: a light runner that is in the list is found by its id and by its
-// name; only a runner that is not there is "not found".
-func TestLightRunnerIsFoundForRemove(t *testing.T) {
+// OPS19: a runner that is in the list is found by its id and by its name;
+// only a runner that is not there is "not found".
+func TestRunnerIsFoundForRemove(t *testing.T) {
 	r := newRig(machine("linux", "x64", true))
-	r.svc.Light = fakeLightPlacer{"linux": {{MachineID: "m1", LightSlots: 1}}}
 	ctx := context.Background()
-	if _, err := r.svc.EnsureLight(ctx, 1, "demo", []string{"linux"}, "luis-mc"); err != nil {
-		t.Fatal(err)
-	}
-	list, _ := r.svc.List(ctx, Filter{})
-	if len(list) != 1 {
-		t.Fatalf("list %d", len(list))
-	}
-	for _, key := range []string{list[0].ID, list[0].Name} {
-		rec, _, err := r.svc.BeginRemove(ctx, key, false, "luis-mc")
+	rec := r.add(t)
+	for _, key := range []string{rec.ID, rec.Name} {
+		got, _, err := r.svc.BeginRemove(ctx, key, false, "luis-mc")
 		var nc *NeedsConfirmation
-		if !errors.As(err, &nc) || rec.ID != list[0].ID {
-			t.Fatalf("key %q: %+v %v", key, rec, err)
+		if !errors.As(err, &nc) || got.ID != rec.ID {
+			t.Fatalf("key %q: %+v %v", key, got, err)
 		}
 		if _, err := r.svc.GetView(ctx, key); err != nil {
 			t.Fatalf("view %q: %v", key, err)

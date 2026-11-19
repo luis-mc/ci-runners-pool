@@ -124,26 +124,6 @@ func TestChangingRunnerKindsRewritesVariables(t *testing.T) { // R5.60
 	}
 }
 
-func TestEphemeralOnlyRepositoryKeepsNoLightRunner(t *testing.T) { // R5.60
-	l := &fakeLight{placed: 1}
-	e := lightEnv(t, l)
-	e.turnOn(100, 101)
-	if len(l.ensured) != 1 { // only the private repository 101
-		t.Fatalf("ensured %v", l.ensured)
-	}
-	var web, secret string
-	e.fake.Lock(func() {
-		web = e.fake.Variables["alice/web"][VarLight]
-		secret = e.fake.Variables["alice/secret"][VarLight]
-	})
-	if web != LightEphemeralValue || !strings.Contains(web, runners.EphemeralLabel) {
-		t.Fatalf("public light variable %q", web)
-	}
-	if secret != LightValue {
-		t.Fatalf("private light variable %q", secret)
-	}
-}
-
 type ephemeralSource struct {
 	has bool
 	err error

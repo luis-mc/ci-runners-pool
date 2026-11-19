@@ -151,7 +151,6 @@ test('Add runners: Stop ends the plan stopped and Done says what is left', async
             allow_fork_pull_requests: false,
             labels: ['self-hosted'],
             runner_groups: [],
-            light_runner: true,
           },
         },
       ],

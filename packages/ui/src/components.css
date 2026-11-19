@@ -653,6 +653,13 @@ body {
   margin-inline-start: var(--ds-space-2);
   color: var(--ds-color-text-muted);
 }
+/* A title is centred on its border and, as a link, is as high as a touch target. A pane that holds panes (a Section of
+   Cards) leaves half a target plus a gap above the first row, so the title of a card never covers the title of its
+   section (OPS48). */
+.ds-pane__body > .ds-card-grid,
+.ds-pane__body > .ds-pane {
+  padding-block-start: calc(var(--ds-target-min) / 2 + var(--ds-space-2));
+}
 .ds-pane:focus-within {
   border-color: var(--ds-color-focus);
 }
@@ -2462,6 +2469,12 @@ button.ds-jobgraph__node:hover {
   text-underline-offset: 0.2em;
 }
 
+/* A long text after a cell's content (a status word, then its reason) always has a space before it: the gap of the
+   one-line table exists only from 600 px, so it is here for every table (UX-72). */
+.ds-table__value > * + [data-long] {
+  margin-inline-start: var(--ds-space-2);
+}
+
 /* The row action column (components 15 and 57, UX-72): a fixed width from a token, the label on one line. */
 .ds-table th.ds-table__action,
 .ds-table td.ds-table__action {
@@ -2514,6 +2527,9 @@ button.ds-jobgraph__node:hover {
     align-items: center;
     gap: var(--ds-space-2);
     min-inline-size: 0;
+  }
+  .ds-table[data-one-line] .ds-table__value > * + [data-long] {
+    margin-inline-start: 0;
   }
   .ds-table[data-one-line] td[data-kind='grow'] .ds-table__value {
     inline-size: 0;

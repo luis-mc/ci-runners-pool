@@ -191,14 +191,15 @@ func (g *fakeGitHub) DeleteRunner(_ context.Context, _ int64, _ github.RunnerSco
 }
 
 type fakeAgent struct {
-	added   []backend.RunnerSpec
-	cfgs    []backend.StartConfig
-	removed []RemoveRequest
-	stopped []string
-	folders []string
-	addErr  error
-	errRef  string // service ref returned with addErr: the service exists but did not start
-	rmErr   error
+	added    []backend.RunnerSpec
+	cfgs     []backend.StartConfig
+	removed  []RemoveRequest
+	stopped  []string
+	folders  []string
+	addErr   error
+	cleanErr error  // CleanUp fails with it
+	errRef   string // service ref returned with addErr: the service exists but did not start
+	rmErr    error
 }
 
 func (a *fakeAgent) AddRunner(_ context.Context, _ string, spec backend.RunnerSpec, cfg backend.StartConfig) (backend.Handle, error) {
@@ -220,6 +221,9 @@ func (a *fakeAgent) RemoveRunner(_ context.Context, _ string, req RemoveRequest)
 	return nil
 }
 func (a *fakeAgent) CleanUp(_ context.Context, _ string, svc string) error {
+	if a.cleanErr != nil {
+		return a.cleanErr
+	}
 	a.folders = append(a.folders, svc)
 	return nil
 }

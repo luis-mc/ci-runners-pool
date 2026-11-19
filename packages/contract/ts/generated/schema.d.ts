@@ -3129,8 +3129,7 @@ export interface components {
          *           "linux",
          *           "x64"
          *         ],
-         *         "runner_groups": [],
-         *         "light_runner": true
+         *         "runner_groups": []
          *       }
          *     }
          */
@@ -3291,8 +3290,6 @@ export interface components {
             /** @description Generic labels only (github-integration R5.27). */
             labels: string[];
             runner_groups: string[];
-            /** @description Keep one light runner per OS for this repository and write RUNS_ON_LIGHT, so jobs that last seconds do not queue behind a long build (scheduling R5.65). On by default. */
-            light_runner: boolean;
             /**
              * @description Which runners take this repository's jobs (github-integration R5.60). ephemeral_only: only a fresh container made for the job. any_runner: a persistent runner may take it too. The default is ephemeral_only for a public repository and any_runner for a private one; runner_kinds_set says whether the owner chose it.
              * @enum {string}
@@ -3329,8 +3326,6 @@ export interface components {
             priority?: number;
             max_parallel_jobs?: number;
             allow_fork_pull_requests?: boolean;
-            /** @description Turn the light runner on or off (scheduling R5.65). */
-            light_runner?: boolean;
             /**
              * @description Set which runners take the repository's jobs (github-integration R5.60). default clears the owner's choice, so the default of the visibility applies.
              * @enum {string}
