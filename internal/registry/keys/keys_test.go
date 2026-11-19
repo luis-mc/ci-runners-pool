@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/luis-mc/ci-runners-shared-pool/internal/addresses"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/registry"
 )
 
@@ -93,7 +94,7 @@ func TestLabels(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	l := LabelsFor(key, in, ref, "o/r", "c")
+	l := LabelsFor(key, in, ref, addresses.Defaults(), "o/r", "c")
 	want := map[string]string{
 		LabelRevision: "c", LabelSource: "https://github.com/o/r", LabelBaseName: "ubuntu:24.04", LabelBaseDigest: baseRef.BaseDigest,
 		LabelProfile: "node-web", LabelLineage: "o/r|node-web|arm64", LabelStackHash: in.StackHash, LabelKey: key.String(),

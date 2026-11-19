@@ -3,6 +3,7 @@ package keys
 import (
 	"strings"
 
+	"github.com/luis-mc/ci-runners-shared-pool/internal/addresses"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/registry"
 )
 
@@ -45,12 +46,13 @@ func ParseLineage(s string) (repository, profile, arch string, ok bool) {
 }
 
 // LabelsFor returns the labels every image of the key carries (R5.7). repository
-// is owner/name of the run ("" for a standard image), commit the run's commit.
+// is owner/name of the run ("" for a standard image), commit the run's commit;
+// site gives the GitHub address the source label points at.
 // REG1 checks them again at promotion against the key input.
-func LabelsFor(key registry.Key, in registry.KeyInput, ref registry.ProfileRef, repository, commit string) map[string]string {
+func LabelsFor(key registry.Key, in registry.KeyInput, ref registry.ProfileRef, site addresses.Set, repository, commit string) map[string]string {
 	source := ""
 	if repository != "" {
-		source = "https://github.com/" + repository
+		source = site.RepoPage(repository)
 	}
 	return map[string]string{
 		LabelRevision:   commit,
