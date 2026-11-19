@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io/fs"
+	"path"
 	"path/filepath"
 	"strings"
 )
@@ -63,9 +64,15 @@ func EngineCATargets(f HostFiles, o EngineCAOptions) ([]EngineCATarget, error) {
 		return nil, fmt.Errorf("%w: registry host %q", ErrInvalid, o.Host)
 	}
 	name := hostDirName(o.GOOS, o.Host)
+	// The Linux engine's folders are Linux paths whatever system runs this code;
+	// Docker Desktop's folder is a path of the host system.
 	t := func(engine, certs string) EngineCATarget {
-		d := filepath.Join(certs, name)
-		return EngineCATarget{Engine: engine, Dir: d, File: filepath.Join(d, EngineCAFile)}
+		join := filepath.Join
+		if o.GOOS == "linux" {
+			join = path.Join
+		}
+		d := join(certs, name)
+		return EngineCATarget{Engine: engine, Dir: d, File: join(d, EngineCAFile)}
 	}
 	switch o.GOOS {
 	case "linux":
