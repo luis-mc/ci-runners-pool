@@ -47,7 +47,7 @@ import {
   elapsedSeconds,
   type RunRow,
 } from './runList';
-import { BranchWords, RunDetail, runColumns } from './RunRows';
+import { BranchWords, runColumns, runPath } from './RunRows';
 import {
   RETENTION_WORDS,
   forecastOf,
@@ -544,15 +544,11 @@ function JobsListTab({ kind }: { kind: Kind }) {
               expandLabel="Why"
               rowLabel={(r) => `${r.workflow} run ${r.id}`}
               oneLine
-              detail={{
+              onOpen={(r) => void navigate(runPath(r))}
+              action={{
                 label: 'Open run',
-                render: (r) => (
-                  <RunDetail
-                    row={r}
-                    now={live}
-                    open={(j) => void navigate(`/jobs/${j.id}`)}
-                  />
-                ),
+                to: runPath,
+                name: (r) => `${r.workflow} run ${r.id}`,
               }}
             />
           ) : (

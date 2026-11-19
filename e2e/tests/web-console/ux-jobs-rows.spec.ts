@@ -148,12 +148,16 @@ for (const s of SCREENS) {
   });
 }
 
-test('a run row opened in place keeps the page from scrolling sideways at 1300 px', async ({
+test('Open run lands on the Run page and the page does not scroll sideways at 1300 px', async ({
   page,
 }) => {
   await openRoute(page, { url: '/jobs/done', signedOut: false }, { width: 1300 });
-  await page.getByRole('button', { name: 'Open run' }).first().click();
-  await expect(page.getByText(/queue wait is the light part of a bar/)).toBeVisible();
+  await page
+    .getByRole('button', { name: /^Open run/ })
+    .first()
+    .click();
+  await expect(page).toHaveURL(/\/jobs\/run\/\d+\?attempt=\d+/);
+  await expect(page.getByRole('region', { name: 'Job graph' })).toBeVisible();
   const wide = await page.evaluate(
     () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
   );
