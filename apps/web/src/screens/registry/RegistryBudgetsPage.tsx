@@ -41,6 +41,10 @@ export function RegistryBudgetsPage() {
           { label: 'Budgets' },
         ]}
       />
+      <PageHeader
+        title="Registry budgets"
+        lead="How much disk the registry may use, and when crsp suggests a deletion."
+      />
       <Load result={result} what="the budgets" reload={reload}>
         {(d) => (
           <BudgetsBody
@@ -100,10 +104,6 @@ function BudgetsBody({
     setDraft((d) => ({ ...d, [k]: n ?? base[k] }));
   return (
     <Stack>
-      <PageHeader
-        title="Registry budgets"
-        lead="How much disk the registry may use, and when crsp suggests a deletion."
-      />
       <Section title="Disk used now">
         <CardGrid>
           <BudgetCard

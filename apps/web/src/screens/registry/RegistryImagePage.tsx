@@ -62,6 +62,7 @@ export function RegistryImagePage() {
           { label: 'Image' },
         ]}
       />
+      {result.state === 'ready' ? null : <PageHeader title="Image" />}
       <Load result={result} what="the image" reload={reload}>
         {(img) => <ImageBody image={img} />}
       </Load>
@@ -205,18 +206,7 @@ function ImageBody({ image }: { image: Image }) {
             </Message>
           ) : null}
           {image.state === 'superseded' ? (
-            <Message
-              tone="note"
-              action={
-                <Button
-                  onPress={() => void goBack.run()}
-                  busy={goBack.busy}
-                  busyLabel="Going back"
-                >
-                  Go back to this one
-                </Button>
-              }
-            >
+            <Message tone="note">
               {`A newer image took its place. It is kept until ${keepUntil} so you can go back, then it is deleted.`}
             </Message>
           ) : null}
@@ -439,7 +429,32 @@ function ImageBody({ image }: { image: Image }) {
             </Button>
           }
         />
-      ) : null}
+      ) : image.state === 'superseded' ? (
+        <ActionBar
+          status="Nothing changes until you confirm."
+          secondary={
+            <LinkButton to="/pool/images?tab=registry">Open the registry</LinkButton>
+          }
+          primary={
+            <Button
+              kind="primary"
+              onPress={() => void goBack.run()}
+              busy={goBack.busy}
+              busyLabel="Going back"
+            >
+              Go back to this one
+            </Button>
+          }
+        />
+      ) : (
+        <ActionBar
+          primary={
+            <Button kind="primary" onPress={backToList}>
+              Open the registry
+            </Button>
+          }
+        />
+      )}
     </Stack>
   );
 }

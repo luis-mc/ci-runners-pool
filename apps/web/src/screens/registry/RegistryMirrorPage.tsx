@@ -33,6 +33,10 @@ export function RegistryMirrorPage() {
           { label: 'Mirror' },
         ]}
       />
+      <PageHeader
+        title="Mirror of upstream images"
+        lead="Machines pull base images such as docker.io ones through the controller, so each is downloaded once."
+      />
       <Load result={result} what="the mirror" reload={reload}>
         {(m) => <MirrorBody mirror={m} reload={reload} />}
       </Load>
@@ -82,10 +86,6 @@ function MirrorBody({
       setDraft((d) => ({ ...d, [k]: x }));
   return (
     <Stack>
-      <PageHeader
-        title="Mirror of upstream images"
-        lead="Machines pull base images such as docker.io ones through the controller, so each is downloaded once."
-      />
       <Section title="Mirror">
         <Stack gap="tight">
           <CheckRow

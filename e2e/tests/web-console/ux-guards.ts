@@ -23,6 +23,7 @@ const LISTS = [
   '/api/v1/machines',
   '/api/v1/runners',
   '/api/v1/images',
+  '/api/v1/registry/images',
   '/api/v1/caches',
   '/api/v1/users',
   '/api/v1/jobs',
