@@ -956,20 +956,19 @@ function RepositoryBody({ r, onChanged }: { r: Repository; onChanged: () => void
               </Message>
             </Stack>
           </Pane>
-          {saved ? <Message tone="done">{saved}</Message> : null}
-          {save.error ? (
-            <Message tone="problem">Could not save. {save.error}</Message>
-          ) : null}
-          <EditBar
-            changes={changeCount}
-            onSave={() => void save.run()}
-            onCancel={cancel}
-            busy={save.busy}
-            blocked={!admin}
-            why={session.whyNot('admin')}
-          />
         </Stack>
       </form>
+      {saved ? <Message tone="done">{saved}</Message> : null}
+      {save.error ? <Message tone="problem">Could not save. {save.error}</Message> : null}
+      <EditBar
+        changes={changeCount}
+        submit={false}
+        onSave={() => void save.run()}
+        onCancel={cancel}
+        busy={save.busy}
+        blocked={!admin}
+        why={session.whyNot('admin')}
+      />
       <Ask
         title={riskTitle}
         action={risks > 1 ? 'Save' : costRisk ? 'Turn on' : 'Allow'}

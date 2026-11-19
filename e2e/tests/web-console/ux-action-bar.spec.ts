@@ -13,6 +13,13 @@ const UNDER_BAR = `(() => {
   const lines = [];
   for (const el of document.querySelectorAll('.ds-main *')) {
     if (b.contains(el) || el.contains(b) || el.children.length > 0) continue;
+    // A box with its own clip or scroll (a table wrapper) or a sticky head keeps its own place: not page content.
+    let own = false;
+    for (let p = el; p && p !== document.body; p = p.parentElement) {
+      const st = getComputedStyle(p);
+      if (st.overflow !== 'visible' || st.position === 'sticky') own = true;
+    }
+    if (own) continue;
     const r = el.getBoundingClientRect();
     if (r.height === 0 || r.width === 0) continue;
     if (r.top < barTop && r.bottom > barTop + 1) lines.push(el.tagName + ' ' + (el.textContent || '').slice(0, 30));
