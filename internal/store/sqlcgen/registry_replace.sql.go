@@ -86,7 +86,7 @@ type InsertRegistryReplacePlanParams struct {
 	CreatedBy    string
 }
 
-// Replace and rollback (REG7 owns this file; docs/features/registry R5.7).
+// Replace and rollback (REG7 owns this file; docs/features/registry R5.53 to R5.58).
 func (q *Queries) InsertRegistryReplacePlan(ctx context.Context, arg InsertRegistryReplacePlanParams) error {
 	_, err := q.exec(ctx, q.insertRegistryReplacePlanStmt, insertRegistryReplacePlan,
 		arg.ID,

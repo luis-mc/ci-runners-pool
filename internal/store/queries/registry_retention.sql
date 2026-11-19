@@ -1,4 +1,4 @@
--- Retention (REG6 owns this file; docs/features/registry R5.6): settings, recommendations, delete, cleanup.
+-- Retention (REG6 owns this file; docs/features/registry R5.41 to R5.52): settings, recommendations, delete, cleanup.
 
 -- name: GetRegistrySettingsRow :one
 SELECT * FROM registry_settings WHERE id = 1;

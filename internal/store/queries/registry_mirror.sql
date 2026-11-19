@@ -1,4 +1,4 @@
--- Pull-through mirror (REG9 owns this file; docs/features/registry R5.9).
+-- Pull-through mirror (REG9 owns this file; docs/features/registry R5.63 to R5.67).
 
 -- name: GetRegistryMirrorSettings :one
 SELECT * FROM registry_mirror_settings WHERE id = 1;

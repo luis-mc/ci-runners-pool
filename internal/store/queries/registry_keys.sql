@@ -1,4 +1,4 @@
--- Keys, pointers and lineage (REG3 owns this file; docs/features/registry R5.3).
+-- Keys, pointers and lineage (REG3 owns this file; docs/features/registry R5.21 to R5.28).
 
 -- name: GetRegistryPointer :one
 SELECT * FROM registry_pointers WHERE repository = ? AND profile_id = ? AND arch = ?;

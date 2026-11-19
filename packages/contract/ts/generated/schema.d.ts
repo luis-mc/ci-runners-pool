@@ -2392,7 +2392,7 @@ export interface paths {
         };
         /**
          * Where the registry runs, budgets, the last 7 days and the recommendations
-         * @description registry R5.5.4, R5.6.3 (REG4 reads, REG6 recommendations).
+         * @description registry R5.33, R5.43 (REG4 reads, REG6 recommendations).
          */
         get: operations["getRegistryOverview"];
         put?: never;
@@ -2412,7 +2412,7 @@ export interface paths {
         };
         /**
          * Images in the registry, newest first
-         * @description registry R5.5.5 (REG4). Deleted images are not listed.
+         * @description registry R5.34 (REG4). Deleted images are not listed.
          */
         get: operations["listRegistryImages"];
         put?: never;
@@ -2432,14 +2432,14 @@ export interface paths {
         };
         /**
          * One image with lineage, layers, pulls by day, machines, pointers and scan
-         * @description registry R5.5.6 (REG4; scan by REG8).
+         * @description registry R5.35 (REG4; scan by REG8).
          */
         get: operations["getRegistryImage"];
         put?: never;
         post?: never;
         /**
          * Delete one image's manifest
-         * @description registry R5.6.4 (REG6). Without `confirm=true` it answers 409 needs_confirmation naming the running jobs that use it, the repositories that point to it and whether it is inside its rollback days; the question card lists them. An image a running job uses is refused even with confirm (409 conflict). Blobs wait for the cleanup.
+         * @description registry R5.46 (REG6). Without `confirm=true` it answers 409 needs_confirmation naming the running jobs that use it, the repositories that point to it and whether it is inside its rollback days; the question card lists them. An image a running job uses is refused even with confirm (409 conflict). Blobs wait for the cleanup.
          */
         delete: operations["deleteRegistryImage"];
         options?: never;
@@ -2456,7 +2456,7 @@ export interface paths {
         };
         /**
          * The image against the one it would replace
-         * @description registry R5.7.1 (REG7). 404 when the image updates nothing.
+         * @description registry R5.53 (REG7). 404 when the image updates nothing.
          */
         get: operations["compareRegistryImage"];
         put?: never;
@@ -2476,12 +2476,12 @@ export interface paths {
         };
         /**
          * Budgets of standard and custom images with their use and the free disk
-         * @description registry R5.6.1 (REG6).
+         * @description registry R5.41 (REG6).
          */
         get: operations["getRegistryBudgets"];
         /**
          * Set the two budgets
-         * @description registry R5.6.1 (REG6). 400 bad_request when the sum is above half the free disk of the registry folder's volume; the detail names the most it may be.
+         * @description registry R5.41 (REG6). 400 bad_request when the sum is above half the free disk of the registry folder's volume; the detail names the most it may be.
          */
         put: operations["putRegistryBudgets"];
         post?: never;
@@ -2500,12 +2500,12 @@ export interface paths {
         };
         /**
          * Folder, days and cleanup time of the registry
-         * @description registry R5.6.2 (REG6). Not the registry logins of getRegistrySettings.
+         * @description registry R5.42 (REG6). Not the registry logins of getRegistrySettings.
          */
         get: operations["getRegistryStoreSettings"];
         /**
          * Change the folder, the days or the cleanup time
-         * @description registry R5.6.2 (REG6). A new folder is used after the blobs are moved; the answer says so. Which rules crsp may act on alone is fixed (owner decision) and not part of the input.
+         * @description registry R5.42 (REG6). A new folder is used after the blobs are moved; the answer says so. Which rules crsp may act on alone is fixed (owner decision) and not part of the input.
          */
         put: operations["putRegistryStoreSettings"];
         post?: never;
@@ -2526,7 +2526,7 @@ export interface paths {
         put?: never;
         /**
          * Clean up now (read-only window, then garbage collection)
-         * @description registry R5.6.6 (REG6). 409 conflict when a cleanup runs.
+         * @description registry R5.48 (REG6). 409 conflict when a cleanup runs.
          */
         post: operations["startRegistryCleanup"];
         delete?: never;
@@ -2546,7 +2546,7 @@ export interface paths {
         put?: never;
         /**
          * Make a replace plan (nothing changes yet)
-         * @description registry R5.7.2 (REG7). The plan is the Review step's data.
+         * @description registry R5.54 (REG7). The plan is the Review step's data.
          */
         post: operations["createRegistryReplacePlan"];
         delete?: never;
@@ -2564,7 +2564,7 @@ export interface paths {
         };
         /**
          * One replace plan with its progress
-         * @description registry R5.7.3 (REG7). The wizard reads this after a reload.
+         * @description registry R5.55 (REG7). The wizard reads this after a reload.
          */
         get: operations["getRegistryReplacePlan"];
         put?: never;
@@ -2586,7 +2586,7 @@ export interface paths {
         put?: never;
         /**
          * Replace (move the pointers, warm machines, keep the old image)
-         * @description registry R5.7.3 (REG7). 409 conflict unless the plan is draft or stopped.
+         * @description registry R5.55 (REG7). 409 conflict unless the plan is draft or stopped.
          */
         post: operations["startRegistryReplacePlan"];
         delete?: never;
@@ -2606,7 +2606,7 @@ export interface paths {
         put?: never;
         /**
          * Stop a running replace after its current step
-         * @description registry R5.7.3 (REG7). Pointers already moved stay moved; Rollback undoes them.
+         * @description registry R5.55 (REG7). Pointers already moved stay moved; Rollback undoes them.
          */
         post: operations["stopRegistryReplacePlan"];
         delete?: never;
@@ -2626,7 +2626,7 @@ export interface paths {
         put?: never;
         /**
          * Go back to the old image while it is kept
-         * @description registry R5.7.4 (REG7). 409 conflict after keep_until.
+         * @description registry R5.56 (REG7). 409 conflict after keep_until.
          */
         post: operations["rollbackRegistryReplacePlan"];
         delete?: never;
@@ -2644,12 +2644,12 @@ export interface paths {
         };
         /**
          * The pull-through mirror of upstream bases
-         * @description registry R5.9 (REG9).
+         * @description registry R5.63 to R5.67 (REG9).
          */
         get: operations["getRegistryMirrorSettings"];
         /**
          * Turn the mirror on or off, its upstreams and budget
-         * @description registry R5.9 (REG9).
+         * @description registry R5.63 to R5.67 (REG9).
          */
         put: operations["putRegistryMirrorSettings"];
         post?: never;
@@ -2668,7 +2668,7 @@ export interface paths {
         };
         /**
          * Image builds, the running ones first, with their push state
-         * @description registry R5.10 (IMG1; push state by REG2).
+         * @description registry R5.68 to R5.71 (IMG1; push state by REG2).
          */
         get: operations["listImageBuilds"];
         put?: never;
@@ -2688,7 +2688,7 @@ export interface paths {
         };
         /**
          * One build with its steps and log tail
-         * @description registry R5.10 (IMG1).
+         * @description registry R5.69, R5.70 (IMG1).
          */
         get: operations["getImageBuild"];
         put?: never;
@@ -2708,7 +2708,7 @@ export interface paths {
         };
         /**
          * Pulls in progress and waiting for the controller
-         * @description registry R5.5.2 (REG4 from REG2's reports). The Add runners pulling step reads it.
+         * @description registry R5.36 (REG4 from REG2's reports). The Add runners pulling step reads it.
          */
         get: operations["listRegistryPulls"];
         put?: never;
@@ -5464,7 +5464,7 @@ export interface components {
         /** @enum {string} */
         RegistryImageKind: "standard" | "custom";
         /**
-         * @description registry R5.4.1. staged and refused are shown only on the image page.
+         * @description registry R5.29. staged and refused are shown only on the image page.
          * @enum {string}
          */
         RegistryImageState: "staged" | "refused" | "current" | "variant" | "superseded" | "deleted";

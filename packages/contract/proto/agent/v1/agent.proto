@@ -32,7 +32,7 @@ enum ProtocolVersion {
   // no `runner_swap` in its MachineReport never gets that message.
   PROTOCOL_VERSION_2 = 2;
   // Version 3 adds the image registry calls (REG10, docs/features/registry
-  // R5.11): EnsureImage, RegistryTokenRequest, PushReport and PullReport from
+  // R5.20): EnsureImage, RegistryTokenRequest, PushReport and PullReport from
   // the agent, EnsureImageAnswer and RegistryToken from the controller. An
   // agent asks only when the controller's HelloAck says version 3 or more; the
   // controller answers only an agent whose MachineReport says `registry`.
@@ -1081,7 +1081,7 @@ message AcceptingReport {
 
 // ---------------------------------------------------------------- image registry (REG10, protocol version 3)
 //
-// docs/features/registry R5.11. The agent asks; the controller answers with the
+// docs/features/registry R5.20. The agent asks; the controller answers with the
 // same request_id. A request the controller cannot answer now gets
 // `busy`; a controller that is offline gets nothing, and the job WAITS for it
 // (owner decision): the agent builds only on a clear `not_found`.
@@ -1089,7 +1089,7 @@ message AcceptingReport {
 // EnsureImage asks: does the registry have key K for arch A?
 message EnsureImage {
   string request_id = 1;
-  // The image key, 12 lowercase hex characters (registry R5.3.1).
+  // The image key, 12 lowercase hex characters (registry R5.21).
   string key = 2;
   // amd64 or arm64.
   string arch = 3;
@@ -1142,7 +1142,7 @@ message RegistryTokenRequest {
   repeated string names = 3;
 }
 
-// RegistryToken is a 10-minute token (registry R5.2.2). The agent gives it to
+// RegistryToken is a 10-minute token (registry R5.10). The agent gives it to
 // the engine once on standard input or in a temporary DOCKER_CONFIG folder it
 // deletes after the call; it is never logged, stored or given to a job.
 message RegistryToken {
@@ -1154,7 +1154,7 @@ message RegistryToken {
 }
 
 // PushReport tells the controller about a push to staging. The controller
-// checks and promotes on state PUSHED (registry R5.1.5) and answers nothing;
+// checks and promotes on state PUSHED (registry R5.5) and answers nothing;
 // the outcome shows in the next EnsureImageAnswer and in the console.
 message PushReport {
   string push_id = 1;

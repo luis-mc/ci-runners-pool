@@ -52,7 +52,7 @@ const (
 	// no `runner_swap` in its MachineReport never gets that message.
 	ProtocolVersion_PROTOCOL_VERSION_2 ProtocolVersion = 2
 	// Version 3 adds the image registry calls (REG10, docs/features/registry
-	// R5.11): EnsureImage, RegistryTokenRequest, PushReport and PullReport from
+	// R5.20): EnsureImage, RegistryTokenRequest, PushReport and PullReport from
 	// the agent, EnsureImageAnswer and RegistryToken from the controller. An
 	// agent asks only when the controller's HelloAck says version 3 or more; the
 	// controller answers only an agent whose MachineReport says `registry`.
@@ -7329,7 +7329,7 @@ func (x *AcceptingReport) GetPauseUntilUnixMs() int64 {
 type EnsureImage struct {
 	state     protoimpl.MessageState `protogen:"open.v1"`
 	RequestId string                 `protobuf:"bytes,1,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
-	// The image key, 12 lowercase hex characters (registry R5.3.1).
+	// The image key, 12 lowercase hex characters (registry R5.21).
 	Key string `protobuf:"bytes,2,opt,name=key,proto3" json:"key,omitempty"`
 	// amd64 or arm64.
 	Arch string `protobuf:"bytes,3,opt,name=arch,proto3" json:"arch,omitempty"`
@@ -7591,7 +7591,7 @@ func (x *RegistryTokenRequest) GetNames() []string {
 	return nil
 }
 
-// RegistryToken is a 10-minute token (registry R5.2.2). The agent gives it to
+// RegistryToken is a 10-minute token (registry R5.10). The agent gives it to
 // the engine once on standard input or in a temporary DOCKER_CONFIG folder it
 // deletes after the call; it is never logged, stored or given to a job.
 type RegistryToken struct {
@@ -7664,7 +7664,7 @@ func (x *RegistryToken) GetRefused() string {
 }
 
 // PushReport tells the controller about a push to staging. The controller
-// checks and promotes on state PUSHED (registry R5.1.5) and answers nothing;
+// checks and promotes on state PUSHED (registry R5.5) and answers nothing;
 // the outcome shows in the next EnsureImageAnswer and in the console.
 type PushReport struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`

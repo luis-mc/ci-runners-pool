@@ -1,4 +1,4 @@
--- Registry core (REG1 owns this file; docs/features/registry R5.1, R5.2): staging, promotion, immutable tags,
+-- Registry core (REG1 owns this file; docs/features/registry R5.1 to R5.12): staging, promotion, immutable tags,
 -- token leases.
 
 -- name: InsertRegistryImage :exec

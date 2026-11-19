@@ -1,4 +1,4 @@
--- Registry records (REG4 owns this file; docs/features/registry R5.5): image reads, layers, pulls, pushes,
+-- Registry records (REG4 owns this file; docs/features/registry R5.29 to R5.36): image reads, layers, pulls, pushes,
 -- per-day totals.
 
 -- name: GetRegistryImage :one

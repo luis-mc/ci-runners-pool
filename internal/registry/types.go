@@ -6,7 +6,7 @@ import (
 )
 
 // Kind is standard (one image per profile for the whole pool) or custom (one
-// per GitHub repository and profile). registry R5.1.4.
+// per GitHub repository and profile). registry R5.4.
 type Kind string
 
 // The kinds.
@@ -15,7 +15,7 @@ const (
 	KindCustom   Kind = "custom"
 )
 
-// State is where an image is in its life (registry R5.4.1). The store keeps it
+// State is where an image is in its life (registry R5.29). The store keeps it
 // in registry_images.state; the API shows it as RegistryImageState.
 type State string
 
@@ -61,12 +61,12 @@ type Image struct {
 	Profile  string
 	Arch     string // amd64 or arm64
 	State    State
-	Manifest string // manifest digest, sha256:<64 hex>; what a machine pulls (R5.1.9)
+	Manifest string // manifest digest, sha256:<64 hex>; what a machine pulls (R5.9)
 	// Inputs of the key, kept so the compare step can show what differs.
 	StackHash  string
 	BaseName   string // e.g. ubuntu:24.04, shown only
 	BaseDigest string
-	// Where it came from (OCI labels, R5.1.7).
+	// Where it came from (OCI labels, R5.7).
 	SourceRepository string // owner/name of the run that needed it; empty for a standard image
 	Commit           string
 	Branch           string // empty for the default branch
@@ -110,7 +110,7 @@ type Pointer struct {
 	MovedBy    string // login, or "crsp"
 }
 
-// Rule is the reason of a recommendation (RES20 6.1, registry R5.6).
+// Rule is the reason of a recommendation (RES20 6.1, registry R5.43).
 type Rule string
 
 // The rules.
@@ -187,7 +187,7 @@ type ReplacePlan struct {
 	FinishedAt   time.Time
 }
 
-// Budget is the limit and use of one kind (registry R5.6.1).
+// Budget is the limit and use of one kind (registry R5.41).
 type Budget struct {
 	Kind       Kind
 	LimitBytes int64
@@ -204,7 +204,7 @@ const (
 	DefaultVariantGoneDays       = 7
 	DefaultVariantUnused         = 14
 	DefaultUnusedDays            = 30
-	// TokenTTL is the life of a registry token (R5.2.2).
+	// TokenTTL is the life of a registry token (R5.10).
 	TokenTTL = 10 * time.Minute
 )
 
@@ -229,11 +229,11 @@ type MirrorSettings struct {
 	Folder      string   // default <data_dir>/registry-mirror
 	BudgetBytes int64
 	// TagRecheck is how long a mirrored tag is trusted before it is asked
-	// again upstream (caches R5.26).
+	// again upstream (caches R5.66).
 	TagRecheck time.Duration
 }
 
-// Scope is one access of a registry token (R5.2.3).
+// Scope is one access of a registry token (R5.11).
 type Scope struct {
 	Name    string // repository name, or a prefix ending in "*"
 	Actions []string
@@ -246,7 +246,7 @@ type Token struct {
 	Scopes    []Scope
 }
 
-// Source says how a machine got an image (PullReport, R5.5.2).
+// Source says how a machine got an image (PullReport, R5.30).
 type Source string
 
 // The sources.

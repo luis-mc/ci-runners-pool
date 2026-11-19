@@ -20,7 +20,7 @@ type GetRegistryPointerParams struct {
 	Arch       string
 }
 
-// Keys, pointers and lineage (REG3 owns this file; docs/features/registry R5.3).
+// Keys, pointers and lineage (REG3 owns this file; docs/features/registry R5.21 to R5.28).
 func (q *Queries) GetRegistryPointer(ctx context.Context, arg GetRegistryPointerParams) (RegistryPointer, error) {
 	row := q.queryRow(ctx, q.getRegistryPointerStmt, getRegistryPointer, arg.Repository, arg.ProfileID, arg.Arch)
 	var i RegistryPointer

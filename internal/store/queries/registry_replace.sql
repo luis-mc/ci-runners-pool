@@ -1,4 +1,4 @@
--- Replace and rollback (REG7 owns this file; docs/features/registry R5.7).
+-- Replace and rollback (REG7 owns this file; docs/features/registry R5.53 to R5.58).
 
 -- name: InsertRegistryReplacePlan :exec
 INSERT INTO registry_replace_plans (id, new_image_id, old_image_id, keep_days, repositories, machines, steps_total, created_by)

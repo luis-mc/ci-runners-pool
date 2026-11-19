@@ -1,4 +1,4 @@
--- SBOM and vulnerability scan (REG8 owns this file; docs/features/registry R5.8).
+-- SBOM and vulnerability scan (REG8 owns this file; docs/features/registry R5.59 to R5.62).
 
 -- name: QueueRegistryScan :exec
 INSERT INTO registry_scans (image_id) VALUES (?) ON CONFLICT (image_id) DO NOTHING;

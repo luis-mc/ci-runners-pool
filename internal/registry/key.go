@@ -12,13 +12,13 @@ import (
 	"strings"
 )
 
-// KeyLen is the length of an image key in hex characters (registry R5.3.1).
+// KeyLen is the length of an image key in hex characters (registry R5.21).
 const KeyLen = 12
 
 // Key is the content key of one image: the first 12 hex characters of the
 // SHA-256 of the canonical JSON of its KeyInput. The same key means the same
 // image on every machine, so a machine that needs key K pulls K instead of
-// building it (registry R5.3.1, RES20 5.1, owner decision D19).
+// building it (registry R5.21, RES20 5.1, owner decision D19).
 type Key string
 
 // String returns the key.
@@ -44,7 +44,7 @@ type Toolchain struct {
 	Version string `json:"version"`
 }
 
-// KeyInput is everything that makes an image different (registry R5.3.1).
+// KeyInput is everything that makes an image different (registry R5.21).
 // Services (sidecars) are not part of it.
 type KeyInput struct {
 	// Profile is the image profile id (IMG3), such as "node-web".
@@ -95,7 +95,7 @@ type canonicalKeyInput struct {
 	Toolchains []Toolchain       `json:"toolchains"`
 }
 
-// CanonicalJSON returns the bytes the key hashes (registry R5.3.1):
+// CanonicalJSON returns the bytes the key hashes (registry R5.21):
 //   - one JSON object, no whitespace, keys in byte order: arch, base_digest,
 //     pins, profile, stack_hash, toolchains;
 //   - arch through OCIArch; strings trimmed of surrounding spaces;
@@ -175,7 +175,7 @@ type StackFile struct {
 	Content []byte
 }
 
-// StackHash returns the stack hash of files (registry R5.3.2): the lowercase
+// StackHash returns the stack hash of files (registry R5.22): the lowercase
 // hex SHA-256 over, for each file sorted by Path in byte order,
 //
 //	<path> NUL <hex sha256 of the content with CRLF turned into LF> LF
@@ -209,7 +209,7 @@ func StackHash(files []StackFile) (string, error) {
 	return hex.EncodeToString(h.Sum(nil)), nil
 }
 
-// Repository names inside the registry (registry R5.1.4). Every name starts
+// Repository names inside the registry (registry R5.4). Every name starts
 // with "crsp/". The tag of an image is its Key.
 const (
 	// NamePrefix is the root of every repository name.

@@ -7,7 +7,7 @@ import (
 	agentv1 "github.com/luis-mc/ci-runners-shared-pool/internal/gen/agent/v1"
 )
 
-// The image registry calls (REG10 contract, docs/features/registry R5.11,
+// The image registry calls (REG10 contract, docs/features/registry R5.20,
 // protocol version 3). The agent asks; the controller answers with the same
 // request id. This file is the contract stub: with no RegistrySink the
 // controller says "not in the registry" and gives no staging name, so an agent

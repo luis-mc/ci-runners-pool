@@ -5052,7 +5052,7 @@ type RegistryImage struct {
 	SourceRepository *string `json:"source_repository,omitempty"`
 	StackHash        *string `json:"stack_hash,omitempty"`
 
-	// State registry R5.4.1. staged and refused are shown only on the image page.
+	// State registry R5.29. staged and refused are shown only on the image page.
 	State       RegistryImageState `json:"state"`
 	UniqueBytes int64              `json:"unique_bytes"`
 
@@ -5078,7 +5078,7 @@ type RegistryImageMachine struct {
 	MachineName   string     `json:"machine_name"`
 }
 
-// RegistryImageState registry R5.4.1. staged and refused are shown only on the image page.
+// RegistryImageState registry R5.29. staged and refused are shown only on the image page.
 type RegistryImageState string
 
 // RegistryImageSummary defines model for RegistryImageSummary.
@@ -5105,7 +5105,7 @@ type RegistryImageSummary struct {
 	SizeBytes        int64             `json:"size_bytes"`
 	SourceRepository *string           `json:"source_repository,omitempty"`
 
-	// State registry R5.4.1. staged and refused are shown only on the image page.
+	// State registry R5.29. staged and refused are shown only on the image page.
 	State       RegistryImageState `json:"state"`
 	UniqueBytes int64              `json:"unique_bytes"`
 
@@ -5130,7 +5130,7 @@ type RegistryLineageEntry struct {
 	Key      string    `json:"key"`
 	PushedAt time.Time `json:"pushed_at"`
 
-	// State registry R5.4.1. staged and refused are shown only on the image page.
+	// State registry R5.29. staged and refused are shown only on the image page.
 	State RegistryImageState `json:"state"`
 }
 

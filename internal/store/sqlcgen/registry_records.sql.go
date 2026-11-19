@@ -114,7 +114,7 @@ const getRegistryImage = `-- name: GetRegistryImage :one
 SELECT id, kind, name, image_tag, profile_id, arch, state, manifest_digest, staged_name, stack_hash, base_name, base_digest, key_input, source_repository, commit_sha, branch, branch_gone_at, pushed_by, pushed_at, promoted_at, refused_why, replaces_id, replaced_by_id, keep_until, size_bytes, unique_bytes, last_pull_at, scan_state, deleted_at, deleted_by, created_at, updated_at FROM registry_images WHERE id = ?
 `
 
-// Registry records (REG4 owns this file; docs/features/registry R5.5): image reads, layers, pulls, pushes,
+// Registry records (REG4 owns this file; docs/features/registry R5.29 to R5.36): image reads, layers, pulls, pushes,
 // per-day totals.
 func (q *Queries) GetRegistryImage(ctx context.Context, id string) (RegistryImage, error) {
 	row := q.queryRow(ctx, q.getRegistryImageStmt, getRegistryImage, id)

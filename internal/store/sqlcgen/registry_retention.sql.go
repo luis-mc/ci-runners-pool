@@ -64,7 +64,7 @@ const getRegistrySettingsRow = `-- name: GetRegistrySettingsRow :one
 SELECT id, folder, standard_budget, custom_budget, unused_days, keep_old_days, variant_gone_days, variant_unused_days, cleanup_weekday, cleanup_hour, read_only, updated_at, updated_by FROM registry_settings WHERE id = 1
 `
 
-// Retention (REG6 owns this file; docs/features/registry R5.6): settings, recommendations, delete, cleanup.
+// Retention (REG6 owns this file; docs/features/registry R5.41 to R5.52): settings, recommendations, delete, cleanup.
 func (q *Queries) GetRegistrySettingsRow(ctx context.Context) (RegistrySetting, error) {
 	row := q.queryRow(ctx, q.getRegistrySettingsRowStmt, getRegistrySettingsRow)
 	var i RegistrySetting

@@ -14,7 +14,7 @@ const getRegistryMirrorSettings = `-- name: GetRegistryMirrorSettings :one
 SELECT id, enabled, upstreams, folder, budget_bytes, tag_recheck_minutes, updated_at, updated_by FROM registry_mirror_settings WHERE id = 1
 `
 
-// Pull-through mirror (REG9 owns this file; docs/features/registry R5.9).
+// Pull-through mirror (REG9 owns this file; docs/features/registry R5.63 to R5.67).
 func (q *Queries) GetRegistryMirrorSettings(ctx context.Context) (RegistryMirrorSetting, error) {
 	row := q.queryRow(ctx, q.getRegistryMirrorSettingsStmt, getRegistryMirrorSettings)
 	var i RegistryMirrorSetting

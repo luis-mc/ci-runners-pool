@@ -134,7 +134,7 @@ const queueRegistryScan = `-- name: QueueRegistryScan :exec
 INSERT INTO registry_scans (image_id) VALUES (?) ON CONFLICT (image_id) DO NOTHING
 `
 
-// SBOM and vulnerability scan (REG8 owns this file; docs/features/registry R5.8).
+// SBOM and vulnerability scan (REG8 owns this file; docs/features/registry R5.59 to R5.62).
 func (q *Queries) QueueRegistryScan(ctx context.Context, imageID string) error {
 	_, err := q.exec(ctx, q.queueRegistryScanStmt, queueRegistryScan, imageID)
 	return err

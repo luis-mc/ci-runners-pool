@@ -97,7 +97,7 @@ type Staged struct {
 }
 
 // Promoter checks a staged image and promotes it by a manifest copy, never by
-// moving data (REG1, R5.1.5). It refuses when the digest differs from the
+// moving data (REG1, R5.5). It refuses when the digest differs from the
 // manifest in staging, a required label is missing or wrong, the key does not
 // equal ComputeKey(KeyInput), or the tag exists under Target (ErrTagExists).
 // On success it records the image (ImageStore.PutImage), then calls the
@@ -110,7 +110,7 @@ type Promoter interface {
 // register one; a hook error is logged and never undoes the promotion.
 type PromotedHook func(ctx context.Context, img Image) error
 
-// TokenIssuer issues and checks registry tokens (REG1, R5.2). A machine may
+// TokenIssuer issues and checks registry tokens (REG1, R5.10, R5.11). A machine may
 // pull crsp/std/* and crsp/custom/* and push only to
 // crsp/_incoming/<its own id>/*. People never get a token.
 type TokenIssuer interface {
@@ -124,7 +124,7 @@ type TokenIssuer interface {
 type Registry interface {
 	// Handler serves /v2/ on the controller's HTTPS listener.
 	Handler() http.Handler
-	// SetReadOnly stops pushes and promotions; pulls keep working (R5.6.6).
+	// SetReadOnly stops pushes and promotions; pulls keep working (R5.48).
 	SetReadOnly(on bool)
 	// DeleteManifest removes a manifest by digest; blobs wait for GC.
 	DeleteManifest(ctx context.Context, name, digest string) error

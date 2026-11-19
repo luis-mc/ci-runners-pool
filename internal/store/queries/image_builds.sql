@@ -1,4 +1,4 @@
--- Build records (IMG1 owns this file; RES19 IMG-1, docs/features/registry R5.10). REG2 calls
+-- Build records (IMG1 owns this file; RES19 IMG-1, docs/features/registry R5.68 to R5.72). REG2 calls
 -- SetImageBuildPushState only.
 
 -- name: InsertImageBuild :exec

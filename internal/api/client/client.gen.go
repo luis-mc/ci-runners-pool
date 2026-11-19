@@ -5053,7 +5053,7 @@ type RegistryImage struct {
 	SourceRepository *string `json:"source_repository,omitempty"`
 	StackHash        *string `json:"stack_hash,omitempty"`
 
-	// State registry R5.4.1. staged and refused are shown only on the image page.
+	// State registry R5.29. staged and refused are shown only on the image page.
 	State       RegistryImageState `json:"state"`
 	UniqueBytes int64              `json:"unique_bytes"`
 
@@ -5079,7 +5079,7 @@ type RegistryImageMachine struct {
 	MachineName   string     `json:"machine_name"`
 }
 
-// RegistryImageState registry R5.4.1. staged and refused are shown only on the image page.
+// RegistryImageState registry R5.29. staged and refused are shown only on the image page.
 type RegistryImageState string
 
 // RegistryImageSummary defines model for RegistryImageSummary.
@@ -5106,7 +5106,7 @@ type RegistryImageSummary struct {
 	SizeBytes        int64             `json:"size_bytes"`
 	SourceRepository *string           `json:"source_repository,omitempty"`
 
-	// State registry R5.4.1. staged and refused are shown only on the image page.
+	// State registry R5.29. staged and refused are shown only on the image page.
 	State       RegistryImageState `json:"state"`
 	UniqueBytes int64              `json:"unique_bytes"`
 
@@ -5131,7 +5131,7 @@ type RegistryLineageEntry struct {
 	Key      string    `json:"key"`
 	PushedAt time.Time `json:"pushed_at"`
 
-	// State registry R5.4.1. staged and refused are shown only on the image page.
+	// State registry R5.29. staged and refused are shown only on the image page.
 	State RegistryImageState `json:"state"`
 }
 
@@ -7790,14 +7790,14 @@ type ClientInterface interface {
 
 	// GetRegistryBudgets Budgets of standard and custom images with their use and the free disk
 	//
-	// registry R5.6.1 (REG6).
+	// registry R5.41 (REG6).
 	//
 	// Corresponds with GET /api/v1/registry/budgets (the `GetRegistryBudgets` operationId).
 	GetRegistryBudgets(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// PutRegistryBudgetsWithBody Set the two budgets
 	//
-	// registry R5.6.1 (REG6). 400 bad_request when the sum is above half the free disk of the registry folder's volume; the detail names the most it may be.
+	// registry R5.41 (REG6). 400 bad_request when the sum is above half the free disk of the registry folder's volume; the detail names the most it may be.
 	//
 	// Takes any type of body and a specified content type.
 	//
@@ -7806,7 +7806,7 @@ type ClientInterface interface {
 
 	// PutRegistryBudgets Set the two budgets
 	//
-	// registry R5.6.1 (REG6). 400 bad_request when the sum is above half the free disk of the registry folder's volume; the detail names the most it may be.
+	// registry R5.41 (REG6). 400 bad_request when the sum is above half the free disk of the registry folder's volume; the detail names the most it may be.
 	//
 	// Takes a body of the `application/json` content type.
 	//
@@ -7815,14 +7815,14 @@ type ClientInterface interface {
 
 	// ListImageBuilds Image builds, the running ones first, with their push state
 	//
-	// registry R5.10 (IMG1; push state by REG2).
+	// registry R5.68 to R5.71 (IMG1; push state by REG2).
 	//
 	// Corresponds with GET /api/v1/registry/builds (the `ListImageBuilds` operationId).
 	ListImageBuilds(ctx context.Context, params *ListImageBuildsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetImageBuild One build with its steps and log tail
 	//
-	// registry R5.10 (IMG1).
+	// registry R5.69, R5.70 (IMG1).
 	//
 	// Corresponds with GET /api/v1/registry/builds/{buildId} (the `GetImageBuild` operationId).
 	GetImageBuild(ctx context.Context, buildId BuildId, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -7852,35 +7852,35 @@ type ClientInterface interface {
 
 	// StartRegistryCleanup Clean up now (read-only window, then garbage collection)
 	//
-	// registry R5.6.6 (REG6). 409 conflict when a cleanup runs.
+	// registry R5.48 (REG6). 409 conflict when a cleanup runs.
 	//
 	// Corresponds with POST /api/v1/registry/cleanup (the `StartRegistryCleanup` operationId).
 	StartRegistryCleanup(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListRegistryImages Images in the registry, newest first
 	//
-	// registry R5.5.5 (REG4). Deleted images are not listed.
+	// registry R5.34 (REG4). Deleted images are not listed.
 	//
 	// Corresponds with GET /api/v1/registry/images (the `ListRegistryImages` operationId).
 	ListRegistryImages(ctx context.Context, params *ListRegistryImagesParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// DeleteRegistryImage Delete one image's manifest
 	//
-	// registry R5.6.4 (REG6). Without `confirm=true` it answers 409 needs_confirmation naming the running jobs that use it, the repositories that point to it and whether it is inside its rollback days; the question card lists them. An image a running job uses is refused even with confirm (409 conflict). Blobs wait for the cleanup.
+	// registry R5.46 (REG6). Without `confirm=true` it answers 409 needs_confirmation naming the running jobs that use it, the repositories that point to it and whether it is inside its rollback days; the question card lists them. An image a running job uses is refused even with confirm (409 conflict). Blobs wait for the cleanup.
 	//
 	// Corresponds with DELETE /api/v1/registry/images/{registryImageId} (the `DeleteRegistryImage` operationId).
 	DeleteRegistryImage(ctx context.Context, registryImageId RegistryImageId, params *DeleteRegistryImageParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetRegistryImage One image with lineage, layers, pulls by day, machines, pointers and scan
 	//
-	// registry R5.5.6 (REG4; scan by REG8).
+	// registry R5.35 (REG4; scan by REG8).
 	//
 	// Corresponds with GET /api/v1/registry/images/{registryImageId} (the `GetRegistryImage` operationId).
 	GetRegistryImage(ctx context.Context, registryImageId RegistryImageId, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// CompareRegistryImage The image against the one it would replace
 	//
-	// registry R5.7.1 (REG7). 404 when the image updates nothing.
+	// registry R5.53 (REG7). 404 when the image updates nothing.
 	//
 	// Corresponds with GET /api/v1/registry/images/{registryImageId}/compare (the `CompareRegistryImage` operationId).
 	CompareRegistryImage(ctx context.Context, registryImageId RegistryImageId, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -7910,14 +7910,14 @@ type ClientInterface interface {
 
 	// GetRegistryMirrorSettings The pull-through mirror of upstream bases
 	//
-	// registry R5.9 (REG9).
+	// registry R5.63 to R5.67 (REG9).
 	//
 	// Corresponds with GET /api/v1/registry/mirror (the `GetRegistryMirrorSettings` operationId).
 	GetRegistryMirrorSettings(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// PutRegistryMirrorSettingsWithBody Turn the mirror on or off, its upstreams and budget
 	//
-	// registry R5.9 (REG9).
+	// registry R5.63 to R5.67 (REG9).
 	//
 	// Takes any type of body and a specified content type.
 	//
@@ -7926,7 +7926,7 @@ type ClientInterface interface {
 
 	// PutRegistryMirrorSettings Turn the mirror on or off, its upstreams and budget
 	//
-	// registry R5.9 (REG9).
+	// registry R5.63 to R5.67 (REG9).
 	//
 	// Takes a body of the `application/json` content type.
 	//
@@ -7935,21 +7935,21 @@ type ClientInterface interface {
 
 	// GetRegistryOverview Where the registry runs, budgets, the last 7 days and the recommendations
 	//
-	// registry R5.5.4, R5.6.3 (REG4 reads, REG6 recommendations).
+	// registry R5.33, R5.43 (REG4 reads, REG6 recommendations).
 	//
 	// Corresponds with GET /api/v1/registry/overview (the `GetRegistryOverview` operationId).
 	GetRegistryOverview(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListRegistryPulls Pulls in progress and waiting for the controller
 	//
-	// registry R5.5.2 (REG4 from REG2's reports). The Add runners pulling step reads it.
+	// registry R5.36 (REG4 from REG2's reports). The Add runners pulling step reads it.
 	//
 	// Corresponds with GET /api/v1/registry/pulls (the `ListRegistryPulls` operationId).
 	ListRegistryPulls(ctx context.Context, params *ListRegistryPullsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// CreateRegistryReplacePlanWithBody Make a replace plan (nothing changes yet)
 	//
-	// registry R5.7.2 (REG7). The plan is the Review step's data.
+	// registry R5.54 (REG7). The plan is the Review step's data.
 	//
 	// Takes any type of body and a specified content type.
 	//
@@ -7958,7 +7958,7 @@ type ClientInterface interface {
 
 	// CreateRegistryReplacePlan Make a replace plan (nothing changes yet)
 	//
-	// registry R5.7.2 (REG7). The plan is the Review step's data.
+	// registry R5.54 (REG7). The plan is the Review step's data.
 	//
 	// Takes a body of the `application/json` content type.
 	//
@@ -7967,42 +7967,42 @@ type ClientInterface interface {
 
 	// GetRegistryReplacePlan One replace plan with its progress
 	//
-	// registry R5.7.3 (REG7). The wizard reads this after a reload.
+	// registry R5.55 (REG7). The wizard reads this after a reload.
 	//
 	// Corresponds with GET /api/v1/registry/replace-plans/{planId} (the `GetRegistryReplacePlan` operationId).
 	GetRegistryReplacePlan(ctx context.Context, planId PlanId, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// RollbackRegistryReplacePlan Go back to the old image while it is kept
 	//
-	// registry R5.7.4 (REG7). 409 conflict after keep_until.
+	// registry R5.56 (REG7). 409 conflict after keep_until.
 	//
 	// Corresponds with POST /api/v1/registry/replace-plans/{planId}/rollback (the `RollbackRegistryReplacePlan` operationId).
 	RollbackRegistryReplacePlan(ctx context.Context, planId PlanId, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// StartRegistryReplacePlan Replace (move the pointers, warm machines, keep the old image)
 	//
-	// registry R5.7.3 (REG7). 409 conflict unless the plan is draft or stopped.
+	// registry R5.55 (REG7). 409 conflict unless the plan is draft or stopped.
 	//
 	// Corresponds with POST /api/v1/registry/replace-plans/{planId}/start (the `StartRegistryReplacePlan` operationId).
 	StartRegistryReplacePlan(ctx context.Context, planId PlanId, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// StopRegistryReplacePlan Stop a running replace after its current step
 	//
-	// registry R5.7.3 (REG7). Pointers already moved stay moved; Rollback undoes them.
+	// registry R5.55 (REG7). Pointers already moved stay moved; Rollback undoes them.
 	//
 	// Corresponds with POST /api/v1/registry/replace-plans/{planId}/stop (the `StopRegistryReplacePlan` operationId).
 	StopRegistryReplacePlan(ctx context.Context, planId PlanId, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetRegistryStoreSettings Folder, days and cleanup time of the registry
 	//
-	// registry R5.6.2 (REG6). Not the registry logins of getRegistrySettings.
+	// registry R5.42 (REG6). Not the registry logins of getRegistrySettings.
 	//
 	// Corresponds with GET /api/v1/registry/settings (the `GetRegistryStoreSettings` operationId).
 	GetRegistryStoreSettings(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// PutRegistryStoreSettingsWithBody Change the folder, the days or the cleanup time
 	//
-	// registry R5.6.2 (REG6). A new folder is used after the blobs are moved; the answer says so. Which rules crsp may act on alone is fixed (owner decision) and not part of the input.
+	// registry R5.42 (REG6). A new folder is used after the blobs are moved; the answer says so. Which rules crsp may act on alone is fixed (owner decision) and not part of the input.
 	//
 	// Takes any type of body and a specified content type.
 	//
@@ -8011,7 +8011,7 @@ type ClientInterface interface {
 
 	// PutRegistryStoreSettings Change the folder, the days or the cleanup time
 	//
-	// registry R5.6.2 (REG6). A new folder is used after the blobs are moved; the answer says so. Which rules crsp may act on alone is fixed (owner decision) and not part of the input.
+	// registry R5.42 (REG6). A new folder is used after the blobs are moved; the answer says so. Which rules crsp may act on alone is fixed (owner decision) and not part of the input.
 	//
 	// Takes a body of the `application/json` content type.
 	//
@@ -10481,7 +10481,7 @@ func (c *Client) GetRegistrySettings(ctx context.Context, reqEditors ...RequestE
 
 // GetRegistryBudgets Budgets of standard and custom images with their use and the free disk
 //
-// registry R5.6.1 (REG6).
+// registry R5.41 (REG6).
 //
 // Corresponds with GET /api/v1/registry/budgets (the `GetRegistryBudgets` operationId).
 func (c *Client) GetRegistryBudgets(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -10498,7 +10498,7 @@ func (c *Client) GetRegistryBudgets(ctx context.Context, reqEditors ...RequestEd
 
 // PutRegistryBudgetsWithBody Set the two budgets
 //
-// registry R5.6.1 (REG6). 400 bad_request when the sum is above half the free disk of the registry folder's volume; the detail names the most it may be.
+// registry R5.41 (REG6). 400 bad_request when the sum is above half the free disk of the registry folder's volume; the detail names the most it may be.
 //
 // Takes any type of body and a specified content type.
 //
@@ -10517,7 +10517,7 @@ func (c *Client) PutRegistryBudgetsWithBody(ctx context.Context, contentType str
 
 // PutRegistryBudgets Set the two budgets
 //
-// registry R5.6.1 (REG6). 400 bad_request when the sum is above half the free disk of the registry folder's volume; the detail names the most it may be.
+// registry R5.41 (REG6). 400 bad_request when the sum is above half the free disk of the registry folder's volume; the detail names the most it may be.
 //
 // Takes a body of the `application/json` content type.
 //
@@ -10536,7 +10536,7 @@ func (c *Client) PutRegistryBudgets(ctx context.Context, body PutRegistryBudgets
 
 // ListImageBuilds Image builds, the running ones first, with their push state
 //
-// registry R5.10 (IMG1; push state by REG2).
+// registry R5.68 to R5.71 (IMG1; push state by REG2).
 //
 // Corresponds with GET /api/v1/registry/builds (the `ListImageBuilds` operationId).
 func (c *Client) ListImageBuilds(ctx context.Context, params *ListImageBuildsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -10553,7 +10553,7 @@ func (c *Client) ListImageBuilds(ctx context.Context, params *ListImageBuildsPar
 
 // GetImageBuild One build with its steps and log tail
 //
-// registry R5.10 (IMG1).
+// registry R5.69, R5.70 (IMG1).
 //
 // Corresponds with GET /api/v1/registry/builds/{buildId} (the `GetImageBuild` operationId).
 func (c *Client) GetImageBuild(ctx context.Context, buildId BuildId, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -10623,7 +10623,7 @@ func (c *Client) PutRegistryCaBundle(ctx context.Context, body PutRegistryCaBund
 
 // StartRegistryCleanup Clean up now (read-only window, then garbage collection)
 //
-// registry R5.6.6 (REG6). 409 conflict when a cleanup runs.
+// registry R5.48 (REG6). 409 conflict when a cleanup runs.
 //
 // Corresponds with POST /api/v1/registry/cleanup (the `StartRegistryCleanup` operationId).
 func (c *Client) StartRegistryCleanup(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -10640,7 +10640,7 @@ func (c *Client) StartRegistryCleanup(ctx context.Context, reqEditors ...Request
 
 // ListRegistryImages Images in the registry, newest first
 //
-// registry R5.5.5 (REG4). Deleted images are not listed.
+// registry R5.34 (REG4). Deleted images are not listed.
 //
 // Corresponds with GET /api/v1/registry/images (the `ListRegistryImages` operationId).
 func (c *Client) ListRegistryImages(ctx context.Context, params *ListRegistryImagesParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -10657,7 +10657,7 @@ func (c *Client) ListRegistryImages(ctx context.Context, params *ListRegistryIma
 
 // DeleteRegistryImage Delete one image's manifest
 //
-// registry R5.6.4 (REG6). Without `confirm=true` it answers 409 needs_confirmation naming the running jobs that use it, the repositories that point to it and whether it is inside its rollback days; the question card lists them. An image a running job uses is refused even with confirm (409 conflict). Blobs wait for the cleanup.
+// registry R5.46 (REG6). Without `confirm=true` it answers 409 needs_confirmation naming the running jobs that use it, the repositories that point to it and whether it is inside its rollback days; the question card lists them. An image a running job uses is refused even with confirm (409 conflict). Blobs wait for the cleanup.
 //
 // Corresponds with DELETE /api/v1/registry/images/{registryImageId} (the `DeleteRegistryImage` operationId).
 func (c *Client) DeleteRegistryImage(ctx context.Context, registryImageId RegistryImageId, params *DeleteRegistryImageParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -10674,7 +10674,7 @@ func (c *Client) DeleteRegistryImage(ctx context.Context, registryImageId Regist
 
 // GetRegistryImage One image with lineage, layers, pulls by day, machines, pointers and scan
 //
-// registry R5.5.6 (REG4; scan by REG8).
+// registry R5.35 (REG4; scan by REG8).
 //
 // Corresponds with GET /api/v1/registry/images/{registryImageId} (the `GetRegistryImage` operationId).
 func (c *Client) GetRegistryImage(ctx context.Context, registryImageId RegistryImageId, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -10691,7 +10691,7 @@ func (c *Client) GetRegistryImage(ctx context.Context, registryImageId RegistryI
 
 // CompareRegistryImage The image against the one it would replace
 //
-// registry R5.7.1 (REG7). 404 when the image updates nothing.
+// registry R5.53 (REG7). 404 when the image updates nothing.
 //
 // Corresponds with GET /api/v1/registry/images/{registryImageId}/compare (the `CompareRegistryImage` operationId).
 func (c *Client) CompareRegistryImage(ctx context.Context, registryImageId RegistryImageId, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -10761,7 +10761,7 @@ func (c *Client) DeleteRegistryLogin(ctx context.Context, kind DeleteRegistryLog
 
 // GetRegistryMirrorSettings The pull-through mirror of upstream bases
 //
-// registry R5.9 (REG9).
+// registry R5.63 to R5.67 (REG9).
 //
 // Corresponds with GET /api/v1/registry/mirror (the `GetRegistryMirrorSettings` operationId).
 func (c *Client) GetRegistryMirrorSettings(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -10778,7 +10778,7 @@ func (c *Client) GetRegistryMirrorSettings(ctx context.Context, reqEditors ...Re
 
 // PutRegistryMirrorSettingsWithBody Turn the mirror on or off, its upstreams and budget
 //
-// registry R5.9 (REG9).
+// registry R5.63 to R5.67 (REG9).
 //
 // Takes any type of body and a specified content type.
 //
@@ -10797,7 +10797,7 @@ func (c *Client) PutRegistryMirrorSettingsWithBody(ctx context.Context, contentT
 
 // PutRegistryMirrorSettings Turn the mirror on or off, its upstreams and budget
 //
-// registry R5.9 (REG9).
+// registry R5.63 to R5.67 (REG9).
 //
 // Takes a body of the `application/json` content type.
 //
@@ -10816,7 +10816,7 @@ func (c *Client) PutRegistryMirrorSettings(ctx context.Context, body PutRegistry
 
 // GetRegistryOverview Where the registry runs, budgets, the last 7 days and the recommendations
 //
-// registry R5.5.4, R5.6.3 (REG4 reads, REG6 recommendations).
+// registry R5.33, R5.43 (REG4 reads, REG6 recommendations).
 //
 // Corresponds with GET /api/v1/registry/overview (the `GetRegistryOverview` operationId).
 func (c *Client) GetRegistryOverview(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -10833,7 +10833,7 @@ func (c *Client) GetRegistryOverview(ctx context.Context, reqEditors ...RequestE
 
 // ListRegistryPulls Pulls in progress and waiting for the controller
 //
-// registry R5.5.2 (REG4 from REG2's reports). The Add runners pulling step reads it.
+// registry R5.36 (REG4 from REG2's reports). The Add runners pulling step reads it.
 //
 // Corresponds with GET /api/v1/registry/pulls (the `ListRegistryPulls` operationId).
 func (c *Client) ListRegistryPulls(ctx context.Context, params *ListRegistryPullsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -10850,7 +10850,7 @@ func (c *Client) ListRegistryPulls(ctx context.Context, params *ListRegistryPull
 
 // CreateRegistryReplacePlanWithBody Make a replace plan (nothing changes yet)
 //
-// registry R5.7.2 (REG7). The plan is the Review step's data.
+// registry R5.54 (REG7). The plan is the Review step's data.
 //
 // Takes any type of body and a specified content type.
 //
@@ -10869,7 +10869,7 @@ func (c *Client) CreateRegistryReplacePlanWithBody(ctx context.Context, contentT
 
 // CreateRegistryReplacePlan Make a replace plan (nothing changes yet)
 //
-// registry R5.7.2 (REG7). The plan is the Review step's data.
+// registry R5.54 (REG7). The plan is the Review step's data.
 //
 // Takes a body of the `application/json` content type.
 //
@@ -10888,7 +10888,7 @@ func (c *Client) CreateRegistryReplacePlan(ctx context.Context, body CreateRegis
 
 // GetRegistryReplacePlan One replace plan with its progress
 //
-// registry R5.7.3 (REG7). The wizard reads this after a reload.
+// registry R5.55 (REG7). The wizard reads this after a reload.
 //
 // Corresponds with GET /api/v1/registry/replace-plans/{planId} (the `GetRegistryReplacePlan` operationId).
 func (c *Client) GetRegistryReplacePlan(ctx context.Context, planId PlanId, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -10905,7 +10905,7 @@ func (c *Client) GetRegistryReplacePlan(ctx context.Context, planId PlanId, reqE
 
 // RollbackRegistryReplacePlan Go back to the old image while it is kept
 //
-// registry R5.7.4 (REG7). 409 conflict after keep_until.
+// registry R5.56 (REG7). 409 conflict after keep_until.
 //
 // Corresponds with POST /api/v1/registry/replace-plans/{planId}/rollback (the `RollbackRegistryReplacePlan` operationId).
 func (c *Client) RollbackRegistryReplacePlan(ctx context.Context, planId PlanId, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -10922,7 +10922,7 @@ func (c *Client) RollbackRegistryReplacePlan(ctx context.Context, planId PlanId,
 
 // StartRegistryReplacePlan Replace (move the pointers, warm machines, keep the old image)
 //
-// registry R5.7.3 (REG7). 409 conflict unless the plan is draft or stopped.
+// registry R5.55 (REG7). 409 conflict unless the plan is draft or stopped.
 //
 // Corresponds with POST /api/v1/registry/replace-plans/{planId}/start (the `StartRegistryReplacePlan` operationId).
 func (c *Client) StartRegistryReplacePlan(ctx context.Context, planId PlanId, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -10939,7 +10939,7 @@ func (c *Client) StartRegistryReplacePlan(ctx context.Context, planId PlanId, re
 
 // StopRegistryReplacePlan Stop a running replace after its current step
 //
-// registry R5.7.3 (REG7). Pointers already moved stay moved; Rollback undoes them.
+// registry R5.55 (REG7). Pointers already moved stay moved; Rollback undoes them.
 //
 // Corresponds with POST /api/v1/registry/replace-plans/{planId}/stop (the `StopRegistryReplacePlan` operationId).
 func (c *Client) StopRegistryReplacePlan(ctx context.Context, planId PlanId, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -10956,7 +10956,7 @@ func (c *Client) StopRegistryReplacePlan(ctx context.Context, planId PlanId, req
 
 // GetRegistryStoreSettings Folder, days and cleanup time of the registry
 //
-// registry R5.6.2 (REG6). Not the registry logins of getRegistrySettings.
+// registry R5.42 (REG6). Not the registry logins of getRegistrySettings.
 //
 // Corresponds with GET /api/v1/registry/settings (the `GetRegistryStoreSettings` operationId).
 func (c *Client) GetRegistryStoreSettings(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -10973,7 +10973,7 @@ func (c *Client) GetRegistryStoreSettings(ctx context.Context, reqEditors ...Req
 
 // PutRegistryStoreSettingsWithBody Change the folder, the days or the cleanup time
 //
-// registry R5.6.2 (REG6). A new folder is used after the blobs are moved; the answer says so. Which rules crsp may act on alone is fixed (owner decision) and not part of the input.
+// registry R5.42 (REG6). A new folder is used after the blobs are moved; the answer says so. Which rules crsp may act on alone is fixed (owner decision) and not part of the input.
 //
 // Takes any type of body and a specified content type.
 //
@@ -10992,7 +10992,7 @@ func (c *Client) PutRegistryStoreSettingsWithBody(ctx context.Context, contentTy
 
 // PutRegistryStoreSettings Change the folder, the days or the cleanup time
 //
-// registry R5.6.2 (REG6). A new folder is used after the blobs are moved; the answer says so. Which rules crsp may act on alone is fixed (owner decision) and not part of the input.
+// registry R5.42 (REG6). A new folder is used after the blobs are moved; the answer says so. Which rules crsp may act on alone is fixed (owner decision) and not part of the input.
 //
 // Takes a body of the `application/json` content type.
 //
@@ -20943,7 +20943,7 @@ type ClientWithResponsesInterface interface {
 
 	// GetRegistryBudgetsWithResponse Budgets of standard and custom images with their use and the free disk
 	//
-	// registry R5.6.1 (REG6).
+	// registry R5.41 (REG6).
 	//
 	// Returns a wrapper object for the known response body format(s).
 	//
@@ -20952,7 +20952,7 @@ type ClientWithResponsesInterface interface {
 
 	// PutRegistryBudgetsWithBodyWithResponse Set the two budgets
 	//
-	// registry R5.6.1 (REG6). 400 bad_request when the sum is above half the free disk of the registry folder's volume; the detail names the most it may be.
+	// registry R5.41 (REG6). 400 bad_request when the sum is above half the free disk of the registry folder's volume; the detail names the most it may be.
 	//
 	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -20961,7 +20961,7 @@ type ClientWithResponsesInterface interface {
 
 	// PutRegistryBudgetsWithResponse Set the two budgets
 	//
-	// registry R5.6.1 (REG6). 400 bad_request when the sum is above half the free disk of the registry folder's volume; the detail names the most it may be.
+	// registry R5.41 (REG6). 400 bad_request when the sum is above half the free disk of the registry folder's volume; the detail names the most it may be.
 	//
 	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -20970,7 +20970,7 @@ type ClientWithResponsesInterface interface {
 
 	// ListImageBuildsWithResponse Image builds, the running ones first, with their push state
 	//
-	// registry R5.10 (IMG1; push state by REG2).
+	// registry R5.68 to R5.71 (IMG1; push state by REG2).
 	//
 	// Returns a wrapper object for the known response body format(s).
 	//
@@ -20979,7 +20979,7 @@ type ClientWithResponsesInterface interface {
 
 	// GetImageBuildWithResponse One build with its steps and log tail
 	//
-	// registry R5.10 (IMG1).
+	// registry R5.69, R5.70 (IMG1).
 	//
 	// Returns a wrapper object for the known response body format(s).
 	//
@@ -21013,7 +21013,7 @@ type ClientWithResponsesInterface interface {
 
 	// StartRegistryCleanupWithResponse Clean up now (read-only window, then garbage collection)
 	//
-	// registry R5.6.6 (REG6). 409 conflict when a cleanup runs.
+	// registry R5.48 (REG6). 409 conflict when a cleanup runs.
 	//
 	// Returns a wrapper object for the known response body format(s).
 	//
@@ -21022,7 +21022,7 @@ type ClientWithResponsesInterface interface {
 
 	// ListRegistryImagesWithResponse Images in the registry, newest first
 	//
-	// registry R5.5.5 (REG4). Deleted images are not listed.
+	// registry R5.34 (REG4). Deleted images are not listed.
 	//
 	// Returns a wrapper object for the known response body format(s).
 	//
@@ -21031,7 +21031,7 @@ type ClientWithResponsesInterface interface {
 
 	// DeleteRegistryImageWithResponse Delete one image's manifest
 	//
-	// registry R5.6.4 (REG6). Without `confirm=true` it answers 409 needs_confirmation naming the running jobs that use it, the repositories that point to it and whether it is inside its rollback days; the question card lists them. An image a running job uses is refused even with confirm (409 conflict). Blobs wait for the cleanup.
+	// registry R5.46 (REG6). Without `confirm=true` it answers 409 needs_confirmation naming the running jobs that use it, the repositories that point to it and whether it is inside its rollback days; the question card lists them. An image a running job uses is refused even with confirm (409 conflict). Blobs wait for the cleanup.
 	//
 	// Returns a wrapper object for the known response body format(s).
 	//
@@ -21040,7 +21040,7 @@ type ClientWithResponsesInterface interface {
 
 	// GetRegistryImageWithResponse One image with lineage, layers, pulls by day, machines, pointers and scan
 	//
-	// registry R5.5.6 (REG4; scan by REG8).
+	// registry R5.35 (REG4; scan by REG8).
 	//
 	// Returns a wrapper object for the known response body format(s).
 	//
@@ -21049,7 +21049,7 @@ type ClientWithResponsesInterface interface {
 
 	// CompareRegistryImageWithResponse The image against the one it would replace
 	//
-	// registry R5.7.1 (REG7). 404 when the image updates nothing.
+	// registry R5.53 (REG7). 404 when the image updates nothing.
 	//
 	// Returns a wrapper object for the known response body format(s).
 	//
@@ -21083,7 +21083,7 @@ type ClientWithResponsesInterface interface {
 
 	// GetRegistryMirrorSettingsWithResponse The pull-through mirror of upstream bases
 	//
-	// registry R5.9 (REG9).
+	// registry R5.63 to R5.67 (REG9).
 	//
 	// Returns a wrapper object for the known response body format(s).
 	//
@@ -21092,7 +21092,7 @@ type ClientWithResponsesInterface interface {
 
 	// PutRegistryMirrorSettingsWithBodyWithResponse Turn the mirror on or off, its upstreams and budget
 	//
-	// registry R5.9 (REG9).
+	// registry R5.63 to R5.67 (REG9).
 	//
 	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -21101,7 +21101,7 @@ type ClientWithResponsesInterface interface {
 
 	// PutRegistryMirrorSettingsWithResponse Turn the mirror on or off, its upstreams and budget
 	//
-	// registry R5.9 (REG9).
+	// registry R5.63 to R5.67 (REG9).
 	//
 	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -21110,7 +21110,7 @@ type ClientWithResponsesInterface interface {
 
 	// GetRegistryOverviewWithResponse Where the registry runs, budgets, the last 7 days and the recommendations
 	//
-	// registry R5.5.4, R5.6.3 (REG4 reads, REG6 recommendations).
+	// registry R5.33, R5.43 (REG4 reads, REG6 recommendations).
 	//
 	// Returns a wrapper object for the known response body format(s).
 	//
@@ -21119,7 +21119,7 @@ type ClientWithResponsesInterface interface {
 
 	// ListRegistryPullsWithResponse Pulls in progress and waiting for the controller
 	//
-	// registry R5.5.2 (REG4 from REG2's reports). The Add runners pulling step reads it.
+	// registry R5.36 (REG4 from REG2's reports). The Add runners pulling step reads it.
 	//
 	// Returns a wrapper object for the known response body format(s).
 	//
@@ -21128,7 +21128,7 @@ type ClientWithResponsesInterface interface {
 
 	// CreateRegistryReplacePlanWithBodyWithResponse Make a replace plan (nothing changes yet)
 	//
-	// registry R5.7.2 (REG7). The plan is the Review step's data.
+	// registry R5.54 (REG7). The plan is the Review step's data.
 	//
 	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -21137,7 +21137,7 @@ type ClientWithResponsesInterface interface {
 
 	// CreateRegistryReplacePlanWithResponse Make a replace plan (nothing changes yet)
 	//
-	// registry R5.7.2 (REG7). The plan is the Review step's data.
+	// registry R5.54 (REG7). The plan is the Review step's data.
 	//
 	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -21146,7 +21146,7 @@ type ClientWithResponsesInterface interface {
 
 	// GetRegistryReplacePlanWithResponse One replace plan with its progress
 	//
-	// registry R5.7.3 (REG7). The wizard reads this after a reload.
+	// registry R5.55 (REG7). The wizard reads this after a reload.
 	//
 	// Returns a wrapper object for the known response body format(s).
 	//
@@ -21155,7 +21155,7 @@ type ClientWithResponsesInterface interface {
 
 	// RollbackRegistryReplacePlanWithResponse Go back to the old image while it is kept
 	//
-	// registry R5.7.4 (REG7). 409 conflict after keep_until.
+	// registry R5.56 (REG7). 409 conflict after keep_until.
 	//
 	// Returns a wrapper object for the known response body format(s).
 	//
@@ -21164,7 +21164,7 @@ type ClientWithResponsesInterface interface {
 
 	// StartRegistryReplacePlanWithResponse Replace (move the pointers, warm machines, keep the old image)
 	//
-	// registry R5.7.3 (REG7). 409 conflict unless the plan is draft or stopped.
+	// registry R5.55 (REG7). 409 conflict unless the plan is draft or stopped.
 	//
 	// Returns a wrapper object for the known response body format(s).
 	//
@@ -21173,7 +21173,7 @@ type ClientWithResponsesInterface interface {
 
 	// StopRegistryReplacePlanWithResponse Stop a running replace after its current step
 	//
-	// registry R5.7.3 (REG7). Pointers already moved stay moved; Rollback undoes them.
+	// registry R5.55 (REG7). Pointers already moved stay moved; Rollback undoes them.
 	//
 	// Returns a wrapper object for the known response body format(s).
 	//
@@ -21182,7 +21182,7 @@ type ClientWithResponsesInterface interface {
 
 	// GetRegistryStoreSettingsWithResponse Folder, days and cleanup time of the registry
 	//
-	// registry R5.6.2 (REG6). Not the registry logins of getRegistrySettings.
+	// registry R5.42 (REG6). Not the registry logins of getRegistrySettings.
 	//
 	// Returns a wrapper object for the known response body format(s).
 	//
@@ -21191,7 +21191,7 @@ type ClientWithResponsesInterface interface {
 
 	// PutRegistryStoreSettingsWithBodyWithResponse Change the folder, the days or the cleanup time
 	//
-	// registry R5.6.2 (REG6). A new folder is used after the blobs are moved; the answer says so. Which rules crsp may act on alone is fixed (owner decision) and not part of the input.
+	// registry R5.42 (REG6). A new folder is used after the blobs are moved; the answer says so. Which rules crsp may act on alone is fixed (owner decision) and not part of the input.
 	//
 	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -21200,7 +21200,7 @@ type ClientWithResponsesInterface interface {
 
 	// PutRegistryStoreSettingsWithResponse Change the folder, the days or the cleanup time
 	//
-	// registry R5.6.2 (REG6). A new folder is used after the blobs are moved; the answer says so. Which rules crsp may act on alone is fixed (owner decision) and not part of the input.
+	// registry R5.42 (REG6). A new folder is used after the blobs are moved; the answer says so. Which rules crsp may act on alone is fixed (owner decision) and not part of the input.
 	//
 	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -31282,7 +31282,7 @@ func (c *ClientWithResponses) GetRegistrySettingsWithResponse(ctx context.Contex
 
 // GetRegistryBudgetsWithResponse Budgets of standard and custom images with their use and the free disk
 //
-// registry R5.6.1 (REG6).
+// registry R5.41 (REG6).
 //
 // Returns a wrapper object for the known response body format(s).
 //
@@ -31297,7 +31297,7 @@ func (c *ClientWithResponses) GetRegistryBudgetsWithResponse(ctx context.Context
 
 // PutRegistryBudgetsWithBodyWithResponse Set the two budgets
 //
-// registry R5.6.1 (REG6). 400 bad_request when the sum is above half the free disk of the registry folder's volume; the detail names the most it may be.
+// registry R5.41 (REG6). 400 bad_request when the sum is above half the free disk of the registry folder's volume; the detail names the most it may be.
 //
 // Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 //
@@ -31312,7 +31312,7 @@ func (c *ClientWithResponses) PutRegistryBudgetsWithBodyWithResponse(ctx context
 
 // PutRegistryBudgetsWithResponse Set the two budgets
 //
-// registry R5.6.1 (REG6). 400 bad_request when the sum is above half the free disk of the registry folder's volume; the detail names the most it may be.
+// registry R5.41 (REG6). 400 bad_request when the sum is above half the free disk of the registry folder's volume; the detail names the most it may be.
 //
 // Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 //
@@ -31327,7 +31327,7 @@ func (c *ClientWithResponses) PutRegistryBudgetsWithResponse(ctx context.Context
 
 // ListImageBuildsWithResponse Image builds, the running ones first, with their push state
 //
-// registry R5.10 (IMG1; push state by REG2).
+// registry R5.68 to R5.71 (IMG1; push state by REG2).
 //
 // Returns a wrapper object for the known response body format(s).
 //
@@ -31342,7 +31342,7 @@ func (c *ClientWithResponses) ListImageBuildsWithResponse(ctx context.Context, p
 
 // GetImageBuildWithResponse One build with its steps and log tail
 //
-// registry R5.10 (IMG1).
+// registry R5.69, R5.70 (IMG1).
 //
 // Returns a wrapper object for the known response body format(s).
 //
@@ -31400,7 +31400,7 @@ func (c *ClientWithResponses) PutRegistryCaBundleWithResponse(ctx context.Contex
 
 // StartRegistryCleanupWithResponse Clean up now (read-only window, then garbage collection)
 //
-// registry R5.6.6 (REG6). 409 conflict when a cleanup runs.
+// registry R5.48 (REG6). 409 conflict when a cleanup runs.
 //
 // Returns a wrapper object for the known response body format(s).
 //
@@ -31415,7 +31415,7 @@ func (c *ClientWithResponses) StartRegistryCleanupWithResponse(ctx context.Conte
 
 // ListRegistryImagesWithResponse Images in the registry, newest first
 //
-// registry R5.5.5 (REG4). Deleted images are not listed.
+// registry R5.34 (REG4). Deleted images are not listed.
 //
 // Returns a wrapper object for the known response body format(s).
 //
@@ -31430,7 +31430,7 @@ func (c *ClientWithResponses) ListRegistryImagesWithResponse(ctx context.Context
 
 // DeleteRegistryImageWithResponse Delete one image's manifest
 //
-// registry R5.6.4 (REG6). Without `confirm=true` it answers 409 needs_confirmation naming the running jobs that use it, the repositories that point to it and whether it is inside its rollback days; the question card lists them. An image a running job uses is refused even with confirm (409 conflict). Blobs wait for the cleanup.
+// registry R5.46 (REG6). Without `confirm=true` it answers 409 needs_confirmation naming the running jobs that use it, the repositories that point to it and whether it is inside its rollback days; the question card lists them. An image a running job uses is refused even with confirm (409 conflict). Blobs wait for the cleanup.
 //
 // Returns a wrapper object for the known response body format(s).
 //
@@ -31445,7 +31445,7 @@ func (c *ClientWithResponses) DeleteRegistryImageWithResponse(ctx context.Contex
 
 // GetRegistryImageWithResponse One image with lineage, layers, pulls by day, machines, pointers and scan
 //
-// registry R5.5.6 (REG4; scan by REG8).
+// registry R5.35 (REG4; scan by REG8).
 //
 // Returns a wrapper object for the known response body format(s).
 //
@@ -31460,7 +31460,7 @@ func (c *ClientWithResponses) GetRegistryImageWithResponse(ctx context.Context, 
 
 // CompareRegistryImageWithResponse The image against the one it would replace
 //
-// registry R5.7.1 (REG7). 404 when the image updates nothing.
+// registry R5.53 (REG7). 404 when the image updates nothing.
 //
 // Returns a wrapper object for the known response body format(s).
 //
@@ -31518,7 +31518,7 @@ func (c *ClientWithResponses) DeleteRegistryLoginWithResponse(ctx context.Contex
 
 // GetRegistryMirrorSettingsWithResponse The pull-through mirror of upstream bases
 //
-// registry R5.9 (REG9).
+// registry R5.63 to R5.67 (REG9).
 //
 // Returns a wrapper object for the known response body format(s).
 //
@@ -31533,7 +31533,7 @@ func (c *ClientWithResponses) GetRegistryMirrorSettingsWithResponse(ctx context.
 
 // PutRegistryMirrorSettingsWithBodyWithResponse Turn the mirror on or off, its upstreams and budget
 //
-// registry R5.9 (REG9).
+// registry R5.63 to R5.67 (REG9).
 //
 // Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 //
@@ -31548,7 +31548,7 @@ func (c *ClientWithResponses) PutRegistryMirrorSettingsWithBodyWithResponse(ctx 
 
 // PutRegistryMirrorSettingsWithResponse Turn the mirror on or off, its upstreams and budget
 //
-// registry R5.9 (REG9).
+// registry R5.63 to R5.67 (REG9).
 //
 // Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 //
@@ -31563,7 +31563,7 @@ func (c *ClientWithResponses) PutRegistryMirrorSettingsWithResponse(ctx context.
 
 // GetRegistryOverviewWithResponse Where the registry runs, budgets, the last 7 days and the recommendations
 //
-// registry R5.5.4, R5.6.3 (REG4 reads, REG6 recommendations).
+// registry R5.33, R5.43 (REG4 reads, REG6 recommendations).
 //
 // Returns a wrapper object for the known response body format(s).
 //
@@ -31578,7 +31578,7 @@ func (c *ClientWithResponses) GetRegistryOverviewWithResponse(ctx context.Contex
 
 // ListRegistryPullsWithResponse Pulls in progress and waiting for the controller
 //
-// registry R5.5.2 (REG4 from REG2's reports). The Add runners pulling step reads it.
+// registry R5.36 (REG4 from REG2's reports). The Add runners pulling step reads it.
 //
 // Returns a wrapper object for the known response body format(s).
 //
@@ -31593,7 +31593,7 @@ func (c *ClientWithResponses) ListRegistryPullsWithResponse(ctx context.Context,
 
 // CreateRegistryReplacePlanWithBodyWithResponse Make a replace plan (nothing changes yet)
 //
-// registry R5.7.2 (REG7). The plan is the Review step's data.
+// registry R5.54 (REG7). The plan is the Review step's data.
 //
 // Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 //
@@ -31608,7 +31608,7 @@ func (c *ClientWithResponses) CreateRegistryReplacePlanWithBodyWithResponse(ctx 
 
 // CreateRegistryReplacePlanWithResponse Make a replace plan (nothing changes yet)
 //
-// registry R5.7.2 (REG7). The plan is the Review step's data.
+// registry R5.54 (REG7). The plan is the Review step's data.
 //
 // Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 //
@@ -31623,7 +31623,7 @@ func (c *ClientWithResponses) CreateRegistryReplacePlanWithResponse(ctx context.
 
 // GetRegistryReplacePlanWithResponse One replace plan with its progress
 //
-// registry R5.7.3 (REG7). The wizard reads this after a reload.
+// registry R5.55 (REG7). The wizard reads this after a reload.
 //
 // Returns a wrapper object for the known response body format(s).
 //
@@ -31638,7 +31638,7 @@ func (c *ClientWithResponses) GetRegistryReplacePlanWithResponse(ctx context.Con
 
 // RollbackRegistryReplacePlanWithResponse Go back to the old image while it is kept
 //
-// registry R5.7.4 (REG7). 409 conflict after keep_until.
+// registry R5.56 (REG7). 409 conflict after keep_until.
 //
 // Returns a wrapper object for the known response body format(s).
 //
@@ -31653,7 +31653,7 @@ func (c *ClientWithResponses) RollbackRegistryReplacePlanWithResponse(ctx contex
 
 // StartRegistryReplacePlanWithResponse Replace (move the pointers, warm machines, keep the old image)
 //
-// registry R5.7.3 (REG7). 409 conflict unless the plan is draft or stopped.
+// registry R5.55 (REG7). 409 conflict unless the plan is draft or stopped.
 //
 // Returns a wrapper object for the known response body format(s).
 //
@@ -31668,7 +31668,7 @@ func (c *ClientWithResponses) StartRegistryReplacePlanWithResponse(ctx context.C
 
 // StopRegistryReplacePlanWithResponse Stop a running replace after its current step
 //
-// registry R5.7.3 (REG7). Pointers already moved stay moved; Rollback undoes them.
+// registry R5.55 (REG7). Pointers already moved stay moved; Rollback undoes them.
 //
 // Returns a wrapper object for the known response body format(s).
 //
@@ -31683,7 +31683,7 @@ func (c *ClientWithResponses) StopRegistryReplacePlanWithResponse(ctx context.Co
 
 // GetRegistryStoreSettingsWithResponse Folder, days and cleanup time of the registry
 //
-// registry R5.6.2 (REG6). Not the registry logins of getRegistrySettings.
+// registry R5.42 (REG6). Not the registry logins of getRegistrySettings.
 //
 // Returns a wrapper object for the known response body format(s).
 //
@@ -31698,7 +31698,7 @@ func (c *ClientWithResponses) GetRegistryStoreSettingsWithResponse(ctx context.C
 
 // PutRegistryStoreSettingsWithBodyWithResponse Change the folder, the days or the cleanup time
 //
-// registry R5.6.2 (REG6). A new folder is used after the blobs are moved; the answer says so. Which rules crsp may act on alone is fixed (owner decision) and not part of the input.
+// registry R5.42 (REG6). A new folder is used after the blobs are moved; the answer says so. Which rules crsp may act on alone is fixed (owner decision) and not part of the input.
 //
 // Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 //
@@ -31713,7 +31713,7 @@ func (c *ClientWithResponses) PutRegistryStoreSettingsWithBodyWithResponse(ctx c
 
 // PutRegistryStoreSettingsWithResponse Change the folder, the days or the cleanup time
 //
-// registry R5.6.2 (REG6). A new folder is used after the blobs are moved; the answer says so. Which rules crsp may act on alone is fixed (owner decision) and not part of the input.
+// registry R5.42 (REG6). A new folder is used after the blobs are moved; the answer says so. Which rules crsp may act on alone is fixed (owner decision) and not part of the input.
 //
 // Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 //
