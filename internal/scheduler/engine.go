@@ -23,9 +23,6 @@ type Engine struct {
 	alert func(Alert)
 	// accepting says whether a machine takes new jobs and why not (machines R5.62).
 	accepting func(machineID string) (ok bool, reason string)
-	// light says whether a runner is on the light queue, read from its stored
-	// route and never from its name (runners R5.70). Nil means no runner is.
-	light func(machineID, runnerName string) bool
 	// unclean gives the reason a runner is unclean after a failed clean-up, or
 	// "" (runners R5.91). Nil means every runner is clean.
 	unclean func(machineID, runnerName string) string
@@ -60,11 +57,6 @@ func WithAlerts(f func(Alert)) Option { return func(e *Engine) { e.alert = f } }
 func WithAccepting(f func(machineID string) (ok bool, reason string)) Option {
 	return func(e *Engine) { e.accepting = f }
 }
-
-// SetLightLookup sets where the gate reads the route of a runner: true when the
-// runner serves the light queue. The runner registry answers it; the engine
-// never parses a runner name (runners R5.70). Set it before jobs arrive.
-func (e *Engine) SetLightLookup(f func(machineID, runnerName string) bool) { e.light = f }
 
 // SetUncleanLookup sets where the gate reads whether a runner is unclean: the
 // reason its last clean-up failed, "" when it is clean. An unclean runner takes

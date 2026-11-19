@@ -61,6 +61,20 @@ export function fitSize(c: Check): { mem: number; cpus: number } | undefined {
   return { mem, cpus };
 }
 
+/** The choice that shows the size now: a recommended size when it is the one set, else Custom (when a size is set). */
+export function currentChoice(
+  room: Check | undefined,
+  curMem: number,
+  curCpus: number,
+): SizeChoice | undefined {
+  if (!curMem || !curCpus) return undefined;
+  const is = (r: { memory_gib: number; cpus: number } | undefined) =>
+    r !== undefined && r.memory_gib === curMem && r.cpus === curCpus;
+  if (room?.known && is(room.recommended_half)) return 'half';
+  if (room?.known && is(room.recommended_three_quarters)) return 'three';
+  return 'custom';
+}
+
 export interface LiveLine {
   tone: Tone;
   text: string;
@@ -152,6 +166,7 @@ export function usePoolSize(m: Machine, onChanged: () => void): PoolSizeForm {
   const [mem, setMem] = useState(curMem || MIN_GIB);
   const [cpus, setCpus] = useState(curCpus || MIN_CPUS);
   const [room, setRoom] = useState<Check | undefined>(undefined);
+  const [roomTried, setRoomTried] = useState(false);
   const [check, setCheck] = useState<Check | undefined>(undefined);
   const [waiting, setWaiting] = useState(false);
   const [yes, setYes] = useState(false);
@@ -180,14 +195,20 @@ export function usePoolSize(m: Machine, onChanged: () => void): PoolSizeForm {
   useEffect(() => {
     let on = true;
     void runCheck(curMem || MIN_GIB, curCpus || MIN_CPUS)
-      .then((c) => on && setRoom(c))
-      .catch(() => undefined);
+      .then((c) => {
+        if (!on) return;
+        setRoom(c);
+        setRoomTried(true);
+      })
+      .catch(() => on && setRoomTried(true));
     return () => {
       on = false;
     };
     // Read once for this machine.
   }, [m.id]);
 
+  // Until the person picks, the group shows the size that is set (after the room is read, so it does not flip).
+  const shown = choice ?? (roomTried ? currentChoice(room, curMem, curCpus) : undefined);
   const changed = choice !== undefined && (mem !== curMem || cpus !== curCpus);
   const tooLow = mem < MIN_GIB || cpus < MIN_CPUS;
 
@@ -339,7 +360,7 @@ export function usePoolSize(m: Machine, onChanged: () => void): PoolSizeForm {
         />
         <ChoiceField
           label="New pool size"
-          value={choice ?? ''}
+          value={shown ?? ''}
           onChange={pick}
           changed={changed}
           choices={[

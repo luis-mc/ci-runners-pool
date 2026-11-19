@@ -576,7 +576,6 @@ function RepositoryBody({ r, onChanged }: { r: Repository; onChanged: () => void
   const [max, setMax] = useState(p.max_parallel_jobs);
   const [priority, setPriority] = useState(p.priority);
   const [forks, setForks] = useState(p.allow_fork_pull_requests);
-  const [light, setLight] = useState(p.light_runner);
   const [kinds, setKinds] = useState<KindSelection>(kindSelection(p));
   const [hosted, setHosted] = useState<HostedState>(() => hostedStart(r));
   const startPackages = (p.extra_packages ?? []).join('\n');
@@ -596,10 +595,9 @@ function RepositoryBody({ r, onChanged }: { r: Repository; onChanged: () => void
       max_parallel_jobs: max,
       priority,
       allow_fork_pull_requests: forks,
-      light_runner: light,
       ...(kinds !== kindSelection(p) ? { runner_kinds: kinds } : {}),
     }),
-    [labels, groups, max, priority, forks, light, kinds, p],
+    [labels, groups, max, priority, forks, kinds, p],
   );
   const diff = {
     labels: labels !== p.labels.join(', '),
@@ -607,7 +605,6 @@ function RepositoryBody({ r, onChanged }: { r: Repository; onChanged: () => void
     max: max !== p.max_parallel_jobs,
     priority: priority !== p.priority,
     forks: forks !== p.allow_fork_pull_requests,
-    light: light !== p.light_runner,
     kinds: kinds !== kindSelection(p),
     hosted: hostedChanged(hosted, hostedStart(r)),
     packages: packages !== startPackages,
@@ -618,7 +615,6 @@ function RepositoryBody({ r, onChanged }: { r: Repository; onChanged: () => void
     diff.max ||
     diff.priority ||
     diff.forks ||
-    diff.light ||
     diff.kinds ||
     diff.hosted;
   const packagesChanged = diff.packages;
@@ -630,7 +626,6 @@ function RepositoryBody({ r, onChanged }: { r: Repository; onChanged: () => void
     setMax(p.max_parallel_jobs);
     setPriority(p.priority);
     setForks(p.allow_fork_pull_requests);
-    setLight(p.light_runner);
     setKinds(kindSelection(p));
     setHosted(hostedStart(r));
     setPackages(startPackages);
@@ -895,12 +890,6 @@ function RepositoryBody({ r, onChanged }: { r: Repository; onChanged: () => void
                 changed={diff.forks}
                 onChange={setForks}
               />
-              <CheckRow
-                label="Keep a light runner for short jobs"
-                checked={light}
-                changed={diff.light}
-                onChange={setLight}
-              />
               <ChoiceField
                 label="Runner kind"
                 help="Which runners take this repository's jobs."
@@ -920,11 +909,6 @@ function RepositoryBody({ r, onChanged }: { r: Repository; onChanged: () => void
                   {NO_CAPACITY}
                 </Message>
               ) : null}
-              <Message tone="note">
-                A light runner is kept free for jobs that last seconds, so they do not
-                wait behind a long build. A workflow uses it with runs-on:{' '}
-                {'${{ vars.RUNS_ON_LIGHT }}'}.
-              </Message>
               {forks ? (
                 <Message tone="needs-you">
                   Jobs from public forks run code you did not write. Save asks once more
@@ -956,20 +940,19 @@ function RepositoryBody({ r, onChanged }: { r: Repository; onChanged: () => void
               </Message>
             </Stack>
           </Pane>
-          {saved ? <Message tone="done">{saved}</Message> : null}
-          {save.error ? (
-            <Message tone="problem">Could not save. {save.error}</Message>
-          ) : null}
-          <EditBar
-            changes={changeCount}
-            onSave={() => void save.run()}
-            onCancel={cancel}
-            busy={save.busy}
-            blocked={!admin}
-            why={session.whyNot('admin')}
-          />
         </Stack>
       </form>
+      {saved ? <Message tone="done">{saved}</Message> : null}
+      {save.error ? <Message tone="problem">Could not save. {save.error}</Message> : null}
+      <EditBar
+        changes={changeCount}
+        submit={false}
+        onSave={() => void save.run()}
+        onCancel={cancel}
+        busy={save.busy}
+        blocked={!admin}
+        why={session.whyNot('admin')}
+      />
       <Ask
         title={riskTitle}
         action={risks > 1 ? 'Save' : costRisk ? 'Turn on' : 'Allow'}

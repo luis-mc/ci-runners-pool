@@ -297,7 +297,7 @@ The review build's types are `apps/web/src/screens/images-next/registryModel.ts`
 
 ## 10. UX proposals
 
-Checked: **CORE-1** to **CORE-7**. Design system followed: `v1` (highest numbered folder); words and rule proposed in `next-version` (C132, `content.md` "Registry words", UX-73). Rules used: UX-4, UX-5, UX-13, UX-16, UX-19, UX-25, UX-28, UX-29, UX-30, UX-34, UX-38, UX-41, UX-49, UX-54, UX-58, UX-62, UX-71, UX-72, UX-73.
+Checked: **CORE-1** to **CORE-7**. Design system followed: `v1` (highest numbered folder); words and rule proposed in `next-version` (C135, `content.md` "Registry words", UX-73). Rules used: UX-4, UX-5, UX-13, UX-16, UX-19, UX-25, UX-28, UX-29, UX-30, UX-34, UX-38, UX-41, UX-49, UX-54, UX-58, UX-62, UX-71, UX-72, UX-73.
 
 Shared parts used: `Page`, `PageHeader`, `Tabs`, `Section`, `Card`, `CardGrid`, `Facts`, `Table` (`oneLine`, row action `Open`), `Cut`, `Code`, `Status`, `Tag`, `Progress`, `LevelBar`, `TrendChart`, `Segmented`, `Message`, `ActionBar`, `EditBar`, `NumberField`, `Wizard`, `Breadcrumbs`, `QuestionCard` (through `Ask`). No stylesheet, no `style=`, no new class.
 

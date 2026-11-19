@@ -10,7 +10,7 @@ import {
   type ReactNode,
 } from 'react';
 import { Button } from './Button';
-import { RowAction } from './RowAction';
+import { RowAction, RowPressAction } from './RowAction';
 import { useKeyHints } from './KeyHints';
 import { Pane } from './Pane';
 
@@ -111,10 +111,24 @@ export function Cut({
 export interface RowActionSpec<T> {
   /** One of the Row action words of content.md. */
   label: string;
-  /** The page it opens; null leaves the row without the button. */
-  to: (row: T) => string | null;
-  /** What it opens, for a screen reader. */
+  /** The page it opens; null leaves the row without the button. Leave it out for an action that is a press. */
+  to?: ((row: T) => string | null) | undefined;
+  /**
+   * An action that acts on the row and opens no page (Remove): the press, or null to leave the row without the
+   * button. The word is still `label`, so it never wraps (UX-72).
+   */
+  press?: ((row: T) => RowPress | null) | undefined;
+  /** What it opens or acts on, for a screen reader. */
   name: (row: T) => string;
+}
+
+/** The press of a row action that opens no page. */
+export interface RowPress {
+  onPress: () => void;
+  kind?: 'default' | 'danger' | undefined;
+  disabled?: boolean | undefined;
+  /** Why it is disabled, shown next to the button. */
+  reason?: string | undefined;
 }
 
 export interface LongText {
@@ -341,6 +355,7 @@ export function Table<T>({
                           return (
                             <>
                               <span
+                                data-long
                                 className={needsButton ? 'ds-table__clip' : undefined}
                               >
                                 {needsButton ? shown : long.full}
@@ -374,10 +389,20 @@ export function Table<T>({
                   {action ? (
                     <td className="ds-table__action">
                       {(() => {
-                        const to = action.to(row);
-                        return to ? (
-                          <RowAction
-                            to={to}
+                        const to = action.to?.(row);
+                        if (to) {
+                          return (
+                            <RowAction
+                              to={to}
+                              label={action.label}
+                              name={action.name(row)}
+                            />
+                          );
+                        }
+                        const press = action.press?.(row);
+                        return press ? (
+                          <RowPressAction
+                            press={press}
                             label={action.label}
                             name={action.name(row)}
                           />
