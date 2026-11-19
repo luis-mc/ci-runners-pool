@@ -43,7 +43,7 @@ One numbered section per shared component. A part that nearly fits is extended w
 - **Looks:** a bar fixed to the bottom edge with a quiet reason line above the buttons. It has a soft shadow.
 - **Source:** `src/ui/action-bar`
 - **Rules:** UX-4, UX-14, UX-16, UX-42.
-- **Guard:** none yet.
+- **Guard:** `e2e/tests/web-console/ux-routes.spec.ts` (`stickyWalk`: the bar stays in the window while the page scrolls, and the last text ends above it).
 
 ## 6. Action rows
 
@@ -59,7 +59,7 @@ One numbered section per shared component. A part that nearly fits is extended w
 - **Looks:** a filled primary, an outlined secondary and a text-only quiet button, all with a clear focus ring.
 - **Source:** `src/ui/button`
 - **Rules:** UX-4, UX-8, UX-13, UX-16.
-- **Guard:** none yet.
+- **Guard:** `e2e/tests/web-console/ux-routes.spec.ts` (`wrapped`, `wordBroken`: a button label is on one line and no word is broken inside).
 
 ## 8. Card, card grid and facts list
 
@@ -230,7 +230,7 @@ A `Tag` is the small outlined label that names a kind next to a word, such as `i
 - **Looks:** a bar that appears when something is selected, with the count and the actions.
 - **Source:** `src/ui/selection-bar`
 - **Rules:** UX-7, UX-12, UX-13, UX-38.
-- **Guard:** none yet.
+- **Guard:** `e2e/tests/web-console/ux-routes.spec.ts` (`selectAll`: Select all N and Clear; `stickyWalk`: the bar stays in the window).
 
 ## 21. Search bar and find layout
 
@@ -537,7 +537,7 @@ A field's width caps its box, never its name and help: a lone field's name and h
 - **Looks:** one bar, sticky at the foot of the main content, above the key-hint bar (component 41), with a thin top border and the page fill. It never scrolls away. Left to right: the status line in muted text ("2 selected", "Unsaved changes (3)"; none when there is nothing to say), the secondary actions (Cancel, Back, Stop), the one primary action. A disabled primary says why next to it (UX-38). From 600 px down the bar is full width and the buttons stack at equal width, the primary on top, the secondary actions under it. A wizard draws its Back, Stop and primary through this part; a wizard inside a screen that has its own bar sits in the flow (not sticky) and draws default buttons. An edit screen draws its bar through `EditBar`: the status "Unsaved changes (n)" from the number of changes, Cancel (puts every field back to what is saved) and Save, both disabled until something changed, and the leave guard: leaving by a link, a tab, browser Back or by closing the browser tab asks "Discard changes?" with Keep editing and Discard (the tab close shows the browser's own question). The page passes the number and what Save and Cancel do. A tab of many sections (Settings) has one bar: each section registers what it changed with the tab, the status counts them all, and Save sends each changed section in turn.
 - **Source:** `packages/ui/src/components/ActionBar.tsx` (`ActionBar`, `selectedStatus`, `unsavedStatus`), `packages/ui/src/components/EditBar.tsx` (`EditBar`, `LeaveGuard`), `packages/ui/src/components/Wizard.tsx`, `packages/ui/src/components.css`
 - **Rules:** UX-4, UX-13, UX-38, UX-71.
-- **Guard:** `scripts/design/action-bar.test.ts` (a primary button outside the bar, or two in it, fails; `action-bar.known.json` only shrinks).
+- **Guard:** `scripts/design/action-bar.test.ts` (a primary button outside the bar, or two in it, fails; `action-bar.known.json` only shrinks); `e2e/tests/web-console/ux-routes.spec.ts` (`stickyWalk`: the bar never scrolls away and never covers the last row or the key-hint bar).
 
 ## 49. Native update window and installer art
 

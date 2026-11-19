@@ -1071,7 +1071,7 @@ The words of the new Jobs section (web-console 4.6, proposed). A wait names what
 
 ### Row action words (RES17, UX-72)
 
-One word set for the button at the end of a table row. The guard reads this table: a label not listed here fails the review layout spec.
+One word set for the button at the end of a table row. The guard reads this table: a label not listed here fails the `rowActionWords` guard of `e2e/tests/web-console/ux-routes.spec.ts` and the Jobs rows spec `e2e/tests/web-console/ux-jobs-rows.spec.ts`.
 
 | Word | Where and meaning |
 |---|---|
