@@ -45,6 +45,10 @@ type Link struct {
 	// with their settings (runners R5.90, R5.91). Nil ignores them.
 	Hygiene HygieneSink
 
+	// Registry answers the image registry calls (protocol version 3, REG10).
+	// Nil answers "not in the registry" with no staging name (registry.go).
+	Registry RegistrySink
+
 	mu      sync.Mutex
 	pending map[string]chan *agentv1.RunnerResult
 	// pendingLO waits for RunnerLeftoversReport answers (OPS33).
@@ -90,6 +94,9 @@ func (l *Link) OnHello(machineID string) {
 // OnMessage takes the runner results and machine reports. It returns true when
 // it handled the message.
 func (l *Link) OnMessage(machineID string, msg *agentv1.SessionRequest) bool {
+	if l.onRegistry(machineID, msg) {
+		return true
+	}
 	switch m := msg.GetMessage().(type) {
 	case *agentv1.SessionRequest_RunnerResult:
 		l.mu.Lock()
