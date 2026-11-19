@@ -8,7 +8,7 @@ import (
 )
 
 // RES6, github-integration R5.25, R5.26, R5.28, R5.42: the policy a user set on a
-// repository (priority, parallel jobs, labels, budgets, light runner, fallback,
+// repository (priority, parallel jobs, labels, budgets, fallback,
 // cap, hosted labels) is never changed by what the controller reads or writes on
 // its own: a sync, the installation reconcile, the 10-minute RUNS_ON restore, a
 // change of the machines' labels, the fallback pass, or a restart.
@@ -17,7 +17,7 @@ func TestRepositoryPolicyNeverRevertsOnItsOwn(t *testing.T) {
 	ctx := context.Background()
 	u := PolicyUpdate{
 		Priority: ip(7), MaxParallelJobs: ip(5), Labels: sp("gpu"), BudgetMemoryPct: ip(50), BudgetCPUPct: ip(40),
-		LightRunner: bp(false), HostedFallback: bp(true), ConfirmFallbackCost: true, FallbackCapMinutes: ip(90),
+		HostedFallback: bp(true), ConfirmFallbackCost: true, FallbackCapMinutes: ip(90),
 		HostedLabels: &map[string]string{"linux": "ubuntu-24.04"},
 	}
 	if _, err := e.svc.UpdatePolicy(ctx, adminP, 101, u); err != nil {

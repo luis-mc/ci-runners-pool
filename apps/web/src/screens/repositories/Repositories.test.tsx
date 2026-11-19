@@ -393,23 +393,11 @@ describe('Repository detail', () => {
     expect((r as HTMLInputElement).disabled).toBe(true);
   });
 
-  it('turns the light runner off from the policy form (scheduling R5.65)', async () => {
-    const a = api().on('PATCH', '/api/v1/repositories/:id/policy', on.policy);
-    renderApp(a, '/repositories/octo/app');
+  it('has no light runner setting in the policy form (OPS49)', async () => {
+    renderApp(api(), '/repositories/octo/app');
     await screen.findByRole('heading', { name: 'octo/app' });
-    const box = screen.getByRole('checkbox', {
-      name: 'Keep a light runner for short jobs',
-    });
-    expect((box as HTMLInputElement).checked).toBe(true);
-    fireEvent.click(box);
-    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
-    await waitFor(() =>
-      expect(a.count('PATCH', '/api/v1/repositories/7/policy')).toBe(1),
-    );
-    expect(
-      (a.calls.find((c) => c.method === 'PATCH')?.body as { light_runner: boolean })
-        .light_runner,
-    ).toBe(false);
+    expect(screen.queryByRole('checkbox', { name: /light runner/i })).toBeNull();
+    expect(screen.queryByText(/RUNS_ON_LIGHT/)).toBeNull();
   });
 
   it('shows every mistake above its box and in a list after Save (UX-21)', async () => {

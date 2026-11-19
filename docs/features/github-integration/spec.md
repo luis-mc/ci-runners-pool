@@ -207,7 +207,7 @@ Each requirement names its milestone and its source when it is ported. "runner-p
 - Maximum parallel jobs. Default 2. Enforced by the scheduling spec (M1).
 - Priority. Default normal. Enforced by the scheduling spec (M3).
 - Fork pull requests. Default off (R5.26).
-- Light runner. Default on. Keeps one light runner per OS for the repository and writes `RUNS_ON_LIGHT` (scheduling R5.65, runners R5.57).
+- Light runner: removed (owner decision D110, 19 Nov 2026; runners R5.57, scheduling R5.65, R5.100). Light jobs run on the pool runners like any job. An old stored value is ignored.
 
 **R5.26** (M1, built; the fork-approval setting and the job-started hook guard are built, CRSP108: `internal/hooks/forkpr.go`, run first by `crsp hook job-started`, tested for the sh and PowerShell hooks) — **Fork pull requests off by default.** For a public repository, jobs from pull requests whose head repository is a fork never run on the pool unless the policy allows it. Two guards apply. The controller sets the repository's fork-approval setting to require approval for all outside contributors. The runner's job-started hook reads the event payload and fails a forked pull request job at once, before any step runs, with a message that names the policy. Turning it on asks first with a warning that fork code runs on the user's machines. Built by CRSP108: the hook reads `GITHUB_EVENT_PATH` for `pull_request` and `pull_request_target` events, and the job fails with exit 1 and an `::error` line that names the policy when the head repository is a fork (or is gone) and the repository is public. A visibility or payload that cannot be read counts as public and a fork. The policy allows forks only when the runner environment has `CRSP_ALLOW_FORK_PRS=1`; absent means off. Writing that variable into a runner's environment from the repository policy is NOT YET IMPLEMENTED, so today every forked pull request on a public repository fails at the hook. **Finished by R5.41 and R5.54 (CRSP131):** a public repository can be on the pool only while the setting Public repositories is on; the fork guard above applies to every public repository that is served.
 
@@ -316,6 +316,8 @@ Findings show on the repository row and feed the doctor. (Source: runner-pool R5
 **R5.98** (OPS34, owner decision 3) — **The workflow file, once per head commit.** To draw the job graph the controller reads the workflow file of a run's head commit once through the contents API with the installation token, parses its `needs`, and caches the result by repository, path and commit sha. The read goes through the rate budget of R6.6 (no read when the budget is low); a failed read is retried later and meanwhile the graph falls back to timing overlap with a note (web-console R5.112). Only the job names and `needs` are kept, never the file text.
 
 **R5.99** (OPS34) — **What is kept from an event.** Only the fields of observability R5.38; no logs, commit messages or actor email.
+
+**R5.100** (OPS49; owner decision D110, 19 Nov 2026; runners R5.57, scheduling R5.65) — **`RUNS_ON_LIGHT` points at the normal labels.** Older versions wrote the repository variable `RUNS_ON_LIGHT` with the plain label `crsp-light` once a light runner was placed, so a workflow could say `runs-on: ${{ vars.RUNS_ON_LIGHT }}`. Light runners are gone, so nothing may wait for that label. The reconcile that restores the `RUNS_ON_*` variables every 10 minutes (and the policy save) rewrites a `RUNS_ON_LIGHT` that holds `crsp-light` to the pool's normal labels: the value of the first operating system (Linux, Windows, macOS) the repository has a `RUNS_ON_<OS>` variable for, the same JSON list a normal job type gets, hosted label and ephemeral label included. A copy that crsp wrote itself keeps following those labels; a value a person set by hand is left alone. The variable is never created and never deleted by crsp any more. A repository with no `RUNS_ON_<OS>` variable (no machine serves it) is left as it is. Each rewrite is audited as `variable.migrated`. A second pass changes nothing. The saved policy of an older version may still hold `LightRunner`; it is read and ignored. Built (OPS49).
 
 ## 6. Non-functional requirements
 
@@ -502,6 +504,7 @@ Rows marked planned are not built yet; the others name the test files. The fake 
 | R5.97 | `internal/jobsdata/ingest/recorder_test.go` TestPollerOnlyJobHasNoSteps, TestNoNewPollLoop |
 | R5.98 | `internal/jobsdata/ingest/recorder_test.go` TestWorkflowReadOncePerSha, TestNeedsParsed, TestReadFailureFallsBack, TestRateLimitSkipsRead |
 | R5.99 | `internal/jobsdata/ingest/recorder_test.go` TestNothingSecretStored |
+| R5.100 | `internal/repos/lightvar_test.go` TestLightVariableRewrittenToNormalLabels, TestLightVariableNotCreated, TestLightVariableByHandIsKept, TestLightVariableLeftWhenNoOSServed, TestOldPolicyWithLightRunnerKeyStillLoads |
 
 ## 10. Decisions
 

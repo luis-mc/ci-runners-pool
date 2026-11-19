@@ -67,12 +67,11 @@ func TestGateHoldsNewJobsWithTheReasonWhileNotAccepting(t *testing.T) {
 	}
 }
 
-// A heavy job and a light job are held too: the hold is the machine's, not a job class's.
-func TestGateHoldsLightRunnerJobsWhilePaused(t *testing.T) {
+// A light job is held too: the hold is the machine's, not a job class's.
+func TestGateHoldsLightJobsWhilePaused(t *testing.T) {
 	e, acc := envWithAcceptance(t)
 	acc.set(false, "paused")
-	j := job("o/r", 2, "lint")
-	j.RunnerName = "light-1"
+	j := job("o/r", 2, "smoke")
 	waits(t, e.gate(e.req("g2", j, 1, quiet)), scheduler.WaitPaused)
 }
 
