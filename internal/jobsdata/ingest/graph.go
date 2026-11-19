@@ -23,17 +23,30 @@ func (r *Recorder) MaybeFetchGraph(repositoryID int64, repository, workflowPath,
 	if r.cfg.Graphs == nil || headSHA == "" || (workflowPath == "" && workflowName == "") {
 		return
 	}
-	id := workflowPath
-	if id == "" {
-		id = "name:" + workflowName
+	// A commit's workflow is known by its file and by its name: a job that came by
+	// webhook names it before the file is looked up, a later job of the same commit
+	// may carry the file. Both keys mark the read, so one commit is read once.
+	var keys []graphKey
+	if workflowPath != "" {
+		keys = append(keys, graphKey{repositoryID, workflowPath, headSHA})
 	}
-	key := graphKey{repositoryID, id, headSHA}
+	if workflowName != "" {
+		keys = append(keys, graphKey{repositoryID, "name:" + workflowName, headSHA})
+	}
 	r.mu.Lock()
-	if _, seen := r.graphs.get(key); seen || r.pendingReads >= maxGraphReads {
+	for _, k := range keys {
+		if _, seen := r.graphs.get(k); seen {
+			r.mu.Unlock()
+			return
+		}
+	}
+	if r.pendingReads >= maxGraphReads {
 		r.mu.Unlock()
 		return
 	}
-	r.graphs.put(key, struct{}{})
+	for _, k := range keys {
+		r.graphs.put(k, struct{}{})
+	}
 	r.pendingReads++
 	r.mu.Unlock()
 	r.wg.Add(1)
@@ -48,7 +61,9 @@ func (r *Recorder) MaybeFetchGraph(repositoryID int64, repository, workflowPath,
 		defer func() { <-r.sem }()
 		if err := r.fetchGraph(repositoryID, repository, workflowPath, workflowName, runID, headSHA); err != nil {
 			r.mu.Lock()
-			r.graphs.del(key) // shut down before it finished; a later event may try again
+			for _, k := range keys {
+				r.graphs.del(k) // shut down before it finished; a later event may try again
+			}
 			r.mu.Unlock()
 		}
 	}()

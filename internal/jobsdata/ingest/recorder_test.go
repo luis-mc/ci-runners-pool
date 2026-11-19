@@ -369,12 +369,15 @@ func TestGraphFetchedOncePerSHA(t *testing.T) {
 	for i := int64(1); i <= 4; i++ {
 		_ = r.OnJob(ctx, ghJob(i, "queued"))
 	}
+	// The first commit's read finishes before the second commit's job comes in, so the
+	// second read reuses the workflow path it found (one path lookup in all).
+	r.Wait()
 	other := ghJob(9, "queued")
 	other.HeadSHA = "def"
 	_ = r.OnJob(ctx, other)
 	r.Wait()
-	if g.pathCalls != 2 || g.fileCalls != 2 || st.puts != 2 {
-		t.Fatalf("path %d file %d put %d: once per sha", g.pathCalls, g.fileCalls, st.puts)
+	if g.pathCalls != 1 || g.fileCalls != 2 || st.puts != 2 {
+		t.Fatalf("path %d file %d put %d: one path lookup, one file read and one put per sha", g.pathCalls, g.fileCalls, st.puts)
 	}
 	got := st.graphs[gkey(7, ".github/workflows/ci.yml", "abc")]
 	if !got.OK || len(got.Needs["Ship it"]) != 2 || got.Needs["Ship it"][0] != "lint" || !got.Dynamic["test"] || got.Dynamic["lint"] {
