@@ -4879,7 +4879,7 @@ export interface components {
         LiveEvent: {
             id: string;
             /** @enum {string} */
-            type: "snapshot" | "job.queued" | "job.waiting" | "job.started" | "job.finished" | "machine.load" | "machine.state" | "runner.state" | "saved.today" | "doctor.progress" | "plan.progress" | "change.progress" | "image.state" | "cache.state" | "update.status";
+            type: "snapshot" | "job.queued" | "job.waiting" | "job.started" | "job.finished" | "machine.load" | "machine.state" | "runner.state" | "saved.today" | "doctor.progress" | "plan.progress" | "change.progress" | "image.state" | "image.build" | "cache.state" | "update.status";
             /** Format: date-time */
             at: string;
             /** @description True on a snapshot sent because missed events were no longer kept (R5.3). */
@@ -4897,6 +4897,7 @@ export interface components {
             plan?: components["schemas"]["Plan"];
             change?: components["schemas"]["MachineChange"];
             image?: components["schemas"]["Image"];
+            image_build?: components["schemas"]["ImageBuild"];
             cache?: components["schemas"]["Cache"];
             update?: components["schemas"]["UpdateStatus"];
         };

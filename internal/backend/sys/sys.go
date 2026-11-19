@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -43,6 +44,15 @@ type Result struct {
 // Commands runs programs.
 type Commands interface {
 	Run(ctx context.Context, c Command) (Result, error)
+}
+
+// StreamCommands is a Commands that can hand over output while the program
+// runs (IMG1, R5.68). OnLine gets each line of stdout and stderr as it
+// appears, without the line end. A runner that does not implement it is run
+// whole and its output is read after the end.
+type StreamCommands interface {
+	Commands
+	RunStream(ctx context.Context, c Command, onLine func(line string)) (Result, error)
 }
 
 // FS is the small file system the backends need.
@@ -80,7 +90,50 @@ type Deps struct {
 type ExecCommands struct{}
 
 // Run runs the program with its arguments, never through a shell.
-func (ExecCommands) Run(ctx context.Context, c Command) (Result, error) {
+func (e ExecCommands) Run(ctx context.Context, c Command) (Result, error) {
+	return e.RunStream(ctx, c, nil)
+}
+
+// lineWriter collects the text and calls onLine for each finished line. A
+// carriage return also ends a line: a progress bar rewrites its line.
+type lineWriter struct {
+	mu     sync.Mutex
+	sb     *strings.Builder
+	part   strings.Builder
+	onLine func(string)
+}
+
+func (w *lineWriter) Write(p []byte) (int, error) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	w.sb.Write(p)
+	if w.onLine == nil {
+		return len(p), nil
+	}
+	for _, c := range string(p) {
+		if c == '\n' || c == '\r' {
+			if w.part.Len() > 0 {
+				w.onLine(w.part.String())
+				w.part.Reset()
+			}
+			continue
+		}
+		w.part.WriteRune(c)
+	}
+	return len(p), nil
+}
+
+func (w *lineWriter) flush() {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	if w.onLine != nil && w.part.Len() > 0 {
+		w.onLine(w.part.String())
+		w.part.Reset()
+	}
+}
+
+// RunStream is Run with a line callback (StreamCommands).
+func (ExecCommands) RunStream(ctx context.Context, c Command, onLine func(string)) (Result, error) {
 	cmd := exec.CommandContext(ctx, c.Name, c.Args...) //nolint:gosec // the backends build every call from fixed programs.
 	cmd.Dir = c.Dir
 	cmd.Env = os.Environ()
@@ -94,8 +147,22 @@ func (ExecCommands) Run(ctx context.Context, c Command) (Result, error) {
 		cmd.Stdin = strings.NewReader(c.Stdin)
 	}
 	var out, errb strings.Builder
-	cmd.Stdout, cmd.Stderr = &out, &errb
+	// One callback guard for both pipes: lines from the two never overlap.
+	var cb sync.Mutex
+	guarded := func(l string) {
+		if onLine == nil {
+			return
+		}
+		cb.Lock()
+		defer cb.Unlock()
+		onLine(l)
+	}
+	ow := &lineWriter{sb: &out, onLine: guarded}
+	ew := &lineWriter{sb: &errb, onLine: guarded}
+	cmd.Stdout, cmd.Stderr = ow, ew
 	err := cmd.Run()
+	ow.flush()
+	ew.flush()
 	res := Result{Stdout: out.String(), Stderr: errb.String()}
 	if ee, ok := err.(*exec.ExitError); ok {
 		res.ExitCode = ee.ExitCode()

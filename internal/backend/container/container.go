@@ -17,6 +17,7 @@ import (
 	"github.com/luis-mc/ci-runners-shared-pool/images"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backend"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backend/sys"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/registry/builds"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/runners"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/secrets"
 )
@@ -84,6 +85,14 @@ type Config struct {
 	IDs backend.IDSource
 	// StopGrace is the time `docker stop` gives the idle container.
 	StopGrace time.Duration
+	// Builds keeps each image build as a record and reports its progress
+	// (registry R5.68, R5.69). Nil: the build streams to the log only.
+	Builds builds.Sink
+	// MachineID names this machine in the build records.
+	MachineID string
+	// BuildCores is the logical cores of the machine; a build uses half of them
+	// while jobs run (RES19 decision D20). 0 takes the count of the host.
+	BuildCores int
 }
 
 // Backend is the container backend. One pool container per repository holds
@@ -98,6 +107,8 @@ type Backend struct {
 	dbRunners map[string]string // runner ref -> runner id, for runners that got a database
 	owners    runners.MemoryRoleOwners
 	cpus      *CPUAllocator // nil when the config has no CPU budget
+	// buildGate lets one image build run at a time on this machine (decision D20).
+	buildGate *builds.Gate
 }
 
 var _ backend.Backend = (*Backend)(nil)
@@ -110,7 +121,7 @@ func New(d sys.Deps, eng Engine, cfg Config) *Backend {
 	if cfg.VMImageMirror == "" {
 		cfg.VMImageMirror = d.Addresses.VMImageMirror
 	}
-	b := &Backend{d: d, eng: eng, cfg: cfg, draining: map[string]bool{}, dbRunners: map[string]string{}}
+	b := &Backend{d: d, eng: eng, cfg: cfg, draining: map[string]bool{}, dbRunners: map[string]string{}, buildGate: builds.NewGate()}
 	if cfg.CPUBudget > 0 {
 		b.cpus = NewCPUAllocator(cfg.CPUBudget)
 	}

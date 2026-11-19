@@ -78,6 +78,8 @@ type Options struct {
 	// EnvSets serves the environment set routes and the merged runner
 	// environment (handlers_envsets.go). Nil answers 501.
 	EnvSets *envsets.Service
+	// Builds serves the image build records (handlers_registry_img1.go). Nil answers 501.
+	Builds BuildsService
 	// Registry serves the registry login and CA bundle routes. Nil answers 501.
 	Registry *regcreds.Store
 	// Compare serves the speed comparison route (handlers_compare.go). Nil answers 501.
