@@ -154,6 +154,23 @@ type ImageBuild struct {
 	UpdatedAt      string
 }
 
+type ImageProfile struct {
+	ID         string
+	Kind       string
+	Repository string
+	Title      string
+	BaseName   string
+	BaseDigest string
+	Pins       string
+	Toolchains string
+	Services   string
+	Labels     string
+	Stacks     string
+	BuiltIn    int64
+	CreatedAt  string
+	UpdatedAt  string
+}
+
 type Installation struct {
 	ID                  int64
 	AccountLogin        string
@@ -656,6 +673,12 @@ type Repository struct {
 	PoolChangedAt  sql.NullString
 	PoolChangedBy  sql.NullString
 	UpdatedAt      string
+}
+
+type RepositoryProfile struct {
+	Repository string
+	ProfileID  string
+	UpdatedAt  string
 }
 
 type RestoreDrill struct {
