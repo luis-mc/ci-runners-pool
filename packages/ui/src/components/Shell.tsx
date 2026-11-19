@@ -30,7 +30,7 @@ export function TopMenu({
             <NavLink
               to={i.to}
               {...(i.end ? { end: true } : {})}
-              className="ds-topmenu__link"
+              className={() => 'ds-topmenu__link'}
             >
               {i.label}
             </NavLink>

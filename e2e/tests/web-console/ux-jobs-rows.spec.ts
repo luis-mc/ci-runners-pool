@@ -2,9 +2,9 @@
 // height, a button in a table does not wrap, and a row action uses only the words of the Row action words table in
 // content.md (Open run, Open, Open job). At phone width the action of every card sits in the same place. The guard
 // runs over every Jobs list the console has, with the mocked Jobs API; a breach is fixed, never listed.
-import { readFileSync } from 'node:fs';
 import { expect, test } from '@playwright/test';
 import { openRoute } from './ux-guards';
+import { rowActionWords } from './ux-measure-source';
 
 const SCREENS = [
   { name: 'Queue', url: '/jobs' },
@@ -19,18 +19,6 @@ const SCREENS = [
   { name: 'By runner type', url: '/jobs/runner-type' },
   { name: 'By job type', url: '/jobs/job-type' },
 ];
-
-function allowedLabels(): Set<string> {
-  const text = readFileSync('docs/design-system/next-version/content.md', 'utf8');
-  const at = text.indexOf('### Row action words');
-  if (at < 0) throw new Error('content.md has no Row action words section');
-  const words = new Set<string>();
-  for (const line of text.slice(at).split('\n').slice(4)) {
-    if (!line.startsWith('|')) break;
-    for (const w of (line.split('|')[1] ?? '').split(',')) words.add(w.trim());
-  }
-  return words;
-}
 
 /** Runs in the page: the breaches of UX-72 in every visible table, as `{ table, what }`. */
 const ROW_SOURCE = (labels: string[]) => `(() => {
@@ -120,14 +108,14 @@ const WEIGHT_SOURCE = `(() => {
 for (const s of SCREENS) {
   test(`rows of ${s.name} are one line with one set of words`, async ({ page }) => {
     await openRoute(page, { url: s.url, signedOut: false }, { width: 1300 });
-    expect(await page.evaluate<string[]>(ROW_SOURCE([...allowedLabels()]))).toEqual([]);
+    expect(await page.evaluate<string[]>(ROW_SOURCE([...rowActionWords()]))).toEqual([]);
   });
 
   test(`rows of ${s.name} at 1220 px have no fit cell cut and no sideways scroll`, async ({
     page,
   }) => {
     await openRoute(page, { url: s.url, signedOut: false }, { width: 1220 });
-    expect(await page.evaluate<string[]>(ROW_SOURCE([...allowedLabels()]))).toEqual([]);
+    expect(await page.evaluate<string[]>(ROW_SOURCE([...rowActionWords()]))).toEqual([]);
   });
 
   for (const width of [1300, 1220]) {
