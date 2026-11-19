@@ -83,6 +83,9 @@ type Options struct {
 	RegistryReplace RegistryReplaceService
 	// Registry serves the registry login and CA bundle routes. Nil answers 501.
 	Registry *regcreds.Store
+	// RegistryRetention serves the registry budgets, store settings, image delete and
+	// cleanup routes (handlers_registry_reg6.go). Nil answers 501.
+	RegistryRetention RegistryRetentionService
 	// Compare serves the speed comparison route (handlers_compare.go). Nil answers 501.
 	Compare CompareService
 	// Trial serves the trial mode routes (handlers_trial.go). Nil answers 501.

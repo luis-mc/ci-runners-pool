@@ -28,6 +28,23 @@ func (q *Queries) CloseRegistryRecommendation(ctx context.Context, arg CloseRegi
 	return result.RowsAffected()
 }
 
+const countLiveRegistryTokenLeasesNaming = `-- name: CountLiveRegistryTokenLeasesNaming :one
+SELECT count(*) FROM registry_token_leases
+WHERE expires_at > ? AND instr(names, '"' || CAST(?2 AS TEXT) || '"') > 0
+`
+
+type CountLiveRegistryTokenLeasesNamingParams struct {
+	ExpiresAt string
+	Name      string
+}
+
+func (q *Queries) CountLiveRegistryTokenLeasesNaming(ctx context.Context, arg CountLiveRegistryTokenLeasesNamingParams) (int64, error) {
+	row := q.queryRow(ctx, q.countLiveRegistryTokenLeasesNamingStmt, countLiveRegistryTokenLeasesNaming, arg.ExpiresAt, arg.Name)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const deleteRegistryLayer = `-- name: DeleteRegistryLayer :exec
 DELETE FROM registry_layers WHERE digest = ?
 `
@@ -57,6 +74,26 @@ func (q *Queries) FinishRegistryCleanup(ctx context.Context, arg FinishRegistryC
 		arg.ID,
 	)
 	return err
+}
+
+const getRegistryCleanup = `-- name: GetRegistryCleanup :one
+SELECT id, "trigger", state, freed_bytes, error, started_by, started_at, finished_at FROM registry_cleanups WHERE id = ?
+`
+
+func (q *Queries) GetRegistryCleanup(ctx context.Context, id int64) (RegistryCleanup, error) {
+	row := q.queryRow(ctx, q.getRegistryCleanupStmt, getRegistryCleanup, id)
+	var i RegistryCleanup
+	err := row.Scan(
+		&i.ID,
+		&i.Trigger,
+		&i.State,
+		&i.FreedBytes,
+		&i.Error,
+		&i.StartedBy,
+		&i.StartedAt,
+		&i.FinishedAt,
+	)
+	return i, err
 }
 
 const getRegistrySettingsRow = `-- name: GetRegistrySettingsRow :one
@@ -144,6 +181,97 @@ func (q *Queries) ListDanglingRegistryLayers(ctx context.Context) ([]RegistryLay
 			&i.MediaType,
 			&i.ChargedTo,
 			&i.FirstSeenAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listInFlightPullMachinesOfRegistryImage = `-- name: ListInFlightPullMachinesOfRegistryImage :many
+SELECT DISTINCT machine_id FROM registry_pulls
+WHERE image_id = ? AND state IN ('pulling', 'waiting_controller')
+ORDER BY machine_id
+`
+
+func (q *Queries) ListInFlightPullMachinesOfRegistryImage(ctx context.Context, imageID string) ([]string, error) {
+	rows, err := q.query(ctx, q.listInFlightPullMachinesOfRegistryImageStmt, listInFlightPullMachinesOfRegistryImage, imageID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var machine_id string
+		if err := rows.Scan(&machine_id); err != nil {
+			return nil, err
+		}
+		items = append(items, machine_id)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listOldStagedRegistryImages = `-- name: ListOldStagedRegistryImages :many
+SELECT id, kind, name, image_tag, profile_id, arch, state, manifest_digest, staged_name, stack_hash, base_name, base_digest, key_input, source_repository, commit_sha, branch, branch_gone_at, pushed_by, pushed_at, promoted_at, refused_why, replaces_id, replaced_by_id, keep_until, size_bytes, unique_bytes, last_pull_at, scan_state, deleted_at, deleted_by, created_at, updated_at FROM registry_images
+WHERE state IN ('staged', 'refused') AND pushed_at <> '' AND pushed_at < ?
+ORDER BY pushed_at, id
+`
+
+func (q *Queries) ListOldStagedRegistryImages(ctx context.Context, pushedAt string) ([]RegistryImage, error) {
+	rows, err := q.query(ctx, q.listOldStagedRegistryImagesStmt, listOldStagedRegistryImages, pushedAt)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []RegistryImage
+	for rows.Next() {
+		var i RegistryImage
+		if err := rows.Scan(
+			&i.ID,
+			&i.Kind,
+			&i.Name,
+			&i.ImageTag,
+			&i.ProfileID,
+			&i.Arch,
+			&i.State,
+			&i.ManifestDigest,
+			&i.StagedName,
+			&i.StackHash,
+			&i.BaseName,
+			&i.BaseDigest,
+			&i.KeyInput,
+			&i.SourceRepository,
+			&i.CommitSha,
+			&i.Branch,
+			&i.BranchGoneAt,
+			&i.PushedBy,
+			&i.PushedAt,
+			&i.PromotedAt,
+			&i.RefusedWhy,
+			&i.ReplacesID,
+			&i.ReplacedByID,
+			&i.KeepUntil,
+			&i.SizeBytes,
+			&i.UniqueBytes,
+			&i.LastPullAt,
+			&i.ScanState,
+			&i.DeletedAt,
+			&i.DeletedBy,
+			&i.CreatedAt,
+			&i.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -389,6 +517,48 @@ func (q *Queries) ListRegistryVariantsDue(ctx context.Context, arg ListRegistryV
 	return items, nil
 }
 
+const listRunningJobsOfRegistryImage = `-- name: ListRunningJobsOfRegistryImage :many
+SELECT DISTINCT j.repository, j.workflow, j.name, j.started_at
+FROM registry_pulls p JOIN jobs j ON CAST(j.id AS TEXT) = p.job_id
+WHERE p.image_id = ? AND j.state = 'running'
+ORDER BY j.started_at, j.name
+`
+
+type ListRunningJobsOfRegistryImageRow struct {
+	Repository string
+	Workflow   string
+	Name       string
+	StartedAt  string
+}
+
+func (q *Queries) ListRunningJobsOfRegistryImage(ctx context.Context, imageID string) ([]ListRunningJobsOfRegistryImageRow, error) {
+	rows, err := q.query(ctx, q.listRunningJobsOfRegistryImageStmt, listRunningJobsOfRegistryImage, imageID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListRunningJobsOfRegistryImageRow
+	for rows.Next() {
+		var i ListRunningJobsOfRegistryImageRow
+		if err := rows.Scan(
+			&i.Repository,
+			&i.Workflow,
+			&i.Name,
+			&i.StartedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const markRegistryImageDeleted = `-- name: MarkRegistryImageDeleted :execrows
 UPDATE registry_images SET state = 'deleted', deleted_at = ?, deleted_by = ?,
     updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
@@ -416,6 +586,42 @@ UPDATE registry_settings SET read_only = ? WHERE id = 1
 func (q *Queries) SetRegistryReadOnly(ctx context.Context, readOnly int64) error {
 	_, err := q.exec(ctx, q.setRegistryReadOnlyStmt, setRegistryReadOnly, readOnly)
 	return err
+}
+
+const sumRegistrySharedLayers = `-- name: SumRegistrySharedLayers :many
+SELECT l.charged_to, CAST(COALESCE(sum(l.size_bytes), 0) AS INTEGER) AS bytes FROM registry_layers l
+WHERE EXISTS (
+    SELECT 1 FROM registry_image_layers il JOIN registry_images i ON i.id = il.image_id
+    WHERE il.layer_digest = l.digest AND i.state <> 'deleted' AND i.kind <> l.charged_to)
+GROUP BY l.charged_to
+`
+
+type SumRegistrySharedLayersRow struct {
+	ChargedTo string
+	Bytes     int64
+}
+
+func (q *Queries) SumRegistrySharedLayers(ctx context.Context) ([]SumRegistrySharedLayersRow, error) {
+	rows, err := q.query(ctx, q.sumRegistrySharedLayersStmt, sumRegistrySharedLayers)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []SumRegistrySharedLayersRow
+	for rows.Next() {
+		var i SumRegistrySharedLayersRow
+		if err := rows.Scan(&i.ChargedTo, &i.Bytes); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const updateRegistrySettingsRow = `-- name: UpdateRegistrySettingsRow :exec
