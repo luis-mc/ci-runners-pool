@@ -388,12 +388,18 @@ jobs:
           docker run --rm crsp-layer-extra-packages:ci bash -ec 'test "$(id -u)" != 0; dpkg -s zlib1g-dev libc++-dev >/dev/null; command -v dpkg-deb'
           docker run --rm crsp-layer-kvm:ci bash -ec 'test "$(id -u)" != 0; qemu-system-x86_64 --version | head -1; kvm-wait.sh true'
 
-  e2e:
-    name: e2e (Playwright)
+  # CRSP192: the layout guards (ux-routes.spec.ts, about 1,700 cases) outgrew one
+  # 30-minute job, so the specs run in 4 shards. Each shard has its own budget.
+  e2e-shards:
+    name: e2e shard ${{ matrix.shard }}
     needs: [decide, build]
     if: ${{ always() && needs.decide.outputs.skip != 'true' && needs.build.result == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
@@ -413,7 +419,7 @@ jobs:
       - name: Playwright (gating specs)
         env:
           E2E_BINARY: bin/crsp
-        run: pnpm exec playwright test
+        run: pnpm exec playwright test --shard=${{ matrix.shard }}/4
 
       # Quarantined specs (e2e/quarantine.json) still run and report, but cannot
       # fail the build. An empty quarantine finds no tests; that is expected here.
@@ -422,11 +428,35 @@ jobs:
         env:
           E2E_BINARY: bin/crsp
           E2E_QUARANTINE: only
-        run: pnpm exec playwright test
+        run: pnpm exec playwright test --shard=${{ matrix.shard }}/4
 
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: failure()
         with:
-          name: playwright-report
+          name: playwright-report-shard-${{ matrix.shard }}
           path: test-results/artifacts
           if-no-files-found: ignore
+
+  # The name a required check matches: green only when every shard is green. When
+  # decide skips the run, or the build did not succeed, the shards are skipped and
+  # this job is skipped-equivalent (passes), as the single e2e job was.
+  e2e:
+    name: e2e (Playwright)
+    needs: [decide, build, e2e-shards]
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Every shard succeeded
+        env:
+          SKIP: ${{ needs.decide.outputs.skip }}
+          BUILD: ${{ needs.build.result }}
+          SHARDS: ${{ needs.e2e-shards.result }}
+        run: |
+          if [ "$SKIP" = "true" ] || [ "$BUILD" != "success" ]; then
+            echo "e2e did not run (decide skip=$SKIP, build=$BUILD); shards=$SHARDS"
+            [ "$SHARDS" = "skipped" ]
+          else
+            echo "shards=$SHARDS"
+            [ "$SHARDS" = "success" ]
+          fi
