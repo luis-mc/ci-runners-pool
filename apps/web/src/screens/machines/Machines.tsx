@@ -39,7 +39,7 @@ import { useVersion } from '../../live/LiveProvider';
 import { Ask, Load } from '../common';
 import { machineStatus } from '../overview/Overview';
 import { MachineDockerDiskSection } from './MachineDockerDisk';
-import { MachinePolicySection, PolicyStatus } from './MachinePolicy';
+import { MachinePolicySection, PolicyStatus, takingState } from './MachinePolicy';
 import { usePoolSize } from './PoolSize';
 import { RecoverySection } from './Recovery';
 
@@ -224,10 +224,18 @@ function MachineBody({ m, onChanged }: { m: Machine; onChanged: () => void }) {
   const why = session.whyNot('admin');
   const s = machineStatus(m);
   const finishing = m.pending_change?.waiting_for?.length ?? m.running_jobs?.length ?? 0;
-  const stateWord =
-    m.online && m.state === 'draining'
-      ? `Finishing ${finishing} ${finishing === 1 ? 'job' : 'jobs'} (up to ${m.settings.drain_timeout_minutes} min)`
-      : s.word;
+  // One state (OPS29): the State fact, the Now line, its note and the header button all read `taking`.
+  const t = takingState(m);
+  const stopped = t.reason === 'stopped';
+  const special = m.recovery?.state === 'needs_recovery' || m.state === 'removing';
+  const state = special
+    ? { kind: s.kind, word: s.word }
+    : stopped && m.state === 'draining'
+      ? {
+          kind: 'waiting' as const,
+          word: `Finishing ${finishing} ${finishing === 1 ? 'job' : 'jobs'} (up to ${m.settings.drain_timeout_minutes} min)`,
+        }
+      : { kind: t.kind, word: t.word };
   const jobs = (m.running_jobs ?? []).map((j) => `${j.repository} ${j.job_name}`);
 
   const [mem, setMem] = useState(m.settings.budget_memory_pct);
@@ -347,8 +355,13 @@ function MachineBody({ m, onChanged }: { m: Machine; onChanged: () => void }) {
       <PageHeader
         title={m.name}
         lead={`${m.os} ${m.arch}`}
+        hint={
+          stopped
+            ? 'New jobs are stopped. Resume takes jobs again.'
+            : 'Running jobs finish first. Resume takes jobs again.'
+        }
         action={
-          m.state === 'drained' || m.state === 'draining' ? (
+          stopped ? (
             <Button
               onPress={() => void resume.run()}
               busy={resume.busy}
@@ -359,27 +372,22 @@ function MachineBody({ m, onChanged }: { m: Machine; onChanged: () => void }) {
               Resume
             </Button>
           ) : (
-            <Stack gap="tight">
-              <Button
-                onPress={() =>
-                  drainQ.ask(
-                    [
-                      'Running jobs finish first, for up to ' +
-                        `${m.settings.drain_timeout_minutes} min.`,
-                      'Nothing is removed. Resume undoes it.',
-                    ],
-                    jobs,
-                  )
-                }
-                disabled={!admin}
-                reason={why}
-              >
-                Stop new jobs
-              </Button>
-              <Text tone="muted">
-                Running jobs finish first. Resume takes jobs again.
-              </Text>
-            </Stack>
+            <Button
+              onPress={() =>
+                drainQ.ask(
+                  [
+                    'Running jobs finish first, for up to ' +
+                      `${m.settings.drain_timeout_minutes} min.`,
+                    'Nothing is removed. Resume undoes it.',
+                  ],
+                  jobs,
+                )
+              }
+              disabled={!admin}
+              reason={why}
+            >
+              Stop new jobs
+            </Button>
           )
         }
       />
@@ -390,7 +398,7 @@ function MachineBody({ m, onChanged }: { m: Machine; onChanged: () => void }) {
       <Section title="Facts">
         <Facts
           items={[
-            { name: 'State', value: <Status kind={s.kind} word={stateWord} /> },
+            { name: 'State', value: <Status kind={state.kind} word={state.word} /> },
             { name: 'Last seen', value: formatPast(m.last_seen_at) },
             { name: 'Slots in use', value: `${m.slots_used} of ${m.settings.job_slots}` },
             ...(f?.cpu_model

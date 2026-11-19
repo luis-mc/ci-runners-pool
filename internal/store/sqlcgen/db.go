@@ -471,6 +471,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.setRepositoryPoolStmt, err = db.PrepareContext(ctx, setRepositoryPool); err != nil {
 		return nil, fmt.Errorf("error preparing query SetRepositoryPool: %w", err)
 	}
+	if q.setRunnerHygieneStmt, err = db.PrepareContext(ctx, setRunnerHygiene); err != nil {
+		return nil, fmt.Errorf("error preparing query SetRunnerHygiene: %w", err)
+	}
 	if q.setRunnerRegistrationStmt, err = db.PrepareContext(ctx, setRunnerRegistration); err != nil {
 		return nil, fmt.Errorf("error preparing query SetRunnerRegistration: %w", err)
 	}
@@ -1308,6 +1311,11 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing setRepositoryPoolStmt: %w", cerr)
 		}
 	}
+	if q.setRunnerHygieneStmt != nil {
+		if cerr := q.setRunnerHygieneStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing setRunnerHygieneStmt: %w", cerr)
+		}
+	}
 	if q.setRunnerRegistrationStmt != nil {
 		if cerr := q.setRunnerRegistrationStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing setRunnerRegistrationStmt: %w", cerr)
@@ -1641,6 +1649,7 @@ type Queries struct {
 	setNotificationChannelTestStmt    *sql.Stmt
 	setPreferencesStmt                *sql.Stmt
 	setRepositoryPoolStmt             *sql.Stmt
+	setRunnerHygieneStmt              *sql.Stmt
 	setRunnerRegistrationStmt         *sql.Stmt
 	setRunnerStateStmt                *sql.Stmt
 	setSettingStmt                    *sql.Stmt
@@ -1825,6 +1834,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		setNotificationChannelTestStmt:    q.setNotificationChannelTestStmt,
 		setPreferencesStmt:                q.setPreferencesStmt,
 		setRepositoryPoolStmt:             q.setRepositoryPoolStmt,
+		setRunnerHygieneStmt:              q.setRunnerHygieneStmt,
 		setRunnerRegistrationStmt:         q.setRunnerRegistrationStmt,
 		setRunnerStateStmt:                q.setRunnerStateStmt,
 		setSettingStmt:                    q.setSettingStmt,

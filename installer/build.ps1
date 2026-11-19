@@ -47,6 +47,11 @@ $lic = ($lic -replace "`r?`n", "\par`n")
 $rtf = Join-Path $work 'license.rtf'
 Set-Content -Path $rtf -Encoding ASCII -Value ("{\rtf1\ansi\deff0{\fonttbl{\f0 Segoe UI;}}\f0\fs20 " + $lic + "}")
 
+# The installer art (TRAY5 D12, D17): banner and dialog bitmaps drawn from the design tokens.
+$art = Join-Path $work 'art'
+go run ./internal/updatewindow/genart -tokens (Join-Path $repo 'packages/ui/src/tokens.css') -bmp $art
+if ($LASTEXITCODE -ne 0) { throw 'installer art failed' }
+
 # The file name uses the Go architecture name, like the release zips: crsp-windows-amd64.msi.
 $goarch = if ($Arch -eq 'x64') { 'amd64' } else { 'arm64' }
 $msi = Join-Path $Out "crsp-windows-$goarch.msi"
@@ -62,6 +67,7 @@ try {
     -ext WixToolset.UI.wixext -ext WixToolset.Util.wixext -ext WixToolset.Firewall.wixext `
     -d "ProductVersion=$ProductVersion" -d "CrspExe=$Exe" `
     -d "LicenseRtf=$rtf" `
+    -d "BannerBmp=$(Join-Path $art 'banner.bmp')" -d "DialogBmp=$(Join-Path $art 'dialog.bmp')" `
     -d "CrspIcon=$(Join-Path $repo 'cmd/crsp/winres/crsp.ico')" `
     @(if ($FailAfterInstall) { '-d'; 'FailAfterInstall=1' }) `
     -o $msi | Out-Host

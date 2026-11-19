@@ -121,6 +121,20 @@ func (e *Engine) evaluate(tx slots.Tx, req GateRequest, create bool, now time.Ti
 		return Decision{Go: grants}, nil
 	}
 
+	if job.RunnerName != "" && e.unclean != nil {
+		if why := e.unclean(req.MachineID, job.RunnerName); why != "" {
+			// R5.91: a runner whose clean-up failed holds the job until it is clean.
+			if tk, ok, err := tx.Ticket(req.GateID); err != nil {
+				return Decision{}, err
+			} else if ok {
+				if err := tx.SetTicketWait(tk.ID, string(WaitPaused)); err != nil {
+					return Decision{}, err
+				}
+			}
+			return Decision{Wait: []WaitReason{WaitPaused}, WaitText: "this runner is not clean yet: " + why}, nil
+		}
+	}
+
 	if r, text, hold := e.notAccepting(req.MachineID); hold {
 		// R5.68: a machine that does not accept holds the job, whatever slot is free.
 		if tk, ok, err := tx.Ticket(req.GateID); err != nil {

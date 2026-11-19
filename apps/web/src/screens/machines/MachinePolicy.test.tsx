@@ -62,6 +62,7 @@ describe('Machine policy section', () => {
         machine({
           accepting: false,
           pause_reason: 'on_battery',
+          taking: { taking_jobs: false, reason: 'on_battery' },
           policy: { on_battery: true, battery_known: true },
         }),
       ),
@@ -76,7 +77,11 @@ describe('Machine policy section', () => {
     const api = detail(
       withSettings(
         { pause_until: '2026-11-15T13:00:00Z' },
-        { accepting: false, pause_reason: 'paused' },
+        {
+          accepting: false,
+          pause_reason: 'paused',
+          taking: { taking_jobs: false, reason: 'tray_paused' },
+        },
       ),
     );
     renderApp(api, '/pool/machines/m1');
@@ -89,7 +94,14 @@ describe('Machine policy section', () => {
 
   it('Resume also returns the Paused mode to Automatic', async () => {
     const api = detail(
-      withSettings({ mode: 'paused' }, { accepting: false, pause_reason: 'paused' }),
+      withSettings(
+        { mode: 'paused' },
+        {
+          accepting: false,
+          pause_reason: 'paused',
+          taking: { taking_jobs: false, reason: 'mode_paused' },
+        },
+      ),
     );
     renderApp(api, '/pool/machines/m1');
     await screen.findByRole('heading', { name: 'build-1' });
@@ -200,8 +212,15 @@ describe('Machines list: takes jobs', () => {
           name: 'laptop',
           accepting: false,
           pause_reason: 'on_battery',
+          taking: { taking_jobs: false, reason: 'on_battery' },
         }),
-        machine({ id: 'm3', name: 'desk', accepting: false, pause_reason: 'paused' }),
+        machine({
+          id: 'm3',
+          name: 'desk',
+          accepting: false,
+          pause_reason: 'paused',
+          taking: { taking_jobs: false, reason: 'mode_paused' },
+        }),
       ],
     });
     renderApp(api, '/pool/machines');
@@ -209,5 +228,80 @@ describe('Machines list: takes jobs', () => {
     expect(within(table).getByText('Taking jobs')).toBeTruthy();
     expect(within(table).getByText('On battery')).toBeTruthy();
     expect(within(table).getByText('Paused')).toBeTruthy();
+  });
+});
+
+// OPS29: the State fact, the Now line, its note and the header button read one computed state (`taking`).
+describe('One state for taking jobs', () => {
+  const cases = [
+    ['stopped', 'Not taking jobs', /You stopped new jobs from the console/, 'Resume'],
+    ['mode_paused', 'Paused', /The mode is Paused/, 'Stop new jobs'],
+    ['tray_paused', 'Paused', /paused from the tray/, 'Stop new jobs'],
+    ['on_battery', 'On battery', /while it runs on battery/, 'Stop new jobs'],
+    ['busy', 'Busy', /load is over the budget/, 'Stop new jobs'],
+    ['quiet_hours', 'Quiet hours', /in quiet hours/, 'Stop new jobs'],
+    ['base_image_missing', 'Needs a base image', /no runner base image/, 'Stop new jobs'],
+    ['disk_low', 'Disk low', /disk is almost full/, 'Stop new jobs'],
+  ] as const;
+  for (const [reason, word, note, button] of cases) {
+    it(`says ${reason} the same everywhere`, async () => {
+      renderApp(
+        detail(
+          machine({
+            state: reason === 'stopped' ? 'drained' : 'active',
+            accepting: false,
+            taking: { taking_jobs: false, reason },
+          }),
+        ),
+        '/pool/machines/m1',
+      );
+      await screen.findByRole('heading', { name: 'build-1' });
+      // State and Now: the same word, twice. A taking word never shows beside it.
+      expect(screen.getAllByText(word).length).toBeGreaterThanOrEqual(2);
+      expect(screen.queryByText('Taking jobs')).toBeNull();
+      expect(screen.getByText(note)).toBeTruthy();
+      expect(screen.getByRole('button', { name: button })).toBeTruthy();
+    });
+  }
+
+  it('says Taking jobs in State and Now, with the button Stop new jobs', async () => {
+    renderApp(detail(), '/pool/machines/m1');
+    await screen.findByRole('heading', { name: 'build-1' });
+    expect(screen.getAllByText('Taking jobs').length).toBeGreaterThanOrEqual(2);
+    expect(screen.queryByText('Not taking jobs')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Stop new jobs' })).toBeTruthy();
+  });
+
+  it('shows a stopped machine as one picture, and Resume', async () => {
+    renderApp(detail(machine({ state: 'drained' })), '/pool/machines/m1');
+    await screen.findByRole('heading', { name: 'build-1' });
+    expect(screen.getByRole('button', { name: 'Resume' })).toBeTruthy();
+    expect(screen.queryByText('Taking jobs')).toBeNull();
+    expect(screen.getAllByText('Not taking jobs').length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('shows the battery switch as not applying under Always, with the reason', async () => {
+    renderApp(
+      detail(withSettings({ mode: 'always', pause_on_battery: true })),
+      '/pool/machines/m1',
+    );
+    await screen.findByRole('heading', { name: 'build-1' });
+    const sw = screen.getByRole<HTMLButtonElement>('switch', {
+      name: 'Pause on battery',
+    });
+    expect(sw.disabled).toBe(true);
+    expect(sw.getAttribute('aria-checked')).toBe('false');
+    expect(sw.textContent).toBe('Off');
+    expect(screen.getAllByText('Always ignores the battery.')).toHaveLength(1);
+  });
+
+  it('shows the battery switch as On under Automatic', async () => {
+    renderApp(detail(), '/pool/machines/m1');
+    await screen.findByRole('heading', { name: 'build-1' });
+    const sw = screen.getByRole<HTMLButtonElement>('switch', {
+      name: 'Pause on battery',
+    });
+    expect(sw.disabled).toBe(false);
+    expect(sw.getAttribute('aria-checked')).toBe('true');
   });
 });

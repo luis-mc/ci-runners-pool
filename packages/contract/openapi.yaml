@@ -2157,6 +2157,54 @@ paths:
                 $ref: '#/components/schemas/Runner'
         default:
           $ref: '#/components/responses/Error'
+  /api/v1/runners/{runnerId}/settings:
+    patch:
+      operationId: updateRunnerSettings
+      tags: [runners]
+      summary: Change a persistent runner's settings
+      description: >-
+        runners R5.90. Today only keep_dependencies. Turning it off removes the
+        dependency caches at the next clean-up; a running job is not touched.
+      x-auth: admin
+      x-rate-limit: 60/minute/user
+      parameters:
+        - $ref: '#/components/parameters/RunnerId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RunnerSettingsUpdate'
+      responses:
+        '200':
+          description: The runner.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Runner'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/runners/{runnerId}/clear-cache:
+    post:
+      operationId: clearRunnerCache
+      tags: [runners]
+      summary: Clear a persistent runner's dependency cache now
+      description: >-
+        runners R5.90. Safe while the runner is idle; a runner with a job waits
+        for the job to end, then clears. Answers 202.
+      x-auth: admin
+      x-rate-limit: 30/minute/user
+      parameters:
+        - $ref: '#/components/parameters/RunnerId'
+      responses:
+        '202':
+          description: Clearing now, or after the running job.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Runner'
+        default:
+          $ref: '#/components/responses/Error'
   /api/v1/runners/{runnerId}/registration:
     delete:
       operationId: deleteRunnerRegistration
@@ -4925,6 +4973,13 @@ components:
           $ref: '#/components/schemas/RepositoryPolicy'
         routing:
           $ref: '#/components/schemas/RepositoryRouting'
+        ephemeral_capacity:
+          type: boolean
+          description: >-
+            False when the repository's jobs go to ephemeral runners only and
+            the pool has no machine that can make an ephemeral runner, so its
+            jobs would wait (github-integration R5.60). Absent while the pool
+            is off for the repository.
         webhook:
           $ref: '#/components/schemas/WebhookHealth'
         problem:
@@ -5161,6 +5216,18 @@ components:
         light_runner:
           type: boolean
           description: Keep one light runner per OS for this repository and write RUNS_ON_LIGHT, so jobs that last seconds do not queue behind a long build (scheduling R5.65). On by default.
+        runner_kinds:
+          type: string
+          enum: [ephemeral_only, any_runner]
+          description: >-
+            Which runners take this repository's jobs (github-integration
+            R5.60). ephemeral_only: only a fresh container made for the job.
+            any_runner: a persistent runner may take it too. The default is
+            ephemeral_only for a public repository and any_runner for a
+            private one; runner_kinds_set says whether the owner chose it.
+        runner_kinds_set:
+          type: boolean
+          description: True when the owner chose runner_kinds; false while it is the default of the repository's visibility.
         legacy_vars:
           type: boolean
           description: Also write CI_RUNS_ON and CI_RUNS_ON_WINDOWS with the same labels as RUNS_ON_LINUX and RUNS_ON_WINDOWS, for workflows that still follow the old dev-standards templates (github-integration R5.39). Off by default; for the move from the old pool.
@@ -5211,6 +5278,10 @@ components:
         light_runner:
           type: boolean
           description: Turn the light runner on or off (scheduling R5.65).
+        runner_kinds:
+          type: string
+          enum: [ephemeral_only, any_runner, default]
+          description: Set which runners take the repository's jobs (github-integration R5.60). default clears the owner's choice, so the default of the visibility applies.
         legacy_vars:
           type: boolean
           description: Turn the old variable names CI_RUNS_ON and CI_RUNS_ON_WINDOWS on or off (github-integration R5.39).
@@ -5480,6 +5551,7 @@ components:
           arch,
           state,
           online,
+          taking,
           is_controller,
           backends,
           settings,
@@ -5504,6 +5576,8 @@ components:
           description: Whether the machine takes new jobs (machines R5.62). Another feature reads `online && accepting` to decide on hosted fallback. A machine that has reported nothing accepts.
         pause_reason:
           $ref: '#/components/schemas/PauseReason'
+        taking:
+          $ref: '#/components/schemas/MachineTaking'
         policy:
           $ref: '#/components/schemas/MachinePolicy'
         is_controller:
@@ -5829,6 +5903,28 @@ components:
       type: string
       description: Why a machine takes no new job (machines R5.62). Other features read these exact names.
       enum: [paused, on_battery, quiet_hours, budget, base_image_missing]
+    MachineTaking:
+      type: object
+      description: The one computed answer to "does this machine take new jobs" (machines R5.62, OPS29). The console state, the Now line, its note and the Stop or Resume button all read it. The controller decides from its own online flag, drain state, mode, tray pause and battery switch first, and from the agent's report only for what the agent alone knows.
+      required: [taking_jobs]
+      properties:
+        taking_jobs:
+          type: boolean
+        reason:
+          type: string
+          description: Why not, absent while taking. offline; stopped (Stop new jobs from the console); mode_paused (mode Paused); tray_paused (a pause from the tray); on_battery (Automatic with the battery pause on); busy (load over the budget); quiet_hours; base_image_missing; disk_low.
+          enum:
+            [
+              offline,
+              stopped,
+              mode_paused,
+              tray_paused,
+              on_battery,
+              busy,
+              quiet_hours,
+              base_image_missing,
+              disk_low,
+            ]
     CpuCapState:
       type: string
       description: What the agent did with the CPU cap. not_supported is macOS (machines R5.64). applying is the wait until the agent reports the result for the chosen percent.
@@ -6386,6 +6482,19 @@ components:
         keeps_state:
           type: boolean
           description: True for a persistent runner (runners R5.7, UX-61).
+        keep_dependencies:
+          type: boolean
+          description: Persistent runner only. True when its downloaded dependencies stay between jobs (runners R5.90). Absent for an ephemeral runner.
+        dependency_cache_bytes:
+          type: integer
+          format: int64
+          minimum: 0
+          description: Persistent runner only. Size of this runner's own dependency cache folder, as last measured (runners R5.90).
+        unclean_reason:
+          type: string
+          description: >-
+            Set when the clean-up after (or before) a job failed (runners R5.91).
+            The runner takes no new job until it is clean. Absent when clean.
         failed_reason:
           type: string
           description: Whole plain reason the runner is in the failed state, with what the clean-up left behind. Only present when state is failed.
@@ -6451,6 +6560,11 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Runner'
+    RunnerSettingsUpdate:
+      type: object
+      properties:
+        keep_dependencies:
+          type: boolean
     PlanRunnersRequest:
       type: object
       required: [os, kind, machine_id, count]
@@ -6469,11 +6583,21 @@ components:
           type: array
           items:
             type: string
+        keep_dependencies:
+          type: boolean
+          description: >-
+            Persistent runners only: keep downloaded dependencies (tool cache,
+            package manager caches, browsers, image layers) between jobs.
+            Default true. Temporary files of each job are always removed
+            (runners R5.90, R5.91). Ignored for an ephemeral runner.
         scope:
           $ref: '#/components/schemas/RunnerScope'
           description: >-
             Leave it out to add pool runners (scope `pool`): the user adds
-            runners per machine, never a repository (runners R5.88).
+            runners per machine, never a repository (runners R5.88). For an
+            ephemeral pool request `count` is the number of ephemeral runners
+            that may run at once on the machine (a ceiling, not standing
+            runners; runners R5.92).
       example:
         os: linux
         kind: persistent
@@ -7878,7 +8002,15 @@ components:
       description: >-
         `tool_cache` and `rust_cache` are the per-runner folders of milestone 1
         (caches R5.36, R5.39); the others arrive with later milestones.
-      enum: [actions_cache, git_mirror, tool_cache, registry_mirror, rust_cache]
+      enum:
+        [
+          actions_cache,
+          git_mirror,
+          tool_cache,
+          registry_mirror,
+          rust_cache,
+          dependency_cache,
+        ]
     Cache:
       type: object
       description: One cache on one machine (caches R5.8 to R5.14).

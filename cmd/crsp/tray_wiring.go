@@ -37,9 +37,16 @@ func (b trayBackend) response(ctx context.Context, st update.Status) tray.Respon
 	return tray.Response{
 		State: tray.StateHealthy, Running: len(st.RunningJobs), Version: st.Current, AutoUpdate: &on,
 		LatestVersion: st.Latest, ReleaseURL: st.ReleaseURL, UpdateAvailable: st.Available, UpdateState: string(st.State),
-		LogDir: tray.LogDir(),
+		LogDir: tray.LogDir(), Stage: stageInfo(st.Stage),
 		Policy: b.policy(ctx), RunnerProblems: b.runnerProblems(ctx),
 	}
+}
+
+func stageInfo(s *update.Stage) *tray.StageInfo {
+	if s == nil {
+		return nil
+	}
+	return &tray.StageInfo{Name: s.Name, Percent: s.Percent, Version: s.Version, Error: s.Error, LogPath: s.LogPath, FailedAt: s.FailedAt, StartedBy: s.StartedBy}
 }
 
 // runnerProblems are the runner services of this machine that did not start
@@ -123,7 +130,37 @@ func (b trayBackend) Check(ctx context.Context) (tray.Response, error) {
 // Install is the tray's Install now: the person said yes in the tray dialog, which named
 // the running jobs, so the update is confirmed. It drains first and cuts no job.
 func (b trayBackend) Install(ctx context.Context, c trayserver.Caller) (tray.Response, error) {
-	st, err := b.Updates.Apply(ctx, update.KindUpdate, true, trayActor(c))
+	// The download runs inside Apply and can outlast the channel's request time, so Apply runs on
+	// its own context. The answer comes when Apply returns (a refusal), or after a moment with
+	// the stage it has reached (the window follows the stage from there).
+	type result struct {
+		st  update.Status
+		err error
+	}
+	done := make(chan result, 1)
+	go func() {
+		st, err := b.Updates.Apply(context.WithoutCancel(ctx), update.KindUpdate, true, trayActor(c))
+		done <- result{st, err}
+	}()
+	select {
+	case r := <-done:
+		if r.err != nil {
+			return tray.Response{}, r.err
+		}
+		return b.response(ctx, r.st), nil
+	case <-time.After(installAnswerAfter):
+		return b.response(ctx, b.Updates.Status(ctx)), nil
+	case <-ctx.Done():
+		return tray.Response{}, ctx.Err()
+	}
+}
+
+// installAnswerAfter is how long Install waits for Apply before it answers with the stage.
+const installAnswerAfter = 1500 * time.Millisecond
+
+// Cancel is the tray's Cancel: it stops an update that downloads or waits for jobs (D15).
+func (b trayBackend) Cancel(ctx context.Context, c trayserver.Caller) (tray.Response, error) {
+	st, err := b.Updates.Cancel(ctx, trayActor(c))
 	if err != nil {
 		return tray.Response{}, err
 	}

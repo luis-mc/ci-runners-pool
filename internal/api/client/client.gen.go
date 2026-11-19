@@ -282,17 +282,20 @@ func (e CacheState) Valid() bool {
 
 // Defines values for CacheKind.
 const (
-	ActionsCache   CacheKind = "actions_cache"
-	GitMirror      CacheKind = "git_mirror"
-	RegistryMirror CacheKind = "registry_mirror"
-	RustCache      CacheKind = "rust_cache"
-	ToolCache      CacheKind = "tool_cache"
+	ActionsCache    CacheKind = "actions_cache"
+	DependencyCache CacheKind = "dependency_cache"
+	GitMirror       CacheKind = "git_mirror"
+	RegistryMirror  CacheKind = "registry_mirror"
+	RustCache       CacheKind = "rust_cache"
+	ToolCache       CacheKind = "tool_cache"
 )
 
 // Valid indicates whether the value is a known member of the CacheKind enum.
 func (e CacheKind) Valid() bool {
 	switch e {
 	case ActionsCache:
+		return true
+	case DependencyCache:
 		return true
 	case GitMirror:
 		return true
@@ -1060,6 +1063,45 @@ func (e MachineState) Valid() bool {
 	}
 }
 
+// Defines values for MachineTakingReason.
+const (
+	MachineTakingReasonBaseImageMissing MachineTakingReason = "base_image_missing"
+	MachineTakingReasonBusy             MachineTakingReason = "busy"
+	MachineTakingReasonDiskLow          MachineTakingReason = "disk_low"
+	MachineTakingReasonModePaused       MachineTakingReason = "mode_paused"
+	MachineTakingReasonOffline          MachineTakingReason = "offline"
+	MachineTakingReasonOnBattery        MachineTakingReason = "on_battery"
+	MachineTakingReasonQuietHours       MachineTakingReason = "quiet_hours"
+	MachineTakingReasonStopped          MachineTakingReason = "stopped"
+	MachineTakingReasonTrayPaused       MachineTakingReason = "tray_paused"
+)
+
+// Valid indicates whether the value is a known member of the MachineTakingReason enum.
+func (e MachineTakingReason) Valid() bool {
+	switch e {
+	case MachineTakingReasonBaseImageMissing:
+		return true
+	case MachineTakingReasonBusy:
+		return true
+	case MachineTakingReasonDiskLow:
+		return true
+	case MachineTakingReasonModePaused:
+		return true
+	case MachineTakingReasonOffline:
+		return true
+	case MachineTakingReasonOnBattery:
+		return true
+	case MachineTakingReasonQuietHours:
+		return true
+	case MachineTakingReasonStopped:
+		return true
+	case MachineTakingReasonTrayPaused:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for NotificationChannelScope.
 const (
 	NotificationChannelScopePersonal NotificationChannelScope = "personal"
@@ -1495,6 +1537,45 @@ func (e RepositoryVisibility) Valid() bool {
 	case Private:
 		return true
 	case Public:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RepositoryPolicyRunnerKinds.
+const (
+	RepositoryPolicyRunnerKindsAnyRunner     RepositoryPolicyRunnerKinds = "any_runner"
+	RepositoryPolicyRunnerKindsEphemeralOnly RepositoryPolicyRunnerKinds = "ephemeral_only"
+)
+
+// Valid indicates whether the value is a known member of the RepositoryPolicyRunnerKinds enum.
+func (e RepositoryPolicyRunnerKinds) Valid() bool {
+	switch e {
+	case RepositoryPolicyRunnerKindsAnyRunner:
+		return true
+	case RepositoryPolicyRunnerKindsEphemeralOnly:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RepositoryPolicyUpdateRunnerKinds.
+const (
+	RepositoryPolicyUpdateRunnerKindsAnyRunner     RepositoryPolicyUpdateRunnerKinds = "any_runner"
+	RepositoryPolicyUpdateRunnerKindsDefault       RepositoryPolicyUpdateRunnerKinds = "default"
+	RepositoryPolicyUpdateRunnerKindsEphemeralOnly RepositoryPolicyUpdateRunnerKinds = "ephemeral_only"
+)
+
+// Valid indicates whether the value is a known member of the RepositoryPolicyUpdateRunnerKinds enum.
+func (e RepositoryPolicyUpdateRunnerKinds) Valid() bool {
+	switch e {
+	case RepositoryPolicyUpdateRunnerKindsAnyRunner:
+		return true
+	case RepositoryPolicyUpdateRunnerKindsDefault:
+		return true
+	case RepositoryPolicyUpdateRunnerKindsEphemeralOnly:
 		return true
 	default:
 		return false
@@ -3689,6 +3770,9 @@ type Machine struct {
 
 	// State active and drained are set by the user; draining while a drain waits.
 	State MachineState `json:"state"`
+
+	// Taking The one computed answer to "does this machine take new jobs" (machines R5.62, OPS29). The console state, the Now line, its note and the Stop or Resume button all read it. The controller decides from its own online flag, drain state, mode, tray pause and battery switch first, and from the agent's report only for what the agent alone knows.
+	Taking MachineTaking `json:"taking"`
 }
 
 // MachineChange A change that waits for a drain (machines R5.30 to R5.33).
@@ -3918,6 +4002,16 @@ type MachineSettingsUpdatePause string
 
 // MachineState active and drained are set by the user; draining while a drain waits.
 type MachineState string
+
+// MachineTaking The one computed answer to "does this machine take new jobs" (machines R5.62, OPS29). The console state, the Now line, its note and the Stop or Resume button all read it. The controller decides from its own online flag, drain state, mode, tray pause and battery switch first, and from the agent's report only for what the agent alone knows.
+type MachineTaking struct {
+	// Reason Why not, absent while taking. offline; stopped (Stop new jobs from the console); mode_paused (mode Paused); tray_paused (a pause from the tray); on_battery (Automatic with the battery pause on); busy (load over the budget); quiet_hours; base_image_missing; disk_low.
+	Reason     *MachineTakingReason `json:"reason,omitempty"`
+	TakingJobs bool                 `json:"taking_jobs"`
+}
+
+// MachineTakingReason Why not, absent while taking. offline; stopped (Stop new jobs from the console); mode_paused (mode Paused); tray_paused (a pause from the tray); on_battery (Automatic with the battery pause on); busy (load over the budget); quiet_hours; base_image_missing; disk_low.
+type MachineTakingReason string
 
 // NotificationChannel One channel. No secret is returned: `secret_set` and `smtp.has_password` say only whether one is set.
 type NotificationChannel struct {
@@ -4155,13 +4249,16 @@ type PlanRepositoryChangesRequestChangesPool string
 
 // PlanRunnersRequest defines model for PlanRunnersRequest.
 type PlanRunnersRequest struct {
-	Count     int        `json:"count"`
-	Kind      RunnerKind `json:"kind"`
-	Labels    *[]string  `json:"labels,omitempty"`
-	MachineId string     `json:"machine_id"`
-	Os        OS         `json:"os"`
+	Count int `json:"count"`
 
-	// Scope Leave it out to add pool runners (scope `pool`): the user adds runners per machine, never a repository (runners R5.88).
+	// KeepDependencies Persistent runners only: keep downloaded dependencies (tool cache, package manager caches, browsers, image layers) between jobs. Default true. Temporary files of each job are always removed (runners R5.90, R5.91). Ignored for an ephemeral runner.
+	KeepDependencies *bool      `json:"keep_dependencies,omitempty"`
+	Kind             RunnerKind `json:"kind"`
+	Labels           *[]string  `json:"labels,omitempty"`
+	MachineId        string     `json:"machine_id"`
+	Os               OS         `json:"os"`
+
+	// Scope Leave it out to add pool runners (scope `pool`): the user adds runners per machine, never a repository (runners R5.88). For an ephemeral pool request `count` is the number of ephemeral runners that may run at once on the machine (a ceiling, not standing runners; runners R5.92).
 	Scope *RunnerScope `json:"scope,omitempty"`
 }
 
@@ -4343,13 +4440,16 @@ type RegistrySettings struct {
 
 // Repository defines model for Repository.
 type Repository struct {
-	DefaultBranch  *string          `json:"default_branch,omitempty"`
-	FullName       string           `json:"full_name"`
-	Id             int64            `json:"id"`
-	InstallationId int64            `json:"installation_id"`
-	Name           string           `json:"name"`
-	Owner          string           `json:"owner"`
-	Policy         RepositoryPolicy `json:"policy"`
+	DefaultBranch *string `json:"default_branch,omitempty"`
+
+	// EphemeralCapacity False when the repository's jobs go to ephemeral runners only and the pool has no machine that can make an ephemeral runner, so its jobs would wait (github-integration R5.60). Absent while the pool is off for the repository.
+	EphemeralCapacity *bool            `json:"ephemeral_capacity,omitempty"`
+	FullName          string           `json:"full_name"`
+	Id                int64            `json:"id"`
+	InstallationId    int64            `json:"installation_id"`
+	Name              string           `json:"name"`
+	Owner             string           `json:"owner"`
+	Policy            RepositoryPolicy `json:"policy"`
 
 	// PoolOffReason Why the pool is off when the controller turned it off (github-integration R5.22). Absent otherwise.
 	PoolOffReason *RepositoryPoolOffReason `json:"pool_off_reason,omitempty"`
@@ -4419,11 +4519,20 @@ type RepositoryPolicy struct {
 	MaxParallelJobs int  `json:"max_parallel_jobs"`
 
 	// Priority Higher goes first (scheduling R5.8).
-	Priority     int        `json:"priority"`
-	RunnerGroups []string   `json:"runner_groups"`
-	UpdatedAt    *time.Time `json:"updated_at,omitempty"`
-	UpdatedBy    *string    `json:"updated_by,omitempty"`
+	Priority     int      `json:"priority"`
+	RunnerGroups []string `json:"runner_groups"`
+
+	// RunnerKinds Which runners take this repository's jobs (github-integration R5.60). ephemeral_only: only a fresh container made for the job. any_runner: a persistent runner may take it too. The default is ephemeral_only for a public repository and any_runner for a private one; runner_kinds_set says whether the owner chose it.
+	RunnerKinds *RepositoryPolicyRunnerKinds `json:"runner_kinds,omitempty"`
+
+	// RunnerKindsSet True when the owner chose runner_kinds; false while it is the default of the repository's visibility.
+	RunnerKindsSet *bool      `json:"runner_kinds_set,omitempty"`
+	UpdatedAt      *time.Time `json:"updated_at,omitempty"`
+	UpdatedBy      *string    `json:"updated_by,omitempty"`
 }
+
+// RepositoryPolicyRunnerKinds Which runners take this repository's jobs (github-integration R5.60). ephemeral_only: only a fresh container made for the job. any_runner: a persistent runner may take it too. The default is ephemeral_only for a public repository and any_runner for a private one; runner_kinds_set says whether the owner chose it.
+type RepositoryPolicyRunnerKinds string
 
 // RepositoryPolicyUpdate defines model for RepositoryPolicyUpdate.
 type RepositoryPolicyUpdate struct {
@@ -4455,7 +4564,13 @@ type RepositoryPolicyUpdate struct {
 	MaxParallelJobs *int      `json:"max_parallel_jobs,omitempty"`
 	Priority        *int      `json:"priority,omitempty"`
 	RunnerGroups    *[]string `json:"runner_groups,omitempty"`
+
+	// RunnerKinds Set which runners take the repository's jobs (github-integration R5.60). default clears the owner's choice, so the default of the visibility applies.
+	RunnerKinds *RepositoryPolicyUpdateRunnerKinds `json:"runner_kinds,omitempty"`
 }
+
+// RepositoryPolicyUpdateRunnerKinds Set which runners take the repository's jobs (github-integration R5.60). default clears the owner's choice, so the default of the visibility applies.
+type RepositoryPolicyUpdateRunnerKinds string
 
 // RepositoryProblem A fault the owner can fix on a repository (github-integration R5.56). Absent when there is none.
 type RepositoryProblem struct {
@@ -4630,11 +4745,17 @@ type Runner struct {
 	// CurrentJob One job attempt (observability R5.7, R5.8).
 	CurrentJob *Job `json:"current_job,omitempty"`
 
+	// DependencyCacheBytes Persistent runner only. Size of this runner's own dependency cache folder, as last measured (runners R5.90).
+	DependencyCacheBytes *int64 `json:"dependency_cache_bytes,omitempty"`
+
 	// FailedReason Whole plain reason the runner is in the failed state, with what the clean-up left behind. Only present when state is failed.
 	FailedReason   *string   `json:"failed_reason,omitempty"`
 	GithubRunnerId *int64    `json:"github_runner_id,omitempty"`
 	Id             string    `json:"id"`
 	Isolation      Isolation `json:"isolation"`
+
+	// KeepDependencies Persistent runner only. True when its downloaded dependencies stay between jobs (runners R5.90). Absent for an ephemeral runner.
+	KeepDependencies *bool `json:"keep_dependencies,omitempty"`
 
 	// KeepsState True for a persistent runner (runners R5.7, UX-61).
 	KeepsState bool       `json:"keeps_state"`
@@ -4663,6 +4784,9 @@ type Runner struct {
 
 	// State What the runner really is (web-console UX-19). idle only when GitHub reports it online and not busy and its service runs; not_registered, stopped and unknown say why it is not.
 	State RunnerState `json:"state"`
+
+	// UncleanReason Set when the clean-up after (or before) a job failed (runners R5.91). The runner takes no new job until it is clean. Absent when clean.
+	UncleanReason *string `json:"unclean_reason,omitempty"`
 }
 
 // RunnerEnv defines model for RunnerEnv.
@@ -4722,6 +4846,11 @@ type RunnerServiceProblem struct {
 
 	// Service The Windows service name.
 	Service string `json:"service"`
+}
+
+// RunnerSettingsUpdate defines model for RunnerSettingsUpdate.
+type RunnerSettingsUpdate struct {
+	KeepDependencies *bool `json:"keep_dependencies,omitempty"`
 }
 
 // RunnerState What the runner really is (web-console UX-19). idle only when GitHub reports it online and not busy and its service runs; not_registered, stopped and unknown say why it is not.
@@ -5715,6 +5844,9 @@ type PlanRunnersJSONRequestBody = PlanRunnersRequest
 
 // CreateRunnersJSONRequestBody defines body for CreateRunners for application/json ContentType.
 type CreateRunnersJSONRequestBody = ApplyPlanRequest
+
+// UpdateRunnerSettingsJSONRequestBody defines body for UpdateRunnerSettings for application/json ContentType.
+type UpdateRunnerSettingsJSONRequestBody = RunnerSettingsUpdate
 
 // UpdateSettingsJSONRequestBody defines body for UpdateSettings for application/json ContentType.
 type UpdateSettingsJSONRequestBody = Settings
@@ -6887,6 +7019,13 @@ type ClientInterface interface {
 	// Corresponds with GET /api/v1/runners/{runnerId} (the `GetRunner` operationId).
 	GetRunner(ctx context.Context, runnerId RunnerId, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// ClearRunnerCache Clear a persistent runner's dependency cache now
+	//
+	// runners R5.90. Safe while the runner is idle; a runner with a job waits for the job to end, then clears. Answers 202.
+	//
+	// Corresponds with POST /api/v1/runners/{runnerId}/clear-cache (the `ClearRunnerCache` operationId).
+	ClearRunnerCache(ctx context.Context, runnerId RunnerId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// GetRunnerEnv The merged environment of a runner, sensitive values masked
 	//
 	// runners R5.75, R5.76. Order: machine, then each applied set in the order the runner lists them, then the runner's own values; a later layer wins. Each value names its source.
@@ -6907,6 +7046,24 @@ type ClientInterface interface {
 	//
 	// Corresponds with POST /api/v1/runners/{runnerId}/replace (the `PlanRunnerReplacement` operationId).
 	PlanRunnerReplacement(ctx context.Context, runnerId RunnerId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// UpdateRunnerSettingsWithBody Change a persistent runner's settings
+	//
+	// runners R5.90. Today only keep_dependencies. Turning it off removes the dependency caches at the next clean-up; a running job is not touched.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with PATCH /api/v1/runners/{runnerId}/settings (the `UpdateRunnerSettings` operationId).
+	UpdateRunnerSettingsWithBody(ctx context.Context, runnerId RunnerId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// UpdateRunnerSettings Change a persistent runner's settings
+	//
+	// runners R5.90. Today only keep_dependencies. Turning it off removes the dependency caches at the next clean-up; a running job is not touched.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with PATCH /api/v1/runners/{runnerId}/settings (the `UpdateRunnerSettings` operationId).
+	UpdateRunnerSettings(ctx context.Context, runnerId RunnerId, body UpdateRunnerSettingsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListRuns Workflow runs, newest first
 	//
@@ -9681,6 +9838,23 @@ func (c *Client) GetRunner(ctx context.Context, runnerId RunnerId, reqEditors ..
 	return c.Client.Do(req)
 }
 
+// ClearRunnerCache Clear a persistent runner's dependency cache now
+//
+// runners R5.90. Safe while the runner is idle; a runner with a job waits for the job to end, then clears. Answers 202.
+//
+// Corresponds with POST /api/v1/runners/{runnerId}/clear-cache (the `ClearRunnerCache` operationId).
+func (c *Client) ClearRunnerCache(ctx context.Context, runnerId RunnerId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewClearRunnerCacheRequest(c.Server, runnerId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 // GetRunnerEnv The merged environment of a runner, sensitive values masked
 //
 // runners R5.75, R5.76. Order: machine, then each applied set in the order the runner lists them, then the runner's own values; a later layer wins. Each value names its source.
@@ -9722,6 +9896,44 @@ func (c *Client) DeleteRunnerRegistration(ctx context.Context, runnerId RunnerId
 // Corresponds with POST /api/v1/runners/{runnerId}/replace (the `PlanRunnerReplacement` operationId).
 func (c *Client) PlanRunnerReplacement(ctx context.Context, runnerId RunnerId, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewPlanRunnerReplacementRequest(c.Server, runnerId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// UpdateRunnerSettingsWithBody Change a persistent runner's settings
+//
+// runners R5.90. Today only keep_dependencies. Turning it off removes the dependency caches at the next clean-up; a running job is not touched.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with PATCH /api/v1/runners/{runnerId}/settings (the `UpdateRunnerSettings` operationId).
+func (c *Client) UpdateRunnerSettingsWithBody(ctx context.Context, runnerId RunnerId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateRunnerSettingsRequestWithBody(c.Server, runnerId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// UpdateRunnerSettings Change a persistent runner's settings
+//
+// runners R5.90. Today only keep_dependencies. Turning it off removes the dependency caches at the next clean-up; a running job is not touched.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with PATCH /api/v1/runners/{runnerId}/settings (the `UpdateRunnerSettings` operationId).
+func (c *Client) UpdateRunnerSettings(ctx context.Context, runnerId RunnerId, body UpdateRunnerSettingsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateRunnerSettingsRequest(c.Server, runnerId, body)
 	if err != nil {
 		return nil, err
 	}
@@ -15622,6 +15834,40 @@ func NewGetRunnerRequest(server string, runnerId RunnerId) (*http.Request, error
 	return req, nil
 }
 
+// NewClearRunnerCacheRequest constructs an http.Request for the ClearRunnerCache method
+func NewClearRunnerCacheRequest(server string, runnerId RunnerId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "runnerId", runnerId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/runners/%s/clear-cache", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewGetRunnerEnvRequest constructs an http.Request for the GetRunnerEnv method
 func NewGetRunnerEnvRequest(server string, runnerId RunnerId) (*http.Request, error) {
 	var err error
@@ -15747,6 +15993,53 @@ func NewPlanRunnerReplacementRequest(server string, runnerId RunnerId) (*http.Re
 	if err != nil {
 		return nil, err
 	}
+
+	return req, nil
+}
+
+// NewUpdateRunnerSettingsRequest calls the generic UpdateRunnerSettings builder with application/json body
+func NewUpdateRunnerSettingsRequest(server string, runnerId RunnerId, body UpdateRunnerSettingsJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewUpdateRunnerSettingsRequestWithBody(server, runnerId, "application/json", bodyReader)
+}
+
+// NewUpdateRunnerSettingsRequestWithBody constructs an http.Request for the UpdateRunnerSettings method, with any body, and a specified content type
+func NewUpdateRunnerSettingsRequestWithBody(server string, runnerId RunnerId, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "runnerId", runnerId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/runners/%s/settings", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPatch, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
 
 	return req, nil
 }
@@ -18390,6 +18683,15 @@ type ClientWithResponsesInterface interface {
 	// Corresponds with GET /api/v1/runners/{runnerId} (the `GetRunner` operationId).
 	GetRunnerWithResponse(ctx context.Context, runnerId RunnerId, reqEditors ...RequestEditorFn) (*GetRunnerResponse, error)
 
+	// ClearRunnerCacheWithResponse Clear a persistent runner's dependency cache now
+	//
+	// runners R5.90. Safe while the runner is idle; a runner with a job waits for the job to end, then clears. Answers 202.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /api/v1/runners/{runnerId}/clear-cache (the `ClearRunnerCache` operationId).
+	ClearRunnerCacheWithResponse(ctx context.Context, runnerId RunnerId, reqEditors ...RequestEditorFn) (*ClearRunnerCacheResponse, error)
+
 	// GetRunnerEnvWithResponse The merged environment of a runner, sensitive values masked
 	//
 	// runners R5.75, R5.76. Order: machine, then each applied set in the order the runner lists them, then the runner's own values; a later layer wins. Each value names its source.
@@ -18416,6 +18718,24 @@ type ClientWithResponsesInterface interface {
 	//
 	// Corresponds with POST /api/v1/runners/{runnerId}/replace (the `PlanRunnerReplacement` operationId).
 	PlanRunnerReplacementWithResponse(ctx context.Context, runnerId RunnerId, reqEditors ...RequestEditorFn) (*PlanRunnerReplacementResponse, error)
+
+	// UpdateRunnerSettingsWithBodyWithResponse Change a persistent runner's settings
+	//
+	// runners R5.90. Today only keep_dependencies. Turning it off removes the dependency caches at the next clean-up; a running job is not touched.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PATCH /api/v1/runners/{runnerId}/settings (the `UpdateRunnerSettings` operationId).
+	UpdateRunnerSettingsWithBodyWithResponse(ctx context.Context, runnerId RunnerId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateRunnerSettingsResponse, error)
+
+	// UpdateRunnerSettingsWithResponse Change a persistent runner's settings
+	//
+	// runners R5.90. Today only keep_dependencies. Turning it off removes the dependency caches at the next clean-up; a running job is not touched.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PATCH /api/v1/runners/{runnerId}/settings (the `UpdateRunnerSettings` operationId).
+	UpdateRunnerSettingsWithResponse(ctx context.Context, runnerId RunnerId, body UpdateRunnerSettingsJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateRunnerSettingsResponse, error)
 
 	// ListRunsWithResponse Workflow runs, newest first
 	//
@@ -23888,6 +24208,54 @@ func (r GetRunnerResponse) ContentType() string {
 	return ""
 }
 
+type ClearRunnerCacheResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON202 the response for an HTTP 202 `application/json` response
+	JSON202 *Runner
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON202 returns the response for an HTTP 202 `application/json` response
+func (r ClearRunnerCacheResponse) GetJSON202() *Runner {
+	return r.JSON202
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r ClearRunnerCacheResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r ClearRunnerCacheResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ClearRunnerCacheResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ClearRunnerCacheResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ClearRunnerCacheResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 type GetRunnerEnvResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -24026,6 +24394,54 @@ func (r PlanRunnerReplacementResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r PlanRunnerReplacementResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type UpdateRunnerSettingsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *Runner
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r UpdateRunnerSettingsResponse) GetJSON200() *Runner {
+	return r.JSON200
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r UpdateRunnerSettingsResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r UpdateRunnerSettingsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r UpdateRunnerSettingsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r UpdateRunnerSettingsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r UpdateRunnerSettingsResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -27562,6 +27978,21 @@ func (c *ClientWithResponses) GetRunnerWithResponse(ctx context.Context, runnerI
 	return ParseGetRunnerResponse(rsp)
 }
 
+// ClearRunnerCacheWithResponse Clear a persistent runner's dependency cache now
+//
+// runners R5.90. Safe while the runner is idle; a runner with a job waits for the job to end, then clears. Answers 202.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /api/v1/runners/{runnerId}/clear-cache (the `ClearRunnerCache` operationId).
+func (c *ClientWithResponses) ClearRunnerCacheWithResponse(ctx context.Context, runnerId RunnerId, reqEditors ...RequestEditorFn) (*ClearRunnerCacheResponse, error) {
+	rsp, err := c.ClearRunnerCache(ctx, runnerId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseClearRunnerCacheResponse(rsp)
+}
+
 // GetRunnerEnvWithResponse The merged environment of a runner, sensitive values masked
 //
 // runners R5.75, R5.76. Order: machine, then each applied set in the order the runner lists them, then the runner's own values; a later layer wins. Each value names its source.
@@ -27605,6 +28036,36 @@ func (c *ClientWithResponses) PlanRunnerReplacementWithResponse(ctx context.Cont
 		return nil, err
 	}
 	return ParsePlanRunnerReplacementResponse(rsp)
+}
+
+// UpdateRunnerSettingsWithBodyWithResponse Change a persistent runner's settings
+//
+// runners R5.90. Today only keep_dependencies. Turning it off removes the dependency caches at the next clean-up; a running job is not touched.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PATCH /api/v1/runners/{runnerId}/settings (the `UpdateRunnerSettings` operationId).
+func (c *ClientWithResponses) UpdateRunnerSettingsWithBodyWithResponse(ctx context.Context, runnerId RunnerId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateRunnerSettingsResponse, error) {
+	rsp, err := c.UpdateRunnerSettingsWithBody(ctx, runnerId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdateRunnerSettingsResponse(rsp)
+}
+
+// UpdateRunnerSettingsWithResponse Change a persistent runner's settings
+//
+// runners R5.90. Today only keep_dependencies. Turning it off removes the dependency caches at the next clean-up; a running job is not touched.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PATCH /api/v1/runners/{runnerId}/settings (the `UpdateRunnerSettings` operationId).
+func (c *ClientWithResponses) UpdateRunnerSettingsWithResponse(ctx context.Context, runnerId RunnerId, body UpdateRunnerSettingsJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateRunnerSettingsResponse, error) {
+	rsp, err := c.UpdateRunnerSettings(ctx, runnerId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdateRunnerSettingsResponse(rsp)
 }
 
 // ListRunsWithResponse Workflow runs, newest first
@@ -31805,6 +32266,39 @@ func ParseGetRunnerResponse(rsp *http.Response) (*GetRunnerResponse, error) {
 	return response, nil
 }
 
+// ParseClearRunnerCacheResponse parses an HTTP response from a ClearRunnerCacheWithResponse call
+func ParseClearRunnerCacheResponse(rsp *http.Response) (*ClearRunnerCacheResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ClearRunnerCacheResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 202:
+		var dest Runner
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON202 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParseGetRunnerEnvResponse parses an HTTP response from a GetRunnerEnvWithResponse call
 func ParseGetRunnerEnvResponse(rsp *http.Response) (*GetRunnerEnvResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -31891,6 +32385,39 @@ func ParsePlanRunnerReplacementResponse(rsp *http.Response) (*PlanRunnerReplacem
 			return nil, err
 		}
 		response.JSON201 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseUpdateRunnerSettingsResponse parses an HTTP response from a UpdateRunnerSettingsWithResponse call
+func ParseUpdateRunnerSettingsResponse(rsp *http.Response) (*UpdateRunnerSettingsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &UpdateRunnerSettingsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Runner
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
 		var dest Error

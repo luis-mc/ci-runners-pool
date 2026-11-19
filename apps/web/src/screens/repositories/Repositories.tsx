@@ -9,6 +9,7 @@ import {
   Empty,
   ErrorSummary,
   Facts,
+  ChoiceField,
   LinkButton,
   Message,
   NumberField,
@@ -44,6 +45,14 @@ import { useCommand, useLoad, useQuestion } from '../../api/hooks';
 import { useSession } from '../../auth/session';
 import { useVersion } from '../../live/LiveProvider';
 import { Ask, Load } from '../common';
+import {
+  ANY_RUNNER_WARNING,
+  NO_CAPACITY,
+  kindChoices,
+  kindSelection,
+  runnerKindText,
+  type KindSelection,
+} from './runnerKinds';
 import {
   FALLBACK_COST_ITEMS,
   HostedFields,
@@ -231,6 +240,19 @@ export function RepositoriesList() {
       header: 'Jobs go to',
       cell: (r) => <WhereJobsGo r={r} />,
       sort: (r) => r.routing?.where ?? '',
+    },
+    {
+      id: 'runnerKind',
+      header: 'Runner kind',
+      cell: (r) => (
+        <Stack gap="tight">
+          <Text>{runnerKindText(r.policy)}</Text>
+          {r.pool_on && r.ephemeral_capacity === false ? (
+            <Text tone="muted">{NO_CAPACITY}</Text>
+          ) : null}
+        </Stack>
+      ),
+      sort: (r) => r.policy.runner_kinds ?? '',
     },
     {
       id: 'delivery',
@@ -555,6 +577,7 @@ function RepositoryBody({ r, onChanged }: { r: Repository; onChanged: () => void
   const [priority, setPriority] = useState(p.priority);
   const [forks, setForks] = useState(p.allow_fork_pull_requests);
   const [light, setLight] = useState(p.light_runner);
+  const [kinds, setKinds] = useState<KindSelection>(kindSelection(p));
   const [hosted, setHosted] = useState<HostedState>(() => hostedStart(r));
   const startPackages = (p.extra_packages ?? []).join('\n');
   const [packages, setPackages] = useState(startPackages);
@@ -574,8 +597,9 @@ function RepositoryBody({ r, onChanged }: { r: Repository; onChanged: () => void
       priority,
       allow_fork_pull_requests: forks,
       light_runner: light,
+      ...(kinds !== kindSelection(p) ? { runner_kinds: kinds } : {}),
     }),
-    [labels, groups, max, priority, forks, light],
+    [labels, groups, max, priority, forks, light, kinds, p],
   );
   const diff = {
     labels: labels !== p.labels.join(', '),
@@ -584,6 +608,7 @@ function RepositoryBody({ r, onChanged }: { r: Repository; onChanged: () => void
     priority: priority !== p.priority,
     forks: forks !== p.allow_fork_pull_requests,
     light: light !== p.light_runner,
+    kinds: kinds !== kindSelection(p),
     hosted: hostedChanged(hosted, hostedStart(r)),
     packages: packages !== startPackages,
   };
@@ -594,6 +619,7 @@ function RepositoryBody({ r, onChanged }: { r: Repository; onChanged: () => void
     diff.priority ||
     diff.forks ||
     diff.light ||
+    diff.kinds ||
     diff.hosted;
   const packagesChanged = diff.packages;
   const changeCount = Object.values(diff).filter(Boolean).length;
@@ -605,6 +631,7 @@ function RepositoryBody({ r, onChanged }: { r: Repository; onChanged: () => void
     setPriority(p.priority);
     setForks(p.allow_fork_pull_requests);
     setLight(p.light_runner);
+    setKinds(kindSelection(p));
     setHosted(hostedStart(r));
     setPackages(startPackages);
     setErrors([]);
@@ -612,6 +639,8 @@ function RepositoryBody({ r, onChanged }: { r: Repository; onChanged: () => void
   };
   const forkRisk = forks && !p.allow_fork_pull_requests;
   const costRisk = turnsFallbackOn(r, hosted);
+  // A public repository on Any runner lets its jobs reach a persistent runner (github-integration R5.60).
+  const anyRisk = diff.kinds && r.visibility === 'public' && kinds === 'any_runner';
 
   /** One request for the policy and the hosted fallback, one for the packages: only what changed. */
   const send = async (confirm: { fork?: boolean; cost?: boolean }) => {
@@ -651,8 +680,9 @@ function RepositoryBody({ r, onChanged }: { r: Repository; onChanged: () => void
     problems.push(...hostedMistakes(hosted), ...packageMistakes(packages));
     setErrors(problems);
     if (problems.length) return;
-    if (forkRisk || costRisk) {
+    if (forkRisk || costRisk || anyRisk) {
       riskQ.ask([
+        ...(anyRisk ? [ANY_RUNNER_WARNING] : []),
         ...(forkRisk
           ? [
               'Jobs from public forks run on your machines with your repository variables in reach.',
@@ -664,12 +694,15 @@ function RepositoryBody({ r, onChanged }: { r: Repository; onChanged: () => void
     }
     await send({});
   });
+  const risks = [forkRisk, costRisk, anyRisk].filter(Boolean).length;
   const riskTitle =
-    forkRisk && costRisk
+    risks > 1
       ? 'Save these changes?'
-      : costRisk
-        ? 'Run on GitHub-hosted runners?'
-        : 'Allow jobs from public forks?';
+      : anyRisk
+        ? 'Let public jobs use persistent runners?'
+        : costRisk
+          ? 'Run on GitHub-hosted runners?'
+          : 'Allow jobs from public forks?';
 
   const offQ = useQuestion(async () => {
     const plan = await applyChanges(client, [
@@ -785,6 +818,7 @@ function RepositoryBody({ r, onChanged }: { r: Repository; onChanged: () => void
             ...(poolOffWhy(r) ? [{ name: 'Why it is off', value: poolOffWhy(r) }] : []),
             { name: 'Variables', value: <Status kind={vs.kind} word={vs.word} /> },
             { name: 'Jobs go to', value: <WhereJobsGo r={r} /> },
+            { name: 'Runner kind', value: runnerKindText(r.policy) },
             { name: 'Why', value: routingWhy(r) },
             ...(r.pool_on
               ? [
@@ -867,6 +901,25 @@ function RepositoryBody({ r, onChanged }: { r: Repository; onChanged: () => void
                 changed={diff.light}
                 onChange={setLight}
               />
+              <ChoiceField
+                label="Runner kind"
+                help="Which runners take this repository's jobs."
+                value={kinds}
+                changed={diff.kinds}
+                onChange={(v) => setKinds(v as KindSelection)}
+                choices={kindChoices(r)}
+              />
+              {kinds === 'any_runner' && r.visibility === 'public' ? (
+                <Message tone="needs-you">{ANY_RUNNER_WARNING}</Message>
+              ) : null}
+              {r.pool_on && r.ephemeral_capacity === false ? (
+                <Message
+                  tone="needs-you"
+                  action={<LinkButton to="/pool/runners/add">Add runners</LinkButton>}
+                >
+                  {NO_CAPACITY}
+                </Message>
+              ) : null}
               <Message tone="note">
                 A light runner is kept free for jobs that last seconds, so they do not
                 wait behind a long build. A workflow uses it with runs-on:{' '}
@@ -919,7 +972,7 @@ function RepositoryBody({ r, onChanged }: { r: Repository; onChanged: () => void
       </form>
       <Ask
         title={riskTitle}
-        action={forkRisk && costRisk ? 'Save' : costRisk ? 'Turn on' : 'Allow'}
+        action={risks > 1 ? 'Save' : costRisk ? 'Turn on' : 'Allow'}
         busyLabel="Saving"
         q={riskQ.question}
         busy={riskQ.busy}

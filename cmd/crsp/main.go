@@ -38,6 +38,7 @@ import (
 	"github.com/luis-mc/ci-runners-shared-pool/internal/store"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/tray"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/update"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/updatewindow"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/webui"
 )
 
@@ -69,6 +70,10 @@ func run(args []string, stdout, stderr io.Writer) int {
 	if len(args) > 0 && args[0] == "update-helper" {
 		// The detached install helper (internal/update); it outlives the service it restarts.
 		return update.RunHelper(context.Background(), args[1:], stderr)
+	}
+	if len(args) > 0 && args[0] == tray.UpdateWindowCommand {
+		// Hidden: the tray starts a copy of this program with it for the native update window (Windows, TRAY5).
+		return updatewindow.Run(updatewindow.Options{Args: args[1:], Service: tray.NewClient(), Stdout: stdout, Stderr: stderr})
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()

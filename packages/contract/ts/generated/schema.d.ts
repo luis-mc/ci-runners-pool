@@ -1451,6 +1451,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/runners/{runnerId}/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Change a persistent runner's settings
+         * @description runners R5.90. Today only keep_dependencies. Turning it off removes the dependency caches at the next clean-up; a running job is not touched.
+         */
+        patch: operations["updateRunnerSettings"];
+        trace?: never;
+    };
+    "/api/v1/runners/{runnerId}/clear-cache": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Clear a persistent runner's dependency cache now
+         * @description runners R5.90. Safe while the runner is idle; a runner with a job waits for the job to end, then clears. Answers 202.
+         */
+        post: operations["clearRunnerCache"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/runners/{runnerId}/registration": {
         parameters: {
             query?: never;
@@ -3098,6 +3138,8 @@ export interface components {
             variables: components["schemas"]["RepositoryVariable"][];
             policy: components["schemas"]["RepositoryPolicy"];
             routing?: components["schemas"]["RepositoryRouting"];
+            /** @description False when the repository's jobs go to ephemeral runners only and the pool has no machine that can make an ephemeral runner, so its jobs would wait (github-integration R5.60). Absent while the pool is off for the repository. */
+            ephemeral_capacity?: boolean;
             webhook?: components["schemas"]["WebhookHealth"];
             problem?: components["schemas"]["RepositoryProblem"];
         };
@@ -3231,6 +3273,13 @@ export interface components {
             runner_groups: string[];
             /** @description Keep one light runner per OS for this repository and write RUNS_ON_LIGHT, so jobs that last seconds do not queue behind a long build (scheduling R5.65). On by default. */
             light_runner: boolean;
+            /**
+             * @description Which runners take this repository's jobs (github-integration R5.60). ephemeral_only: only a fresh container made for the job. any_runner: a persistent runner may take it too. The default is ephemeral_only for a public repository and any_runner for a private one; runner_kinds_set says whether the owner chose it.
+             * @enum {string}
+             */
+            runner_kinds?: "ephemeral_only" | "any_runner";
+            /** @description True when the owner chose runner_kinds; false while it is the default of the repository's visibility. */
+            runner_kinds_set?: boolean;
             /** @description Also write CI_RUNS_ON and CI_RUNS_ON_WINDOWS with the same labels as RUNS_ON_LINUX and RUNS_ON_WINDOWS, for workflows that still follow the old dev-standards templates (github-integration R5.39). Off by default; for the move from the old pool. */
             legacy_vars?: boolean;
             /** @description May lower the machine budget for this repository's jobs, never raise it (scheduling R5.4). */
@@ -3262,6 +3311,11 @@ export interface components {
             allow_fork_pull_requests?: boolean;
             /** @description Turn the light runner on or off (scheduling R5.65). */
             light_runner?: boolean;
+            /**
+             * @description Set which runners take the repository's jobs (github-integration R5.60). default clears the owner's choice, so the default of the visibility applies.
+             * @enum {string}
+             */
+            runner_kinds?: "ephemeral_only" | "any_runner" | "default";
             /** @description Turn the old variable names CI_RUNS_ON and CI_RUNS_ON_WINDOWS on or off (github-integration R5.39). */
             legacy_vars?: boolean;
             /** @description Needed to turn fork jobs on (github-integration R5.26). */
@@ -3486,6 +3540,7 @@ export interface components {
             /** @description Whether the machine takes new jobs (machines R5.62). Another feature reads `online && accepting` to decide on hosted fallback. A machine that has reported nothing accepts. */
             accepting?: boolean;
             pause_reason?: components["schemas"]["PauseReason"];
+            taking: components["schemas"]["MachineTaking"];
             policy?: components["schemas"]["MachinePolicy"];
             /** @description The controller's own machine (machines R5.1); it has no special path. */
             is_controller: boolean;
@@ -3648,6 +3703,15 @@ export interface components {
          * @enum {string}
          */
         PauseReason: "paused" | "on_battery" | "quiet_hours" | "budget" | "base_image_missing";
+        /** @description The one computed answer to "does this machine take new jobs" (machines R5.62, OPS29). The console state, the Now line, its note and the Stop or Resume button all read it. The controller decides from its own online flag, drain state, mode, tray pause and battery switch first, and from the agent's report only for what the agent alone knows. */
+        MachineTaking: {
+            taking_jobs: boolean;
+            /**
+             * @description Why not, absent while taking. offline; stopped (Stop new jobs from the console); mode_paused (mode Paused); tray_paused (a pause from the tray); on_battery (Automatic with the battery pause on); busy (load over the budget); quiet_hours; base_image_missing; disk_low.
+             * @enum {string}
+             */
+            reason?: "offline" | "stopped" | "mode_paused" | "tray_paused" | "on_battery" | "busy" | "quiet_hours" | "base_image_missing" | "disk_low";
+        };
         /**
          * @description What the agent did with the CPU cap. not_supported is macOS (machines R5.64). applying is the wait until the agent reports the result for the chosen percent.
          * @enum {string}
@@ -3968,6 +4032,15 @@ export interface components {
             managed: boolean;
             /** @description True for a persistent runner (runners R5.7, UX-61). */
             keeps_state: boolean;
+            /** @description Persistent runner only. True when its downloaded dependencies stay between jobs (runners R5.90). Absent for an ephemeral runner. */
+            keep_dependencies?: boolean;
+            /**
+             * Format: int64
+             * @description Persistent runner only. Size of this runner's own dependency cache folder, as last measured (runners R5.90).
+             */
+            dependency_cache_bytes?: number;
+            /** @description Set when the clean-up after (or before) a job failed (runners R5.91). The runner takes no new job until it is clean. Absent when clean. */
+            unclean_reason?: string;
             /** @description Whole plain reason the runner is in the failed state, with what the clean-up left behind. Only present when state is failed. */
             failed_reason?: string;
             /** Format: int64 */
@@ -3994,6 +4067,9 @@ export interface components {
         RunnerList: {
             items: components["schemas"]["Runner"][];
         };
+        RunnerSettingsUpdate: {
+            keep_dependencies?: boolean;
+        };
         /**
          * @example {
          *       "os": "linux",
@@ -4013,7 +4089,9 @@ export interface components {
             machine_id: string;
             count: number;
             labels?: string[];
-            /** @description Leave it out to add pool runners (scope `pool`): the user adds runners per machine, never a repository (runners R5.88). */
+            /** @description Persistent runners only: keep downloaded dependencies (tool cache, package manager caches, browsers, image layers) between jobs. Default true. Temporary files of each job are always removed (runners R5.90, R5.91). Ignored for an ephemeral runner. */
+            keep_dependencies?: boolean;
+            /** @description Leave it out to add pool runners (scope `pool`): the user adds runners per machine, never a repository (runners R5.88). For an ephemeral pool request `count` is the number of ephemeral runners that may run at once on the machine (a ceiling, not standing runners; runners R5.92). */
             scope?: components["schemas"]["RunnerScope"];
         };
         /**
@@ -4832,7 +4910,7 @@ export interface components {
          * @description `tool_cache` and `rust_cache` are the per-runner folders of milestone 1 (caches R5.36, R5.39); the others arrive with later milestones.
          * @enum {string}
          */
-        CacheKind: "actions_cache" | "git_mirror" | "tool_cache" | "registry_mirror" | "rust_cache";
+        CacheKind: "actions_cache" | "git_mirror" | "tool_cache" | "registry_mirror" | "rust_cache" | "dependency_cache";
         /**
          * @description One cache on one machine (caches R5.8 to R5.14).
          * @example {
@@ -7120,6 +7198,56 @@ export interface operations {
         requestBody?: never;
         responses: {
             /** @description Removing; waits for the drain. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Runner"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    updateRunnerSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                runnerId: components["parameters"]["RunnerId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RunnerSettingsUpdate"];
+            };
+        };
+        responses: {
+            /** @description The runner. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Runner"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    clearRunnerCache: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                runnerId: components["parameters"]["RunnerId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Clearing now, or after the running job. */
             202: {
                 headers: {
                     [name: string]: unknown;

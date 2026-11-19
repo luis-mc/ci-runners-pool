@@ -131,6 +131,9 @@ func runEdgeStep(t *testing.T, e *env, up *upSrc, st edgeStep, i int) {
 		if st.Var == "hosted" {
 			want = `["ubuntu-latest"]`
 		}
+		if st.Var == "crsp_public" { // a public repository defaults to ephemeral only (R5.60)
+			want = `["self-hosted","linux","x64","docker","crsp-home","ephemeral"]`
+		}
 		if got := linuxVar(e); got != want {
 			t.Fatalf("%s: variable %s, want %s", at(""), got, want)
 		}

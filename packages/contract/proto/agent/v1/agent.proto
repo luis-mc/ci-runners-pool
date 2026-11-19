@@ -105,6 +105,8 @@ message SessionRequest {
     MachineReport machine_report = 22;
     // Whether the machine takes new jobs, and why not (CRSP75, machines R5.62).
     AcceptingReport accepting_report = 23;
+    // How the clean-up of each persistent runner went (OPS28, runners R5.91).
+    RunnerClean runner_clean = 24;
   }
 }
 
@@ -134,6 +136,8 @@ message SessionResponse {
     // Host maintenance (cli R5.29, HND24): run one command on the machine. The
     // controller sends it only when the machine's report says `host_command`.
     RunHostCommand run_host_command = 24;
+    // The hygiene settings of one persistent runner and a Clear now (OPS28, runners R5.90).
+    RunnerHygiene runner_hygiene = 25;
   }
 }
 
@@ -313,6 +317,34 @@ message RunnerSpec {
   // the runner environment, never on the host OS (runners R5.86). The agent
   // checks each name again.
   repeated string extra_packages = 13;
+  // Persistent runner: keep the downloaded dependencies between jobs (runners
+  // R5.90). Unset means keep.
+  optional bool keep_dependencies = 14;
+}
+
+// RunnerClean is what the agent read from each persistent runner's folder: the
+// result of the last clean-up and the size of its own dependency folder. The
+// controller answers each runner with RunnerHygiene (runners R5.90, R5.91).
+message RunnerClean {
+  repeated RunnerCleanStatus runners = 1;
+}
+
+message RunnerCleanStatus {
+  string runner_name = 1;
+  string service_name = 2;
+  int64 dependency_cache_bytes = 3;
+  // Plain words naming what stays; empty when the runner is clean.
+  string unclean_reason = 4;
+}
+
+// RunnerHygiene is the controller's answer to a RunnerClean for one runner: the
+// setting Keep downloaded dependencies and, when clear_cache is set, a Clear now
+// the agent carries out when the runner is idle.
+message RunnerHygiene {
+  string runner_name = 1;
+  string service_name = 2;
+  bool keep_dependencies = 3;
+  bool clear_cache = 4;
 }
 
 // RemoveRunner removes a runner after a drain. The idle check runs right

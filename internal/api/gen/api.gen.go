@@ -281,17 +281,20 @@ func (e CacheState) Valid() bool {
 
 // Defines values for CacheKind.
 const (
-	ActionsCache   CacheKind = "actions_cache"
-	GitMirror      CacheKind = "git_mirror"
-	RegistryMirror CacheKind = "registry_mirror"
-	RustCache      CacheKind = "rust_cache"
-	ToolCache      CacheKind = "tool_cache"
+	ActionsCache    CacheKind = "actions_cache"
+	DependencyCache CacheKind = "dependency_cache"
+	GitMirror       CacheKind = "git_mirror"
+	RegistryMirror  CacheKind = "registry_mirror"
+	RustCache       CacheKind = "rust_cache"
+	ToolCache       CacheKind = "tool_cache"
 )
 
 // Valid indicates whether the value is a known member of the CacheKind enum.
 func (e CacheKind) Valid() bool {
 	switch e {
 	case ActionsCache:
+		return true
+	case DependencyCache:
 		return true
 	case GitMirror:
 		return true
@@ -1059,6 +1062,45 @@ func (e MachineState) Valid() bool {
 	}
 }
 
+// Defines values for MachineTakingReason.
+const (
+	MachineTakingReasonBaseImageMissing MachineTakingReason = "base_image_missing"
+	MachineTakingReasonBusy             MachineTakingReason = "busy"
+	MachineTakingReasonDiskLow          MachineTakingReason = "disk_low"
+	MachineTakingReasonModePaused       MachineTakingReason = "mode_paused"
+	MachineTakingReasonOffline          MachineTakingReason = "offline"
+	MachineTakingReasonOnBattery        MachineTakingReason = "on_battery"
+	MachineTakingReasonQuietHours       MachineTakingReason = "quiet_hours"
+	MachineTakingReasonStopped          MachineTakingReason = "stopped"
+	MachineTakingReasonTrayPaused       MachineTakingReason = "tray_paused"
+)
+
+// Valid indicates whether the value is a known member of the MachineTakingReason enum.
+func (e MachineTakingReason) Valid() bool {
+	switch e {
+	case MachineTakingReasonBaseImageMissing:
+		return true
+	case MachineTakingReasonBusy:
+		return true
+	case MachineTakingReasonDiskLow:
+		return true
+	case MachineTakingReasonModePaused:
+		return true
+	case MachineTakingReasonOffline:
+		return true
+	case MachineTakingReasonOnBattery:
+		return true
+	case MachineTakingReasonQuietHours:
+		return true
+	case MachineTakingReasonStopped:
+		return true
+	case MachineTakingReasonTrayPaused:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for NotificationChannelScope.
 const (
 	NotificationChannelScopePersonal NotificationChannelScope = "personal"
@@ -1494,6 +1536,45 @@ func (e RepositoryVisibility) Valid() bool {
 	case Private:
 		return true
 	case Public:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RepositoryPolicyRunnerKinds.
+const (
+	RepositoryPolicyRunnerKindsAnyRunner     RepositoryPolicyRunnerKinds = "any_runner"
+	RepositoryPolicyRunnerKindsEphemeralOnly RepositoryPolicyRunnerKinds = "ephemeral_only"
+)
+
+// Valid indicates whether the value is a known member of the RepositoryPolicyRunnerKinds enum.
+func (e RepositoryPolicyRunnerKinds) Valid() bool {
+	switch e {
+	case RepositoryPolicyRunnerKindsAnyRunner:
+		return true
+	case RepositoryPolicyRunnerKindsEphemeralOnly:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RepositoryPolicyUpdateRunnerKinds.
+const (
+	RepositoryPolicyUpdateRunnerKindsAnyRunner     RepositoryPolicyUpdateRunnerKinds = "any_runner"
+	RepositoryPolicyUpdateRunnerKindsDefault       RepositoryPolicyUpdateRunnerKinds = "default"
+	RepositoryPolicyUpdateRunnerKindsEphemeralOnly RepositoryPolicyUpdateRunnerKinds = "ephemeral_only"
+)
+
+// Valid indicates whether the value is a known member of the RepositoryPolicyUpdateRunnerKinds enum.
+func (e RepositoryPolicyUpdateRunnerKinds) Valid() bool {
+	switch e {
+	case RepositoryPolicyUpdateRunnerKindsAnyRunner:
+		return true
+	case RepositoryPolicyUpdateRunnerKindsDefault:
+		return true
+	case RepositoryPolicyUpdateRunnerKindsEphemeralOnly:
 		return true
 	default:
 		return false
@@ -3688,6 +3769,9 @@ type Machine struct {
 
 	// State active and drained are set by the user; draining while a drain waits.
 	State MachineState `json:"state"`
+
+	// Taking The one computed answer to "does this machine take new jobs" (machines R5.62, OPS29). The console state, the Now line, its note and the Stop or Resume button all read it. The controller decides from its own online flag, drain state, mode, tray pause and battery switch first, and from the agent's report only for what the agent alone knows.
+	Taking MachineTaking `json:"taking"`
 }
 
 // MachineChange A change that waits for a drain (machines R5.30 to R5.33).
@@ -3917,6 +4001,16 @@ type MachineSettingsUpdatePause string
 
 // MachineState active and drained are set by the user; draining while a drain waits.
 type MachineState string
+
+// MachineTaking The one computed answer to "does this machine take new jobs" (machines R5.62, OPS29). The console state, the Now line, its note and the Stop or Resume button all read it. The controller decides from its own online flag, drain state, mode, tray pause and battery switch first, and from the agent's report only for what the agent alone knows.
+type MachineTaking struct {
+	// Reason Why not, absent while taking. offline; stopped (Stop new jobs from the console); mode_paused (mode Paused); tray_paused (a pause from the tray); on_battery (Automatic with the battery pause on); busy (load over the budget); quiet_hours; base_image_missing; disk_low.
+	Reason     *MachineTakingReason `json:"reason,omitempty"`
+	TakingJobs bool                 `json:"taking_jobs"`
+}
+
+// MachineTakingReason Why not, absent while taking. offline; stopped (Stop new jobs from the console); mode_paused (mode Paused); tray_paused (a pause from the tray); on_battery (Automatic with the battery pause on); busy (load over the budget); quiet_hours; base_image_missing; disk_low.
+type MachineTakingReason string
 
 // NotificationChannel One channel. No secret is returned: `secret_set` and `smtp.has_password` say only whether one is set.
 type NotificationChannel struct {
@@ -4154,13 +4248,16 @@ type PlanRepositoryChangesRequestChangesPool string
 
 // PlanRunnersRequest defines model for PlanRunnersRequest.
 type PlanRunnersRequest struct {
-	Count     int        `json:"count"`
-	Kind      RunnerKind `json:"kind"`
-	Labels    *[]string  `json:"labels,omitempty"`
-	MachineId string     `json:"machine_id"`
-	Os        OS         `json:"os"`
+	Count int `json:"count"`
 
-	// Scope Leave it out to add pool runners (scope `pool`): the user adds runners per machine, never a repository (runners R5.88).
+	// KeepDependencies Persistent runners only: keep downloaded dependencies (tool cache, package manager caches, browsers, image layers) between jobs. Default true. Temporary files of each job are always removed (runners R5.90, R5.91). Ignored for an ephemeral runner.
+	KeepDependencies *bool      `json:"keep_dependencies,omitempty"`
+	Kind             RunnerKind `json:"kind"`
+	Labels           *[]string  `json:"labels,omitempty"`
+	MachineId        string     `json:"machine_id"`
+	Os               OS         `json:"os"`
+
+	// Scope Leave it out to add pool runners (scope `pool`): the user adds runners per machine, never a repository (runners R5.88). For an ephemeral pool request `count` is the number of ephemeral runners that may run at once on the machine (a ceiling, not standing runners; runners R5.92).
 	Scope *RunnerScope `json:"scope,omitempty"`
 }
 
@@ -4342,13 +4439,16 @@ type RegistrySettings struct {
 
 // Repository defines model for Repository.
 type Repository struct {
-	DefaultBranch  *string          `json:"default_branch,omitempty"`
-	FullName       string           `json:"full_name"`
-	Id             int64            `json:"id"`
-	InstallationId int64            `json:"installation_id"`
-	Name           string           `json:"name"`
-	Owner          string           `json:"owner"`
-	Policy         RepositoryPolicy `json:"policy"`
+	DefaultBranch *string `json:"default_branch,omitempty"`
+
+	// EphemeralCapacity False when the repository's jobs go to ephemeral runners only and the pool has no machine that can make an ephemeral runner, so its jobs would wait (github-integration R5.60). Absent while the pool is off for the repository.
+	EphemeralCapacity *bool            `json:"ephemeral_capacity,omitempty"`
+	FullName          string           `json:"full_name"`
+	Id                int64            `json:"id"`
+	InstallationId    int64            `json:"installation_id"`
+	Name              string           `json:"name"`
+	Owner             string           `json:"owner"`
+	Policy            RepositoryPolicy `json:"policy"`
 
 	// PoolOffReason Why the pool is off when the controller turned it off (github-integration R5.22). Absent otherwise.
 	PoolOffReason *RepositoryPoolOffReason `json:"pool_off_reason,omitempty"`
@@ -4418,11 +4518,20 @@ type RepositoryPolicy struct {
 	MaxParallelJobs int  `json:"max_parallel_jobs"`
 
 	// Priority Higher goes first (scheduling R5.8).
-	Priority     int        `json:"priority"`
-	RunnerGroups []string   `json:"runner_groups"`
-	UpdatedAt    *time.Time `json:"updated_at,omitempty"`
-	UpdatedBy    *string    `json:"updated_by,omitempty"`
+	Priority     int      `json:"priority"`
+	RunnerGroups []string `json:"runner_groups"`
+
+	// RunnerKinds Which runners take this repository's jobs (github-integration R5.60). ephemeral_only: only a fresh container made for the job. any_runner: a persistent runner may take it too. The default is ephemeral_only for a public repository and any_runner for a private one; runner_kinds_set says whether the owner chose it.
+	RunnerKinds *RepositoryPolicyRunnerKinds `json:"runner_kinds,omitempty"`
+
+	// RunnerKindsSet True when the owner chose runner_kinds; false while it is the default of the repository's visibility.
+	RunnerKindsSet *bool      `json:"runner_kinds_set,omitempty"`
+	UpdatedAt      *time.Time `json:"updated_at,omitempty"`
+	UpdatedBy      *string    `json:"updated_by,omitempty"`
 }
+
+// RepositoryPolicyRunnerKinds Which runners take this repository's jobs (github-integration R5.60). ephemeral_only: only a fresh container made for the job. any_runner: a persistent runner may take it too. The default is ephemeral_only for a public repository and any_runner for a private one; runner_kinds_set says whether the owner chose it.
+type RepositoryPolicyRunnerKinds string
 
 // RepositoryPolicyUpdate defines model for RepositoryPolicyUpdate.
 type RepositoryPolicyUpdate struct {
@@ -4454,7 +4563,13 @@ type RepositoryPolicyUpdate struct {
 	MaxParallelJobs *int      `json:"max_parallel_jobs,omitempty"`
 	Priority        *int      `json:"priority,omitempty"`
 	RunnerGroups    *[]string `json:"runner_groups,omitempty"`
+
+	// RunnerKinds Set which runners take the repository's jobs (github-integration R5.60). default clears the owner's choice, so the default of the visibility applies.
+	RunnerKinds *RepositoryPolicyUpdateRunnerKinds `json:"runner_kinds,omitempty"`
 }
+
+// RepositoryPolicyUpdateRunnerKinds Set which runners take the repository's jobs (github-integration R5.60). default clears the owner's choice, so the default of the visibility applies.
+type RepositoryPolicyUpdateRunnerKinds string
 
 // RepositoryProblem A fault the owner can fix on a repository (github-integration R5.56). Absent when there is none.
 type RepositoryProblem struct {
@@ -4629,11 +4744,17 @@ type Runner struct {
 	// CurrentJob One job attempt (observability R5.7, R5.8).
 	CurrentJob *Job `json:"current_job,omitempty"`
 
+	// DependencyCacheBytes Persistent runner only. Size of this runner's own dependency cache folder, as last measured (runners R5.90).
+	DependencyCacheBytes *int64 `json:"dependency_cache_bytes,omitempty"`
+
 	// FailedReason Whole plain reason the runner is in the failed state, with what the clean-up left behind. Only present when state is failed.
 	FailedReason   *string   `json:"failed_reason,omitempty"`
 	GithubRunnerId *int64    `json:"github_runner_id,omitempty"`
 	Id             string    `json:"id"`
 	Isolation      Isolation `json:"isolation"`
+
+	// KeepDependencies Persistent runner only. True when its downloaded dependencies stay between jobs (runners R5.90). Absent for an ephemeral runner.
+	KeepDependencies *bool `json:"keep_dependencies,omitempty"`
 
 	// KeepsState True for a persistent runner (runners R5.7, UX-61).
 	KeepsState bool       `json:"keeps_state"`
@@ -4662,6 +4783,9 @@ type Runner struct {
 
 	// State What the runner really is (web-console UX-19). idle only when GitHub reports it online and not busy and its service runs; not_registered, stopped and unknown say why it is not.
 	State RunnerState `json:"state"`
+
+	// UncleanReason Set when the clean-up after (or before) a job failed (runners R5.91). The runner takes no new job until it is clean. Absent when clean.
+	UncleanReason *string `json:"unclean_reason,omitempty"`
 }
 
 // RunnerEnv defines model for RunnerEnv.
@@ -4721,6 +4845,11 @@ type RunnerServiceProblem struct {
 
 	// Service The Windows service name.
 	Service string `json:"service"`
+}
+
+// RunnerSettingsUpdate defines model for RunnerSettingsUpdate.
+type RunnerSettingsUpdate struct {
+	KeepDependencies *bool `json:"keep_dependencies,omitempty"`
 }
 
 // RunnerState What the runner really is (web-console UX-19). idle only when GitHub reports it online and not busy and its service runs; not_registered, stopped and unknown say why it is not.
@@ -5715,6 +5844,9 @@ type PlanRunnersJSONRequestBody = PlanRunnersRequest
 // CreateRunnersJSONRequestBody defines body for CreateRunners for application/json ContentType.
 type CreateRunnersJSONRequestBody = ApplyPlanRequest
 
+// UpdateRunnerSettingsJSONRequestBody defines body for UpdateRunnerSettings for application/json ContentType.
+type UpdateRunnerSettingsJSONRequestBody = RunnerSettingsUpdate
+
 // UpdateSettingsJSONRequestBody defines body for UpdateSettings for application/json ContentType.
 type UpdateSettingsJSONRequestBody = Settings
 
@@ -6071,6 +6203,9 @@ type ServerInterface interface {
 	// GetRunner One runner
 	// (GET /api/v1/runners/{runnerId})
 	GetRunner(w http.ResponseWriter, r *http.Request, runnerId RunnerId)
+	// ClearRunnerCache Clear a persistent runner's dependency cache now
+	// (POST /api/v1/runners/{runnerId}/clear-cache)
+	ClearRunnerCache(w http.ResponseWriter, r *http.Request, runnerId RunnerId)
 	// GetRunnerEnv The merged environment of a runner, sensitive values masked
 	// (GET /api/v1/runners/{runnerId}/env)
 	GetRunnerEnv(w http.ResponseWriter, r *http.Request, runnerId RunnerId)
@@ -6080,6 +6215,9 @@ type ServerInterface interface {
 	// PlanRunnerReplacement Plan replacing a runner not made by CRSP with a managed one
 	// (POST /api/v1/runners/{runnerId}/replace)
 	PlanRunnerReplacement(w http.ResponseWriter, r *http.Request, runnerId RunnerId)
+	// UpdateRunnerSettings Change a persistent runner's settings
+	// (PATCH /api/v1/runners/{runnerId}/settings)
+	UpdateRunnerSettings(w http.ResponseWriter, r *http.Request, runnerId RunnerId)
 	// ListRuns Workflow runs, newest first
 	// (GET /api/v1/runs)
 	ListRuns(w http.ResponseWriter, r *http.Request, params ListRunsParams)
@@ -9652,6 +9790,32 @@ func (siw *ServerInterfaceWrapper) GetRunner(w http.ResponseWriter, r *http.Requ
 	handler.ServeHTTP(w, r)
 }
 
+// ClearRunnerCache operation middleware
+func (siw *ServerInterfaceWrapper) ClearRunnerCache(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "runnerId" -------------
+	var runnerId RunnerId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "runnerId", r.PathValue("runnerId"), &runnerId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "runnerId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ClearRunnerCache(w, r, runnerId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // GetRunnerEnv operation middleware
 func (siw *ServerInterfaceWrapper) GetRunnerEnv(w http.ResponseWriter, r *http.Request) {
 
@@ -9737,6 +9901,32 @@ func (siw *ServerInterfaceWrapper) PlanRunnerReplacement(w http.ResponseWriter, 
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.PlanRunnerReplacement(w, r, runnerId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateRunnerSettings operation middleware
+func (siw *ServerInterfaceWrapper) UpdateRunnerSettings(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "runnerId" -------------
+	var runnerId RunnerId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "runnerId", r.PathValue("runnerId"), &runnerId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "runnerId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateRunnerSettings(w, r, runnerId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -10811,6 +11001,8 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/runner-plans/{planId}/apply", wrapper.CreateRunners)
 	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/api/v1/runners/{runnerId}", wrapper.DeleteRunner)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/runners/{runnerId}", wrapper.GetRunner)
+	m.HandleFunc(http.MethodPatch+" "+options.BaseURL+"/api/v1/runners/{runnerId}/settings", wrapper.UpdateRunnerSettings)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/runners/{runnerId}/clear-cache", wrapper.ClearRunnerCache)
 	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/api/v1/runners/{runnerId}/registration", wrapper.DeleteRunnerRegistration)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/runners/{runnerId}/env", wrapper.GetRunnerEnv)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/env-sets", wrapper.ListEnvSets)
@@ -15234,6 +15426,45 @@ func (response GetRunnerdefaultJSONResponse) VisitGetRunnerResponse(w http.Respo
 	return err
 }
 
+type ClearRunnerCacheRequestObject struct {
+	RunnerId RunnerId `json:"runnerId"`
+}
+
+type ClearRunnerCacheResponseObject interface {
+	VisitClearRunnerCacheResponse(w http.ResponseWriter) error
+}
+
+type ClearRunnerCache202JSONResponse Runner
+
+func (response ClearRunnerCache202JSONResponse) VisitClearRunnerCacheResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(202)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ClearRunnerCachedefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response ClearRunnerCachedefaultJSONResponse) VisitClearRunnerCacheResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type GetRunnerEnvRequestObject struct {
 	RunnerId RunnerId `json:"runnerId"`
 }
@@ -15341,6 +15572,46 @@ type PlanRunnerReplacementdefaultJSONResponse struct {
 }
 
 func (response PlanRunnerReplacementdefaultJSONResponse) VisitPlanRunnerReplacementResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateRunnerSettingsRequestObject struct {
+	RunnerId RunnerId `json:"runnerId"`
+	Body     *UpdateRunnerSettingsJSONRequestBody
+}
+
+type UpdateRunnerSettingsResponseObject interface {
+	VisitUpdateRunnerSettingsResponse(w http.ResponseWriter) error
+}
+
+type UpdateRunnerSettings200JSONResponse Runner
+
+func (response UpdateRunnerSettings200JSONResponse) VisitUpdateRunnerSettingsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateRunnerSettingsdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response UpdateRunnerSettingsdefaultJSONResponse) VisitUpdateRunnerSettingsResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
@@ -16857,6 +17128,9 @@ type StrictServerInterface interface {
 	// GetRunner One runner
 	// (GET /api/v1/runners/{runnerId})
 	GetRunner(ctx context.Context, request GetRunnerRequestObject) (GetRunnerResponseObject, error)
+	// ClearRunnerCache Clear a persistent runner's dependency cache now
+	// (POST /api/v1/runners/{runnerId}/clear-cache)
+	ClearRunnerCache(ctx context.Context, request ClearRunnerCacheRequestObject) (ClearRunnerCacheResponseObject, error)
 	// GetRunnerEnv The merged environment of a runner, sensitive values masked
 	// (GET /api/v1/runners/{runnerId}/env)
 	GetRunnerEnv(ctx context.Context, request GetRunnerEnvRequestObject) (GetRunnerEnvResponseObject, error)
@@ -16866,6 +17140,9 @@ type StrictServerInterface interface {
 	// PlanRunnerReplacement Plan replacing a runner not made by CRSP with a managed one
 	// (POST /api/v1/runners/{runnerId}/replace)
 	PlanRunnerReplacement(ctx context.Context, request PlanRunnerReplacementRequestObject) (PlanRunnerReplacementResponseObject, error)
+	// UpdateRunnerSettings Change a persistent runner's settings
+	// (PATCH /api/v1/runners/{runnerId}/settings)
+	UpdateRunnerSettings(ctx context.Context, request UpdateRunnerSettingsRequestObject) (UpdateRunnerSettingsResponseObject, error)
 	// ListRuns Workflow runs, newest first
 	// (GET /api/v1/runs)
 	ListRuns(ctx context.Context, request ListRunsRequestObject) (ListRunsResponseObject, error)
@@ -19945,6 +20222,32 @@ func (sh *strictHandler) GetRunner(w http.ResponseWriter, r *http.Request, runne
 	}
 }
 
+// ClearRunnerCache operation middleware
+func (sh *strictHandler) ClearRunnerCache(w http.ResponseWriter, r *http.Request, runnerId RunnerId) {
+	var request ClearRunnerCacheRequestObject
+
+	request.RunnerId = runnerId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ClearRunnerCache(ctx, request.(ClearRunnerCacheRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ClearRunnerCache")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ClearRunnerCacheResponseObject); ok {
+		if err := validResponse.VisitClearRunnerCacheResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // GetRunnerEnv operation middleware
 func (sh *strictHandler) GetRunnerEnv(w http.ResponseWriter, r *http.Request, runnerId RunnerId) {
 	var request GetRunnerEnvRequestObject
@@ -20017,6 +20320,39 @@ func (sh *strictHandler) PlanRunnerReplacement(w http.ResponseWriter, r *http.Re
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(PlanRunnerReplacementResponseObject); ok {
 		if err := validResponse.VisitPlanRunnerReplacementResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// UpdateRunnerSettings operation middleware
+func (sh *strictHandler) UpdateRunnerSettings(w http.ResponseWriter, r *http.Request, runnerId RunnerId) {
+	var request UpdateRunnerSettingsRequestObject
+
+	request.RunnerId = runnerId
+
+	var body UpdateRunnerSettingsJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateRunnerSettings(ctx, request.(UpdateRunnerSettingsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateRunnerSettings")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(UpdateRunnerSettingsResponseObject); ok {
+		if err := validResponse.VisitUpdateRunnerSettingsResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

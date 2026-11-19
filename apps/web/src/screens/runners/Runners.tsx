@@ -16,6 +16,7 @@ import {
   Status,
   Table,
   Text,
+  TextLink,
   formatAgo,
   formatDuration,
   Facts,
@@ -32,6 +33,8 @@ import { useSession } from '../../auth/session';
 import { useVersion } from '../../live/LiveProvider';
 import { Ask, Load } from '../common';
 import { needsYes } from '../repositories/plans';
+import { KIND_NAMES } from './kinds';
+import { keepsText, uncleanText } from './RunnerPage';
 
 type Runner = Schemas['Runner'];
 
@@ -43,6 +46,8 @@ export function isolationText(r: Pick<Runner, 'isolation' | 'keeps_state'>): str
 }
 
 export function runnerStatus(r: Runner): { kind: StatusKind; word: string } {
+  // A runner whose clean-up failed takes no new job, whatever else it is (runners R5.90).
+  if (r.unclean_reason) return { kind: 'waiting', word: 'not clean' };
   switch (r.state) {
     case 'idle':
       return { kind: 'ok', word: 'idle' };
@@ -206,7 +211,12 @@ export function RunnersList() {
   );
 
   const columns: Column<Runner>[] = [
-    { id: 'name', header: 'Name', cell: (r) => r.name, sort: (r) => r.name },
+    {
+      id: 'name',
+      header: 'Name',
+      cell: (r) => <TextLink to={`/pool/runners/${r.id}`}>{r.name}</TextLink>,
+      sort: (r) => r.name,
+    },
     {
       id: 'iso',
       header: 'Isolation',
@@ -214,6 +224,9 @@ export function RunnersList() {
         <Stack gap="tight">
           <span>{isolationText(r)}</span>
           <Text tone="muted">{`${r.os} ${r.arch}, ${r.backend}`}</Text>
+          <Text tone="muted">
+            {[KIND_NAMES[r.kind], keepsText(r)].filter(Boolean).join('. ')}
+          </Text>
         </Stack>
       ),
       sort: (r) => r.isolation,
@@ -227,7 +240,9 @@ export function RunnersList() {
         return <Status kind={s.kind} word={s.word} />;
       },
       long: (r) => {
-        const full = r.reason ?? (r.state === 'failed' ? r.failed_reason : null);
+        const full = r.unclean_reason
+          ? uncleanText(r.unclean_reason)
+          : (r.reason ?? (r.state === 'failed' ? r.failed_reason : null));
         return full ? { full } : null;
       },
       sort: (r) => r.state,

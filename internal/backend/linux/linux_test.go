@@ -488,3 +488,42 @@ func TestUserGetsPersistentUID(t *testing.T) {
 		t.Fatalf("useradd lacks the uid: %v", r.cmd.Texts())
 	}
 }
+
+// R5.90, R5.91: every tool keeps its downloads in the runner's own folder, the
+// hooks know the folder, and the setting is written once and never over a
+// changed one.
+func TestDependencyFolderAndKeepSettingPerRunner(t *testing.T) {
+	r := newRig()
+	spec := r.spec()
+	spec.KeepDependencies = false
+	if _, err := r.b.Start(context.Background(), spec, backend.StartConfig{Registration: "REGTOKEN"}); err != nil {
+		t.Fatal(err)
+	}
+	env := string(r.fs.Files["/var/lib/crsp/runners/box-1/.env"])
+	for _, want := range []string{
+		"CRSP_RUNNER_DIR=/var/lib/crsp/runners/box-1\n",
+		"RUNNER_TOOL_CACHE=/var/lib/crsp/runners/box-1/cache/tools\n",
+		"npm_config_cache=/var/lib/crsp/runners/box-1/cache/npm\n",
+		"npm_config_store_dir=/var/lib/crsp/runners/box-1/cache/pnpm-store\n",
+		"GOMODCACHE=/var/lib/crsp/runners/box-1/cache/go/mod\n",
+		"GOCACHE=/var/lib/crsp/runners/box-1/cache/go/build\n",
+		"PIP_CACHE_DIR=/var/lib/crsp/runners/box-1/cache/pip\n",
+		"PLAYWRIGHT_BROWSERS_PATH=/var/lib/crsp/runners/box-1/cache/playwright\n",
+	} {
+		if !strings.Contains(env, want) {
+			t.Errorf(".env lacks %q:\n%s", want, env)
+		}
+	}
+	if got := string(r.fs.Files["/var/lib/crsp/runners/box-1/crsp-hygiene.env"]); got != "CRSP_KEEP_DEPENDENCIES=0\n" {
+		t.Fatalf("settings file %q", got)
+	}
+	// the agent changed it; a start again does not undo it
+	r.fs.Files["/var/lib/crsp/runners/box-1/crsp-hygiene.env"] = []byte("CRSP_KEEP_DEPENDENCIES=1\n")
+	spec.MaxParallel = 4
+	if _, err := r.b.Start(context.Background(), spec, backend.StartConfig{Registration: "REGTOKEN"}); err != nil {
+		t.Fatal(err)
+	}
+	if got := string(r.fs.Files["/var/lib/crsp/runners/box-1/crsp-hygiene.env"]); got != "CRSP_KEEP_DEPENDENCIES=1\n" {
+		t.Fatalf("settings file overwritten: %q", got)
+	}
+}

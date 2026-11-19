@@ -34,6 +34,7 @@ import { RepositoriesList, RepositoryDetail } from './screens/repositories/Repos
 import { TurnOnPoolPage } from './screens/repositories/TurnOnPool';
 import { AddRunnersPage } from './screens/runners/AddRunners';
 import { RunnersList } from './screens/runners/Runners';
+import { RunnerPage } from './screens/runners/RunnerPage';
 import {
   AccessTab,
   AuditTab,
@@ -177,6 +178,7 @@ export function App({
                 <Route path="pool/machines/add" element={<AddMachinePage />} />
                 <Route path="pool/machines/:id" element={<MachineDetail />} />
                 <Route path="pool/runners/add" element={<AddRunnersPage />} />
+                <Route path="pool/runners/:id" element={<RunnerPage />} />
                 <Route path="pool/images/:imageId" element={<ImageDetail />} />
                 <Route element={<JobsLayout />}>
                   <Route path="jobs" element={<JobsList />} />

@@ -9,7 +9,7 @@ owner: owner
 type: reference
 code: ["internal/scheduler/**", "internal/hooks/**", "internal/api/handlers_jobs.go", "internal/store/schedstore.go"]
 design_system: [UX-6, UX-14, UX-17, UX-19, UX-29, UX-34, UX-38, UX-41, UX-52, UX-53, UX-58, UX-62, components 15, components 16, components 17, components 19]
-last_verified: 2026-11-16
+last_verified: 2026-11-18
 artifact:
 generator: luismc-docs 2.6.1
 ---
@@ -283,6 +283,8 @@ Source paths are in github.com/luis-mc/dev-standards, under `claude/plugins/deli
 
 **R5.70** — **A slot is held by a lease, not by a process id.** Every slot records its holder id (the gate id that took it) and the end of its lease. A lease lasts the larger of 4 poll intervals and 120 s (the beat limit of R5.34) and is renewed by a heartbeat: a retried gate request or beat from the holder, a renewal naming the holder id and the claim, or the agent's holder report listing the job as running (the report is sent every load interval, 15 s). A renewal changes only a slot that still holds that holder id and claim, so a slot taken again by another job is never extended, and a lease that already ended is reclaimed, not revived. A slot whose lease ended is freed by the sweeper or by the next gate poll and logged as `stale-freed` with the reason "lease expired". No process id is looked at to decide that a holder is gone: the holder process and gate process of R5.31 are recorded for display only, so a reused process id cannot keep or steal a slot, and a holder that crashed on any host frees its slot when its lease ends. A slot row from before leases takes its age limit (R5.33) as its lease end, so the upgrade frees nothing early. M1. Built (HND11). Source: dev-standards handover lesson 4, rule D3.
 
+**R5.71** (built, OPS28; runners R5.91) — **A runner that is not clean takes no new job.** When the last clean-up of a persistent runner failed, the gate holds a job for that runner with the wait reason paused and the text "this runner is not clean yet: <reason>", until the runner is clean again.
+
 **R5.72** (OPS34, owner decision 8) — **Start range of a queued job.** For every queued job the controller computes a start range and shows it with the queue order and the wait reason. The model: each running job frees its slot at its forecast end (observability R5.40); a queued job takes the first free slot in the order of service (R5.8) and holds it for one median run time. The range runs from the lows to the highs of the jobs ahead. A job passed over by R5.10 or held by R5.68 shows the reason and no start range. With no forecast for the jobs ahead the range is "not enough history yet". The range is informative: it never changes the order of service.
 
 ## 6. Non-functional requirements
@@ -457,6 +459,7 @@ A test with a path in backticks exists; one marked planned is NOT YET IMPLEMENTE
 | R5.68 | `internal/scheduler/accepting_test.go` TestGateHoldsNewJobsWithTheReasonWhileNotAccepting, TestGateHoldsLightRunnerJobsWhilePaused, TestGateDoesNotHoldOnTheBudgetReason, TestPauseNeverCutsAJobThatHoldsASlot; `internal/agent/policy_test.go` TestAutomaticPausesOnBatteryAndNeverCutsARunningJob | built (CRSP75) |
 | R5.69 | `internal/scheduler/weights_test.go` TestAdmissionByWeight, TestHeavyWeightBlocksWhileSlotNumberFree, TestUnknownClassDefaultWeight, TestWeightAboveBudgetRunsAlone, TestWeightFitsButLoadNotMeasured, TestWaitWordsNameTheWeight; `internal/scheduler/slots/weights_test.go` | new |
 | R5.70 | `internal/scheduler/gate_test.go` TestRenewKeepsTheSlot, TestRenewJobsKeepsListedJobsOnly, TestExpiredLeaseReclaimsTheSlot, TestRenewAfterExpiryIsLost, TestReusedPidCannotStealASlot, TestCrashedHolderSlotIsReclaimedForTheQueue, TestRetriedGateRenewsTheLease; `internal/store/slot_lease_migration_test.go` TestIntegrationSlotLeaseMigrationKeepsHeldSlots | new (dev-standards lesson 4, rule D3) |
+| R5.71 | `internal/scheduler/unclean_test.go` TestGateHoldsJobsOfAnUncleanRunner |
 | R5.72 | `internal/forecast/forecast_test.go` TestQueueStartRange, TestPassedOverJobHasNoRange, TestRangeDoesNotChangeOrder |
 | R6.1 | `internal/hooks/hooks_test.go` TestQuietGateUnderTwoSeconds | `test_load.py` Cache `test_no_sleep_and_delta_from_saved_raw` |
 | R6.2 | `internal/scheduler/gate_test.go` TestTwoTakersNeverShareASlot | `test_machine.py` Slots `test_race_two_processes_never_share_one_slot` |

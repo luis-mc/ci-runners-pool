@@ -19,6 +19,7 @@ on:
         'Package Windows',
         'Installer',
         'Installer packages',
+        'Tray smoke',
         'Parity',
       ]
     types: [completed]

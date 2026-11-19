@@ -2,6 +2,7 @@
 // the box after the action is pressed (UX-20, UX-21). Rows for up to 6 answers, a drop-down for 7 or more
 // (UX-22). Switches save at once; check boxes wait for Save.
 import { useId, type ReactNode } from 'react';
+import { CaretInput } from './CaretInput';
 import { ThemePreview } from './ThemePreview';
 
 export { FileField } from './FileField';
@@ -87,7 +88,7 @@ export function TextField(
   const errorId = `${id}-e`;
   return (
     <Shell {...props} htmlFor={id} helpId={helpId} errorId={errorId}>
-      <input
+      <CaretInput
         id={id}
         className="ds-input"
         type={props.secret ? 'password' : 'text'}

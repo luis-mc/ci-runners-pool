@@ -13,7 +13,7 @@ import (
 
 // Request is one JSON line sent over the local channel (spec section 7).
 type Request struct {
-	Call   string `json:"call"`             // status | link | check | install | mode | pause | resume
+	Call   string `json:"call"`             // status | link | check | install | cancel | mode | pause | resume
 	Target string `json:"target,omitempty"` // call=link: the console path to open, "" for the start page
 	Mode   string `json:"mode,omitempty"`   // call=mode: automatic, always or paused
 	Pause  string `json:"pause,omitempty"`  // call=pause: one_hour or until_resumed
@@ -36,6 +36,18 @@ type PolicyInfo struct {
 	UntilResumed bool  `json:"until_resumed,omitempty"`
 }
 
+// StageInfo is the live stage of an update, as the service writes it (internal/update Stage).
+// The update window reads it; an older service leaves it out.
+type StageInfo struct {
+	Name      string `json:"name"` // downloading, waiting_for_jobs, installing, restarting, done, failed
+	Percent   int    `json:"percent"`
+	Version   string `json:"version,omitempty"`
+	Error     string `json:"error,omitempty"`
+	LogPath   string `json:"log_path,omitempty"`
+	FailedAt  string `json:"failed_at,omitempty"`
+	StartedBy string `json:"started_by,omitempty"` // auto, tray or console
+}
+
 // Response is one JSON line answered by the service.
 type Response struct {
 	OK      bool   `json:"ok"`
@@ -56,6 +68,9 @@ type Response struct {
 	UpdateAvailable bool   `json:"update_available,omitempty"`
 	UpdateState     string `json:"update_state,omitempty"`
 	ReleaseURL      string `json:"release_url,omitempty"` // the release page of LatestVersion (What changed)
+
+	// Stage is the live update stage; nil when no update ran.
+	Stage *StageInfo `json:"stage,omitempty"`
 
 	// Policy is this machine's mode and acceptance (CRSP75).
 	Policy *PolicyInfo `json:"policy,omitempty"`
@@ -157,6 +172,7 @@ func statusFrom(r Response) Status {
 		State: st, Running: r.Running, Waiting: r.Waiting, Runners: r.Runners, Fault: r.Fault, Version: r.Version,
 		Update: UpdateInfo{Latest: r.LatestVersion, Available: r.UpdateAvailable, State: r.UpdateState, ReleaseURL: r.ReleaseURL, Jobs: r.Running, AutoOff: r.AutoUpdate != nil && !*r.AutoUpdate},
 	}
+	out.Update.Stage = r.Stage
 	out.RunnerProblems = r.RunnerProblems
 	if p := r.Policy; p != nil {
 		out.Policy = MachinePolicy{
@@ -212,6 +228,16 @@ func (c *Client) Check(ctx context.Context) (Status, error) {
 // It drains first: no running job is cut. Only a person's yes in the tray sends it.
 func (c *Client) Install(ctx context.Context) (Status, error) {
 	r, err := c.Call(ctx, "install")
+	if err != nil {
+		return Status{}, err
+	}
+	return statusFrom(r), nil
+}
+
+// Cancel stops an update that is downloading or waiting for jobs; nothing has changed then
+// (D15). The service refuses from installing on.
+func (c *Client) Cancel(ctx context.Context) (Status, error) {
+	r, err := c.Call(ctx, "cancel")
 	if err != nil {
 		return Status{}, err
 	}
