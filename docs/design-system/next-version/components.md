@@ -7,7 +7,7 @@ One numbered section per shared component. A part that nearly fits is extended w
 ## 1. Page header
 
 - **Used for:** the headline that says where you are, with an optional line below it and the page's one primary action. (`Stack` of the layout part takes the gap `section`, 32 px, for the sections of a page such as a Settings tab; LOOK16.)
-- **Looks:** a large title with a quiet line below it. The primary action sits at the end of the title row, right-aligned. An optional hint is one muted line right-aligned under the action, inside the same slot; the slot is at most 22 rem wide, so a hint never widens it and never moves the action. A page that swaps one action for another (Stop new jobs and Resume) passes a hint in both states, so the header keeps its height and nothing below it moves. At phone width the slot is full width and the hint reads from the left.
+- **Looks:** a large title with a quiet line below it. The primary action sits at the end of the title row, right-aligned. An optional hint is one muted line right-aligned under the action, inside the same slot; the slot is at most 22 rem wide, so a hint never widens it and never moves the action. A page that swaps one action for another (Stop new jobs and Resume) passes a hint in both states, so the header keeps its height and nothing below it moves. At phone width the slot is full width and the hint reads from the left. Under a tab row (component 3) the header sits one page gap (`--ds-space-5`) below the row's underline, on every screen with sub-tabs, whether the tab row and the header share one `Page` or the tab row is its own (a layout route's `Page` followed by the screen's `Page`; `.ds-page + .ds-page`). LOOK36.
 - **Source:** `packages/ui/src/components/layout.tsx` (`PageHeader`: `title`, `lead`, `action`, `hint`)
 - **Rules:** UX-3, UX-4, UX-17.
 - **Guard:** none yet.
@@ -15,18 +15,18 @@ One numbered section per shared component. A part that nearly fits is extended w
 ## 2. Top menu and breadcrumbs
 
 - **Used for:** moving between the main areas, and showing the path back up. The console has exactly six areas: Overview, Shared Pool, Repositories, Jobs, Doctor, Settings. An area with parts (Shared Pool, Jobs, Settings) shows them as one tab row (component 3) under the menu, never as more menu items.
-- **Looks:** a row of the main areas, starting on the frame edge, with the current one marked as a tab is marked: bold primary text and a 3 px underline, never a box (UX-69). A quiet trail of links shows the path back up. The top bar above it holds the product name and status on the left and Commands and the login on the right inside the same frame; at phone width it is two lines, name and login, then status and Commands.
-- **Source:** `packages/ui/src/components/Shell.tsx` (`Header`, `TopMenu`)
+- **Looks:** a row of the main areas, starting on the frame edge, with the current one marked as a tab is marked: bold primary text and a 3 px underline, never a box (UX-69). A quiet trail of links shows the path back up. The top bar above it holds the product name and status on the left and Commands and the login on the right inside the same frame; at phone width it is two lines, name and login, then status and Commands. On a phone the areas are one Menu button (`TopMenuButton`), its box on the same frame edge as the title and the tab row; it opens the list under it (UX-15, UX-69). LOOK36.
+- **Source:** `packages/ui/src/components/Shell.tsx` (`Header`, `TopMenu`, `TopMenuButton`)
 - **Rules:** UX-1, UX-3, UX-16, UX-17, UX-69.
 - **Guard:** none yet.
 
 ## 3. Tabs
 
 - **Used for:** switching between views of the same thing. A tab never starts work. Tabs keep their panels mounted, so a tab keeps its state when the user comes back.
-- **Looks:** labels over one panel. When the labels do not fit the width the row wraps onto as many rows as it needs; it never scrolls sideways (UX-68, owner decision LOOK D6). The chosen tab is bold, in the primary colour, with a 3 px underline, so colour is not the only sign. The row is a tab list with arrow-key movement. The top menu wraps the same way.
+- **Looks:** labels over one panel. When the labels do not fit the width the row wraps onto as many rows as it needs; it never scrolls sideways (UX-68, owner decision LOOK D6). The first label starts on the frame's left edge, where the page title and the top menu start (UX-69): a tab has no side padding, and the gap between labels is `--ds-space-5`. A label is never cut: one that does not fit goes to the next row whole (only a label wider than the whole row breaks, at its spaces), so at 360 and 393 px the row is two or three lines. The page header or the first pane under the row is one page gap (`--ds-space-5`) below it (LOOK36). The chosen tab is bold, in the primary colour, with a 3 px underline, so colour is not the only sign. The row is a tab list with arrow-key movement. The top menu wraps the same way.
 - **Source:** `packages/ui/src/components/Controls.tsx` (`Tabs`)
 - **Rules:** UX-1, UX-8, UX-17, UX-68.
-- **Guard:** `packages/ui/src/components/Pane.test.tsx` (Tabs).
+- **Guard:** `packages/ui/src/components/Pane.test.tsx` (Tabs); `e2e/tests/web-console/ux-routes.spec.ts` (`tabEdges`, `tabGap`); `e2e/tests/design-layout.spec.ts` (tab row, title gap and left edges).
 
 ## 4. Wizard
 

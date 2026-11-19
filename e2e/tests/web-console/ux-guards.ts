@@ -198,6 +198,69 @@ const MEASURES = {
       if (Math.abs(r.right - frameR) > 1) bad.push(label(c) + ' ends at ' + Math.round(r.right) + ' but the frame at ' + Math.round(frameR));
     }
     return bad;`,
+  /** UX-69 (LOOK36): the phone's Menu button, the first label of every tab row and the page title share the frame's left edge, and no tab label is cut or wrapped inside itself. A label starts where the page starts, not one tab padding further in. */
+  tabEdges: `${VISIBLE}
+    const main = document.querySelector('main');
+    if (!main) return [];
+    const mp = getComputedStyle(main);
+    const frameL = main.getBoundingClientRect().left + parseFloat(mp.paddingLeft);
+    const textLeft = (e) => { const r = document.createRange(); r.selectNodeContents(e); const b = r.getBoundingClientRect(); return b.width > 0 ? b.left : e.getBoundingClientRect().left; };
+    const bad = [];
+    const toggle = Array.from(document.querySelectorAll('header ~ * button, header ~ button')).filter(visible).find((b) => /^(Menu:|Close the menu)/.test((b.textContent || '').trim()));
+    if (toggle) {
+      const l = toggle.getBoundingClientRect().left;
+      if (Math.abs(l - frameL) > 1) bad.push('the Menu button box starts at ' + l.toFixed(1) + ' but the frame at ' + frameL.toFixed(1));
+    }
+    for (const list of document.querySelectorAll('[role=tablist]')) {
+      if (!visible(list)) continue;
+      const lr = list.getBoundingClientRect();
+      const tabs = Array.from(list.querySelectorAll('[role=tab]')).filter(visible);
+      const rows = new Map();
+      for (const t of tabs) { const top = Math.round(t.getBoundingClientRect().top); if (!rows.has(top)) rows.set(top, t); }
+      for (const t of rows.values()) {
+        const l = textLeft(t);
+        if (Math.abs(l - frameL) > 1) bad.push('tab "' + (t.textContent || '').trim() + '" starts a row at ' + l.toFixed(1) + ' but the frame at ' + frameL.toFixed(1));
+      }
+      for (const t of tabs) {
+        const r = t.getBoundingClientRect();
+        const name = '"' + (t.textContent || '').trim() + '"';
+        if (r.right > lr.right + 1 || r.left < lr.left - 1) bad.push('tab ' + name + ' is cut by the tab row (' + Math.round(r.left) + '-' + Math.round(r.right) + ' in ' + Math.round(lr.left) + '-' + Math.round(lr.right) + ')');
+        const tops = new Set();
+        const rg = document.createRange(); rg.selectNodeContents(t);
+        for (const x of rg.getClientRects()) tops.add(Math.round(x.top));
+        if (tops.size > 1) bad.push('tab ' + name + ' wraps onto ' + tops.size + ' lines');
+        if (t.scrollWidth > t.clientWidth + 1) bad.push('tab ' + name + ' is wider than its box');
+      }
+      const h1 = document.querySelector('main h1');
+      if (h1 && visible(h1)) {
+        const hl = textLeft(h1);
+        if (tabs[0] && Math.abs(hl - textLeft(tabs[0])) > 1) bad.push('the title starts at ' + hl.toFixed(1) + ' but the first tab at ' + textLeft(tabs[0]).toFixed(1));
+      }
+    }
+    return bad;`,
+  /** UX-69 (LOOK36, tokens spacing): the block under a tab row (the page title, a pane, a table) is one page gap (--ds-space-5) below it. The gap rule of dom-layout judges the children of one group, and a tab row that sits in its own page has no sibling there, so this measures what is under it. */
+  tabGap: `${VISIBLE}
+    const probe = document.createElement('i');
+    probe.style.cssText = 'position:absolute;visibility:hidden;width:0;height:0;padding-left:var(--ds-space-5)';
+    document.body.appendChild(probe);
+    const want = parseFloat(getComputedStyle(probe).paddingLeft) || 0;
+    probe.remove();
+    const bad = [];
+    for (const list of document.querySelectorAll('[role=tablist]')) {
+      if (!visible(list)) continue;
+      const lr = list.getBoundingClientRect();
+      let next = null;
+      for (const e of document.querySelectorAll('main h1, main h2, main .ds-pane, main .ds-page-header, main .ds-breadcrumbs, main table, main form, main p, main .ds-state')) {
+        if (!visible(e) || list.contains(e) || e.contains(list) || (e.matches('h2') && e.closest('.ds-pane'))) continue; // a pane's title sits on the pane's border: the pane itself is measured
+        const r = e.getBoundingClientRect();
+        if (r.top < lr.bottom - 1 || r.top > lr.bottom + 400) continue;
+        if (!next || r.top < next.getBoundingClientRect().top) next = e;
+      }
+      if (!next) continue;
+      const gap = next.getBoundingClientRect().top - lr.bottom;
+      if (gap < want - 1) bad.push(label(next) + ' is ' + Math.round(gap) + ' px under the tab row, the page gap is ' + want + ' px');
+    }
+    return bad;`,
   /** UX-69 (A3): the open menu item has no box: no side border, no outline, no fill. */
   navBox: `${VISIBLE}
     const bad = [];

@@ -409,3 +409,73 @@ test('setup without a link names the tray, not a terminal', async ({ page }) => 
   await expect(page.getByText(/Open in the tray menu/)).toBeVisible();
   await expect(page.locator('main')).not.toContainText(/crsp open|terminal/i);
 });
+
+// LOOK36, UX-69, tokens (spacing): a tab row and the page under it. At every width the page title is one page gap
+// (--ds-space-5) under the tab row, and the phone's Menu button, the first tab label of every row and the title
+// start on the frame's one left edge. A tab row follows component 3: it wraps onto more rows, no label is cut.
+for (const path of ['/pool', '/pool/machines', '/settings']) {
+  for (const width of [1300, 393, 360]) {
+    test(`tab row, title gap and left edges at ${width} px: ${path}`, async ({
+      page,
+    }) => {
+      const mock = jobsAndDoctor(signedIn());
+      await mock.install(page);
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto(path);
+      await expect(page.locator('[role=tablist]').first()).toBeVisible();
+      await page.waitForLoadState('networkidle');
+      const m = await page.evaluate(() => {
+        const left = (e: Element) => {
+          const r = document.createRange();
+          r.selectNodeContents(e);
+          return r.getBoundingClientRect().left;
+        };
+        const probe = document.createElement('i');
+        probe.style.cssText =
+          'position:absolute;visibility:hidden;padding-left:var(--ds-space-5)';
+        document.body.appendChild(probe);
+        const gapToken = parseFloat(getComputedStyle(probe).paddingLeft);
+        probe.remove();
+        const list = document.querySelector('[role=tablist]')!;
+        const lr = list.getBoundingClientRect();
+        const h1 = document.querySelector('main h1')!;
+        const h1r = h1.getBoundingClientRect();
+        const main = document.querySelector('main')!;
+        const frameLeft =
+          main.getBoundingClientRect().left +
+          parseFloat(getComputedStyle(main).paddingLeft);
+        const menu = Array.from(document.querySelectorAll('button')).find((b) =>
+          /^Menu:/.test(b.textContent ?? ''),
+        );
+        const tabs = Array.from(list.querySelectorAll('[role=tab]'));
+        const rowStarts = new Map<number, number>();
+        for (const t of tabs) {
+          const top = Math.round(t.getBoundingClientRect().top);
+          if (!rowStarts.has(top)) rowStarts.set(top, left(t));
+        }
+        return {
+          gapToken,
+          titleBelowTabs: h1r.top >= lr.bottom - 1,
+          gap: h1r.top - lr.bottom,
+          frameLeft,
+          menuBox: menu?.getBoundingClientRect().left ?? null,
+          tabLeft: [...rowStarts.values()],
+          h1Left: left(h1),
+          cut: tabs.filter((t) => t.getBoundingClientRect().right > lr.right + 1).length,
+          wrapped: tabs.filter(
+            (t) => t.getClientRects().length > 0 && t.scrollWidth > t.clientWidth + 1,
+          ).length,
+        };
+      });
+      if (m.titleBelowTabs) expect(Math.abs(m.gap - m.gapToken)).toBeLessThan(1.5);
+      expect(Math.abs(m.h1Left - m.frameLeft)).toBeLessThan(1);
+      for (const l of m.tabLeft) expect(Math.abs(l - m.frameLeft)).toBeLessThan(1);
+      if (width < 600) {
+        expect(m.menuBox).not.toBeNull();
+        expect(Math.abs((m.menuBox ?? 0) - m.frameLeft)).toBeLessThan(1);
+      }
+      expect(m.cut).toBe(0);
+      expect(m.wrapped).toBe(0);
+    });
+  }
+}

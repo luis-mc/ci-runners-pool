@@ -29,6 +29,8 @@ const CHECKS: { id: Measure; states: ScreenState[] }[] = [
   { id: 'pane', states: ['data'] },
   { id: 'frameEdges', states: ['data'] },
   { id: 'pageEdges', states: ['data'] },
+  { id: 'tabEdges', states: ['data'] },
+  { id: 'tabGap', states: ['data'] },
   { id: 'navBox', states: ['data'] },
   { id: 'tableHead', states: ['data'] },
   { id: 'paneButtons', states: ['data'] },
