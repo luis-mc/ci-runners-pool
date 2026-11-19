@@ -268,13 +268,13 @@ Canonical JSON (`registry.CanonicalJSON`): one object, no whitespace, keys in by
 
 ### IMG3: image profiles (R5.77 to R5.80)
 
-**R5.77** — A profile is base, layers, toolchains, services and the labels that pick it (RES19 B1).
+**R5.77** — A profile is base, layers, toolchains, services and the labels that pick it (RES19 B1). **BUILT (IMG3).** The tables `image_profiles` and `repository_profiles` (migration 00021) hold them; `profiles.Defaults` seeds the standard ones (`node-web`, `rust-cross`, `go`, `python`, `base`) and never overwrites an edit; `profiles.ListViews` is the read side of the console. Stacks map to a profile through `profiles.DetectStacks` and `ProfileForStack`.
 
-**R5.78** — `ProfileSource.ProfileFor` picks the profile of a job by its repository and labels and returns kind, base name and digest, pins and toolchains for the key.
+**R5.78** — `ProfileSource.ProfileFor` picks the profile of a job by its repository and labels and returns kind, base name and digest, pins and toolchains for the key. **BUILT (IMG3).** `profiles.Resolver` picks, in order: a profile whose label is among the job's labels, the profile the owner chose for the repository, the profile of the repository's stack (a custom profile of that repository before a standard one), the base profile. A base digest that is not resolved is an error (`ErrBaseUnresolved`), never an empty digest.
 
-**R5.79** — Per-arch builds of one profile share the profile id; the arch is in the key.
+**R5.79** — Per-arch builds of one profile share the profile id; the arch is in the key. **BUILT (IMG3).** The ref carries no arch.
 
-**R5.80** — Today's `runners.ImageKey` keys are read as an older generation and age out.
+**R5.80** — Today's `runners.ImageKey` keys are read as an older generation and age out. **BUILT (IMG3).** `profiles.OlderGeneration` lists the local tags the registry does not know.
 
 ## 6. Non-functional requirements
 
@@ -363,7 +363,7 @@ Rows for R5.21 and R5.22 (key) and R5.20 (agent link stub) are built and run in 
 | R5.63 to R5.67 | internal/registry/mirror/mirror_test.go |
 | R5.68 to R5.72 | internal/backend/container/buildstream_test.go; internal/api/handlers_builds_test.go |
 | R5.73 to R5.76 | internal/stackscan/scan_test.go |
-| R5.77 to R5.80 | internal/profiles/profiles_test.go |
+| R5.77 to R5.80 | `internal/profiles/profiles_test.go` (built: defaults, mapping, precedence, ref, views, older generation); `internal/store/profilestore_test.go` (built: tables) |
 | R6.1 | internal/store/no_secrets_test.go (registry tables); internal/registry/core/token_test.go (no token in logs) |
 
 ## 10. Decisions
@@ -394,6 +394,7 @@ Built (REG10):
 
 - internal/registry/ (`key.go` with the key and names, `types.go`, `interfaces.go`, `doc.go`)
 - internal/agentlink/registry.go (controller side stub of the protocol version 3 calls)
+- internal/profiles/ (IMG3: profiles, defaults, stack mapping, resolver, read side), internal/store/profilestore.go, migration 00021_image_profiles.sql and `image_profiles.sql`
 - internal/store/migrations/00019_registry.sql and the query files `registry_core.sql` (REG1), `registry_keys.sql` (REG3), `registry_records.sql` (REG4), `registry_retention.sql` (REG6), `registry_replace.sql` (REG7), `registry_scan.sql` (REG8), `registry_mirror.sql` (REG9), `image_builds.sql` (IMG1)
 - internal/api/stubs_registry_reg4.go, `_reg6.go`, `_reg7.go`, `_reg9.go`, `_img1.go` (501 per owning task)
 
