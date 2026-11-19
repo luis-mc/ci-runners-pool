@@ -110,6 +110,46 @@ func (q *Queries) ListRegistryImagesOfLineage(ctx context.Context, arg ListRegis
 	return items, nil
 }
 
+const listRegistryPointersOfProfile = `-- name: ListRegistryPointersOfProfile :many
+SELECT repository, profile_id, arch, image_id, previous_image_id, moved_at, moved_by FROM registry_pointers WHERE profile_id = ? AND arch = ? ORDER BY repository
+`
+
+type ListRegistryPointersOfProfileParams struct {
+	ProfileID string
+	Arch      string
+}
+
+func (q *Queries) ListRegistryPointersOfProfile(ctx context.Context, arg ListRegistryPointersOfProfileParams) ([]RegistryPointer, error) {
+	rows, err := q.query(ctx, q.listRegistryPointersOfProfileStmt, listRegistryPointersOfProfile, arg.ProfileID, arg.Arch)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []RegistryPointer
+	for rows.Next() {
+		var i RegistryPointer
+		if err := rows.Scan(
+			&i.Repository,
+			&i.ProfileID,
+			&i.Arch,
+			&i.ImageID,
+			&i.PreviousImageID,
+			&i.MovedAt,
+			&i.MovedBy,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listRegistryPointersOfRepository = `-- name: ListRegistryPointersOfRepository :many
 SELECT repository, profile_id, arch, image_id, previous_image_id, moved_at, moved_by FROM registry_pointers WHERE repository = ? ORDER BY profile_id, arch
 `

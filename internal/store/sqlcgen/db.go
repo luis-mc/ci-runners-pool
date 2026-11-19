@@ -465,6 +465,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.listRegistryImagesOfLineageStmt, err = db.PrepareContext(ctx, listRegistryImagesOfLineage); err != nil {
 		return nil, fmt.Errorf("error preparing query ListRegistryImagesOfLineage: %w", err)
 	}
+	if q.listRegistryPointersOfProfileStmt, err = db.PrepareContext(ctx, listRegistryPointersOfProfile); err != nil {
+		return nil, fmt.Errorf("error preparing query ListRegistryPointersOfProfile: %w", err)
+	}
 	if q.listRegistryPointersOfRepositoryStmt, err = db.PrepareContext(ctx, listRegistryPointersOfRepository); err != nil {
 		return nil, fmt.Errorf("error preparing query ListRegistryPointersOfRepository: %w", err)
 	}
@@ -1517,6 +1520,11 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing listRegistryImagesOfLineageStmt: %w", cerr)
 		}
 	}
+	if q.listRegistryPointersOfProfileStmt != nil {
+		if cerr := q.listRegistryPointersOfProfileStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listRegistryPointersOfProfileStmt: %w", cerr)
+		}
+	}
 	if q.listRegistryPointersOfRepositoryStmt != nil {
 		if cerr := q.listRegistryPointersOfRepositoryStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing listRegistryPointersOfRepositoryStmt: %w", cerr)
@@ -2223,6 +2231,7 @@ type Queries struct {
 	listRegistryImageMachinesStmt            *sql.Stmt
 	listRegistryImagesStmt                   *sql.Stmt
 	listRegistryImagesOfLineageStmt          *sql.Stmt
+	listRegistryPointersOfProfileStmt        *sql.Stmt
 	listRegistryPointersOfRepositoryStmt     *sql.Stmt
 	listRegistryPointersToStmt               *sql.Stmt
 	listRegistryPullDailyStmt                *sql.Stmt
@@ -2480,6 +2489,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		listRegistryImageMachinesStmt:            q.listRegistryImageMachinesStmt,
 		listRegistryImagesStmt:                   q.listRegistryImagesStmt,
 		listRegistryImagesOfLineageStmt:          q.listRegistryImagesOfLineageStmt,
+		listRegistryPointersOfProfileStmt:        q.listRegistryPointersOfProfileStmt,
 		listRegistryPointersOfRepositoryStmt:     q.listRegistryPointersOfRepositoryStmt,
 		listRegistryPointersToStmt:               q.listRegistryPointersToStmt,
 		listRegistryPullDailyStmt:                q.listRegistryPullDailyStmt,
