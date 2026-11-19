@@ -180,30 +180,24 @@ function BuildBody({ build, reload }: { build: ImageBuild; reload: () => void })
           </LinkButton>
         }
         primary={
-          canRetry ? (
-            <Button
-              kind="primary"
-              onPress={() => void retry.run()}
-              busy={retry.busy}
-              busyLabel="Starting"
-            >
-              {build.state === 'failed'
-                ? 'Try again'
-                : build.state === 'stale'
-                  ? 'Rebuild'
-                  : 'Build now'}
-            </Button>
-          ) : (
-            <Button
-              kind="primary"
-              disabled
-              reason={
-                build.state === 'building' ? 'It is building now.' : 'Nothing to do.'
-              }
-            >
-              {build.state === 'building' ? 'Building' : 'Rebuild'}
-            </Button>
-          )
+          <Button
+            kind="primary"
+            onPress={() => void retry.run()}
+            busy={retry.busy}
+            busyLabel="Starting"
+            disabled={!canRetry}
+            reason={build.state === 'building' ? 'It is building now.' : 'Nothing to do.'}
+          >
+            {build.state === 'failed'
+              ? 'Try again'
+              : build.state === 'stale'
+                ? 'Rebuild'
+                : build.state === 'not_built'
+                  ? 'Build now'
+                  : build.state === 'building'
+                    ? 'Building'
+                    : 'Rebuild'}
+          </Button>
         }
       />
     </Stack>

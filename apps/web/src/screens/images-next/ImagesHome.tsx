@@ -20,6 +20,7 @@ import {
   Tabs,
   Text,
   Cut,
+  formatCount,
   formatSize,
   useNow,
   type Column,
@@ -206,8 +207,8 @@ function OverviewTab({ data }: { data: ImagesOverview }) {
         <Facts
           items={[
             { name: 'Registry', value: data.prebuilt.registry },
-            { name: 'Pulled', value: `${data.prebuilt.pulled} images` },
-            { name: 'Built here', value: `${data.prebuilt.built} images` },
+            { name: 'Pulled', value: formatCount(data.prebuilt.pulled, 'image') },
+            { name: 'Built here', value: formatCount(data.prebuilt.built, 'image') },
           ]}
         />
         <Text tone="muted">
