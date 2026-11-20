@@ -24,11 +24,26 @@ func New(db DBTX) *Queries {
 func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	q := Queries{db: db}
 	var err error
+	if q.addRegistryPullDailyStmt, err = db.PrepareContext(ctx, addRegistryPullDaily); err != nil {
+		return nil, fmt.Errorf("error preparing query AddRegistryPullDaily: %w", err)
+	}
 	if q.beatTicketStmt, err = db.PrepareContext(ctx, beatTicket); err != nil {
 		return nil, fmt.Errorf("error preparing query BeatTicket: %w", err)
 	}
+	if q.claimRegistryScanStmt, err = db.PrepareContext(ctx, claimRegistryScan); err != nil {
+		return nil, fmt.Errorf("error preparing query ClaimRegistryScan: %w", err)
+	}
+	if q.clearRepositoryProfileStmt, err = db.PrepareContext(ctx, clearRepositoryProfile); err != nil {
+		return nil, fmt.Errorf("error preparing query ClearRepositoryProfile: %w", err)
+	}
+	if q.closeRegistryRecommendationStmt, err = db.PrepareContext(ctx, closeRegistryRecommendation); err != nil {
+		return nil, fmt.Errorf("error preparing query CloseRegistryRecommendation: %w", err)
+	}
 	if q.countJobsByStateStmt, err = db.PrepareContext(ctx, countJobsByState); err != nil {
 		return nil, fmt.Errorf("error preparing query CountJobsByState: %w", err)
+	}
+	if q.countLiveRegistryTokenLeasesNamingStmt, err = db.PrepareContext(ctx, countLiveRegistryTokenLeasesNaming); err != nil {
+		return nil, fmt.Errorf("error preparing query CountLiveRegistryTokenLeasesNaming: %w", err)
 	}
 	if q.countMachineSlotsStmt, err = db.PrepareContext(ctx, countMachineSlots); err != nil {
 		return nil, fmt.Errorf("error preparing query CountMachineSlots: %w", err)
@@ -44,6 +59,12 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	}
 	if q.deleteAuditBeforeStmt, err = db.PrepareContext(ctx, deleteAuditBefore); err != nil {
 		return nil, fmt.Errorf("error preparing query DeleteAuditBefore: %w", err)
+	}
+	if q.deleteEndedRegistryTokenLeasesStmt, err = db.PrepareContext(ctx, deleteEndedRegistryTokenLeases); err != nil {
+		return nil, fmt.Errorf("error preparing query DeleteEndedRegistryTokenLeases: %w", err)
+	}
+	if q.deleteImageProfileStmt, err = db.PrepareContext(ctx, deleteImageProfile); err != nil {
+		return nil, fmt.Errorf("error preparing query DeleteImageProfile: %w", err)
 	}
 	if q.deleteJobHistoryBeforeStmt, err = db.PrepareContext(ctx, deleteJobHistoryBefore); err != nil {
 		return nil, fmt.Errorf("error preparing query DeleteJobHistoryBefore: %w", err)
@@ -63,8 +84,20 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.deleteNotificationChannelStmt, err = db.PrepareContext(ctx, deleteNotificationChannel); err != nil {
 		return nil, fmt.Errorf("error preparing query DeleteNotificationChannel: %w", err)
 	}
+	if q.deleteOldRegistryPullDailyStmt, err = db.PrepareContext(ctx, deleteOldRegistryPullDaily); err != nil {
+		return nil, fmt.Errorf("error preparing query DeleteOldRegistryPullDaily: %w", err)
+	}
+	if q.deleteOldRegistryPullsStmt, err = db.PrepareContext(ctx, deleteOldRegistryPulls); err != nil {
+		return nil, fmt.Errorf("error preparing query DeleteOldRegistryPulls: %w", err)
+	}
 	if q.deletePendingFactsStmt, err = db.PrepareContext(ctx, deletePendingFacts); err != nil {
 		return nil, fmt.Errorf("error preparing query DeletePendingFacts: %w", err)
+	}
+	if q.deleteRegistryLayerStmt, err = db.PrepareContext(ctx, deleteRegistryLayer); err != nil {
+		return nil, fmt.Errorf("error preparing query DeleteRegistryLayer: %w", err)
+	}
+	if q.deleteRegistryTokenLeaseStmt, err = db.PrepareContext(ctx, deleteRegistryTokenLease); err != nil {
+		return nil, fmt.Errorf("error preparing query DeleteRegistryTokenLease: %w", err)
 	}
 	if q.deleteRunnerStmt, err = db.PrepareContext(ctx, deleteRunner); err != nil {
 		return nil, fmt.Errorf("error preparing query DeleteRunner: %w", err)
@@ -102,6 +135,15 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.finishDoctorRunStmt, err = db.PrepareContext(ctx, finishDoctorRun); err != nil {
 		return nil, fmt.Errorf("error preparing query FinishDoctorRun: %w", err)
 	}
+	if q.finishImageBuildStmt, err = db.PrepareContext(ctx, finishImageBuild); err != nil {
+		return nil, fmt.Errorf("error preparing query FinishImageBuild: %w", err)
+	}
+	if q.finishRegistryCleanupStmt, err = db.PrepareContext(ctx, finishRegistryCleanup); err != nil {
+		return nil, fmt.Errorf("error preparing query FinishRegistryCleanup: %w", err)
+	}
+	if q.finishRegistryScanStmt, err = db.PrepareContext(ctx, finishRegistryScan); err != nil {
+		return nil, fmt.Errorf("error preparing query FinishRegistryScan: %w", err)
+	}
 	if q.finishRestoreDrillStmt, err = db.PrepareContext(ctx, finishRestoreDrill); err != nil {
 		return nil, fmt.Errorf("error preparing query FinishRestoreDrill: %w", err)
 	}
@@ -117,6 +159,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.getActiveCliTokenStmt, err = db.PrepareContext(ctx, getActiveCliToken); err != nil {
 		return nil, fmt.Errorf("error preparing query GetActiveCliToken: %w", err)
 	}
+	if q.getActiveRegistryReplacePlanForImageStmt, err = db.PrepareContext(ctx, getActiveRegistryReplacePlanForImage); err != nil {
+		return nil, fmt.Errorf("error preparing query GetActiveRegistryReplacePlanForImage: %w", err)
+	}
 	if q.getActiveSessionStmt, err = db.PrepareContext(ctx, getActiveSession); err != nil {
 		return nil, fmt.Errorf("error preparing query GetActiveSession: %w", err)
 	}
@@ -131,6 +176,12 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	}
 	if q.getGitHubJobStmt, err = db.PrepareContext(ctx, getGitHubJob); err != nil {
 		return nil, fmt.Errorf("error preparing query GetGitHubJob: %w", err)
+	}
+	if q.getImageBuildStmt, err = db.PrepareContext(ctx, getImageBuild); err != nil {
+		return nil, fmt.Errorf("error preparing query GetImageBuild: %w", err)
+	}
+	if q.getImageProfileStmt, err = db.PrepareContext(ctx, getImageProfile); err != nil {
+		return nil, fmt.Errorf("error preparing query GetImageProfile: %w", err)
 	}
 	if q.getJobHistoryStmt, err = db.PrepareContext(ctx, getJobHistory); err != nil {
 		return nil, fmt.Errorf("error preparing query GetJobHistory: %w", err)
@@ -174,6 +225,48 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.getPreferencesStmt, err = db.PrepareContext(ctx, getPreferences); err != nil {
 		return nil, fmt.Errorf("error preparing query GetPreferences: %w", err)
 	}
+	if q.getPromotedRegistryImageByKeyStmt, err = db.PrepareContext(ctx, getPromotedRegistryImageByKey); err != nil {
+		return nil, fmt.Errorf("error preparing query GetPromotedRegistryImageByKey: %w", err)
+	}
+	if q.getRegistryCleanupStmt, err = db.PrepareContext(ctx, getRegistryCleanup); err != nil {
+		return nil, fmt.Errorf("error preparing query GetRegistryCleanup: %w", err)
+	}
+	if q.getRegistryImageStmt, err = db.PrepareContext(ctx, getRegistryImage); err != nil {
+		return nil, fmt.Errorf("error preparing query GetRegistryImage: %w", err)
+	}
+	if q.getRegistryImageByManifestStmt, err = db.PrepareContext(ctx, getRegistryImageByManifest); err != nil {
+		return nil, fmt.Errorf("error preparing query GetRegistryImageByManifest: %w", err)
+	}
+	if q.getRegistryImageByTagStmt, err = db.PrepareContext(ctx, getRegistryImageByTag); err != nil {
+		return nil, fmt.Errorf("error preparing query GetRegistryImageByTag: %w", err)
+	}
+	if q.getRegistryMirrorSettingsStmt, err = db.PrepareContext(ctx, getRegistryMirrorSettings); err != nil {
+		return nil, fmt.Errorf("error preparing query GetRegistryMirrorSettings: %w", err)
+	}
+	if q.getRegistryPointerStmt, err = db.PrepareContext(ctx, getRegistryPointer); err != nil {
+		return nil, fmt.Errorf("error preparing query GetRegistryPointer: %w", err)
+	}
+	if q.getRegistryPullByIDStmt, err = db.PrepareContext(ctx, getRegistryPullByID); err != nil {
+		return nil, fmt.Errorf("error preparing query GetRegistryPullByID: %w", err)
+	}
+	if q.getRegistryPushByIDStmt, err = db.PrepareContext(ctx, getRegistryPushByID); err != nil {
+		return nil, fmt.Errorf("error preparing query GetRegistryPushByID: %w", err)
+	}
+	if q.getRegistryReplacePlanStmt, err = db.PrepareContext(ctx, getRegistryReplacePlan); err != nil {
+		return nil, fmt.Errorf("error preparing query GetRegistryReplacePlan: %w", err)
+	}
+	if q.getRegistryScanStmt, err = db.PrepareContext(ctx, getRegistryScan); err != nil {
+		return nil, fmt.Errorf("error preparing query GetRegistryScan: %w", err)
+	}
+	if q.getRegistrySettingsRowStmt, err = db.PrepareContext(ctx, getRegistrySettingsRow); err != nil {
+		return nil, fmt.Errorf("error preparing query GetRegistrySettingsRow: %w", err)
+	}
+	if q.getRegistryTagStmt, err = db.PrepareContext(ctx, getRegistryTag); err != nil {
+		return nil, fmt.Errorf("error preparing query GetRegistryTag: %w", err)
+	}
+	if q.getRegistryTokenLeaseStmt, err = db.PrepareContext(ctx, getRegistryTokenLease); err != nil {
+		return nil, fmt.Errorf("error preparing query GetRegistryTokenLease: %w", err)
+	}
 	if q.getRepoPolicyStmt, err = db.PrepareContext(ctx, getRepoPolicy); err != nil {
 		return nil, fmt.Errorf("error preparing query GetRepoPolicy: %w", err)
 	}
@@ -182,6 +275,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	}
 	if q.getRepositoryByNameStmt, err = db.PrepareContext(ctx, getRepositoryByName); err != nil {
 		return nil, fmt.Errorf("error preparing query GetRepositoryByName: %w", err)
+	}
+	if q.getRepositoryProfileStmt, err = db.PrepareContext(ctx, getRepositoryProfile); err != nil {
+		return nil, fmt.Errorf("error preparing query GetRepositoryProfile: %w", err)
 	}
 	if q.getRunnerStmt, err = db.PrepareContext(ctx, getRunner); err != nil {
 		return nil, fmt.Errorf("error preparing query GetRunner: %w", err)
@@ -225,6 +321,12 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.insertDoctorRunStmt, err = db.PrepareContext(ctx, insertDoctorRun); err != nil {
 		return nil, fmt.Errorf("error preparing query InsertDoctorRun: %w", err)
 	}
+	if q.insertImageBuildStmt, err = db.PrepareContext(ctx, insertImageBuild); err != nil {
+		return nil, fmt.Errorf("error preparing query InsertImageBuild: %w", err)
+	}
+	if q.insertImageProfileIfAbsentStmt, err = db.PrepareContext(ctx, insertImageProfileIfAbsent); err != nil {
+		return nil, fmt.Errorf("error preparing query InsertImageProfileIfAbsent: %w", err)
+	}
 	if q.insertJobStepStmt, err = db.PrepareContext(ctx, insertJobStep); err != nil {
 		return nil, fmt.Errorf("error preparing query InsertJobStep: %w", err)
 	}
@@ -254,6 +356,24 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	}
 	if q.insertPlanStmt, err = db.PrepareContext(ctx, insertPlan); err != nil {
 		return nil, fmt.Errorf("error preparing query InsertPlan: %w", err)
+	}
+	if q.insertRegistryCleanupStmt, err = db.PrepareContext(ctx, insertRegistryCleanup); err != nil {
+		return nil, fmt.Errorf("error preparing query InsertRegistryCleanup: %w", err)
+	}
+	if q.insertRegistryImageStmt, err = db.PrepareContext(ctx, insertRegistryImage); err != nil {
+		return nil, fmt.Errorf("error preparing query InsertRegistryImage: %w", err)
+	}
+	if q.insertRegistryImageLayerStmt, err = db.PrepareContext(ctx, insertRegistryImageLayer); err != nil {
+		return nil, fmt.Errorf("error preparing query InsertRegistryImageLayer: %w", err)
+	}
+	if q.insertRegistryReplacePlanStmt, err = db.PrepareContext(ctx, insertRegistryReplacePlan); err != nil {
+		return nil, fmt.Errorf("error preparing query InsertRegistryReplacePlan: %w", err)
+	}
+	if q.insertRegistryTagStmt, err = db.PrepareContext(ctx, insertRegistryTag); err != nil {
+		return nil, fmt.Errorf("error preparing query InsertRegistryTag: %w", err)
+	}
+	if q.insertRegistryTokenLeaseStmt, err = db.PrepareContext(ctx, insertRegistryTokenLease); err != nil {
+		return nil, fmt.Errorf("error preparing query InsertRegistryTokenLease: %w", err)
 	}
 	if q.insertRestoreDrillStmt, err = db.PrepareContext(ctx, insertRestoreDrill); err != nil {
 		return nil, fmt.Errorf("error preparing query InsertRestoreDrill: %w", err)
@@ -291,6 +411,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.lastDoctorRunStmt, err = db.PrepareContext(ctx, lastDoctorRun); err != nil {
 		return nil, fmt.Errorf("error preparing query LastDoctorRun: %w", err)
 	}
+	if q.lastRegistryCleanupStmt, err = db.PrepareContext(ctx, lastRegistryCleanup); err != nil {
+		return nil, fmt.Errorf("error preparing query LastRegistryCleanup: %w", err)
+	}
 	if q.lastRestoreDrillStmt, err = db.PrepareContext(ctx, lastRestoreDrill); err != nil {
 		return nil, fmt.Errorf("error preparing query LastRestoreDrill: %w", err)
 	}
@@ -306,11 +429,29 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.listDailySummariesStmt, err = db.PrepareContext(ctx, listDailySummaries); err != nil {
 		return nil, fmt.Errorf("error preparing query ListDailySummaries: %w", err)
 	}
+	if q.listDanglingRegistryLayersStmt, err = db.PrepareContext(ctx, listDanglingRegistryLayers); err != nil {
+		return nil, fmt.Errorf("error preparing query ListDanglingRegistryLayers: %w", err)
+	}
 	if q.listExpiredSlotsStmt, err = db.PrepareContext(ctx, listExpiredSlots); err != nil {
 		return nil, fmt.Errorf("error preparing query ListExpiredSlots: %w", err)
 	}
 	if q.listExpiredTicketsStmt, err = db.PrepareContext(ctx, listExpiredTickets); err != nil {
 		return nil, fmt.Errorf("error preparing query ListExpiredTickets: %w", err)
+	}
+	if q.listImageBuildsStmt, err = db.PrepareContext(ctx, listImageBuilds); err != nil {
+		return nil, fmt.Errorf("error preparing query ListImageBuilds: %w", err)
+	}
+	if q.listImageBuildsInFlightStmt, err = db.PrepareContext(ctx, listImageBuildsInFlight); err != nil {
+		return nil, fmt.Errorf("error preparing query ListImageBuildsInFlight: %w", err)
+	}
+	if q.listImageBuildsOfMachineStmt, err = db.PrepareContext(ctx, listImageBuildsOfMachine); err != nil {
+		return nil, fmt.Errorf("error preparing query ListImageBuildsOfMachine: %w", err)
+	}
+	if q.listImageProfilesStmt, err = db.PrepareContext(ctx, listImageProfiles); err != nil {
+		return nil, fmt.Errorf("error preparing query ListImageProfiles: %w", err)
+	}
+	if q.listInFlightPullMachinesOfRegistryImageStmt, err = db.PrepareContext(ctx, listInFlightPullMachinesOfRegistryImage); err != nil {
+		return nil, fmt.Errorf("error preparing query ListInFlightPullMachinesOfRegistryImage: %w", err)
 	}
 	if q.listInstallationsStmt, err = db.PrepareContext(ctx, listInstallations); err != nil {
 		return nil, fmt.Errorf("error preparing query ListInstallations: %w", err)
@@ -326,6 +467,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	}
 	if q.listLatestFindingsStmt, err = db.PrepareContext(ctx, listLatestFindings); err != nil {
 		return nil, fmt.Errorf("error preparing query ListLatestFindings: %w", err)
+	}
+	if q.listLiveRegistryTokenLeasesStmt, err = db.PrepareContext(ctx, listLiveRegistryTokenLeases); err != nil {
+		return nil, fmt.Errorf("error preparing query ListLiveRegistryTokenLeases: %w", err)
 	}
 	if q.listMachineLoadStmt, err = db.PrepareContext(ctx, listMachineLoad); err != nil {
 		return nil, fmt.Errorf("error preparing query ListMachineLoad: %w", err)
@@ -345,14 +489,74 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.listNotificationChannelsStmt, err = db.PrepareContext(ctx, listNotificationChannels); err != nil {
 		return nil, fmt.Errorf("error preparing query ListNotificationChannels: %w", err)
 	}
+	if q.listOldStagedRegistryImagesStmt, err = db.PrepareContext(ctx, listOldStagedRegistryImages); err != nil {
+		return nil, fmt.Errorf("error preparing query ListOldStagedRegistryImages: %w", err)
+	}
 	if q.listOpenGitHubJobsStmt, err = db.PrepareContext(ctx, listOpenGitHubJobs); err != nil {
 		return nil, fmt.Errorf("error preparing query ListOpenGitHubJobs: %w", err)
+	}
+	if q.listOpenRegistryRecommendationsStmt, err = db.PrepareContext(ctx, listOpenRegistryRecommendations); err != nil {
+		return nil, fmt.Errorf("error preparing query ListOpenRegistryRecommendations: %w", err)
 	}
 	if q.listPoolRepositoriesStmt, err = db.PrepareContext(ctx, listPoolRepositories); err != nil {
 		return nil, fmt.Errorf("error preparing query ListPoolRepositories: %w", err)
 	}
+	if q.listQueuedRegistryScansStmt, err = db.PrepareContext(ctx, listQueuedRegistryScans); err != nil {
+		return nil, fmt.Errorf("error preparing query ListQueuedRegistryScans: %w", err)
+	}
+	if q.listRegistryImageLayersStmt, err = db.PrepareContext(ctx, listRegistryImageLayers); err != nil {
+		return nil, fmt.Errorf("error preparing query ListRegistryImageLayers: %w", err)
+	}
+	if q.listRegistryImageMachinesStmt, err = db.PrepareContext(ctx, listRegistryImageMachines); err != nil {
+		return nil, fmt.Errorf("error preparing query ListRegistryImageMachines: %w", err)
+	}
+	if q.listRegistryImagesStmt, err = db.PrepareContext(ctx, listRegistryImages); err != nil {
+		return nil, fmt.Errorf("error preparing query ListRegistryImages: %w", err)
+	}
+	if q.listRegistryImagesOfLineageStmt, err = db.PrepareContext(ctx, listRegistryImagesOfLineage); err != nil {
+		return nil, fmt.Errorf("error preparing query ListRegistryImagesOfLineage: %w", err)
+	}
+	if q.listRegistryLayerHoldersStmt, err = db.PrepareContext(ctx, listRegistryLayerHolders); err != nil {
+		return nil, fmt.Errorf("error preparing query ListRegistryLayerHolders: %w", err)
+	}
+	if q.listRegistryLayerUseOfImageStmt, err = db.PrepareContext(ctx, listRegistryLayerUseOfImage); err != nil {
+		return nil, fmt.Errorf("error preparing query ListRegistryLayerUseOfImage: %w", err)
+	}
+	if q.listRegistryPointersOfProfileStmt, err = db.PrepareContext(ctx, listRegistryPointersOfProfile); err != nil {
+		return nil, fmt.Errorf("error preparing query ListRegistryPointersOfProfile: %w", err)
+	}
+	if q.listRegistryPointersOfRepositoryStmt, err = db.PrepareContext(ctx, listRegistryPointersOfRepository); err != nil {
+		return nil, fmt.Errorf("error preparing query ListRegistryPointersOfRepository: %w", err)
+	}
+	if q.listRegistryPointersToStmt, err = db.PrepareContext(ctx, listRegistryPointersTo); err != nil {
+		return nil, fmt.Errorf("error preparing query ListRegistryPointersTo: %w", err)
+	}
+	if q.listRegistryPullDailyStmt, err = db.PrepareContext(ctx, listRegistryPullDaily); err != nil {
+		return nil, fmt.Errorf("error preparing query ListRegistryPullDaily: %w", err)
+	}
+	if q.listRegistryPullsInFlightStmt, err = db.PrepareContext(ctx, listRegistryPullsInFlight); err != nil {
+		return nil, fmt.Errorf("error preparing query ListRegistryPullsInFlight: %w", err)
+	}
+	if q.listRegistryPushesInFlightStmt, err = db.PrepareContext(ctx, listRegistryPushesInFlight); err != nil {
+		return nil, fmt.Errorf("error preparing query ListRegistryPushesInFlight: %w", err)
+	}
+	if q.listRegistryReplacePlansByStateStmt, err = db.PrepareContext(ctx, listRegistryReplacePlansByState); err != nil {
+		return nil, fmt.Errorf("error preparing query ListRegistryReplacePlansByState: %w", err)
+	}
+	if q.listRegistrySupersededDueStmt, err = db.PrepareContext(ctx, listRegistrySupersededDue); err != nil {
+		return nil, fmt.Errorf("error preparing query ListRegistrySupersededDue: %w", err)
+	}
+	if q.listRegistryUnusedCandidatesStmt, err = db.PrepareContext(ctx, listRegistryUnusedCandidates); err != nil {
+		return nil, fmt.Errorf("error preparing query ListRegistryUnusedCandidates: %w", err)
+	}
+	if q.listRegistryVariantsDueStmt, err = db.PrepareContext(ctx, listRegistryVariantsDue); err != nil {
+		return nil, fmt.Errorf("error preparing query ListRegistryVariantsDue: %w", err)
+	}
 	if q.listRepositoriesStmt, err = db.PrepareContext(ctx, listRepositories); err != nil {
 		return nil, fmt.Errorf("error preparing query ListRepositories: %w", err)
+	}
+	if q.listRepositoryProfilesStmt, err = db.PrepareContext(ctx, listRepositoryProfiles); err != nil {
+		return nil, fmt.Errorf("error preparing query ListRepositoryProfiles: %w", err)
 	}
 	if q.listRunAttemptsStmt, err = db.PrepareContext(ctx, listRunAttempts); err != nil {
 		return nil, fmt.Errorf("error preparing query ListRunAttempts: %w", err)
@@ -363,6 +567,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.listRunnersStmt, err = db.PrepareContext(ctx, listRunners); err != nil {
 		return nil, fmt.Errorf("error preparing query ListRunners: %w", err)
 	}
+	if q.listRunningJobsOfRegistryImageStmt, err = db.PrepareContext(ctx, listRunningJobsOfRegistryImage); err != nil {
+		return nil, fmt.Errorf("error preparing query ListRunningJobsOfRegistryImage: %w", err)
+	}
 	if q.listRunsOnFindingsStmt, err = db.PrepareContext(ctx, listRunsOnFindings); err != nil {
 		return nil, fmt.Errorf("error preparing query ListRunsOnFindings: %w", err)
 	}
@@ -371,6 +578,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	}
 	if q.listUsersStmt, err = db.PrepareContext(ctx, listUsers); err != nil {
 		return nil, fmt.Errorf("error preparing query ListUsers: %w", err)
+	}
+	if q.machinePullSpeedStmt, err = db.PrepareContext(ctx, machinePullSpeed); err != nil {
+		return nil, fmt.Errorf("error preparing query MachinePullSpeed: %w", err)
 	}
 	if q.markBackupDeletedStmt, err = db.PrepareContext(ctx, markBackupDeleted); err != nil {
 		return nil, fmt.Errorf("error preparing query MarkBackupDeleted: %w", err)
@@ -386,6 +596,12 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	}
 	if q.markMachinesOfflineStmt, err = db.PrepareContext(ctx, markMachinesOffline); err != nil {
 		return nil, fmt.Errorf("error preparing query MarkMachinesOffline: %w", err)
+	}
+	if q.markRegistryImageDeletedStmt, err = db.PrepareContext(ctx, markRegistryImageDeleted); err != nil {
+		return nil, fmt.Errorf("error preparing query MarkRegistryImageDeleted: %w", err)
+	}
+	if q.promoteRegistryImageStmt, err = db.PrepareContext(ctx, promoteRegistryImage); err != nil {
+		return nil, fmt.Errorf("error preparing query PromoteRegistryImage: %w", err)
 	}
 	if q.pruneDailySummariesStmt, err = db.PrepareContext(ctx, pruneDailySummaries); err != nil {
 		return nil, fmt.Errorf("error preparing query PruneDailySummaries: %w", err)
@@ -414,11 +630,20 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.putWorkflowGraphStmt, err = db.PrepareContext(ctx, putWorkflowGraph); err != nil {
 		return nil, fmt.Errorf("error preparing query PutWorkflowGraph: %w", err)
 	}
+	if q.queueRegistryScanStmt, err = db.PrepareContext(ctx, queueRegistryScan); err != nil {
+		return nil, fmt.Errorf("error preparing query QueueRegistryScan: %w", err)
+	}
 	if q.recordSignInStmt, err = db.PrepareContext(ctx, recordSignIn); err != nil {
 		return nil, fmt.Errorf("error preparing query RecordSignIn: %w", err)
 	}
+	if q.refuseRegistryImageStmt, err = db.PrepareContext(ctx, refuseRegistryImage); err != nil {
+		return nil, fmt.Errorf("error preparing query RefuseRegistryImage: %w", err)
+	}
 	if q.renameMachineStmt, err = db.PrepareContext(ctx, renameMachine); err != nil {
 		return nil, fmt.Errorf("error preparing query RenameMachine: %w", err)
+	}
+	if q.restoreRegistryImageStmt, err = db.PrepareContext(ctx, restoreRegistryImage); err != nil {
+		return nil, fmt.Errorf("error preparing query RestoreRegistryImage: %w", err)
 	}
 	if q.revokeCliTokenStmt, err = db.PrepareContext(ctx, revokeCliToken); err != nil {
 		return nil, fmt.Errorf("error preparing query RevokeCliToken: %w", err)
@@ -437,6 +662,12 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	}
 	if q.setGitHubJobWaitStmt, err = db.PrepareContext(ctx, setGitHubJobWait); err != nil {
 		return nil, fmt.Errorf("error preparing query SetGitHubJobWait: %w", err)
+	}
+	if q.setImageBuildProgressStmt, err = db.PrepareContext(ctx, setImageBuildProgress); err != nil {
+		return nil, fmt.Errorf("error preparing query SetImageBuildProgress: %w", err)
+	}
+	if q.setImageBuildPushStateStmt, err = db.PrepareContext(ctx, setImageBuildPushState); err != nil {
+		return nil, fmt.Errorf("error preparing query SetImageBuildPushState: %w", err)
 	}
 	if q.setJobCompletedStmt, err = db.PrepareContext(ctx, setJobCompleted); err != nil {
 		return nil, fmt.Errorf("error preparing query SetJobCompleted: %w", err)
@@ -468,8 +699,41 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.setPreferencesStmt, err = db.PrepareContext(ctx, setPreferences); err != nil {
 		return nil, fmt.Errorf("error preparing query SetPreferences: %w", err)
 	}
+	if q.setRegistryBranchGoneStmt, err = db.PrepareContext(ctx, setRegistryBranchGone); err != nil {
+		return nil, fmt.Errorf("error preparing query SetRegistryBranchGone: %w", err)
+	}
+	if q.setRegistryImageLastPullStmt, err = db.PrepareContext(ctx, setRegistryImageLastPull); err != nil {
+		return nil, fmt.Errorf("error preparing query SetRegistryImageLastPull: %w", err)
+	}
+	if q.setRegistryImageLineageStmt, err = db.PrepareContext(ctx, setRegistryImageLineage); err != nil {
+		return nil, fmt.Errorf("error preparing query SetRegistryImageLineage: %w", err)
+	}
+	if q.setRegistryImageScanStateStmt, err = db.PrepareContext(ctx, setRegistryImageScanState); err != nil {
+		return nil, fmt.Errorf("error preparing query SetRegistryImageScanState: %w", err)
+	}
+	if q.setRegistryImageSizesStmt, err = db.PrepareContext(ctx, setRegistryImageSizes); err != nil {
+		return nil, fmt.Errorf("error preparing query SetRegistryImageSizes: %w", err)
+	}
+	if q.setRegistryImageStateStmt, err = db.PrepareContext(ctx, setRegistryImageState); err != nil {
+		return nil, fmt.Errorf("error preparing query SetRegistryImageState: %w", err)
+	}
+	if q.setRegistryLayerChargeStmt, err = db.PrepareContext(ctx, setRegistryLayerCharge); err != nil {
+		return nil, fmt.Errorf("error preparing query SetRegistryLayerCharge: %w", err)
+	}
+	if q.setRegistryReadOnlyStmt, err = db.PrepareContext(ctx, setRegistryReadOnly); err != nil {
+		return nil, fmt.Errorf("error preparing query SetRegistryReadOnly: %w", err)
+	}
+	if q.setRegistryReplacePlanRolledBackStmt, err = db.PrepareContext(ctx, setRegistryReplacePlanRolledBack); err != nil {
+		return nil, fmt.Errorf("error preparing query SetRegistryReplacePlanRolledBack: %w", err)
+	}
+	if q.setRegistryReplacePlanStateStmt, err = db.PrepareContext(ctx, setRegistryReplacePlanState); err != nil {
+		return nil, fmt.Errorf("error preparing query SetRegistryReplacePlanState: %w", err)
+	}
 	if q.setRepositoryPoolStmt, err = db.PrepareContext(ctx, setRepositoryPool); err != nil {
 		return nil, fmt.Errorf("error preparing query SetRepositoryPool: %w", err)
+	}
+	if q.setRepositoryProfileStmt, err = db.PrepareContext(ctx, setRepositoryProfile); err != nil {
+		return nil, fmt.Errorf("error preparing query SetRepositoryProfile: %w", err)
 	}
 	if q.setRunnerHygieneStmt, err = db.PrepareContext(ctx, setRunnerHygiene); err != nil {
 		return nil, fmt.Errorf("error preparing query SetRunnerHygiene: %w", err)
@@ -489,14 +753,41 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.slotLogCutoffStmt, err = db.PrepareContext(ctx, slotLogCutoff); err != nil {
 		return nil, fmt.Errorf("error preparing query SlotLogCutoff: %w", err)
 	}
+	if q.sumRegistryBytesPulledSinceStmt, err = db.PrepareContext(ctx, sumRegistryBytesPulledSince); err != nil {
+		return nil, fmt.Errorf("error preparing query SumRegistryBytesPulledSince: %w", err)
+	}
+	if q.sumRegistryLayersByKindStmt, err = db.PrepareContext(ctx, sumRegistryLayersByKind); err != nil {
+		return nil, fmt.Errorf("error preparing query SumRegistryLayersByKind: %w", err)
+	}
+	if q.sumRegistryPullDailyByImageSinceStmt, err = db.PrepareContext(ctx, sumRegistryPullDailyByImageSince); err != nil {
+		return nil, fmt.Errorf("error preparing query SumRegistryPullDailyByImageSince: %w", err)
+	}
+	if q.sumRegistryPullDailySinceStmt, err = db.PrepareContext(ctx, sumRegistryPullDailySince); err != nil {
+		return nil, fmt.Errorf("error preparing query SumRegistryPullDailySince: %w", err)
+	}
+	if q.sumRegistrySharedLayersStmt, err = db.PrepareContext(ctx, sumRegistrySharedLayers); err != nil {
+		return nil, fmt.Errorf("error preparing query SumRegistrySharedLayers: %w", err)
+	}
+	if q.sumRegistrySharedLayersByKindStmt, err = db.PrepareContext(ctx, sumRegistrySharedLayersByKind); err != nil {
+		return nil, fmt.Errorf("error preparing query SumRegistrySharedLayersByKind: %w", err)
+	}
+	if q.sumRegistryUsedByKindStmt, err = db.PrepareContext(ctx, sumRegistryUsedByKind); err != nil {
+		return nil, fmt.Errorf("error preparing query SumRegistryUsedByKind: %w", err)
+	}
 	if q.sumRunMinutesSinceStmt, err = db.PrepareContext(ctx, sumRunMinutesSince); err != nil {
 		return nil, fmt.Errorf("error preparing query SumRunMinutesSince: %w", err)
+	}
+	if q.supersedeRegistryImageStmt, err = db.PrepareContext(ctx, supersedeRegistryImage); err != nil {
+		return nil, fmt.Errorf("error preparing query SupersedeRegistryImage: %w", err)
 	}
 	if q.touchSessionStmt, err = db.PrepareContext(ctx, touchSession); err != nil {
 		return nil, fmt.Errorf("error preparing query TouchSession: %w", err)
 	}
 	if q.trimSlotLogStmt, err = db.PrepareContext(ctx, trimSlotLog); err != nil {
 		return nil, fmt.Errorf("error preparing query TrimSlotLog: %w", err)
+	}
+	if q.typicalImageBuildSecondsStmt, err = db.PrepareContext(ctx, typicalImageBuildSeconds); err != nil {
+		return nil, fmt.Errorf("error preparing query TypicalImageBuildSeconds: %w", err)
 	}
 	if q.updateMachineFactsStmt, err = db.PrepareContext(ctx, updateMachineFacts); err != nil {
 		return nil, fmt.Errorf("error preparing query UpdateMachineFacts: %w", err)
@@ -509,6 +800,12 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	}
 	if q.updatePlanStmt, err = db.PrepareContext(ctx, updatePlan); err != nil {
 		return nil, fmt.Errorf("error preparing query UpdatePlan: %w", err)
+	}
+	if q.updateRegistryMirrorSettingsStmt, err = db.PrepareContext(ctx, updateRegistryMirrorSettings); err != nil {
+		return nil, fmt.Errorf("error preparing query UpdateRegistryMirrorSettings: %w", err)
+	}
+	if q.updateRegistrySettingsRowStmt, err = db.PrepareContext(ctx, updateRegistrySettingsRow); err != nil {
+		return nil, fmt.Errorf("error preparing query UpdateRegistrySettingsRow: %w", err)
 	}
 	if q.updateUserRoleStmt, err = db.PrepareContext(ctx, updateUserRole); err != nil {
 		return nil, fmt.Errorf("error preparing query UpdateUserRole: %w", err)
@@ -525,6 +822,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.upsertGitHubJobStmt, err = db.PrepareContext(ctx, upsertGitHubJob); err != nil {
 		return nil, fmt.Errorf("error preparing query UpsertGitHubJob: %w", err)
 	}
+	if q.upsertImageProfileStmt, err = db.PrepareContext(ctx, upsertImageProfile); err != nil {
+		return nil, fmt.Errorf("error preparing query UpsertImageProfile: %w", err)
+	}
 	if q.upsertInstallationStmt, err = db.PrepareContext(ctx, upsertInstallation); err != nil {
 		return nil, fmt.Errorf("error preparing query UpsertInstallation: %w", err)
 	}
@@ -536,6 +836,21 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	}
 	if q.upsertManagedVariableStmt, err = db.PrepareContext(ctx, upsertManagedVariable); err != nil {
 		return nil, fmt.Errorf("error preparing query UpsertManagedVariable: %w", err)
+	}
+	if q.upsertRegistryLayerStmt, err = db.PrepareContext(ctx, upsertRegistryLayer); err != nil {
+		return nil, fmt.Errorf("error preparing query UpsertRegistryLayer: %w", err)
+	}
+	if q.upsertRegistryPointerStmt, err = db.PrepareContext(ctx, upsertRegistryPointer); err != nil {
+		return nil, fmt.Errorf("error preparing query UpsertRegistryPointer: %w", err)
+	}
+	if q.upsertRegistryPullStmt, err = db.PrepareContext(ctx, upsertRegistryPull); err != nil {
+		return nil, fmt.Errorf("error preparing query UpsertRegistryPull: %w", err)
+	}
+	if q.upsertRegistryPushStmt, err = db.PrepareContext(ctx, upsertRegistryPush); err != nil {
+		return nil, fmt.Errorf("error preparing query UpsertRegistryPush: %w", err)
+	}
+	if q.upsertRegistryRecommendationStmt, err = db.PrepareContext(ctx, upsertRegistryRecommendation); err != nil {
+		return nil, fmt.Errorf("error preparing query UpsertRegistryRecommendation: %w", err)
 	}
 	if q.upsertRepoPolicyStmt, err = db.PrepareContext(ctx, upsertRepoPolicy); err != nil {
 		return nil, fmt.Errorf("error preparing query UpsertRepoPolicy: %w", err)
@@ -566,14 +881,39 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 
 func (q *Queries) Close() error {
 	var err error
+	if q.addRegistryPullDailyStmt != nil {
+		if cerr := q.addRegistryPullDailyStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing addRegistryPullDailyStmt: %w", cerr)
+		}
+	}
 	if q.beatTicketStmt != nil {
 		if cerr := q.beatTicketStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing beatTicketStmt: %w", cerr)
 		}
 	}
+	if q.claimRegistryScanStmt != nil {
+		if cerr := q.claimRegistryScanStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing claimRegistryScanStmt: %w", cerr)
+		}
+	}
+	if q.clearRepositoryProfileStmt != nil {
+		if cerr := q.clearRepositoryProfileStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing clearRepositoryProfileStmt: %w", cerr)
+		}
+	}
+	if q.closeRegistryRecommendationStmt != nil {
+		if cerr := q.closeRegistryRecommendationStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing closeRegistryRecommendationStmt: %w", cerr)
+		}
+	}
 	if q.countJobsByStateStmt != nil {
 		if cerr := q.countJobsByStateStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing countJobsByStateStmt: %w", cerr)
+		}
+	}
+	if q.countLiveRegistryTokenLeasesNamingStmt != nil {
+		if cerr := q.countLiveRegistryTokenLeasesNamingStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing countLiveRegistryTokenLeasesNamingStmt: %w", cerr)
 		}
 	}
 	if q.countMachineSlotsStmt != nil {
@@ -599,6 +939,16 @@ func (q *Queries) Close() error {
 	if q.deleteAuditBeforeStmt != nil {
 		if cerr := q.deleteAuditBeforeStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing deleteAuditBeforeStmt: %w", cerr)
+		}
+	}
+	if q.deleteEndedRegistryTokenLeasesStmt != nil {
+		if cerr := q.deleteEndedRegistryTokenLeasesStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing deleteEndedRegistryTokenLeasesStmt: %w", cerr)
+		}
+	}
+	if q.deleteImageProfileStmt != nil {
+		if cerr := q.deleteImageProfileStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing deleteImageProfileStmt: %w", cerr)
 		}
 	}
 	if q.deleteJobHistoryBeforeStmt != nil {
@@ -631,9 +981,29 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing deleteNotificationChannelStmt: %w", cerr)
 		}
 	}
+	if q.deleteOldRegistryPullDailyStmt != nil {
+		if cerr := q.deleteOldRegistryPullDailyStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing deleteOldRegistryPullDailyStmt: %w", cerr)
+		}
+	}
+	if q.deleteOldRegistryPullsStmt != nil {
+		if cerr := q.deleteOldRegistryPullsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing deleteOldRegistryPullsStmt: %w", cerr)
+		}
+	}
 	if q.deletePendingFactsStmt != nil {
 		if cerr := q.deletePendingFactsStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing deletePendingFactsStmt: %w", cerr)
+		}
+	}
+	if q.deleteRegistryLayerStmt != nil {
+		if cerr := q.deleteRegistryLayerStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing deleteRegistryLayerStmt: %w", cerr)
+		}
+	}
+	if q.deleteRegistryTokenLeaseStmt != nil {
+		if cerr := q.deleteRegistryTokenLeaseStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing deleteRegistryTokenLeaseStmt: %w", cerr)
 		}
 	}
 	if q.deleteRunnerStmt != nil {
@@ -696,6 +1066,21 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing finishDoctorRunStmt: %w", cerr)
 		}
 	}
+	if q.finishImageBuildStmt != nil {
+		if cerr := q.finishImageBuildStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing finishImageBuildStmt: %w", cerr)
+		}
+	}
+	if q.finishRegistryCleanupStmt != nil {
+		if cerr := q.finishRegistryCleanupStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing finishRegistryCleanupStmt: %w", cerr)
+		}
+	}
+	if q.finishRegistryScanStmt != nil {
+		if cerr := q.finishRegistryScanStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing finishRegistryScanStmt: %w", cerr)
+		}
+	}
 	if q.finishRestoreDrillStmt != nil {
 		if cerr := q.finishRestoreDrillStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing finishRestoreDrillStmt: %w", cerr)
@@ -721,6 +1106,11 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing getActiveCliTokenStmt: %w", cerr)
 		}
 	}
+	if q.getActiveRegistryReplacePlanForImageStmt != nil {
+		if cerr := q.getActiveRegistryReplacePlanForImageStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getActiveRegistryReplacePlanForImageStmt: %w", cerr)
+		}
+	}
 	if q.getActiveSessionStmt != nil {
 		if cerr := q.getActiveSessionStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing getActiveSessionStmt: %w", cerr)
@@ -744,6 +1134,16 @@ func (q *Queries) Close() error {
 	if q.getGitHubJobStmt != nil {
 		if cerr := q.getGitHubJobStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing getGitHubJobStmt: %w", cerr)
+		}
+	}
+	if q.getImageBuildStmt != nil {
+		if cerr := q.getImageBuildStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getImageBuildStmt: %w", cerr)
+		}
+	}
+	if q.getImageProfileStmt != nil {
+		if cerr := q.getImageProfileStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getImageProfileStmt: %w", cerr)
 		}
 	}
 	if q.getJobHistoryStmt != nil {
@@ -816,6 +1216,76 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing getPreferencesStmt: %w", cerr)
 		}
 	}
+	if q.getPromotedRegistryImageByKeyStmt != nil {
+		if cerr := q.getPromotedRegistryImageByKeyStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getPromotedRegistryImageByKeyStmt: %w", cerr)
+		}
+	}
+	if q.getRegistryCleanupStmt != nil {
+		if cerr := q.getRegistryCleanupStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getRegistryCleanupStmt: %w", cerr)
+		}
+	}
+	if q.getRegistryImageStmt != nil {
+		if cerr := q.getRegistryImageStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getRegistryImageStmt: %w", cerr)
+		}
+	}
+	if q.getRegistryImageByManifestStmt != nil {
+		if cerr := q.getRegistryImageByManifestStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getRegistryImageByManifestStmt: %w", cerr)
+		}
+	}
+	if q.getRegistryImageByTagStmt != nil {
+		if cerr := q.getRegistryImageByTagStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getRegistryImageByTagStmt: %w", cerr)
+		}
+	}
+	if q.getRegistryMirrorSettingsStmt != nil {
+		if cerr := q.getRegistryMirrorSettingsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getRegistryMirrorSettingsStmt: %w", cerr)
+		}
+	}
+	if q.getRegistryPointerStmt != nil {
+		if cerr := q.getRegistryPointerStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getRegistryPointerStmt: %w", cerr)
+		}
+	}
+	if q.getRegistryPullByIDStmt != nil {
+		if cerr := q.getRegistryPullByIDStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getRegistryPullByIDStmt: %w", cerr)
+		}
+	}
+	if q.getRegistryPushByIDStmt != nil {
+		if cerr := q.getRegistryPushByIDStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getRegistryPushByIDStmt: %w", cerr)
+		}
+	}
+	if q.getRegistryReplacePlanStmt != nil {
+		if cerr := q.getRegistryReplacePlanStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getRegistryReplacePlanStmt: %w", cerr)
+		}
+	}
+	if q.getRegistryScanStmt != nil {
+		if cerr := q.getRegistryScanStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getRegistryScanStmt: %w", cerr)
+		}
+	}
+	if q.getRegistrySettingsRowStmt != nil {
+		if cerr := q.getRegistrySettingsRowStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getRegistrySettingsRowStmt: %w", cerr)
+		}
+	}
+	if q.getRegistryTagStmt != nil {
+		if cerr := q.getRegistryTagStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getRegistryTagStmt: %w", cerr)
+		}
+	}
+	if q.getRegistryTokenLeaseStmt != nil {
+		if cerr := q.getRegistryTokenLeaseStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getRegistryTokenLeaseStmt: %w", cerr)
+		}
+	}
 	if q.getRepoPolicyStmt != nil {
 		if cerr := q.getRepoPolicyStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing getRepoPolicyStmt: %w", cerr)
@@ -829,6 +1299,11 @@ func (q *Queries) Close() error {
 	if q.getRepositoryByNameStmt != nil {
 		if cerr := q.getRepositoryByNameStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing getRepositoryByNameStmt: %w", cerr)
+		}
+	}
+	if q.getRepositoryProfileStmt != nil {
+		if cerr := q.getRepositoryProfileStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getRepositoryProfileStmt: %w", cerr)
 		}
 	}
 	if q.getRunnerStmt != nil {
@@ -901,6 +1376,16 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing insertDoctorRunStmt: %w", cerr)
 		}
 	}
+	if q.insertImageBuildStmt != nil {
+		if cerr := q.insertImageBuildStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing insertImageBuildStmt: %w", cerr)
+		}
+	}
+	if q.insertImageProfileIfAbsentStmt != nil {
+		if cerr := q.insertImageProfileIfAbsentStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing insertImageProfileIfAbsentStmt: %w", cerr)
+		}
+	}
 	if q.insertJobStepStmt != nil {
 		if cerr := q.insertJobStepStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing insertJobStepStmt: %w", cerr)
@@ -949,6 +1434,36 @@ func (q *Queries) Close() error {
 	if q.insertPlanStmt != nil {
 		if cerr := q.insertPlanStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing insertPlanStmt: %w", cerr)
+		}
+	}
+	if q.insertRegistryCleanupStmt != nil {
+		if cerr := q.insertRegistryCleanupStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing insertRegistryCleanupStmt: %w", cerr)
+		}
+	}
+	if q.insertRegistryImageStmt != nil {
+		if cerr := q.insertRegistryImageStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing insertRegistryImageStmt: %w", cerr)
+		}
+	}
+	if q.insertRegistryImageLayerStmt != nil {
+		if cerr := q.insertRegistryImageLayerStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing insertRegistryImageLayerStmt: %w", cerr)
+		}
+	}
+	if q.insertRegistryReplacePlanStmt != nil {
+		if cerr := q.insertRegistryReplacePlanStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing insertRegistryReplacePlanStmt: %w", cerr)
+		}
+	}
+	if q.insertRegistryTagStmt != nil {
+		if cerr := q.insertRegistryTagStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing insertRegistryTagStmt: %w", cerr)
+		}
+	}
+	if q.insertRegistryTokenLeaseStmt != nil {
+		if cerr := q.insertRegistryTokenLeaseStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing insertRegistryTokenLeaseStmt: %w", cerr)
 		}
 	}
 	if q.insertRestoreDrillStmt != nil {
@@ -1011,6 +1526,11 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing lastDoctorRunStmt: %w", cerr)
 		}
 	}
+	if q.lastRegistryCleanupStmt != nil {
+		if cerr := q.lastRegistryCleanupStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing lastRegistryCleanupStmt: %w", cerr)
+		}
+	}
 	if q.lastRestoreDrillStmt != nil {
 		if cerr := q.lastRestoreDrillStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing lastRestoreDrillStmt: %w", cerr)
@@ -1036,6 +1556,11 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing listDailySummariesStmt: %w", cerr)
 		}
 	}
+	if q.listDanglingRegistryLayersStmt != nil {
+		if cerr := q.listDanglingRegistryLayersStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listDanglingRegistryLayersStmt: %w", cerr)
+		}
+	}
 	if q.listExpiredSlotsStmt != nil {
 		if cerr := q.listExpiredSlotsStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing listExpiredSlotsStmt: %w", cerr)
@@ -1044,6 +1569,31 @@ func (q *Queries) Close() error {
 	if q.listExpiredTicketsStmt != nil {
 		if cerr := q.listExpiredTicketsStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing listExpiredTicketsStmt: %w", cerr)
+		}
+	}
+	if q.listImageBuildsStmt != nil {
+		if cerr := q.listImageBuildsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listImageBuildsStmt: %w", cerr)
+		}
+	}
+	if q.listImageBuildsInFlightStmt != nil {
+		if cerr := q.listImageBuildsInFlightStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listImageBuildsInFlightStmt: %w", cerr)
+		}
+	}
+	if q.listImageBuildsOfMachineStmt != nil {
+		if cerr := q.listImageBuildsOfMachineStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listImageBuildsOfMachineStmt: %w", cerr)
+		}
+	}
+	if q.listImageProfilesStmt != nil {
+		if cerr := q.listImageProfilesStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listImageProfilesStmt: %w", cerr)
+		}
+	}
+	if q.listInFlightPullMachinesOfRegistryImageStmt != nil {
+		if cerr := q.listInFlightPullMachinesOfRegistryImageStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listInFlightPullMachinesOfRegistryImageStmt: %w", cerr)
 		}
 	}
 	if q.listInstallationsStmt != nil {
@@ -1069,6 +1619,11 @@ func (q *Queries) Close() error {
 	if q.listLatestFindingsStmt != nil {
 		if cerr := q.listLatestFindingsStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing listLatestFindingsStmt: %w", cerr)
+		}
+	}
+	if q.listLiveRegistryTokenLeasesStmt != nil {
+		if cerr := q.listLiveRegistryTokenLeasesStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listLiveRegistryTokenLeasesStmt: %w", cerr)
 		}
 	}
 	if q.listMachineLoadStmt != nil {
@@ -1101,9 +1656,19 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing listNotificationChannelsStmt: %w", cerr)
 		}
 	}
+	if q.listOldStagedRegistryImagesStmt != nil {
+		if cerr := q.listOldStagedRegistryImagesStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listOldStagedRegistryImagesStmt: %w", cerr)
+		}
+	}
 	if q.listOpenGitHubJobsStmt != nil {
 		if cerr := q.listOpenGitHubJobsStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing listOpenGitHubJobsStmt: %w", cerr)
+		}
+	}
+	if q.listOpenRegistryRecommendationsStmt != nil {
+		if cerr := q.listOpenRegistryRecommendationsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listOpenRegistryRecommendationsStmt: %w", cerr)
 		}
 	}
 	if q.listPoolRepositoriesStmt != nil {
@@ -1111,9 +1676,99 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing listPoolRepositoriesStmt: %w", cerr)
 		}
 	}
+	if q.listQueuedRegistryScansStmt != nil {
+		if cerr := q.listQueuedRegistryScansStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listQueuedRegistryScansStmt: %w", cerr)
+		}
+	}
+	if q.listRegistryImageLayersStmt != nil {
+		if cerr := q.listRegistryImageLayersStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listRegistryImageLayersStmt: %w", cerr)
+		}
+	}
+	if q.listRegistryImageMachinesStmt != nil {
+		if cerr := q.listRegistryImageMachinesStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listRegistryImageMachinesStmt: %w", cerr)
+		}
+	}
+	if q.listRegistryImagesStmt != nil {
+		if cerr := q.listRegistryImagesStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listRegistryImagesStmt: %w", cerr)
+		}
+	}
+	if q.listRegistryImagesOfLineageStmt != nil {
+		if cerr := q.listRegistryImagesOfLineageStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listRegistryImagesOfLineageStmt: %w", cerr)
+		}
+	}
+	if q.listRegistryLayerHoldersStmt != nil {
+		if cerr := q.listRegistryLayerHoldersStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listRegistryLayerHoldersStmt: %w", cerr)
+		}
+	}
+	if q.listRegistryLayerUseOfImageStmt != nil {
+		if cerr := q.listRegistryLayerUseOfImageStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listRegistryLayerUseOfImageStmt: %w", cerr)
+		}
+	}
+	if q.listRegistryPointersOfProfileStmt != nil {
+		if cerr := q.listRegistryPointersOfProfileStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listRegistryPointersOfProfileStmt: %w", cerr)
+		}
+	}
+	if q.listRegistryPointersOfRepositoryStmt != nil {
+		if cerr := q.listRegistryPointersOfRepositoryStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listRegistryPointersOfRepositoryStmt: %w", cerr)
+		}
+	}
+	if q.listRegistryPointersToStmt != nil {
+		if cerr := q.listRegistryPointersToStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listRegistryPointersToStmt: %w", cerr)
+		}
+	}
+	if q.listRegistryPullDailyStmt != nil {
+		if cerr := q.listRegistryPullDailyStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listRegistryPullDailyStmt: %w", cerr)
+		}
+	}
+	if q.listRegistryPullsInFlightStmt != nil {
+		if cerr := q.listRegistryPullsInFlightStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listRegistryPullsInFlightStmt: %w", cerr)
+		}
+	}
+	if q.listRegistryPushesInFlightStmt != nil {
+		if cerr := q.listRegistryPushesInFlightStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listRegistryPushesInFlightStmt: %w", cerr)
+		}
+	}
+	if q.listRegistryReplacePlansByStateStmt != nil {
+		if cerr := q.listRegistryReplacePlansByStateStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listRegistryReplacePlansByStateStmt: %w", cerr)
+		}
+	}
+	if q.listRegistrySupersededDueStmt != nil {
+		if cerr := q.listRegistrySupersededDueStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listRegistrySupersededDueStmt: %w", cerr)
+		}
+	}
+	if q.listRegistryUnusedCandidatesStmt != nil {
+		if cerr := q.listRegistryUnusedCandidatesStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listRegistryUnusedCandidatesStmt: %w", cerr)
+		}
+	}
+	if q.listRegistryVariantsDueStmt != nil {
+		if cerr := q.listRegistryVariantsDueStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listRegistryVariantsDueStmt: %w", cerr)
+		}
+	}
 	if q.listRepositoriesStmt != nil {
 		if cerr := q.listRepositoriesStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing listRepositoriesStmt: %w", cerr)
+		}
+	}
+	if q.listRepositoryProfilesStmt != nil {
+		if cerr := q.listRepositoryProfilesStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listRepositoryProfilesStmt: %w", cerr)
 		}
 	}
 	if q.listRunAttemptsStmt != nil {
@@ -1131,6 +1786,11 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing listRunnersStmt: %w", cerr)
 		}
 	}
+	if q.listRunningJobsOfRegistryImageStmt != nil {
+		if cerr := q.listRunningJobsOfRegistryImageStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listRunningJobsOfRegistryImageStmt: %w", cerr)
+		}
+	}
 	if q.listRunsOnFindingsStmt != nil {
 		if cerr := q.listRunsOnFindingsStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing listRunsOnFindingsStmt: %w", cerr)
@@ -1144,6 +1804,11 @@ func (q *Queries) Close() error {
 	if q.listUsersStmt != nil {
 		if cerr := q.listUsersStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing listUsersStmt: %w", cerr)
+		}
+	}
+	if q.machinePullSpeedStmt != nil {
+		if cerr := q.machinePullSpeedStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing machinePullSpeedStmt: %w", cerr)
 		}
 	}
 	if q.markBackupDeletedStmt != nil {
@@ -1169,6 +1834,16 @@ func (q *Queries) Close() error {
 	if q.markMachinesOfflineStmt != nil {
 		if cerr := q.markMachinesOfflineStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing markMachinesOfflineStmt: %w", cerr)
+		}
+	}
+	if q.markRegistryImageDeletedStmt != nil {
+		if cerr := q.markRegistryImageDeletedStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing markRegistryImageDeletedStmt: %w", cerr)
+		}
+	}
+	if q.promoteRegistryImageStmt != nil {
+		if cerr := q.promoteRegistryImageStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing promoteRegistryImageStmt: %w", cerr)
 		}
 	}
 	if q.pruneDailySummariesStmt != nil {
@@ -1216,14 +1891,29 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing putWorkflowGraphStmt: %w", cerr)
 		}
 	}
+	if q.queueRegistryScanStmt != nil {
+		if cerr := q.queueRegistryScanStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing queueRegistryScanStmt: %w", cerr)
+		}
+	}
 	if q.recordSignInStmt != nil {
 		if cerr := q.recordSignInStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing recordSignInStmt: %w", cerr)
 		}
 	}
+	if q.refuseRegistryImageStmt != nil {
+		if cerr := q.refuseRegistryImageStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing refuseRegistryImageStmt: %w", cerr)
+		}
+	}
 	if q.renameMachineStmt != nil {
 		if cerr := q.renameMachineStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing renameMachineStmt: %w", cerr)
+		}
+	}
+	if q.restoreRegistryImageStmt != nil {
+		if cerr := q.restoreRegistryImageStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing restoreRegistryImageStmt: %w", cerr)
 		}
 	}
 	if q.revokeCliTokenStmt != nil {
@@ -1254,6 +1944,16 @@ func (q *Queries) Close() error {
 	if q.setGitHubJobWaitStmt != nil {
 		if cerr := q.setGitHubJobWaitStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing setGitHubJobWaitStmt: %w", cerr)
+		}
+	}
+	if q.setImageBuildProgressStmt != nil {
+		if cerr := q.setImageBuildProgressStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing setImageBuildProgressStmt: %w", cerr)
+		}
+	}
+	if q.setImageBuildPushStateStmt != nil {
+		if cerr := q.setImageBuildPushStateStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing setImageBuildPushStateStmt: %w", cerr)
 		}
 	}
 	if q.setJobCompletedStmt != nil {
@@ -1306,9 +2006,64 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing setPreferencesStmt: %w", cerr)
 		}
 	}
+	if q.setRegistryBranchGoneStmt != nil {
+		if cerr := q.setRegistryBranchGoneStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing setRegistryBranchGoneStmt: %w", cerr)
+		}
+	}
+	if q.setRegistryImageLastPullStmt != nil {
+		if cerr := q.setRegistryImageLastPullStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing setRegistryImageLastPullStmt: %w", cerr)
+		}
+	}
+	if q.setRegistryImageLineageStmt != nil {
+		if cerr := q.setRegistryImageLineageStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing setRegistryImageLineageStmt: %w", cerr)
+		}
+	}
+	if q.setRegistryImageScanStateStmt != nil {
+		if cerr := q.setRegistryImageScanStateStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing setRegistryImageScanStateStmt: %w", cerr)
+		}
+	}
+	if q.setRegistryImageSizesStmt != nil {
+		if cerr := q.setRegistryImageSizesStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing setRegistryImageSizesStmt: %w", cerr)
+		}
+	}
+	if q.setRegistryImageStateStmt != nil {
+		if cerr := q.setRegistryImageStateStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing setRegistryImageStateStmt: %w", cerr)
+		}
+	}
+	if q.setRegistryLayerChargeStmt != nil {
+		if cerr := q.setRegistryLayerChargeStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing setRegistryLayerChargeStmt: %w", cerr)
+		}
+	}
+	if q.setRegistryReadOnlyStmt != nil {
+		if cerr := q.setRegistryReadOnlyStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing setRegistryReadOnlyStmt: %w", cerr)
+		}
+	}
+	if q.setRegistryReplacePlanRolledBackStmt != nil {
+		if cerr := q.setRegistryReplacePlanRolledBackStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing setRegistryReplacePlanRolledBackStmt: %w", cerr)
+		}
+	}
+	if q.setRegistryReplacePlanStateStmt != nil {
+		if cerr := q.setRegistryReplacePlanStateStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing setRegistryReplacePlanStateStmt: %w", cerr)
+		}
+	}
 	if q.setRepositoryPoolStmt != nil {
 		if cerr := q.setRepositoryPoolStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing setRepositoryPoolStmt: %w", cerr)
+		}
+	}
+	if q.setRepositoryProfileStmt != nil {
+		if cerr := q.setRepositoryProfileStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing setRepositoryProfileStmt: %w", cerr)
 		}
 	}
 	if q.setRunnerHygieneStmt != nil {
@@ -1341,9 +2096,49 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing slotLogCutoffStmt: %w", cerr)
 		}
 	}
+	if q.sumRegistryBytesPulledSinceStmt != nil {
+		if cerr := q.sumRegistryBytesPulledSinceStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing sumRegistryBytesPulledSinceStmt: %w", cerr)
+		}
+	}
+	if q.sumRegistryLayersByKindStmt != nil {
+		if cerr := q.sumRegistryLayersByKindStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing sumRegistryLayersByKindStmt: %w", cerr)
+		}
+	}
+	if q.sumRegistryPullDailyByImageSinceStmt != nil {
+		if cerr := q.sumRegistryPullDailyByImageSinceStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing sumRegistryPullDailyByImageSinceStmt: %w", cerr)
+		}
+	}
+	if q.sumRegistryPullDailySinceStmt != nil {
+		if cerr := q.sumRegistryPullDailySinceStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing sumRegistryPullDailySinceStmt: %w", cerr)
+		}
+	}
+	if q.sumRegistrySharedLayersStmt != nil {
+		if cerr := q.sumRegistrySharedLayersStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing sumRegistrySharedLayersStmt: %w", cerr)
+		}
+	}
+	if q.sumRegistrySharedLayersByKindStmt != nil {
+		if cerr := q.sumRegistrySharedLayersByKindStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing sumRegistrySharedLayersByKindStmt: %w", cerr)
+		}
+	}
+	if q.sumRegistryUsedByKindStmt != nil {
+		if cerr := q.sumRegistryUsedByKindStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing sumRegistryUsedByKindStmt: %w", cerr)
+		}
+	}
 	if q.sumRunMinutesSinceStmt != nil {
 		if cerr := q.sumRunMinutesSinceStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing sumRunMinutesSinceStmt: %w", cerr)
+		}
+	}
+	if q.supersedeRegistryImageStmt != nil {
+		if cerr := q.supersedeRegistryImageStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing supersedeRegistryImageStmt: %w", cerr)
 		}
 	}
 	if q.touchSessionStmt != nil {
@@ -1354,6 +2149,11 @@ func (q *Queries) Close() error {
 	if q.trimSlotLogStmt != nil {
 		if cerr := q.trimSlotLogStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing trimSlotLogStmt: %w", cerr)
+		}
+	}
+	if q.typicalImageBuildSecondsStmt != nil {
+		if cerr := q.typicalImageBuildSecondsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing typicalImageBuildSecondsStmt: %w", cerr)
 		}
 	}
 	if q.updateMachineFactsStmt != nil {
@@ -1374,6 +2174,16 @@ func (q *Queries) Close() error {
 	if q.updatePlanStmt != nil {
 		if cerr := q.updatePlanStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing updatePlanStmt: %w", cerr)
+		}
+	}
+	if q.updateRegistryMirrorSettingsStmt != nil {
+		if cerr := q.updateRegistryMirrorSettingsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing updateRegistryMirrorSettingsStmt: %w", cerr)
+		}
+	}
+	if q.updateRegistrySettingsRowStmt != nil {
+		if cerr := q.updateRegistrySettingsRowStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing updateRegistrySettingsRowStmt: %w", cerr)
 		}
 	}
 	if q.updateUserRoleStmt != nil {
@@ -1401,6 +2211,11 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing upsertGitHubJobStmt: %w", cerr)
 		}
 	}
+	if q.upsertImageProfileStmt != nil {
+		if cerr := q.upsertImageProfileStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing upsertImageProfileStmt: %w", cerr)
+		}
+	}
 	if q.upsertInstallationStmt != nil {
 		if cerr := q.upsertInstallationStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing upsertInstallationStmt: %w", cerr)
@@ -1419,6 +2234,31 @@ func (q *Queries) Close() error {
 	if q.upsertManagedVariableStmt != nil {
 		if cerr := q.upsertManagedVariableStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing upsertManagedVariableStmt: %w", cerr)
+		}
+	}
+	if q.upsertRegistryLayerStmt != nil {
+		if cerr := q.upsertRegistryLayerStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing upsertRegistryLayerStmt: %w", cerr)
+		}
+	}
+	if q.upsertRegistryPointerStmt != nil {
+		if cerr := q.upsertRegistryPointerStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing upsertRegistryPointerStmt: %w", cerr)
+		}
+	}
+	if q.upsertRegistryPullStmt != nil {
+		if cerr := q.upsertRegistryPullStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing upsertRegistryPullStmt: %w", cerr)
+		}
+	}
+	if q.upsertRegistryPushStmt != nil {
+		if cerr := q.upsertRegistryPushStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing upsertRegistryPushStmt: %w", cerr)
+		}
+	}
+	if q.upsertRegistryRecommendationStmt != nil {
+		if cerr := q.upsertRegistryRecommendationStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing upsertRegistryRecommendationStmt: %w", cerr)
 		}
 	}
 	if q.upsertRepoPolicyStmt != nil {
@@ -1498,371 +2338,581 @@ func (q *Queries) queryRow(ctx context.Context, stmt *sql.Stmt, query string, ar
 }
 
 type Queries struct {
-	db                                DBTX
-	tx                                *sql.Tx
-	beatTicketStmt                    *sql.Stmt
-	countJobsByStateStmt              *sql.Stmt
-	countMachineSlotsStmt             *sql.Stmt
-	countRepositoryRunningStmt        *sql.Stmt
-	countUsersStmt                    *sql.Stmt
-	dailySummarisedDaysStmt           *sql.Stmt
-	deleteAuditBeforeStmt             *sql.Stmt
-	deleteJobHistoryBeforeStmt        *sql.Stmt
-	deleteJobStepsStmt                *sql.Stmt
-	deleteJobTicketsStmt              *sql.Stmt
-	deleteMachineLoadBeforeStmt       *sql.Stmt
-	deleteManagedVariableStmt         *sql.Stmt
-	deleteNotificationChannelStmt     *sql.Stmt
-	deletePendingFactsStmt            *sql.Stmt
-	deleteRunnerStmt                  *sql.Stmt
-	deleteRunnerUsageBeforeStmt       *sql.Stmt
-	deleteRunsOnFindingsStmt          *sql.Stmt
-	deleteTicketStmt                  *sql.Stmt
-	deleteUserStmt                    *sql.Stmt
-	deleteWebhookDeliveriesBeforeStmt *sql.Stmt
-	endSessionStmt                    *sql.Stmt
-	endUserSessionsStmt               *sql.Stmt
-	enqueueJobStmt                    *sql.Stmt
-	findJoinCodeByHashStmt            *sql.Stmt
-	finishBackupStmt                  *sql.Stmt
-	finishDoctorRunStmt               *sql.Stmt
-	finishRestoreDrillStmt            *sql.Stmt
-	freeJobSlotsStmt                  *sql.Stmt
-	freeSlotStmt                      *sql.Stmt
-	freeSlotByClaimStmt               *sql.Stmt
-	getActiveCliTokenStmt             *sql.Stmt
-	getActiveSessionStmt              *sql.Stmt
-	getBackupStmt                     *sql.Stmt
-	getDoctorRunStmt                  *sql.Stmt
-	getGitHubAppStmt                  *sql.Stmt
-	getGitHubJobStmt                  *sql.Stmt
-	getJobHistoryStmt                 *sql.Stmt
-	getJobsRowStmt                    *sql.Stmt
-	getJoinCodeStmt                   *sql.Stmt
-	getMachineStmt                    *sql.Stmt
-	getMachineByKeyStmt               *sql.Stmt
-	getMachineChangeStmt              *sql.Stmt
-	getMachineSettingsStmt            *sql.Stmt
-	getMetaStmt                       *sql.Stmt
-	getNotificationChannelStmt        *sql.Stmt
-	getOpenMachineChangeStmt          *sql.Stmt
-	getOwnerStmt                      *sql.Stmt
-	getPendingFactsStmt               *sql.Stmt
-	getPlanStmt                       *sql.Stmt
-	getPreferencesStmt                *sql.Stmt
-	getRepoPolicyStmt                 *sql.Stmt
-	getRepositoryStmt                 *sql.Stmt
-	getRepositoryByNameStmt           *sql.Stmt
-	getRunnerStmt                     *sql.Stmt
-	getRunnerByServiceStmt            *sql.Stmt
-	getRunsRowStmt                    *sql.Stmt
-	getSettingStmt                    *sql.Stmt
-	getTicketStmt                     *sql.Stmt
-	getTrayBindingStmt                *sql.Stmt
-	getUserStmt                       *sql.Stmt
-	getWorkflowGraphStmt              *sql.Stmt
-	insertAuditEntryStmt              *sql.Stmt
-	insertAuditEventStmt              *sql.Stmt
-	insertBackupStmt                  *sql.Stmt
-	insertCliTokenStmt                *sql.Stmt
-	insertDoctorFindingStmt           *sql.Stmt
-	insertDoctorRunStmt               *sql.Stmt
-	insertJobStepStmt                 *sql.Stmt
-	insertJoinCodeStmt                *sql.Stmt
-	insertLinkCodeStmt                *sql.Stmt
-	insertMachineStmt                 *sql.Stmt
-	insertMachineChangeStmt           *sql.Stmt
-	insertMachineKeyStmt              *sql.Stmt
-	insertMachineLoadStmt             *sql.Stmt
-	insertMachineSettingsStmt         *sql.Stmt
-	insertNotificationChannelStmt     *sql.Stmt
-	insertPlanStmt                    *sql.Stmt
-	insertRestoreDrillStmt            *sql.Stmt
-	insertRunnerStmt                  *sql.Stmt
-	insertRunnerEventStmt             *sql.Stmt
-	insertRunsOnFindingStmt           *sql.Stmt
-	insertSessionStmt                 *sql.Stmt
-	insertSetupCodeStmt               *sql.Stmt
-	insertSlotStmt                    *sql.Stmt
-	insertSlotLogStmt                 *sql.Stmt
-	insertTicketStmt                  *sql.Stmt
-	insertUserStmt                    *sql.Stmt
-	insertWebhookDeliveryStmt         *sql.Stmt
-	lastDoctorRunStmt                 *sql.Stmt
-	lastRestoreDrillStmt              *sql.Stmt
-	listAuditEventsStmt               *sql.Stmt
-	listBackupsStmt                   *sql.Stmt
-	listCliTokensStmt                 *sql.Stmt
-	listDailySummariesStmt            *sql.Stmt
-	listExpiredSlotsStmt              *sql.Stmt
-	listExpiredTicketsStmt            *sql.Stmt
-	listInstallationsStmt             *sql.Stmt
-	listJobAttemptsStmt               *sql.Stmt
-	listJobHistoryStmt                *sql.Stmt
-	listJobStepsStmt                  *sql.Stmt
-	listLatestFindingsStmt            *sql.Stmt
-	listMachineLoadStmt               *sql.Stmt
-	listMachineSlotsStmt              *sql.Stmt
-	listMachineTicketsStmt            *sql.Stmt
-	listMachinesStmt                  *sql.Stmt
-	listManagedVariablesStmt          *sql.Stmt
-	listNotificationChannelsStmt      *sql.Stmt
-	listOpenGitHubJobsStmt            *sql.Stmt
-	listPoolRepositoriesStmt          *sql.Stmt
-	listRepositoriesStmt              *sql.Stmt
-	listRunAttemptsStmt               *sql.Stmt
-	listRunFindingsStmt               *sql.Stmt
-	listRunnersStmt                   *sql.Stmt
-	listRunsOnFindingsStmt            *sql.Stmt
-	listSettingsStmt                  *sql.Stmt
-	listUsersStmt                     *sql.Stmt
-	markBackupDeletedStmt             *sql.Stmt
-	markInstallationRemovedStmt       *sql.Stmt
-	markMachineRemovedStmt            *sql.Stmt
-	markMachineSeenStmt               *sql.Stmt
-	markMachinesOfflineStmt           *sql.Stmt
-	pruneDailySummariesStmt           *sql.Stmt
-	pruneJobFactsStmt                 *sql.Stmt
-	pruneJobStepsStmt                 *sql.Stmt
-	pruneJobStepsOfJobsStmt           *sql.Stmt
-	pruneJobsStmt                     *sql.Stmt
-	pruneRunsStmt                     *sql.Stmt
-	pruneWorkflowGraphsStmt           *sql.Stmt
-	putPendingFactsStmt               *sql.Stmt
-	putWorkflowGraphStmt              *sql.Stmt
-	recordSignInStmt                  *sql.Stmt
-	renameMachineStmt                 *sql.Stmt
-	revokeCliTokenStmt                *sql.Stmt
-	revokeJoinCodeStmt                *sql.Stmt
-	revokeMachineKeysStmt             *sql.Stmt
-	revokeOpenJoinCodesStmt           *sql.Stmt
-	revokeUserCliTokensStmt           *sql.Stmt
-	setGitHubJobWaitStmt              *sql.Stmt
-	setJobCompletedStmt               *sql.Stmt
-	setJobForecastStmt                *sql.Stmt
-	setJobSlotStmt                    *sql.Stmt
-	setJobStartedStmt                 *sql.Stmt
-	setMachineChangeStateStmt         *sql.Stmt
-	setMachineStateStmt               *sql.Stmt
-	setManagedVariableStatusStmt      *sql.Stmt
-	setMetaStmt                       *sql.Stmt
-	setNotificationChannelTestStmt    *sql.Stmt
-	setPreferencesStmt                *sql.Stmt
-	setRepositoryPoolStmt             *sql.Stmt
-	setRunnerHygieneStmt              *sql.Stmt
-	setRunnerRegistrationStmt         *sql.Stmt
-	setRunnerStateStmt                *sql.Stmt
-	setSettingStmt                    *sql.Stmt
-	setTicketWaitReasonStmt           *sql.Stmt
-	slotLogCutoffStmt                 *sql.Stmt
-	sumRunMinutesSinceStmt            *sql.Stmt
-	touchSessionStmt                  *sql.Stmt
-	trimSlotLogStmt                   *sql.Stmt
-	updateMachineFactsStmt            *sql.Stmt
-	updateMachineSettingsStmt         *sql.Stmt
-	updateNotificationChannelStmt     *sql.Stmt
-	updatePlanStmt                    *sql.Stmt
-	updateUserRoleStmt                *sql.Stmt
-	upsertDailySummaryStmt            *sql.Stmt
-	upsertDoctorStateStmt             *sql.Stmt
-	upsertGitHubAppStmt               *sql.Stmt
-	upsertGitHubJobStmt               *sql.Stmt
-	upsertInstallationStmt            *sql.Stmt
-	upsertJobHistoryStmt              *sql.Stmt
-	upsertJobsRowStmt                 *sql.Stmt
-	upsertManagedVariableStmt         *sql.Stmt
-	upsertRepoPolicyStmt              *sql.Stmt
-	upsertRepositoryStmt              *sql.Stmt
-	upsertRunnerUsageStmt             *sql.Stmt
-	upsertRunsRowStmt                 *sql.Stmt
-	upsertTrayBindingStmt             *sql.Stmt
-	useJoinCodeStmt                   *sql.Stmt
-	useLinkCodeStmt                   *sql.Stmt
-	useSetupCodeStmt                  *sql.Stmt
+	db                                          DBTX
+	tx                                          *sql.Tx
+	addRegistryPullDailyStmt                    *sql.Stmt
+	beatTicketStmt                              *sql.Stmt
+	claimRegistryScanStmt                       *sql.Stmt
+	clearRepositoryProfileStmt                  *sql.Stmt
+	closeRegistryRecommendationStmt             *sql.Stmt
+	countJobsByStateStmt                        *sql.Stmt
+	countLiveRegistryTokenLeasesNamingStmt      *sql.Stmt
+	countMachineSlotsStmt                       *sql.Stmt
+	countRepositoryRunningStmt                  *sql.Stmt
+	countUsersStmt                              *sql.Stmt
+	dailySummarisedDaysStmt                     *sql.Stmt
+	deleteAuditBeforeStmt                       *sql.Stmt
+	deleteEndedRegistryTokenLeasesStmt          *sql.Stmt
+	deleteImageProfileStmt                      *sql.Stmt
+	deleteJobHistoryBeforeStmt                  *sql.Stmt
+	deleteJobStepsStmt                          *sql.Stmt
+	deleteJobTicketsStmt                        *sql.Stmt
+	deleteMachineLoadBeforeStmt                 *sql.Stmt
+	deleteManagedVariableStmt                   *sql.Stmt
+	deleteNotificationChannelStmt               *sql.Stmt
+	deleteOldRegistryPullDailyStmt              *sql.Stmt
+	deleteOldRegistryPullsStmt                  *sql.Stmt
+	deletePendingFactsStmt                      *sql.Stmt
+	deleteRegistryLayerStmt                     *sql.Stmt
+	deleteRegistryTokenLeaseStmt                *sql.Stmt
+	deleteRunnerStmt                            *sql.Stmt
+	deleteRunnerUsageBeforeStmt                 *sql.Stmt
+	deleteRunsOnFindingsStmt                    *sql.Stmt
+	deleteTicketStmt                            *sql.Stmt
+	deleteUserStmt                              *sql.Stmt
+	deleteWebhookDeliveriesBeforeStmt           *sql.Stmt
+	endSessionStmt                              *sql.Stmt
+	endUserSessionsStmt                         *sql.Stmt
+	enqueueJobStmt                              *sql.Stmt
+	findJoinCodeByHashStmt                      *sql.Stmt
+	finishBackupStmt                            *sql.Stmt
+	finishDoctorRunStmt                         *sql.Stmt
+	finishImageBuildStmt                        *sql.Stmt
+	finishRegistryCleanupStmt                   *sql.Stmt
+	finishRegistryScanStmt                      *sql.Stmt
+	finishRestoreDrillStmt                      *sql.Stmt
+	freeJobSlotsStmt                            *sql.Stmt
+	freeSlotStmt                                *sql.Stmt
+	freeSlotByClaimStmt                         *sql.Stmt
+	getActiveCliTokenStmt                       *sql.Stmt
+	getActiveRegistryReplacePlanForImageStmt    *sql.Stmt
+	getActiveSessionStmt                        *sql.Stmt
+	getBackupStmt                               *sql.Stmt
+	getDoctorRunStmt                            *sql.Stmt
+	getGitHubAppStmt                            *sql.Stmt
+	getGitHubJobStmt                            *sql.Stmt
+	getImageBuildStmt                           *sql.Stmt
+	getImageProfileStmt                         *sql.Stmt
+	getJobHistoryStmt                           *sql.Stmt
+	getJobsRowStmt                              *sql.Stmt
+	getJoinCodeStmt                             *sql.Stmt
+	getMachineStmt                              *sql.Stmt
+	getMachineByKeyStmt                         *sql.Stmt
+	getMachineChangeStmt                        *sql.Stmt
+	getMachineSettingsStmt                      *sql.Stmt
+	getMetaStmt                                 *sql.Stmt
+	getNotificationChannelStmt                  *sql.Stmt
+	getOpenMachineChangeStmt                    *sql.Stmt
+	getOwnerStmt                                *sql.Stmt
+	getPendingFactsStmt                         *sql.Stmt
+	getPlanStmt                                 *sql.Stmt
+	getPreferencesStmt                          *sql.Stmt
+	getPromotedRegistryImageByKeyStmt           *sql.Stmt
+	getRegistryCleanupStmt                      *sql.Stmt
+	getRegistryImageStmt                        *sql.Stmt
+	getRegistryImageByManifestStmt              *sql.Stmt
+	getRegistryImageByTagStmt                   *sql.Stmt
+	getRegistryMirrorSettingsStmt               *sql.Stmt
+	getRegistryPointerStmt                      *sql.Stmt
+	getRegistryPullByIDStmt                     *sql.Stmt
+	getRegistryPushByIDStmt                     *sql.Stmt
+	getRegistryReplacePlanStmt                  *sql.Stmt
+	getRegistryScanStmt                         *sql.Stmt
+	getRegistrySettingsRowStmt                  *sql.Stmt
+	getRegistryTagStmt                          *sql.Stmt
+	getRegistryTokenLeaseStmt                   *sql.Stmt
+	getRepoPolicyStmt                           *sql.Stmt
+	getRepositoryStmt                           *sql.Stmt
+	getRepositoryByNameStmt                     *sql.Stmt
+	getRepositoryProfileStmt                    *sql.Stmt
+	getRunnerStmt                               *sql.Stmt
+	getRunnerByServiceStmt                      *sql.Stmt
+	getRunsRowStmt                              *sql.Stmt
+	getSettingStmt                              *sql.Stmt
+	getTicketStmt                               *sql.Stmt
+	getTrayBindingStmt                          *sql.Stmt
+	getUserStmt                                 *sql.Stmt
+	getWorkflowGraphStmt                        *sql.Stmt
+	insertAuditEntryStmt                        *sql.Stmt
+	insertAuditEventStmt                        *sql.Stmt
+	insertBackupStmt                            *sql.Stmt
+	insertCliTokenStmt                          *sql.Stmt
+	insertDoctorFindingStmt                     *sql.Stmt
+	insertDoctorRunStmt                         *sql.Stmt
+	insertImageBuildStmt                        *sql.Stmt
+	insertImageProfileIfAbsentStmt              *sql.Stmt
+	insertJobStepStmt                           *sql.Stmt
+	insertJoinCodeStmt                          *sql.Stmt
+	insertLinkCodeStmt                          *sql.Stmt
+	insertMachineStmt                           *sql.Stmt
+	insertMachineChangeStmt                     *sql.Stmt
+	insertMachineKeyStmt                        *sql.Stmt
+	insertMachineLoadStmt                       *sql.Stmt
+	insertMachineSettingsStmt                   *sql.Stmt
+	insertNotificationChannelStmt               *sql.Stmt
+	insertPlanStmt                              *sql.Stmt
+	insertRegistryCleanupStmt                   *sql.Stmt
+	insertRegistryImageStmt                     *sql.Stmt
+	insertRegistryImageLayerStmt                *sql.Stmt
+	insertRegistryReplacePlanStmt               *sql.Stmt
+	insertRegistryTagStmt                       *sql.Stmt
+	insertRegistryTokenLeaseStmt                *sql.Stmt
+	insertRestoreDrillStmt                      *sql.Stmt
+	insertRunnerStmt                            *sql.Stmt
+	insertRunnerEventStmt                       *sql.Stmt
+	insertRunsOnFindingStmt                     *sql.Stmt
+	insertSessionStmt                           *sql.Stmt
+	insertSetupCodeStmt                         *sql.Stmt
+	insertSlotStmt                              *sql.Stmt
+	insertSlotLogStmt                           *sql.Stmt
+	insertTicketStmt                            *sql.Stmt
+	insertUserStmt                              *sql.Stmt
+	insertWebhookDeliveryStmt                   *sql.Stmt
+	lastDoctorRunStmt                           *sql.Stmt
+	lastRegistryCleanupStmt                     *sql.Stmt
+	lastRestoreDrillStmt                        *sql.Stmt
+	listAuditEventsStmt                         *sql.Stmt
+	listBackupsStmt                             *sql.Stmt
+	listCliTokensStmt                           *sql.Stmt
+	listDailySummariesStmt                      *sql.Stmt
+	listDanglingRegistryLayersStmt              *sql.Stmt
+	listExpiredSlotsStmt                        *sql.Stmt
+	listExpiredTicketsStmt                      *sql.Stmt
+	listImageBuildsStmt                         *sql.Stmt
+	listImageBuildsInFlightStmt                 *sql.Stmt
+	listImageBuildsOfMachineStmt                *sql.Stmt
+	listImageProfilesStmt                       *sql.Stmt
+	listInFlightPullMachinesOfRegistryImageStmt *sql.Stmt
+	listInstallationsStmt                       *sql.Stmt
+	listJobAttemptsStmt                         *sql.Stmt
+	listJobHistoryStmt                          *sql.Stmt
+	listJobStepsStmt                            *sql.Stmt
+	listLatestFindingsStmt                      *sql.Stmt
+	listLiveRegistryTokenLeasesStmt             *sql.Stmt
+	listMachineLoadStmt                         *sql.Stmt
+	listMachineSlotsStmt                        *sql.Stmt
+	listMachineTicketsStmt                      *sql.Stmt
+	listMachinesStmt                            *sql.Stmt
+	listManagedVariablesStmt                    *sql.Stmt
+	listNotificationChannelsStmt                *sql.Stmt
+	listOldStagedRegistryImagesStmt             *sql.Stmt
+	listOpenGitHubJobsStmt                      *sql.Stmt
+	listOpenRegistryRecommendationsStmt         *sql.Stmt
+	listPoolRepositoriesStmt                    *sql.Stmt
+	listQueuedRegistryScansStmt                 *sql.Stmt
+	listRegistryImageLayersStmt                 *sql.Stmt
+	listRegistryImageMachinesStmt               *sql.Stmt
+	listRegistryImagesStmt                      *sql.Stmt
+	listRegistryImagesOfLineageStmt             *sql.Stmt
+	listRegistryLayerHoldersStmt                *sql.Stmt
+	listRegistryLayerUseOfImageStmt             *sql.Stmt
+	listRegistryPointersOfProfileStmt           *sql.Stmt
+	listRegistryPointersOfRepositoryStmt        *sql.Stmt
+	listRegistryPointersToStmt                  *sql.Stmt
+	listRegistryPullDailyStmt                   *sql.Stmt
+	listRegistryPullsInFlightStmt               *sql.Stmt
+	listRegistryPushesInFlightStmt              *sql.Stmt
+	listRegistryReplacePlansByStateStmt         *sql.Stmt
+	listRegistrySupersededDueStmt               *sql.Stmt
+	listRegistryUnusedCandidatesStmt            *sql.Stmt
+	listRegistryVariantsDueStmt                 *sql.Stmt
+	listRepositoriesStmt                        *sql.Stmt
+	listRepositoryProfilesStmt                  *sql.Stmt
+	listRunAttemptsStmt                         *sql.Stmt
+	listRunFindingsStmt                         *sql.Stmt
+	listRunnersStmt                             *sql.Stmt
+	listRunningJobsOfRegistryImageStmt          *sql.Stmt
+	listRunsOnFindingsStmt                      *sql.Stmt
+	listSettingsStmt                            *sql.Stmt
+	listUsersStmt                               *sql.Stmt
+	machinePullSpeedStmt                        *sql.Stmt
+	markBackupDeletedStmt                       *sql.Stmt
+	markInstallationRemovedStmt                 *sql.Stmt
+	markMachineRemovedStmt                      *sql.Stmt
+	markMachineSeenStmt                         *sql.Stmt
+	markMachinesOfflineStmt                     *sql.Stmt
+	markRegistryImageDeletedStmt                *sql.Stmt
+	promoteRegistryImageStmt                    *sql.Stmt
+	pruneDailySummariesStmt                     *sql.Stmt
+	pruneJobFactsStmt                           *sql.Stmt
+	pruneJobStepsStmt                           *sql.Stmt
+	pruneJobStepsOfJobsStmt                     *sql.Stmt
+	pruneJobsStmt                               *sql.Stmt
+	pruneRunsStmt                               *sql.Stmt
+	pruneWorkflowGraphsStmt                     *sql.Stmt
+	putPendingFactsStmt                         *sql.Stmt
+	putWorkflowGraphStmt                        *sql.Stmt
+	queueRegistryScanStmt                       *sql.Stmt
+	recordSignInStmt                            *sql.Stmt
+	refuseRegistryImageStmt                     *sql.Stmt
+	renameMachineStmt                           *sql.Stmt
+	restoreRegistryImageStmt                    *sql.Stmt
+	revokeCliTokenStmt                          *sql.Stmt
+	revokeJoinCodeStmt                          *sql.Stmt
+	revokeMachineKeysStmt                       *sql.Stmt
+	revokeOpenJoinCodesStmt                     *sql.Stmt
+	revokeUserCliTokensStmt                     *sql.Stmt
+	setGitHubJobWaitStmt                        *sql.Stmt
+	setImageBuildProgressStmt                   *sql.Stmt
+	setImageBuildPushStateStmt                  *sql.Stmt
+	setJobCompletedStmt                         *sql.Stmt
+	setJobForecastStmt                          *sql.Stmt
+	setJobSlotStmt                              *sql.Stmt
+	setJobStartedStmt                           *sql.Stmt
+	setMachineChangeStateStmt                   *sql.Stmt
+	setMachineStateStmt                         *sql.Stmt
+	setManagedVariableStatusStmt                *sql.Stmt
+	setMetaStmt                                 *sql.Stmt
+	setNotificationChannelTestStmt              *sql.Stmt
+	setPreferencesStmt                          *sql.Stmt
+	setRegistryBranchGoneStmt                   *sql.Stmt
+	setRegistryImageLastPullStmt                *sql.Stmt
+	setRegistryImageLineageStmt                 *sql.Stmt
+	setRegistryImageScanStateStmt               *sql.Stmt
+	setRegistryImageSizesStmt                   *sql.Stmt
+	setRegistryImageStateStmt                   *sql.Stmt
+	setRegistryLayerChargeStmt                  *sql.Stmt
+	setRegistryReadOnlyStmt                     *sql.Stmt
+	setRegistryReplacePlanRolledBackStmt        *sql.Stmt
+	setRegistryReplacePlanStateStmt             *sql.Stmt
+	setRepositoryPoolStmt                       *sql.Stmt
+	setRepositoryProfileStmt                    *sql.Stmt
+	setRunnerHygieneStmt                        *sql.Stmt
+	setRunnerRegistrationStmt                   *sql.Stmt
+	setRunnerStateStmt                          *sql.Stmt
+	setSettingStmt                              *sql.Stmt
+	setTicketWaitReasonStmt                     *sql.Stmt
+	slotLogCutoffStmt                           *sql.Stmt
+	sumRegistryBytesPulledSinceStmt             *sql.Stmt
+	sumRegistryLayersByKindStmt                 *sql.Stmt
+	sumRegistryPullDailyByImageSinceStmt        *sql.Stmt
+	sumRegistryPullDailySinceStmt               *sql.Stmt
+	sumRegistrySharedLayersStmt                 *sql.Stmt
+	sumRegistrySharedLayersByKindStmt           *sql.Stmt
+	sumRegistryUsedByKindStmt                   *sql.Stmt
+	sumRunMinutesSinceStmt                      *sql.Stmt
+	supersedeRegistryImageStmt                  *sql.Stmt
+	touchSessionStmt                            *sql.Stmt
+	trimSlotLogStmt                             *sql.Stmt
+	typicalImageBuildSecondsStmt                *sql.Stmt
+	updateMachineFactsStmt                      *sql.Stmt
+	updateMachineSettingsStmt                   *sql.Stmt
+	updateNotificationChannelStmt               *sql.Stmt
+	updatePlanStmt                              *sql.Stmt
+	updateRegistryMirrorSettingsStmt            *sql.Stmt
+	updateRegistrySettingsRowStmt               *sql.Stmt
+	updateUserRoleStmt                          *sql.Stmt
+	upsertDailySummaryStmt                      *sql.Stmt
+	upsertDoctorStateStmt                       *sql.Stmt
+	upsertGitHubAppStmt                         *sql.Stmt
+	upsertGitHubJobStmt                         *sql.Stmt
+	upsertImageProfileStmt                      *sql.Stmt
+	upsertInstallationStmt                      *sql.Stmt
+	upsertJobHistoryStmt                        *sql.Stmt
+	upsertJobsRowStmt                           *sql.Stmt
+	upsertManagedVariableStmt                   *sql.Stmt
+	upsertRegistryLayerStmt                     *sql.Stmt
+	upsertRegistryPointerStmt                   *sql.Stmt
+	upsertRegistryPullStmt                      *sql.Stmt
+	upsertRegistryPushStmt                      *sql.Stmt
+	upsertRegistryRecommendationStmt            *sql.Stmt
+	upsertRepoPolicyStmt                        *sql.Stmt
+	upsertRepositoryStmt                        *sql.Stmt
+	upsertRunnerUsageStmt                       *sql.Stmt
+	upsertRunsRowStmt                           *sql.Stmt
+	upsertTrayBindingStmt                       *sql.Stmt
+	useJoinCodeStmt                             *sql.Stmt
+	useLinkCodeStmt                             *sql.Stmt
+	useSetupCodeStmt                            *sql.Stmt
 }
 
 func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 	return &Queries{
-		db:                                tx,
-		tx:                                tx,
-		beatTicketStmt:                    q.beatTicketStmt,
-		countJobsByStateStmt:              q.countJobsByStateStmt,
-		countMachineSlotsStmt:             q.countMachineSlotsStmt,
-		countRepositoryRunningStmt:        q.countRepositoryRunningStmt,
-		countUsersStmt:                    q.countUsersStmt,
-		dailySummarisedDaysStmt:           q.dailySummarisedDaysStmt,
-		deleteAuditBeforeStmt:             q.deleteAuditBeforeStmt,
-		deleteJobHistoryBeforeStmt:        q.deleteJobHistoryBeforeStmt,
-		deleteJobStepsStmt:                q.deleteJobStepsStmt,
-		deleteJobTicketsStmt:              q.deleteJobTicketsStmt,
-		deleteMachineLoadBeforeStmt:       q.deleteMachineLoadBeforeStmt,
-		deleteManagedVariableStmt:         q.deleteManagedVariableStmt,
-		deleteNotificationChannelStmt:     q.deleteNotificationChannelStmt,
-		deletePendingFactsStmt:            q.deletePendingFactsStmt,
-		deleteRunnerStmt:                  q.deleteRunnerStmt,
-		deleteRunnerUsageBeforeStmt:       q.deleteRunnerUsageBeforeStmt,
-		deleteRunsOnFindingsStmt:          q.deleteRunsOnFindingsStmt,
-		deleteTicketStmt:                  q.deleteTicketStmt,
-		deleteUserStmt:                    q.deleteUserStmt,
-		deleteWebhookDeliveriesBeforeStmt: q.deleteWebhookDeliveriesBeforeStmt,
-		endSessionStmt:                    q.endSessionStmt,
-		endUserSessionsStmt:               q.endUserSessionsStmt,
-		enqueueJobStmt:                    q.enqueueJobStmt,
-		findJoinCodeByHashStmt:            q.findJoinCodeByHashStmt,
-		finishBackupStmt:                  q.finishBackupStmt,
-		finishDoctorRunStmt:               q.finishDoctorRunStmt,
-		finishRestoreDrillStmt:            q.finishRestoreDrillStmt,
-		freeJobSlotsStmt:                  q.freeJobSlotsStmt,
-		freeSlotStmt:                      q.freeSlotStmt,
-		freeSlotByClaimStmt:               q.freeSlotByClaimStmt,
-		getActiveCliTokenStmt:             q.getActiveCliTokenStmt,
-		getActiveSessionStmt:              q.getActiveSessionStmt,
-		getBackupStmt:                     q.getBackupStmt,
-		getDoctorRunStmt:                  q.getDoctorRunStmt,
-		getGitHubAppStmt:                  q.getGitHubAppStmt,
-		getGitHubJobStmt:                  q.getGitHubJobStmt,
-		getJobHistoryStmt:                 q.getJobHistoryStmt,
-		getJobsRowStmt:                    q.getJobsRowStmt,
-		getJoinCodeStmt:                   q.getJoinCodeStmt,
-		getMachineStmt:                    q.getMachineStmt,
-		getMachineByKeyStmt:               q.getMachineByKeyStmt,
-		getMachineChangeStmt:              q.getMachineChangeStmt,
-		getMachineSettingsStmt:            q.getMachineSettingsStmt,
-		getMetaStmt:                       q.getMetaStmt,
-		getNotificationChannelStmt:        q.getNotificationChannelStmt,
-		getOpenMachineChangeStmt:          q.getOpenMachineChangeStmt,
-		getOwnerStmt:                      q.getOwnerStmt,
-		getPendingFactsStmt:               q.getPendingFactsStmt,
-		getPlanStmt:                       q.getPlanStmt,
-		getPreferencesStmt:                q.getPreferencesStmt,
-		getRepoPolicyStmt:                 q.getRepoPolicyStmt,
-		getRepositoryStmt:                 q.getRepositoryStmt,
-		getRepositoryByNameStmt:           q.getRepositoryByNameStmt,
-		getRunnerStmt:                     q.getRunnerStmt,
-		getRunnerByServiceStmt:            q.getRunnerByServiceStmt,
-		getRunsRowStmt:                    q.getRunsRowStmt,
-		getSettingStmt:                    q.getSettingStmt,
-		getTicketStmt:                     q.getTicketStmt,
-		getTrayBindingStmt:                q.getTrayBindingStmt,
-		getUserStmt:                       q.getUserStmt,
-		getWorkflowGraphStmt:              q.getWorkflowGraphStmt,
-		insertAuditEntryStmt:              q.insertAuditEntryStmt,
-		insertAuditEventStmt:              q.insertAuditEventStmt,
-		insertBackupStmt:                  q.insertBackupStmt,
-		insertCliTokenStmt:                q.insertCliTokenStmt,
-		insertDoctorFindingStmt:           q.insertDoctorFindingStmt,
-		insertDoctorRunStmt:               q.insertDoctorRunStmt,
-		insertJobStepStmt:                 q.insertJobStepStmt,
-		insertJoinCodeStmt:                q.insertJoinCodeStmt,
-		insertLinkCodeStmt:                q.insertLinkCodeStmt,
-		insertMachineStmt:                 q.insertMachineStmt,
-		insertMachineChangeStmt:           q.insertMachineChangeStmt,
-		insertMachineKeyStmt:              q.insertMachineKeyStmt,
-		insertMachineLoadStmt:             q.insertMachineLoadStmt,
-		insertMachineSettingsStmt:         q.insertMachineSettingsStmt,
-		insertNotificationChannelStmt:     q.insertNotificationChannelStmt,
-		insertPlanStmt:                    q.insertPlanStmt,
-		insertRestoreDrillStmt:            q.insertRestoreDrillStmt,
-		insertRunnerStmt:                  q.insertRunnerStmt,
-		insertRunnerEventStmt:             q.insertRunnerEventStmt,
-		insertRunsOnFindingStmt:           q.insertRunsOnFindingStmt,
-		insertSessionStmt:                 q.insertSessionStmt,
-		insertSetupCodeStmt:               q.insertSetupCodeStmt,
-		insertSlotStmt:                    q.insertSlotStmt,
-		insertSlotLogStmt:                 q.insertSlotLogStmt,
-		insertTicketStmt:                  q.insertTicketStmt,
-		insertUserStmt:                    q.insertUserStmt,
-		insertWebhookDeliveryStmt:         q.insertWebhookDeliveryStmt,
-		lastDoctorRunStmt:                 q.lastDoctorRunStmt,
-		lastRestoreDrillStmt:              q.lastRestoreDrillStmt,
-		listAuditEventsStmt:               q.listAuditEventsStmt,
-		listBackupsStmt:                   q.listBackupsStmt,
-		listCliTokensStmt:                 q.listCliTokensStmt,
-		listDailySummariesStmt:            q.listDailySummariesStmt,
-		listExpiredSlotsStmt:              q.listExpiredSlotsStmt,
-		listExpiredTicketsStmt:            q.listExpiredTicketsStmt,
-		listInstallationsStmt:             q.listInstallationsStmt,
-		listJobAttemptsStmt:               q.listJobAttemptsStmt,
-		listJobHistoryStmt:                q.listJobHistoryStmt,
-		listJobStepsStmt:                  q.listJobStepsStmt,
-		listLatestFindingsStmt:            q.listLatestFindingsStmt,
-		listMachineLoadStmt:               q.listMachineLoadStmt,
-		listMachineSlotsStmt:              q.listMachineSlotsStmt,
-		listMachineTicketsStmt:            q.listMachineTicketsStmt,
-		listMachinesStmt:                  q.listMachinesStmt,
-		listManagedVariablesStmt:          q.listManagedVariablesStmt,
-		listNotificationChannelsStmt:      q.listNotificationChannelsStmt,
-		listOpenGitHubJobsStmt:            q.listOpenGitHubJobsStmt,
-		listPoolRepositoriesStmt:          q.listPoolRepositoriesStmt,
-		listRepositoriesStmt:              q.listRepositoriesStmt,
-		listRunAttemptsStmt:               q.listRunAttemptsStmt,
-		listRunFindingsStmt:               q.listRunFindingsStmt,
-		listRunnersStmt:                   q.listRunnersStmt,
-		listRunsOnFindingsStmt:            q.listRunsOnFindingsStmt,
-		listSettingsStmt:                  q.listSettingsStmt,
-		listUsersStmt:                     q.listUsersStmt,
-		markBackupDeletedStmt:             q.markBackupDeletedStmt,
-		markInstallationRemovedStmt:       q.markInstallationRemovedStmt,
-		markMachineRemovedStmt:            q.markMachineRemovedStmt,
-		markMachineSeenStmt:               q.markMachineSeenStmt,
-		markMachinesOfflineStmt:           q.markMachinesOfflineStmt,
-		pruneDailySummariesStmt:           q.pruneDailySummariesStmt,
-		pruneJobFactsStmt:                 q.pruneJobFactsStmt,
-		pruneJobStepsStmt:                 q.pruneJobStepsStmt,
-		pruneJobStepsOfJobsStmt:           q.pruneJobStepsOfJobsStmt,
-		pruneJobsStmt:                     q.pruneJobsStmt,
-		pruneRunsStmt:                     q.pruneRunsStmt,
-		pruneWorkflowGraphsStmt:           q.pruneWorkflowGraphsStmt,
-		putPendingFactsStmt:               q.putPendingFactsStmt,
-		putWorkflowGraphStmt:              q.putWorkflowGraphStmt,
-		recordSignInStmt:                  q.recordSignInStmt,
-		renameMachineStmt:                 q.renameMachineStmt,
-		revokeCliTokenStmt:                q.revokeCliTokenStmt,
-		revokeJoinCodeStmt:                q.revokeJoinCodeStmt,
-		revokeMachineKeysStmt:             q.revokeMachineKeysStmt,
-		revokeOpenJoinCodesStmt:           q.revokeOpenJoinCodesStmt,
-		revokeUserCliTokensStmt:           q.revokeUserCliTokensStmt,
-		setGitHubJobWaitStmt:              q.setGitHubJobWaitStmt,
-		setJobCompletedStmt:               q.setJobCompletedStmt,
-		setJobForecastStmt:                q.setJobForecastStmt,
-		setJobSlotStmt:                    q.setJobSlotStmt,
-		setJobStartedStmt:                 q.setJobStartedStmt,
-		setMachineChangeStateStmt:         q.setMachineChangeStateStmt,
-		setMachineStateStmt:               q.setMachineStateStmt,
-		setManagedVariableStatusStmt:      q.setManagedVariableStatusStmt,
-		setMetaStmt:                       q.setMetaStmt,
-		setNotificationChannelTestStmt:    q.setNotificationChannelTestStmt,
-		setPreferencesStmt:                q.setPreferencesStmt,
-		setRepositoryPoolStmt:             q.setRepositoryPoolStmt,
-		setRunnerHygieneStmt:              q.setRunnerHygieneStmt,
-		setRunnerRegistrationStmt:         q.setRunnerRegistrationStmt,
-		setRunnerStateStmt:                q.setRunnerStateStmt,
-		setSettingStmt:                    q.setSettingStmt,
-		setTicketWaitReasonStmt:           q.setTicketWaitReasonStmt,
-		slotLogCutoffStmt:                 q.slotLogCutoffStmt,
-		sumRunMinutesSinceStmt:            q.sumRunMinutesSinceStmt,
-		touchSessionStmt:                  q.touchSessionStmt,
-		trimSlotLogStmt:                   q.trimSlotLogStmt,
-		updateMachineFactsStmt:            q.updateMachineFactsStmt,
-		updateMachineSettingsStmt:         q.updateMachineSettingsStmt,
-		updateNotificationChannelStmt:     q.updateNotificationChannelStmt,
-		updatePlanStmt:                    q.updatePlanStmt,
-		updateUserRoleStmt:                q.updateUserRoleStmt,
-		upsertDailySummaryStmt:            q.upsertDailySummaryStmt,
-		upsertDoctorStateStmt:             q.upsertDoctorStateStmt,
-		upsertGitHubAppStmt:               q.upsertGitHubAppStmt,
-		upsertGitHubJobStmt:               q.upsertGitHubJobStmt,
-		upsertInstallationStmt:            q.upsertInstallationStmt,
-		upsertJobHistoryStmt:              q.upsertJobHistoryStmt,
-		upsertJobsRowStmt:                 q.upsertJobsRowStmt,
-		upsertManagedVariableStmt:         q.upsertManagedVariableStmt,
-		upsertRepoPolicyStmt:              q.upsertRepoPolicyStmt,
-		upsertRepositoryStmt:              q.upsertRepositoryStmt,
-		upsertRunnerUsageStmt:             q.upsertRunnerUsageStmt,
-		upsertRunsRowStmt:                 q.upsertRunsRowStmt,
-		upsertTrayBindingStmt:             q.upsertTrayBindingStmt,
-		useJoinCodeStmt:                   q.useJoinCodeStmt,
-		useLinkCodeStmt:                   q.useLinkCodeStmt,
-		useSetupCodeStmt:                  q.useSetupCodeStmt,
+		db:                                          tx,
+		tx:                                          tx,
+		addRegistryPullDailyStmt:                    q.addRegistryPullDailyStmt,
+		beatTicketStmt:                              q.beatTicketStmt,
+		claimRegistryScanStmt:                       q.claimRegistryScanStmt,
+		clearRepositoryProfileStmt:                  q.clearRepositoryProfileStmt,
+		closeRegistryRecommendationStmt:             q.closeRegistryRecommendationStmt,
+		countJobsByStateStmt:                        q.countJobsByStateStmt,
+		countLiveRegistryTokenLeasesNamingStmt:      q.countLiveRegistryTokenLeasesNamingStmt,
+		countMachineSlotsStmt:                       q.countMachineSlotsStmt,
+		countRepositoryRunningStmt:                  q.countRepositoryRunningStmt,
+		countUsersStmt:                              q.countUsersStmt,
+		dailySummarisedDaysStmt:                     q.dailySummarisedDaysStmt,
+		deleteAuditBeforeStmt:                       q.deleteAuditBeforeStmt,
+		deleteEndedRegistryTokenLeasesStmt:          q.deleteEndedRegistryTokenLeasesStmt,
+		deleteImageProfileStmt:                      q.deleteImageProfileStmt,
+		deleteJobHistoryBeforeStmt:                  q.deleteJobHistoryBeforeStmt,
+		deleteJobStepsStmt:                          q.deleteJobStepsStmt,
+		deleteJobTicketsStmt:                        q.deleteJobTicketsStmt,
+		deleteMachineLoadBeforeStmt:                 q.deleteMachineLoadBeforeStmt,
+		deleteManagedVariableStmt:                   q.deleteManagedVariableStmt,
+		deleteNotificationChannelStmt:               q.deleteNotificationChannelStmt,
+		deleteOldRegistryPullDailyStmt:              q.deleteOldRegistryPullDailyStmt,
+		deleteOldRegistryPullsStmt:                  q.deleteOldRegistryPullsStmt,
+		deletePendingFactsStmt:                      q.deletePendingFactsStmt,
+		deleteRegistryLayerStmt:                     q.deleteRegistryLayerStmt,
+		deleteRegistryTokenLeaseStmt:                q.deleteRegistryTokenLeaseStmt,
+		deleteRunnerStmt:                            q.deleteRunnerStmt,
+		deleteRunnerUsageBeforeStmt:                 q.deleteRunnerUsageBeforeStmt,
+		deleteRunsOnFindingsStmt:                    q.deleteRunsOnFindingsStmt,
+		deleteTicketStmt:                            q.deleteTicketStmt,
+		deleteUserStmt:                              q.deleteUserStmt,
+		deleteWebhookDeliveriesBeforeStmt:           q.deleteWebhookDeliveriesBeforeStmt,
+		endSessionStmt:                              q.endSessionStmt,
+		endUserSessionsStmt:                         q.endUserSessionsStmt,
+		enqueueJobStmt:                              q.enqueueJobStmt,
+		findJoinCodeByHashStmt:                      q.findJoinCodeByHashStmt,
+		finishBackupStmt:                            q.finishBackupStmt,
+		finishDoctorRunStmt:                         q.finishDoctorRunStmt,
+		finishImageBuildStmt:                        q.finishImageBuildStmt,
+		finishRegistryCleanupStmt:                   q.finishRegistryCleanupStmt,
+		finishRegistryScanStmt:                      q.finishRegistryScanStmt,
+		finishRestoreDrillStmt:                      q.finishRestoreDrillStmt,
+		freeJobSlotsStmt:                            q.freeJobSlotsStmt,
+		freeSlotStmt:                                q.freeSlotStmt,
+		freeSlotByClaimStmt:                         q.freeSlotByClaimStmt,
+		getActiveCliTokenStmt:                       q.getActiveCliTokenStmt,
+		getActiveRegistryReplacePlanForImageStmt:    q.getActiveRegistryReplacePlanForImageStmt,
+		getActiveSessionStmt:                        q.getActiveSessionStmt,
+		getBackupStmt:                               q.getBackupStmt,
+		getDoctorRunStmt:                            q.getDoctorRunStmt,
+		getGitHubAppStmt:                            q.getGitHubAppStmt,
+		getGitHubJobStmt:                            q.getGitHubJobStmt,
+		getImageBuildStmt:                           q.getImageBuildStmt,
+		getImageProfileStmt:                         q.getImageProfileStmt,
+		getJobHistoryStmt:                           q.getJobHistoryStmt,
+		getJobsRowStmt:                              q.getJobsRowStmt,
+		getJoinCodeStmt:                             q.getJoinCodeStmt,
+		getMachineStmt:                              q.getMachineStmt,
+		getMachineByKeyStmt:                         q.getMachineByKeyStmt,
+		getMachineChangeStmt:                        q.getMachineChangeStmt,
+		getMachineSettingsStmt:                      q.getMachineSettingsStmt,
+		getMetaStmt:                                 q.getMetaStmt,
+		getNotificationChannelStmt:                  q.getNotificationChannelStmt,
+		getOpenMachineChangeStmt:                    q.getOpenMachineChangeStmt,
+		getOwnerStmt:                                q.getOwnerStmt,
+		getPendingFactsStmt:                         q.getPendingFactsStmt,
+		getPlanStmt:                                 q.getPlanStmt,
+		getPreferencesStmt:                          q.getPreferencesStmt,
+		getPromotedRegistryImageByKeyStmt:           q.getPromotedRegistryImageByKeyStmt,
+		getRegistryCleanupStmt:                      q.getRegistryCleanupStmt,
+		getRegistryImageStmt:                        q.getRegistryImageStmt,
+		getRegistryImageByManifestStmt:              q.getRegistryImageByManifestStmt,
+		getRegistryImageByTagStmt:                   q.getRegistryImageByTagStmt,
+		getRegistryMirrorSettingsStmt:               q.getRegistryMirrorSettingsStmt,
+		getRegistryPointerStmt:                      q.getRegistryPointerStmt,
+		getRegistryPullByIDStmt:                     q.getRegistryPullByIDStmt,
+		getRegistryPushByIDStmt:                     q.getRegistryPushByIDStmt,
+		getRegistryReplacePlanStmt:                  q.getRegistryReplacePlanStmt,
+		getRegistryScanStmt:                         q.getRegistryScanStmt,
+		getRegistrySettingsRowStmt:                  q.getRegistrySettingsRowStmt,
+		getRegistryTagStmt:                          q.getRegistryTagStmt,
+		getRegistryTokenLeaseStmt:                   q.getRegistryTokenLeaseStmt,
+		getRepoPolicyStmt:                           q.getRepoPolicyStmt,
+		getRepositoryStmt:                           q.getRepositoryStmt,
+		getRepositoryByNameStmt:                     q.getRepositoryByNameStmt,
+		getRepositoryProfileStmt:                    q.getRepositoryProfileStmt,
+		getRunnerStmt:                               q.getRunnerStmt,
+		getRunnerByServiceStmt:                      q.getRunnerByServiceStmt,
+		getRunsRowStmt:                              q.getRunsRowStmt,
+		getSettingStmt:                              q.getSettingStmt,
+		getTicketStmt:                               q.getTicketStmt,
+		getTrayBindingStmt:                          q.getTrayBindingStmt,
+		getUserStmt:                                 q.getUserStmt,
+		getWorkflowGraphStmt:                        q.getWorkflowGraphStmt,
+		insertAuditEntryStmt:                        q.insertAuditEntryStmt,
+		insertAuditEventStmt:                        q.insertAuditEventStmt,
+		insertBackupStmt:                            q.insertBackupStmt,
+		insertCliTokenStmt:                          q.insertCliTokenStmt,
+		insertDoctorFindingStmt:                     q.insertDoctorFindingStmt,
+		insertDoctorRunStmt:                         q.insertDoctorRunStmt,
+		insertImageBuildStmt:                        q.insertImageBuildStmt,
+		insertImageProfileIfAbsentStmt:              q.insertImageProfileIfAbsentStmt,
+		insertJobStepStmt:                           q.insertJobStepStmt,
+		insertJoinCodeStmt:                          q.insertJoinCodeStmt,
+		insertLinkCodeStmt:                          q.insertLinkCodeStmt,
+		insertMachineStmt:                           q.insertMachineStmt,
+		insertMachineChangeStmt:                     q.insertMachineChangeStmt,
+		insertMachineKeyStmt:                        q.insertMachineKeyStmt,
+		insertMachineLoadStmt:                       q.insertMachineLoadStmt,
+		insertMachineSettingsStmt:                   q.insertMachineSettingsStmt,
+		insertNotificationChannelStmt:               q.insertNotificationChannelStmt,
+		insertPlanStmt:                              q.insertPlanStmt,
+		insertRegistryCleanupStmt:                   q.insertRegistryCleanupStmt,
+		insertRegistryImageStmt:                     q.insertRegistryImageStmt,
+		insertRegistryImageLayerStmt:                q.insertRegistryImageLayerStmt,
+		insertRegistryReplacePlanStmt:               q.insertRegistryReplacePlanStmt,
+		insertRegistryTagStmt:                       q.insertRegistryTagStmt,
+		insertRegistryTokenLeaseStmt:                q.insertRegistryTokenLeaseStmt,
+		insertRestoreDrillStmt:                      q.insertRestoreDrillStmt,
+		insertRunnerStmt:                            q.insertRunnerStmt,
+		insertRunnerEventStmt:                       q.insertRunnerEventStmt,
+		insertRunsOnFindingStmt:                     q.insertRunsOnFindingStmt,
+		insertSessionStmt:                           q.insertSessionStmt,
+		insertSetupCodeStmt:                         q.insertSetupCodeStmt,
+		insertSlotStmt:                              q.insertSlotStmt,
+		insertSlotLogStmt:                           q.insertSlotLogStmt,
+		insertTicketStmt:                            q.insertTicketStmt,
+		insertUserStmt:                              q.insertUserStmt,
+		insertWebhookDeliveryStmt:                   q.insertWebhookDeliveryStmt,
+		lastDoctorRunStmt:                           q.lastDoctorRunStmt,
+		lastRegistryCleanupStmt:                     q.lastRegistryCleanupStmt,
+		lastRestoreDrillStmt:                        q.lastRestoreDrillStmt,
+		listAuditEventsStmt:                         q.listAuditEventsStmt,
+		listBackupsStmt:                             q.listBackupsStmt,
+		listCliTokensStmt:                           q.listCliTokensStmt,
+		listDailySummariesStmt:                      q.listDailySummariesStmt,
+		listDanglingRegistryLayersStmt:              q.listDanglingRegistryLayersStmt,
+		listExpiredSlotsStmt:                        q.listExpiredSlotsStmt,
+		listExpiredTicketsStmt:                      q.listExpiredTicketsStmt,
+		listImageBuildsStmt:                         q.listImageBuildsStmt,
+		listImageBuildsInFlightStmt:                 q.listImageBuildsInFlightStmt,
+		listImageBuildsOfMachineStmt:                q.listImageBuildsOfMachineStmt,
+		listImageProfilesStmt:                       q.listImageProfilesStmt,
+		listInFlightPullMachinesOfRegistryImageStmt: q.listInFlightPullMachinesOfRegistryImageStmt,
+		listInstallationsStmt:                       q.listInstallationsStmt,
+		listJobAttemptsStmt:                         q.listJobAttemptsStmt,
+		listJobHistoryStmt:                          q.listJobHistoryStmt,
+		listJobStepsStmt:                            q.listJobStepsStmt,
+		listLatestFindingsStmt:                      q.listLatestFindingsStmt,
+		listLiveRegistryTokenLeasesStmt:             q.listLiveRegistryTokenLeasesStmt,
+		listMachineLoadStmt:                         q.listMachineLoadStmt,
+		listMachineSlotsStmt:                        q.listMachineSlotsStmt,
+		listMachineTicketsStmt:                      q.listMachineTicketsStmt,
+		listMachinesStmt:                            q.listMachinesStmt,
+		listManagedVariablesStmt:                    q.listManagedVariablesStmt,
+		listNotificationChannelsStmt:                q.listNotificationChannelsStmt,
+		listOldStagedRegistryImagesStmt:             q.listOldStagedRegistryImagesStmt,
+		listOpenGitHubJobsStmt:                      q.listOpenGitHubJobsStmt,
+		listOpenRegistryRecommendationsStmt:         q.listOpenRegistryRecommendationsStmt,
+		listPoolRepositoriesStmt:                    q.listPoolRepositoriesStmt,
+		listQueuedRegistryScansStmt:                 q.listQueuedRegistryScansStmt,
+		listRegistryImageLayersStmt:                 q.listRegistryImageLayersStmt,
+		listRegistryImageMachinesStmt:               q.listRegistryImageMachinesStmt,
+		listRegistryImagesStmt:                      q.listRegistryImagesStmt,
+		listRegistryImagesOfLineageStmt:             q.listRegistryImagesOfLineageStmt,
+		listRegistryLayerHoldersStmt:                q.listRegistryLayerHoldersStmt,
+		listRegistryLayerUseOfImageStmt:             q.listRegistryLayerUseOfImageStmt,
+		listRegistryPointersOfProfileStmt:           q.listRegistryPointersOfProfileStmt,
+		listRegistryPointersOfRepositoryStmt:        q.listRegistryPointersOfRepositoryStmt,
+		listRegistryPointersToStmt:                  q.listRegistryPointersToStmt,
+		listRegistryPullDailyStmt:                   q.listRegistryPullDailyStmt,
+		listRegistryPullsInFlightStmt:               q.listRegistryPullsInFlightStmt,
+		listRegistryPushesInFlightStmt:              q.listRegistryPushesInFlightStmt,
+		listRegistryReplacePlansByStateStmt:         q.listRegistryReplacePlansByStateStmt,
+		listRegistrySupersededDueStmt:               q.listRegistrySupersededDueStmt,
+		listRegistryUnusedCandidatesStmt:            q.listRegistryUnusedCandidatesStmt,
+		listRegistryVariantsDueStmt:                 q.listRegistryVariantsDueStmt,
+		listRepositoriesStmt:                        q.listRepositoriesStmt,
+		listRepositoryProfilesStmt:                  q.listRepositoryProfilesStmt,
+		listRunAttemptsStmt:                         q.listRunAttemptsStmt,
+		listRunFindingsStmt:                         q.listRunFindingsStmt,
+		listRunnersStmt:                             q.listRunnersStmt,
+		listRunningJobsOfRegistryImageStmt:          q.listRunningJobsOfRegistryImageStmt,
+		listRunsOnFindingsStmt:                      q.listRunsOnFindingsStmt,
+		listSettingsStmt:                            q.listSettingsStmt,
+		listUsersStmt:                               q.listUsersStmt,
+		machinePullSpeedStmt:                        q.machinePullSpeedStmt,
+		markBackupDeletedStmt:                       q.markBackupDeletedStmt,
+		markInstallationRemovedStmt:                 q.markInstallationRemovedStmt,
+		markMachineRemovedStmt:                      q.markMachineRemovedStmt,
+		markMachineSeenStmt:                         q.markMachineSeenStmt,
+		markMachinesOfflineStmt:                     q.markMachinesOfflineStmt,
+		markRegistryImageDeletedStmt:                q.markRegistryImageDeletedStmt,
+		promoteRegistryImageStmt:                    q.promoteRegistryImageStmt,
+		pruneDailySummariesStmt:                     q.pruneDailySummariesStmt,
+		pruneJobFactsStmt:                           q.pruneJobFactsStmt,
+		pruneJobStepsStmt:                           q.pruneJobStepsStmt,
+		pruneJobStepsOfJobsStmt:                     q.pruneJobStepsOfJobsStmt,
+		pruneJobsStmt:                               q.pruneJobsStmt,
+		pruneRunsStmt:                               q.pruneRunsStmt,
+		pruneWorkflowGraphsStmt:                     q.pruneWorkflowGraphsStmt,
+		putPendingFactsStmt:                         q.putPendingFactsStmt,
+		putWorkflowGraphStmt:                        q.putWorkflowGraphStmt,
+		queueRegistryScanStmt:                       q.queueRegistryScanStmt,
+		recordSignInStmt:                            q.recordSignInStmt,
+		refuseRegistryImageStmt:                     q.refuseRegistryImageStmt,
+		renameMachineStmt:                           q.renameMachineStmt,
+		restoreRegistryImageStmt:                    q.restoreRegistryImageStmt,
+		revokeCliTokenStmt:                          q.revokeCliTokenStmt,
+		revokeJoinCodeStmt:                          q.revokeJoinCodeStmt,
+		revokeMachineKeysStmt:                       q.revokeMachineKeysStmt,
+		revokeOpenJoinCodesStmt:                     q.revokeOpenJoinCodesStmt,
+		revokeUserCliTokensStmt:                     q.revokeUserCliTokensStmt,
+		setGitHubJobWaitStmt:                        q.setGitHubJobWaitStmt,
+		setImageBuildProgressStmt:                   q.setImageBuildProgressStmt,
+		setImageBuildPushStateStmt:                  q.setImageBuildPushStateStmt,
+		setJobCompletedStmt:                         q.setJobCompletedStmt,
+		setJobForecastStmt:                          q.setJobForecastStmt,
+		setJobSlotStmt:                              q.setJobSlotStmt,
+		setJobStartedStmt:                           q.setJobStartedStmt,
+		setMachineChangeStateStmt:                   q.setMachineChangeStateStmt,
+		setMachineStateStmt:                         q.setMachineStateStmt,
+		setManagedVariableStatusStmt:                q.setManagedVariableStatusStmt,
+		setMetaStmt:                                 q.setMetaStmt,
+		setNotificationChannelTestStmt:              q.setNotificationChannelTestStmt,
+		setPreferencesStmt:                          q.setPreferencesStmt,
+		setRegistryBranchGoneStmt:                   q.setRegistryBranchGoneStmt,
+		setRegistryImageLastPullStmt:                q.setRegistryImageLastPullStmt,
+		setRegistryImageLineageStmt:                 q.setRegistryImageLineageStmt,
+		setRegistryImageScanStateStmt:               q.setRegistryImageScanStateStmt,
+		setRegistryImageSizesStmt:                   q.setRegistryImageSizesStmt,
+		setRegistryImageStateStmt:                   q.setRegistryImageStateStmt,
+		setRegistryLayerChargeStmt:                  q.setRegistryLayerChargeStmt,
+		setRegistryReadOnlyStmt:                     q.setRegistryReadOnlyStmt,
+		setRegistryReplacePlanRolledBackStmt:        q.setRegistryReplacePlanRolledBackStmt,
+		setRegistryReplacePlanStateStmt:             q.setRegistryReplacePlanStateStmt,
+		setRepositoryPoolStmt:                       q.setRepositoryPoolStmt,
+		setRepositoryProfileStmt:                    q.setRepositoryProfileStmt,
+		setRunnerHygieneStmt:                        q.setRunnerHygieneStmt,
+		setRunnerRegistrationStmt:                   q.setRunnerRegistrationStmt,
+		setRunnerStateStmt:                          q.setRunnerStateStmt,
+		setSettingStmt:                              q.setSettingStmt,
+		setTicketWaitReasonStmt:                     q.setTicketWaitReasonStmt,
+		slotLogCutoffStmt:                           q.slotLogCutoffStmt,
+		sumRegistryBytesPulledSinceStmt:             q.sumRegistryBytesPulledSinceStmt,
+		sumRegistryLayersByKindStmt:                 q.sumRegistryLayersByKindStmt,
+		sumRegistryPullDailyByImageSinceStmt:        q.sumRegistryPullDailyByImageSinceStmt,
+		sumRegistryPullDailySinceStmt:               q.sumRegistryPullDailySinceStmt,
+		sumRegistrySharedLayersStmt:                 q.sumRegistrySharedLayersStmt,
+		sumRegistrySharedLayersByKindStmt:           q.sumRegistrySharedLayersByKindStmt,
+		sumRegistryUsedByKindStmt:                   q.sumRegistryUsedByKindStmt,
+		sumRunMinutesSinceStmt:                      q.sumRunMinutesSinceStmt,
+		supersedeRegistryImageStmt:                  q.supersedeRegistryImageStmt,
+		touchSessionStmt:                            q.touchSessionStmt,
+		trimSlotLogStmt:                             q.trimSlotLogStmt,
+		typicalImageBuildSecondsStmt:                q.typicalImageBuildSecondsStmt,
+		updateMachineFactsStmt:                      q.updateMachineFactsStmt,
+		updateMachineSettingsStmt:                   q.updateMachineSettingsStmt,
+		updateNotificationChannelStmt:               q.updateNotificationChannelStmt,
+		updatePlanStmt:                              q.updatePlanStmt,
+		updateRegistryMirrorSettingsStmt:            q.updateRegistryMirrorSettingsStmt,
+		updateRegistrySettingsRowStmt:               q.updateRegistrySettingsRowStmt,
+		updateUserRoleStmt:                          q.updateUserRoleStmt,
+		upsertDailySummaryStmt:                      q.upsertDailySummaryStmt,
+		upsertDoctorStateStmt:                       q.upsertDoctorStateStmt,
+		upsertGitHubAppStmt:                         q.upsertGitHubAppStmt,
+		upsertGitHubJobStmt:                         q.upsertGitHubJobStmt,
+		upsertImageProfileStmt:                      q.upsertImageProfileStmt,
+		upsertInstallationStmt:                      q.upsertInstallationStmt,
+		upsertJobHistoryStmt:                        q.upsertJobHistoryStmt,
+		upsertJobsRowStmt:                           q.upsertJobsRowStmt,
+		upsertManagedVariableStmt:                   q.upsertManagedVariableStmt,
+		upsertRegistryLayerStmt:                     q.upsertRegistryLayerStmt,
+		upsertRegistryPointerStmt:                   q.upsertRegistryPointerStmt,
+		upsertRegistryPullStmt:                      q.upsertRegistryPullStmt,
+		upsertRegistryPushStmt:                      q.upsertRegistryPushStmt,
+		upsertRegistryRecommendationStmt:            q.upsertRegistryRecommendationStmt,
+		upsertRepoPolicyStmt:                        q.upsertRepoPolicyStmt,
+		upsertRepositoryStmt:                        q.upsertRepositoryStmt,
+		upsertRunnerUsageStmt:                       q.upsertRunnerUsageStmt,
+		upsertRunsRowStmt:                           q.upsertRunsRowStmt,
+		upsertTrayBindingStmt:                       q.upsertTrayBindingStmt,
+		useJoinCodeStmt:                             q.useJoinCodeStmt,
+		useLinkCodeStmt:                             q.useLinkCodeStmt,
+		useSetupCodeStmt:                            q.useSetupCodeStmt,
 	}
 }

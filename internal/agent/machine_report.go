@@ -42,7 +42,7 @@ func buildMachineReport(ctx context.Context, sys Sys, facts *agentv1.Facts, imgs
 }
 
 func buildMachineReportWith(ctx context.Context, sys Sys, facts *agentv1.Facts, imgs ImageSource, pkgFails func() []runners.PackageFailure, symlink SymlinkProber, now time.Time) *agentv1.MachineReport {
-	rep := &agentv1.MachineReport{ReportedAtUnixMs: now.UnixMilli(), Kvm: &agentv1.KvmReport{}}
+	rep := &agentv1.MachineReport{ReportedAtUnixMs: now.UnixMilli(), Kvm: &agentv1.KvmReport{}, Registry: true} // Registry: this agent understands the registry calls (R5.19)
 	k := rep.Kvm
 	if sys.GOOS() == "windows" {
 		w := ReadWSLKVM(sys)

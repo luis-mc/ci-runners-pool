@@ -157,9 +157,7 @@ describe('Turn on the pool (findings 11, 14)', () => {
   it('gives an action when no repository is free: install the App', async () => {
     const api = signedIn().on('GET', '/api/v1/github/repositories', page([]));
     renderApp(api, '/repositories/turn-on');
-    expect(
-      await screen.findByRole('button', { name: 'Install the App on a repository' }),
-    ).toBeTruthy();
+    expect(await screen.findByRole('button', { name: 'Add a repository' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Open Repositories' })).toBeTruthy();
   });
 });

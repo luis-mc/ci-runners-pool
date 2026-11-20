@@ -263,7 +263,7 @@ export function TurnOnPoolWizard({ onDone }: { onDone?: () => void }) {
                       <LinkButton to={PUBLIC_SETTING_PATH}>Open the setting</LinkButton>
                     ) : (
                       <InstallAppButton
-                        label="Install the App on a repository"
+                        label="Add a repository"
                         onReturn={() => void readAgain()}
                       />
                     )}

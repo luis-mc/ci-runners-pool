@@ -31,6 +31,7 @@ import {
   type Plan,
   type Repository,
 } from '../repositories/plans';
+import { PullingStep, ReadyMadeLine } from '../registry/PullingStep';
 import { chooseKind, KIND_HELP, KIND_NAMES, type Kind } from './kinds';
 
 const STEPS = ['Runners', 'Review', 'Registering', 'Done'] as const;
@@ -456,6 +457,7 @@ export function AddRunnersWizard() {
           These steps run:
         </Text>
         <BulletList items={(plan?.steps ?? []).map((s) => s.text)} />
+        {picked ? <ReadyMadeLine arch={picked.arch} /> : null}
       </Stack>
     );
   } else if (step === 3) {
@@ -468,6 +470,13 @@ export function AddRunnersWizard() {
           </Message>
         ) : null}
         {stopError ? <Message tone="problem">Could not stop. {stopError}</Message> : null}
+        {picked ? (
+          <PullingStep
+            machineId={picked.id}
+            machineName={picked.name}
+            active={phase === 'running'}
+          />
+        ) : null}
         <Facts
           items={(plan?.steps ?? []).map((s) => ({ name: s.text, value: s.state }))}
         />

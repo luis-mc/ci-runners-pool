@@ -210,20 +210,22 @@ export function RunnersList() {
       id: 'name',
       header: 'Name',
       cell: (r) => <TextLink to={`/pool/runners/${r.id}`}>{r.name}</TextLink>,
+      title: (r) => r.name,
+      grow: 2,
       sort: (r) => r.name,
     },
     {
       id: 'iso',
       header: 'Isolation',
-      cell: (r) => (
-        <Stack gap="tight">
-          <span>{isolationText(r)}</span>
-          <Text tone="muted">{`${r.os} ${r.arch}, ${r.backend}`}</Text>
-          <Text tone="muted">
-            {[KIND_NAMES[r.kind], keepsText(r)].filter(Boolean).join('. ')}
-          </Text>
-        </Stack>
-      ),
+      cell: (r) => isolationText(r),
+      grow: 1,
+      // One line, cut when narrow; the system, the backend and the kind are in the hover text and on the runner's page (UX-72).
+      title: (r) =>
+        [
+          isolationText(r),
+          `${r.os} ${r.arch}, ${r.backend}`,
+          [KIND_NAMES[r.kind], keepsText(r)].filter(Boolean).join('. '),
+        ].join('. '),
       sort: (r) => r.isolation,
     },
     { id: 'labels', header: 'Labels', cell: (r) => <CappedList items={r.labels} /> },
@@ -234,6 +236,7 @@ export function RunnersList() {
         const s = runnerStatus(r);
         return <Status kind={s.kind} word={s.word} />;
       },
+      grow: 2,
       long: (r) => {
         const full = r.unclean_reason
           ? uncleanText(r.unclean_reason)
@@ -466,6 +469,7 @@ export function RunnersList() {
                         rowKey={(r) => r.id}
                         expandLabel="Full error"
                         rowLabel={(r) => r.name}
+                        oneLine
                         action={{
                           label: 'Remove',
                           name: (r) => r.name,

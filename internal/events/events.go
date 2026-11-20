@@ -33,6 +33,8 @@ const (
 	DoctorProgress Type = "doctor.progress"
 	PlanProgress   Type = "plan.progress"
 	ChangeProgress Type = "change.progress"
+	// ImageBuild is a build record that changed (registry R5.72, IMG1).
+	ImageBuild Type = "image.build"
 )
 
 // ErrTooManyStreams is returned by Subscribe past the stream cap (default 50,

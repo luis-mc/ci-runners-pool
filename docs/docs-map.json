@@ -16,8 +16,14 @@
     "apps/web/src/features/users/**": [
       "docs/features/github-integration/spec.md"
     ],
+    "apps/web/src/screens/registry/**": [
+      "docs/features/registry/spec.md"
+    ],
     "cmd/crsp/**": [
       "docs/features/cli/spec.md"
+    ],
+    "cmd/crsp/registry*wiring.go": [
+      "docs/features/registry/spec.md"
     ],
     "cmd/crsp/service_*.go": [
       "docs/features/operations/spec.md"
@@ -31,8 +37,20 @@
     "internal/agent/**": [
       "docs/features/machines/spec.md"
     ],
+    "internal/agent/registry.go": [
+      "docs/features/registry/spec.md"
+    ],
+    "internal/agentlink/registry.go": [
+      "docs/features/registry/spec.md"
+    ],
     "internal/api/handlers_jobs.go": [
       "docs/features/scheduling/spec.md"
+    ],
+    "internal/api/handlers_registry*.go": [
+      "docs/features/registry/spec.md"
+    ],
+    "internal/api/stubs_registry_*.go": [
+      "docs/features/registry/spec.md"
     ],
     "internal/audit/**": [
       "docs/features/observability/spec.md"
@@ -42,6 +60,15 @@
     ],
     "internal/backend/**": [
       "docs/features/runners/spec.md"
+    ],
+    "internal/backend/container/buildstream.go": [
+      "docs/features/registry/spec.md"
+    ],
+    "internal/backend/container/engineca.go": [
+      "docs/features/registry/spec.md"
+    ],
+    "internal/backend/container/ensure.go": [
+      "docs/features/registry/spec.md"
     ],
     "internal/backup/**": [
       "docs/features/operations/spec.md"
@@ -125,6 +152,12 @@
     "internal/regcreds/**": [
       "docs/features/runners/spec.md"
     ],
+    "internal/regcreds/engineca.go": [
+      "docs/features/registry/spec.md"
+    ],
+    "internal/registry/**": [
+      "docs/features/registry/spec.md"
+    ],
     "internal/repos/**": [
       "docs/features/github-integration/spec.md"
     ],
@@ -140,6 +173,21 @@
     ],
     "internal/secrets/**": [
       "docs/features/github-integration/spec.md"
+    ],
+    "internal/store/imagebuilds.go": [
+      "docs/features/registry/spec.md"
+    ],
+    "internal/store/migrations/00019_registry.sql": [
+      "docs/features/registry/spec.md"
+    ],
+    "internal/store/queries/image_builds.sql": [
+      "docs/features/registry/spec.md"
+    ],
+    "internal/store/queries/registry_*.sql": [
+      "docs/features/registry/spec.md"
+    ],
+    "internal/store/registry_core.go": [
+      "docs/features/registry/spec.md"
     ],
     "internal/store/schedstore.go": [
       "docs/features/scheduling/spec.md"

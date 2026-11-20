@@ -130,6 +130,7 @@ type Server struct {
 	secretKeys    map[string]*[2][32]byte      // full repo name -> public, private key
 	Runners       map[string][]*Runner         // scope ("owner/repo" or "org") -> runners
 	WorkflowFiles map[string]map[string]string // full repo name -> path -> content
+	TreeTruncated bool                         // the git tree answer says it was cut short
 	Jobs          []*Job
 	// Deliveries are the App webhook deliveries, newest first.
 	Deliveries    []Delivery
