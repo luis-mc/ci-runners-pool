@@ -5550,6 +5550,8 @@ export interface components {
             id: string;
             rule: components["schemas"]["RegistryRule"];
             image_id?: string;
+            /** @description The image `image_id` names, so a screen needs no second call to name it. */
+            image?: components["schemas"]["RegistryImageSummary"];
             /** @description For replace, the image the new one would replace. */
             other_image_id?: string;
             kind?: components["schemas"]["RegistryImageKind"];
@@ -5592,6 +5594,8 @@ export interface components {
             pushed_at: string;
             /** @description A newer image updates this one (an open replace recommendation). */
             update_found?: boolean;
+            /** @description Whole days since the last pull (the push when never pulled). Present only while an open `unused` recommendation names the image. */
+            unused_days?: number;
         };
         RegistryImageList: {
             items: components["schemas"]["RegistryImageSummary"][];
@@ -5607,12 +5611,21 @@ export interface components {
             promoted_at?: string;
             replaces?: string;
             replaced_by?: string;
+            /** @description A runner uses the image now (a machine of `machines` has `in_use_by_runner`). */
+            in_use?: boolean;
+            /**
+             * Format: int64
+             * @description Bytes of the layers other images hold too (`size_bytes` minus `unique_bytes`).
+             */
+            shared_bytes?: number;
+            /** @description Variants only. Days after its branch is merged or deleted that the image is deleted. */
+            variant_gone_days?: number;
             /** @description The images of the same repository, profile and arch, newest first. */
             lineage: components["schemas"]["RegistryLineageEntry"][];
             layers: components["schemas"]["RegistryLayer"][];
             /** @description 14 days, oldest first; every day present (0 when none). */
             pulls_by_day: components["schemas"]["RegistryPullDay"][];
-            /** @description The text form of the chart (UX-41). */
+            /** @description The text form of the chart (UX-41). Always sent. */
             pulls_text?: string;
             saved_seconds?: number;
             machines: components["schemas"]["RegistryImageMachine"][];
@@ -5631,6 +5644,11 @@ export interface components {
             branch?: string;
             /** Format: date-time */
             pushed_at: string;
+            /**
+             * @description How the entry relates to the image asked for.
+             * @enum {string}
+             */
+            relation?: "replaces" | "replaced_by" | "same_profile";
         };
         RegistryLayer: {
             digest: string;
@@ -5737,7 +5755,8 @@ export interface components {
         RegistryReplacePlanState: "draft" | "running" | "stopped" | "failed" | "done" | "rolled_back";
         RegistryReplacePlanInput: {
             new_image_id: string;
-            keep_days: number;
+            /** @description When absent, the days of the registry settings (`keep_old_days`) are used. */
+            keep_days?: number;
         };
         RegistryReplacePlan: {
             id: string;
@@ -5745,9 +5764,14 @@ export interface components {
             new_image: components["schemas"]["RegistryImageSummary"];
             old_image: components["schemas"]["RegistryImageSummary"];
             keep_days: number;
-            /** Format: date-time */
+            /**
+             * Format: date-time
+             * @description Until when the old image is kept. Before the plan ends it is the date it would be if the plan ended now.
+             */
             keep_until?: string;
             repositories: string[];
+            /** @description What the plan does, in order, with the state of each. The server owns the list and the states. */
+            steps?: components["schemas"]["RegistryReplaceStep"][];
             /** @description Machines that held the old image and are warmed with the new one. */
             machines: string[];
             /** Format: int64 */
@@ -5765,6 +5789,17 @@ export interface components {
             started_at?: string;
             /** Format: date-time */
             finished_at?: string;
+        };
+        RegistryReplaceStep: {
+            /**
+             * @description point moves the pointer of one repository; warm asks the machines to pull the new image; supersede marks the old image superseded.
+             * @enum {string}
+             */
+            kind: "point" | "warm" | "supersede";
+            /** @description The repository of a point step, the machine names of the warm step, empty for supersede. */
+            targets: string[];
+            /** @enum {string} */
+            state: "waiting" | "running" | "done" | "failed";
         };
         RegistryMirrorSettings: {
             enabled: boolean;

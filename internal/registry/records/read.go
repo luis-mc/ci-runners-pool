@@ -59,13 +59,15 @@ type Overview struct {
 	Budgets         []Budget
 	Week            Week
 	Recommendations []registry.Recommendation
-	Standard        int
-	Custom          int
-	Builds          int
-	Pulls           int
-	Pushes          int
-	LastCleanup     *Cleanup
-	NextCleanupAt   time.Time
+	// RecommendedImages are the images the recommendations name, by image id, so a screen needs no second call.
+	RecommendedImages map[string]ImageSummary
+	Standard          int
+	Custom            int
+	Builds            int
+	Pulls             int
+	Pushes            int
+	LastCleanup       *Cleanup
+	NextCleanupAt     time.Time
 }
 
 // ImageSummary is one row of the images list.
@@ -73,6 +75,9 @@ type ImageSummary struct {
 	registry.Image
 	Pulls7Days  int
 	UpdateFound bool
+	// UnusedDays is set while an open "unused" recommendation names the image: whole days since the last pull, or
+	// since the push when it was never pulled.
+	UnusedDays *int
 }
 
 // ImageFilter narrows the images list (R5.34). Zero fields match all.
@@ -85,6 +90,8 @@ type LineageEntry struct {
 	State    registry.State
 	Branch   string
 	PushedAt time.Time
+	// Relation is replaces, replaced_by or same_profile, towards the image asked for.
+	Relation string
 }
 
 // Layer is one layer with the number of other images that hold it.
@@ -129,15 +136,20 @@ type Similar struct {
 // ImageDetail is the image page (R5.35).
 type ImageDetail struct {
 	ImageSummary
-	Lineage      []LineageEntry
-	Layers       []Layer
-	PullsByDay   []PullDay
-	PullsText    string
-	SavedSeconds float64
-	Machines     []Machine
-	Pointers     []registry.Pointer
-	Scan         Scan
-	Similar      []Similar
+	// InUse says a runner uses the image now; SharedBytes are the bytes other images hold too.
+	InUse       bool
+	SharedBytes int64
+	// VariantGoneDays is the setting of the days a variant lives after its branch is gone; 0 for other states.
+	VariantGoneDays int
+	Lineage         []LineageEntry
+	Layers          []Layer
+	PullsByDay      []PullDay
+	PullsText       string
+	SavedSeconds    float64
+	Machines        []Machine
+	Pointers        []registry.Pointer
+	Scan            Scan
+	Similar         []Similar
 }
 
 // Pull is a pull in progress or waiting for the controller (R5.36).
@@ -234,7 +246,21 @@ func (s *Service) Overview(ctx context.Context) (Overview, error) {
 	if err != nil {
 		return Overview{}, err
 	}
+	x, err := s.listExtras(ctx)
+	if err != nil {
+		return Overview{}, err
+	}
+	named := map[string]bool{}
+	for _, r := range ov.Recommendations {
+		if r.ImageID != "" {
+			named[r.ImageID] = true
+		}
+	}
+	ov.RecommendedImages = map[string]ImageSummary{}
 	for _, im := range imgs {
+		if named[im.ID] {
+			ov.RecommendedImages[im.ID] = x.summary(toImage(im), now)
+		}
 		if !promoted(registry.State(im.State)) {
 			continue
 		}
@@ -309,28 +335,57 @@ func orderRecommendations(rows []sqlcgen.RegistryRecommendation) []registry.Reco
 	return out
 }
 
-// pulls7 is the pulls of the last 7 days per image id, and the replace recommendations by the image they would
-// replace.
-func (s *Service) listExtras(ctx context.Context) (map[string]int, map[string]bool, error) {
+// extras are the figures of a list row that come from other tables.
+type extras struct {
+	pulls   map[string]int
+	updated map[string]bool
+	// unused holds the images an open "unused" recommendation names.
+	unused map[string]bool
+}
+
+// summary builds the list row of an image.
+func (x extras) summary(img registry.Image, now time.Time) ImageSummary {
+	out := ImageSummary{Image: img, Pulls7Days: x.pulls[img.ID], UpdateFound: x.updated[img.ID]}
+	if x.unused[img.ID] {
+		since := img.LastPullAt
+		if since.IsZero() {
+			since = img.PushedAt
+		}
+		if !since.IsZero() {
+			d := int(now.Sub(since) / (24 * time.Hour))
+			if d < 0 {
+				d = 0
+			}
+			out.UnusedDays = &d
+		}
+	}
+	return out
+}
+
+// listExtras reads the pulls of the last 7 days per image id, the replace recommendations by the image they would
+// replace, and the images an open "unused" recommendation names.
+func (s *Service) listExtras(ctx context.Context) (extras, error) {
 	rows, err := s.q.SumRegistryPullDailyByImageSince(ctx, s.day(s.now().AddDate(0, 0, -(WeekDays-1))))
 	if err != nil {
-		return nil, nil, err
+		return extras{}, err
 	}
-	pulls := map[string]int{}
+	x := extras{pulls: map[string]int{}, updated: map[string]bool{}, unused: map[string]bool{}}
 	for _, r := range rows {
-		pulls[r.ImageID] = int(r.Pulls)
+		x.pulls[r.ImageID] = int(r.Pulls)
 	}
 	recs, err := s.q.ListOpenRegistryRecommendations(ctx)
 	if err != nil {
-		return nil, nil, err
+		return extras{}, err
 	}
-	updated := map[string]bool{}
 	for _, r := range recs {
 		if r.Rule == string(registry.RuleReplace) && r.OtherImageID != "" {
-			updated[r.OtherImageID] = true
+			x.updated[r.OtherImageID] = true
+		}
+		if r.Rule == string(registry.RuleUnused) && r.ImageID != "" {
+			x.unused[r.ImageID] = true
 		}
 	}
-	return pulls, updated, nil
+	return x, nil
 }
 
 // Images lists images newest first (R5.34). Deleted images are never listed; staged and refused ones only when the
@@ -355,10 +410,11 @@ func (s *Service) Images(ctx context.Context, f ImageFilter) ([]ImageSummary, er
 			viaPointer[ptr.ImageID] = true
 		}
 	}
-	pulls, updated, err := s.listExtras(ctx)
+	x, err := s.listExtras(ctx)
 	if err != nil {
 		return nil, err
 	}
+	now := s.now()
 	out := make([]ImageSummary, 0, len(rows))
 	for _, r := range rows {
 		st := registry.State(r.State)
@@ -371,7 +427,7 @@ func (s *Service) Images(ctx context.Context, f ImageFilter) ([]ImageSummary, er
 		if f.Repository != "" && r.SourceRepository != f.Repository && !viaPointer[r.ID] {
 			continue
 		}
-		out = append(out, ImageSummary{Image: toImage(r), Pulls7Days: pulls[r.ID], UpdateFound: updated[r.ID]})
+		out = append(out, x.summary(toImage(r), now))
 	}
 	return out, nil
 }
@@ -395,11 +451,21 @@ func (s *Service) ImageDetail(ctx context.Context, id string) (ImageDetail, erro
 		return ImageDetail{}, err
 	}
 	img := toImage(row)
-	pulls, updated, err := s.listExtras(ctx)
+	x, err := s.listExtras(ctx)
 	if err != nil {
 		return ImageDetail{}, err
 	}
-	d := ImageDetail{ImageSummary: ImageSummary{Image: img, Pulls7Days: pulls[id], UpdateFound: updated[id]}}
+	d := ImageDetail{ImageSummary: x.summary(img, s.now())}
+	if d.SharedBytes = img.SizeBytes - img.UniqueBytes; d.SharedBytes < 0 {
+		d.SharedBytes = 0
+	}
+	if img.State == registry.StateVariant {
+		set, err := s.q.GetRegistrySettingsRow(ctx)
+		if err != nil {
+			return ImageDetail{}, fmt.Errorf("read the registry settings: %w", err)
+		}
+		d.VariantGoneDays = int(set.VariantGoneDays)
+	}
 
 	lin, err := s.q.ListRegistryImagesOfLineage(ctx, sqlcgen.ListRegistryImagesOfLineageParams{
 		Kind: row.Kind, ProfileID: row.ProfileID, Arch: row.Arch, SourceRepository: row.SourceRepository})
@@ -408,8 +474,15 @@ func (s *Service) ImageDetail(ctx context.Context, id string) (ImageDetail, erro
 	}
 	d.Lineage = []LineageEntry{}
 	for _, l := range lin {
+		rel := "same_profile"
+		switch {
+		case l.ID == img.Replaces:
+			rel = "replaces"
+		case l.ID == img.ReplacedBy:
+			rel = "replaced_by"
+		}
 		d.Lineage = append(d.Lineage, LineageEntry{ImageID: l.ID, Key: registry.Key(l.ImageTag), State: registry.State(l.State),
-			Branch: l.Branch, PushedAt: parseStamp(l.PushedAt)})
+			Branch: l.Branch, PushedAt: parseStamp(l.PushedAt), Relation: rel})
 	}
 
 	layers, err := s.q.ListRegistryImageLayers(ctx, id)
@@ -442,6 +515,7 @@ func (s *Service) ImageDetail(ctx context.Context, id string) (ImageDetail, erro
 		last, _ := m.LastAt.(string)
 		d.Machines = append(d.Machines, Machine{ID: m.MachineID, Name: mi.Name, Holds: mi.Holds,
 			InUseByRunner: mi.InUseByRunner, LastUsedAt: parseStamp(last)})
+		d.InUse = d.InUse || mi.InUseByRunner
 	}
 
 	ptrs, err := s.q.ListRegistryPointersTo(ctx, id)
