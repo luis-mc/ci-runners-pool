@@ -218,7 +218,7 @@ jobs:
         if: ${{ always() }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: ci-go-test-times-${{ toLower(runner.os) }}
+          name: ci-go-test-times-${{ matrix.os }}
           path: test-results/go-test.json
           if-no-files-found: ignore
       # doctor R5.42, runners R5.68: the unit tests fake the link, so this one
