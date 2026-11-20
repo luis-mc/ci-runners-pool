@@ -1688,10 +1688,11 @@ legend > .ds-field__changed {
   max-inline-size: none;
   align-content: end;
 }
+/* CRSP208: a field name is shown whole (UX-72): it wraps at a word, or anywhere for a very long one, and the
+   input under it stays on the row's bottom edge. It is never cut by an ellipsis. */
 .ds-field-grid .ds-field__label {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 .ds-field-grid .ds-input,
 .ds-field-grid .ds-number {
