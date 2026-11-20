@@ -130,7 +130,7 @@ Every group names the task that owns it. "Must" is binding.
 
 **R5.13** — `PrepareImage` becomes: local engine, then `EnsureImage`, then pull by digest, else build (IMG1) and push. The order is fixed.
 
-**R5.14** — When the controller does not answer (offline, no session), the job **waits** for it and its log shows "Waiting for the controller to say whether the image is in the registry" with the time waited; there is no local build in that case (owner decision).
+**R5.14** — When the controller does not answer (offline, no session), the job **waits** for it and its log shows "Waiting for the controller to say whether the image is in the registry" with the time waited; there is no local build in that case (owner decision). Every job-log word of the registry flow is a row of the "Registry job-log words" table in `docs/design-system/next-version/content.md`, and `internal/backend/container/words_test.go` fails when a Go string and its row differ (REG13).
 
 **R5.15** — A local build happens only on a clear `OUTCOME_NOT_FOUND`. `OUTCOME_BUSY` is asked again after `retry_after_ms`, never built on.
 
