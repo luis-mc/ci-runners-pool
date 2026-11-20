@@ -7,7 +7,7 @@ status: proposed
 version: 0.1.0
 owner: owner
 type: reference
-code: ["internal/insights/**", "internal/jobsdata/reconcile/**", "internal/agent/jobsample/**", "internal/github/rest_insights*.go", "internal/doctor/checks/workflows*.go", "internal/agentlink/insights*.go", "internal/agent/jobsample*.go", "cmd/crsp/insights*wiring.go", "internal/store/insights*.go", "internal/store/queries/insights_*.sql", "internal/store/migrations/00030_ci_insights.sql", "internal/api/handlers_insights*.go", "internal/api/stubs_insights.go", "apps/web/src/screens/insights/**"]
+code: ["internal/insights/**", "internal/jobsdata/reconcile/**", "internal/agent/jobsample/**", "internal/github/rest_insights*.go", "internal/doctor/checks/workflows*.go", "internal/agentlink/insights*.go", "internal/agent/jobsample*.go", "cmd/crsp/insights*wiring.go", "internal/store/insights*.go", "internal/store/queries/insights_*.sql", "internal/store/migrations/00030_ci_insights.sql", "internal/api/handlers_insights*.go", "apps/web/src/screens/insights/**"]
 design_system: [UX-4, UX-6, UX-11, UX-14, UX-17, UX-18, UX-19, UX-25, UX-28, UX-29, UX-30, UX-33, UX-38, UX-41, UX-49, UX-52, UX-53, UX-54, UX-58, UX-62, UX-71, UX-72]
 last_verified: 2026-11-20
 artifact:
@@ -349,7 +349,7 @@ A subject is the stable key of a finding inside its kind; the store keeps one op
 
 - Migration `internal/store/migrations/00030_ci_insights.sql`: `insight_findings`, `insight_analyser_runs`, `insight_plans`, `ci_job_logs`, `ci_report_files`, `test_results`, `job_resource_samples`, `job_resource_summary`, `workflow_checks`, `guardrail_reports`, `insight_digests`, and the job columns `runner_origin`, `runner_group`, `runner_labels`, `steps_source`, `checked_at`. Numbers 00022 to 00029 stay reserved for the registry wave.
 - Queries in `internal/store/queries/insights_*.sql`, one file per family; sqlc writes `internal/store/sqlcgen/insights_*.sql.go`.
-- API: `/api/v1/insights/*`, `/api/v1/runs/{runId}/savings`, `/api/v1/repositories/{repositoryId}/workflow-checks`, `/api/v1/jobs/{jobId}/resources`; new optional fields on `Job` and `Settings`. Stubs in `internal/api/stubs_insights.go`.
+- API: `/api/v1/insights/*`, `/api/v1/runs/{runId}/savings`, `/api/v1/repositories/{repositoryId}/workflow-checks`, `/api/v1/jobs/{jobId}/resources`; new optional fields on `Job` and `Settings`. Handlers in `internal/api/handlers_insights.go` (CIX21); a service not wired answers 501.
 - Agent link: `JobResourceSamples` (request field 31), protocol version 4. The agent sends it only when the controller's HelloAck says version 4 or more.
 
 ### The queue estimate
@@ -414,10 +414,10 @@ Every row is planned; the paths are where each test will live (wave CIX).
 | R5.36 | planned: internal/insights/tests/duplicate_test.go TestSameIdTwoJobs |
 | R5.37 | planned: internal/insights/tests/assertions_test.go TestZeroOnlyWhenReported |
 | R5.38 | planned: internal/insights/digest/digest_test.go TestWeeklyFileTopThree |
-| R5.39 | planned: internal/jobsdata/reconcile/origin_test.go TestCrspOtherHosted; apps/web/src/screens/jobs/JobPage.test.tsx |
+| R5.39 | internal/api/handlers_insights_test.go TestRunnerInfoOnJob; planned: internal/jobsdata/reconcile/origin_test.go TestCrspOtherHosted; apps/web/src/screens/jobs/JobPage.test.tsx |
 | R5.40 | planned: internal/jobsdata/reconcile/steps_test.go TestStepsByRESTOnce |
 | R5.41 | planned: internal/jobsdata/reconcile/stale_test.go TestStaleQueuedBecomesDone, TestGoneBecomesLost |
-| R5.42 | planned: internal/api/handlers_insights_test.go TestRolesAndShapes |
+| R5.42 | internal/api/handlers_insights_test.go TestRolesAndShapes, TestWaitSplitHoldCapAndRanges, TestTimelineSpan, TestUnwiredServiceAnswers501 |
 | R5.43 | planned: internal/doctor/checks/workflows_test.go TestWorkflowFindings |
 | R6.1 | planned: internal/insights/collect/budget_test.go TestQuarterShareAndOrder |
 | R6.2 | planned: internal/insights/collect/retention_test.go TestDefaultsFloorsCeilings |
@@ -459,10 +459,11 @@ Contract (CIX8):
 - internal/agent/jobsample/ (sampler interface)
 - internal/jobsdata/reconcile/ (interfaces)
 - internal/store/migrations/00030_ci_insights.sql, internal/store/queries/insights_*.sql
-- internal/api/stubs_insights.go
+- internal/api/handlers_insights.go, internal/api/jobs_mapping.go, cmd/crsp/insights_wiring.go
 
 Source: internal/insights/insights.go
 Source: internal/store/migrations/00030_ci_insights.sql
-Source: internal/api/stubs_insights.go
+Source: internal/api/handlers_insights.go
+Source: cmd/crsp/insights_wiring.go
 
-Planned: internal/github/rest_insights.go, internal/github/rest_insights_jobs.go, internal/doctor/checks/workflows.go, internal/agentlink/insights.go, cmd/crsp/insights_wiring.go, internal/store/insights*.go, internal/api/handlers_insights*.go, apps/web/src/screens/insights/.
+Planned: internal/github/rest_insights.go, internal/github/rest_insights_jobs.go, internal/doctor/checks/workflows.go, internal/agentlink/insights.go, internal/store/insights*.go, apps/web/src/screens/insights/.

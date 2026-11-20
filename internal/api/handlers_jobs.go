@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -279,10 +280,20 @@ func (s *server) ListJobs(ctx context.Context, req gen.ListJobsRequestObject) (g
 		rows = rows[:limit]
 		page.NextCursor = ptr("j" + strconv.FormatInt(rows[len(rows)-1].ID, 10))
 	}
+	infos := s.runnerInfos(ctx, jobIDs(rows))
+	if f.State == jobsdata.Queued || f.State == jobsdata.Running {
+		// Queue and Running list only jobs crsp can run (owner decision D7).
+		rows = slices.DeleteFunc(rows, func(r jobsdata.Job) bool { return infos[r.ID].elsewhere() })
+	}
 	items, err := s.jobItems(ctx, rows)
 	if err != nil {
 		s.opts.Logger.Error("list jobs", "err", err)
 		return fail(http.StatusInternalServerError, CodeInternal, "internal error")
+	}
+	for i := range items {
+		if in, ok := infos[items[i].Id]; ok {
+			items[i] = withRunnerInfo(items[i], in)
+		}
 	}
 	page.Items = items
 	return gen.ListJobs200JSONResponse(page), nil
@@ -380,7 +391,18 @@ func (s *server) GetJob(ctx context.Context, req gen.GetJobRequestObject) (gen.G
 		s.opts.Logger.Error("get job", "err", err)
 		return fail(http.StatusInternalServerError, CodeInternal, "internal error")
 	}
+	if in, ok := s.runnerInfos(ctx, []int64{body.Id})[body.Id]; ok {
+		body.Job = withRunnerInfo(body.Job, in)
+	}
 	return jobDetailResponse(body), nil
+}
+
+func jobIDs(rows []jobsdata.Job) []int64 {
+	ids := make([]int64, 0, len(rows))
+	for _, r := range rows {
+		ids = append(ids, r.ID)
+	}
+	return ids
 }
 
 // jobDetail builds the detail: the job with its forecast and queue place, its steps with a forecast where step
