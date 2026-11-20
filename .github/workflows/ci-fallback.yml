@@ -1,0 +1,44 @@
+# Hosted-runner fallback for ONE waiting shard (Option 4). Started by fallback_launch.py (`gh workflow run`),
+# never by a push. It checks out the commit, sets up, takes the claim last and only then runs the shard.
+# No watchdog job: the watcher is the session that opened the run plus the hourly routine.
+name: ci-fallback
+on:
+  workflow_dispatch:
+    inputs:
+      sha: {description: "full commit sha", required: true}
+      shard: {description: "shard id from ci-shards.json", required: true}
+      os: {description: "linux or windows", required: true, default: linux}
+permissions:
+  contents: write    # the claim and the result branch are pushed as branches
+  statuses: write    # the one commit status for the shard
+jobs:
+  shard:
+    name: fallback ${{ inputs.shard }}
+    runs-on: ${{ inputs.os == 'windows' && 'windows-latest' || 'ubuntu-latest' }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with: {ref: "${{ inputs.sha }}", fetch-depth: 1}
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.12"}
+      # Project setup (same pins as ci.yml): Go, pnpm, node, frozen install. Before the claim.
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - name: Install (frozen)
+        shell: bash
+        run: |
+          go mod download
+          pnpm install --frozen-lockfile
+      - name: Claim last, then run the shard
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: python scripts/delivery/fallback_run.py --sha "${{ inputs.sha }}" --shard "${{ inputs.shard }}" --who hosted
