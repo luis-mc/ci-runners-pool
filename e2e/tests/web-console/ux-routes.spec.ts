@@ -27,6 +27,10 @@ const TABS = [
   },
 ];
 
+// Every case opens its own page against the shared read-only server, so the cases run in parallel and Playwright
+// splits them across shards (one serial file put all of them on one shard).
+test.describe.configure({ mode: 'parallel' });
+
 const routes = [
   ...consoleRoutes(),
   ...TABS,
