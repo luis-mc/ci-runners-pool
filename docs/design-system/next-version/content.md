@@ -1070,6 +1070,23 @@ The words of the new Jobs section (web-console 4.6, proposed). A wait names what
 | expands at run time | Marks a matrix job or a reusable workflow in the job graph. |
 | Arrows come from the workflow file at commit {sha} (read once per commit and kept). | Line over the job graph. When the file cannot be read: "no arrows are drawn: jobs that ran at the same time are shown side by side. This is a guess from timing, not from the workflow." |
 
+### One-line row words (CRSP210, UX-72)
+
+The short forms a one-line table shows; the whole line is the hover text and sits under the row's button (*Why*, *Details*). A workflow is its file name (`ci.yml`), the run number is the *Run* column (`#44723830522`, `, attempt 2`).
+
+| Wait reason | Short form |
+| --- | --- |
+| free slot | waits for a slot |
+| load over budget | machine load too high |
+| no runner with labels | no runner with its labels |
+| repository parallel limit | repository limit |
+| machine drained | machine not taking jobs |
+| quiet hours | quiet hours |
+| load not measured | load not measured yet |
+| paused | machine paused |
+| on battery | machine on battery |
+| unknown | reason not known yet |
+
 ### Row action words (RES17, UX-72)
 
 One word set for the button at the end of a table row. The guard reads this table: a label not listed here fails the `rowActionWords` guard of `e2e/tests/web-console/ux-routes.spec.ts` and the Jobs rows spec `e2e/tests/web-console/ux-jobs-rows.spec.ts`.
