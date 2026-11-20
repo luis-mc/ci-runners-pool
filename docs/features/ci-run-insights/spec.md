@@ -404,8 +404,8 @@ Every row is planned; the paths are where each test will live (wave CIX).
 | R5.26 | planned: internal/insights/runs/superseded_test.go TestRetestedTree |
 | R5.27 | planned: internal/insights/runs/failfast_test.go TestMinutesAfterFirstFailure |
 | R5.28 | planned: internal/insights/waits/housekeeping_test.go TestShortJobsWaitingLong |
-| R5.29 | planned: internal/insights/workflows/checks_test.go TestEachCheck |
-| R5.30 | planned: internal/doctor/checks/workflows_test.go TestWorkflowFindings; apps/web/src/screens/insights/RepositoryPanes.test.tsx |
+| R5.29 | internal/insights/workflows/checks_test.go TestEachCheck, TestStepOrderLintAfterTest, TestMatrixAxisGrowth; internal/store/insights_checks_test.go TestWorkflowChecksStoreRoundTrip |
+| R5.30 | internal/insights/workflows/checks_test.go TestAnalyserFindings; internal/doctor/checks/workflows_test.go TestWorkflowFindings; planned: apps/web/src/screens/insights/RepositoryPanes.test.tsx |
 | R5.31 | planned: internal/insights/guardrails/report_test.go TestParseGuardJSON |
 | R5.32 | planned: internal/insights/guardrails/status_test.go TestOwnChecksAndSources |
 | R5.33 | planned: internal/insights/tests/parsers_test.go TestEachFormatFromFixture |
@@ -418,7 +418,7 @@ Every row is planned; the paths are where each test will live (wave CIX).
 | R5.40 | planned: internal/jobsdata/reconcile/steps_test.go TestStepsByRESTOnce |
 | R5.41 | planned: internal/jobsdata/reconcile/stale_test.go TestStaleQueuedBecomesDone, TestGoneBecomesLost |
 | R5.42 | planned: internal/api/handlers_insights_test.go TestRolesAndShapes |
-| R5.43 | planned: internal/doctor/checks/workflows_test.go TestWorkflowFindings |
+| R5.43 | internal/doctor/checks/workflows_test.go TestWorkflowFindings, TestWorkflowFindingsWithoutSource |
 | R6.1 | planned: internal/insights/collect/budget_test.go TestQuarterShareAndOrder |
 | R6.2 | planned: internal/insights/collect/retention_test.go TestDefaultsFloorsCeilings |
 | R6.3 | planned: internal/insights/engine_bench_test.go BenchmarkPass20kJobs |

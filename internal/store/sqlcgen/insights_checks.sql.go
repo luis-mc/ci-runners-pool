@@ -113,6 +113,71 @@ func (q *Queries) ListGuardrailReportsSince(ctx context.Context, arg ListGuardra
 	return items, nil
 }
 
+const listGuardrailStatusRows = `-- name: ListGuardrailStatusRows :many
+SELECT g.repository_id, r.full_name, g.run_id, g.head_sha, g.guardrail, g.source, g.state, g.count, g.known_count,
+       g.reason, g.breaks, g.reported_at
+FROM guardrail_reports g JOIN repositories r ON r.id = g.repository_id
+WHERE (?1 = 0 OR g.repository_id = ?1) AND g.reported_at >= ?2
+ORDER BY g.repository_id, g.guardrail, g.reported_at
+`
+
+type ListGuardrailStatusRowsParams struct {
+	RepositoryID interface{}
+	Since        string
+}
+
+type ListGuardrailStatusRowsRow struct {
+	RepositoryID int64
+	FullName     string
+	RunID        int64
+	HeadSha      string
+	Guardrail    string
+	Source       string
+	State        string
+	Count        int64
+	KnownCount   int64
+	Reason       string
+	Breaks       string
+	ReportedAt   string
+}
+
+// Guardrail rows of one repository (repository_id > 0) or of all (0) since a time, with the repository name (R5.32).
+func (q *Queries) ListGuardrailStatusRows(ctx context.Context, arg ListGuardrailStatusRowsParams) ([]ListGuardrailStatusRowsRow, error) {
+	rows, err := q.query(ctx, q.listGuardrailStatusRowsStmt, listGuardrailStatusRows, arg.RepositoryID, arg.Since)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListGuardrailStatusRowsRow
+	for rows.Next() {
+		var i ListGuardrailStatusRowsRow
+		if err := rows.Scan(
+			&i.RepositoryID,
+			&i.FullName,
+			&i.RunID,
+			&i.HeadSha,
+			&i.Guardrail,
+			&i.Source,
+			&i.State,
+			&i.Count,
+			&i.KnownCount,
+			&i.Reason,
+			&i.Breaks,
+			&i.ReportedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listWorkflowChecksForCommit = `-- name: ListWorkflowChecksForCommit :many
 SELECT repository_id, head_sha, workflow, check_id, job, status, line, detail, guardrail, default_branch, checked_at FROM workflow_checks WHERE repository_id = ? AND head_sha = ? ORDER BY workflow, job, check_id
 `

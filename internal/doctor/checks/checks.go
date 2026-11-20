@@ -67,6 +67,7 @@ func Register(reg *doctor.Registry) {
 	} {
 		reg.Register(c)
 	}
+	registerWorkflowChecks(reg)
 }
 
 // controllerSubject is the subject of findings that concern the whole controller.
