@@ -23,7 +23,7 @@ One numbered section per shared component. A part that nearly fits is extended w
 ## 3. Tabs
 
 - **Used for:** switching between views of the same thing. A tab never starts work. Tabs keep their panels mounted, so a tab keeps its state when the user comes back.
-- **Looks:** labels over one panel. When the labels do not fit the width the row wraps onto as many rows as it needs; it never scrolls sideways (UX-68, owner decision LOOK D6). The first label starts on the frame's left edge, where the page title and the top menu start (UX-69): a tab has no side padding, and the gap between labels is `--ds-space-5`. A label is never cut: one that does not fit goes to the next row whole (only a label wider than the whole row breaks, at its spaces), so at 360 and 393 px the row is two or three lines. The page header or the first pane under the row is one page gap (`--ds-space-5`) below it (LOOK36). The chosen tab is bold, in the primary colour, with a 3 px underline, so colour is not the only sign. The row is a tab list with arrow-key movement. The top menu wraps the same way.
+- **Looks:** labels over one panel. When the labels do not fit the width the row wraps onto as many rows as it needs; it never scrolls sideways (UX-68, owner decision LOOK D6). The first label starts on the frame's left edge, where the page title and the top menu start (UX-69): a tab has no side padding, and the gap between labels is `--ds-space-5`. A short label keeps the touch target: a tab is at least `--ds-target-min` wide (UX-16). A label is never cut: one that does not fit goes to the next row whole (only a label wider than the whole row breaks, at its spaces), so at 360 and 393 px the row is two or three lines. The page header or the first pane under the row is one page gap (`--ds-space-5`) below it (LOOK36). The chosen tab is bold, in the primary colour, with a 3 px underline, so colour is not the only sign. The row is a tab list with arrow-key movement. The top menu wraps the same way.
 - **Source:** `packages/ui/src/components/Controls.tsx` (`Tabs`)
 - **Rules:** UX-1, UX-8, UX-17, UX-68.
 - **Guard:** `packages/ui/src/components/Pane.test.tsx` (Tabs); `e2e/tests/web-console/ux-routes.spec.ts` (`tabEdges`, `tabGap`); `e2e/tests/design-layout.spec.ts` (tab row, title gap and left edges).
@@ -56,7 +56,7 @@ One numbered section per shared component. A part that nearly fits is extended w
 ## 7. Buttons
 
 - **Used for:** every action. Primary, secondary and quiet styles. A running button is not pressable and says it is running.
-- **Looks:** a filled primary, an outlined secondary and a text-only quiet button, all with a clear focus ring. A button and a chip are as wide as their label (`white-space: nowrap`, `flex: none`, `min-inline-size: max-content`): a long label gets a short word (*Set up parity*), it never wraps or shrinks.
+- **Looks:** a filled primary, an outlined secondary and a text-only quiet button, all with a clear focus ring. A button and a chip are as wide as their label (`white-space: nowrap`, `flex: none`, `inline-size: max-content`, `min-inline-size: var(--ds-target-min)`): a long label gets a short word (*Set up parity*), it never wraps or shrinks.
 - **Source:** `src/ui/button`
 - **Rules:** UX-4, UX-8, UX-13, UX-16.
 - **Guard:** `e2e/tests/web-console/ux-routes.spec.ts` (`wrapped`, `wordBroken`: a button label is on one line and no word is broken inside).
