@@ -37,6 +37,10 @@ enum ProtocolVersion {
   // agent asks only when the controller's HelloAck says version 3 or more; the
   // controller answers only an agent whose MachineReport says `registry`.
   PROTOCOL_VERSION_3 = 3;
+  // Version 4 adds JobResourceSamples (CIX8, docs/features/ci-run-insights
+  // R5.19): CPU and memory per running job. An agent sends it only when the
+  // controller's HelloAck says version 4 or more.
+  PROTOCOL_VERSION_4 = 4;
 }
 
 // AgentService is the link from an agent to its controller.
@@ -122,6 +126,8 @@ message SessionRequest {
     PullReport pull_report = 29;
     // IMG1: the life of one image build (R5.68, R5.69). Protocol version 3.
     BuildReport build_report = 30;
+    // CIX8: CPU and memory per running job (ci-run-insights R5.19). Protocol version 4.
+    JobResourceSamples job_resource_samples = 31;
   }
 }
 
@@ -1245,4 +1251,34 @@ message PullReport {
   string job_id = 11;
   string error = 12;
   int64 at_unix_ms = 13;
+}
+
+// ---------------------------------------------------------------- CI run insights
+
+// JobResourceSamples carries the CPU and memory of one running job
+// (ci-run-insights R5.19, R5.20). The agent samples every 5 seconds the job's
+// container cgroup (container and VM backends) or the runner's process tree
+// (a persistent runner), and sends a batch about every 15 seconds and a final
+// one when the job ends. The controller answers nothing; a lost batch only
+// leaves a gap. Protocol version 4.
+message JobResourceSamples {
+  string runner_id = 1;
+  JobRef job = 2;
+  // What was measured: "cgroup" or "process_tree".
+  string source = 3;
+  repeated JobResourceSample samples = 4;
+  // True on the last batch of the job, sent when the job ends.
+  bool final = 5;
+  // Why a value could not be read; samples then have known = false.
+  string unknown_reason = 6;
+}
+
+// JobResourceSample is one reading.
+message JobResourceSample {
+  int64 at_unix_ms = 1;
+  // CPU cores used since the previous sample, times 1000.
+  int64 cpu_millis = 2;
+  // Resident memory of the job, in bytes.
+  int64 memory_bytes = 3;
+  bool known = 4;
 }

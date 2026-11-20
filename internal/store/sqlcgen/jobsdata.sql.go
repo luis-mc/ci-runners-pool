@@ -56,7 +56,7 @@ func (q *Queries) DeletePendingFacts(ctx context.Context, jobID int64) error {
 
 const getJobsRow = `-- name: GetJobsRow :one
 
-SELECT id, repository_id, repository, run_id, run_attempt, workflow, name, job_type, matrix, job_ident, branch, head_sha, event, labels, state, result, html_url, created_at, queued_at, slot_at, started_at, completed_at, cleanup_ms, machine_id, machine_name, runner_id, runner_name, runner_kind, backend, isolation, cache, wait_reason, wait_text, worktree, light, fc_lo_ms, fc_mid_ms, fc_hi_ms, fc_basis, fc_samples, updated_at FROM jobs WHERE id = ?
+SELECT id, repository_id, repository, run_id, run_attempt, workflow, name, job_type, matrix, job_ident, branch, head_sha, event, labels, state, result, html_url, created_at, queued_at, slot_at, started_at, completed_at, cleanup_ms, machine_id, machine_name, runner_id, runner_name, runner_kind, backend, isolation, cache, wait_reason, wait_text, worktree, light, fc_lo_ms, fc_mid_ms, fc_hi_ms, fc_basis, fc_samples, updated_at, runner_origin, runner_group, runner_labels, steps_source, checked_at FROM jobs WHERE id = ?
 `
 
 // The Jobs section (internal/jobsdata): runs, jobs, steps, daily summaries, workflow graphs. The filtered
@@ -106,6 +106,11 @@ func (q *Queries) GetJobsRow(ctx context.Context, id int64) (Job, error) {
 		&i.FcBasis,
 		&i.FcSamples,
 		&i.UpdatedAt,
+		&i.RunnerOrigin,
+		&i.RunnerGroup,
+		&i.RunnerLabels,
+		&i.StepsSource,
+		&i.CheckedAt,
 	)
 	return i, err
 }
@@ -559,8 +564,8 @@ func (q *Queries) UpsertDailySummary(ctx context.Context, arg UpsertDailySummary
 }
 
 const upsertJobsRow = `-- name: UpsertJobsRow :exec
-INSERT INTO jobs (id, repository_id, repository, run_id, run_attempt, workflow, name, job_type, matrix, job_ident, branch, head_sha, event, labels, state, result, html_url, created_at, queued_at, slot_at, started_at, completed_at, cleanup_ms, machine_id, machine_name, runner_id, runner_name, runner_kind, backend, isolation, cache, wait_reason, wait_text, worktree, light, fc_lo_ms, fc_mid_ms, fc_hi_ms, fc_basis, fc_samples, updated_at)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+INSERT INTO jobs (id, repository_id, repository, run_id, run_attempt, workflow, name, job_type, matrix, job_ident, branch, head_sha, event, labels, state, result, html_url, created_at, queued_at, slot_at, started_at, completed_at, cleanup_ms, machine_id, machine_name, runner_id, runner_name, runner_kind, backend, isolation, cache, wait_reason, wait_text, worktree, light, fc_lo_ms, fc_mid_ms, fc_hi_ms, fc_basis, fc_samples, updated_at, runner_origin, runner_group, runner_labels, steps_source, checked_at)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 ON CONFLICT (id) DO UPDATE SET
     repository_id = excluded.repository_id,
     repository = excluded.repository,
@@ -601,7 +606,14 @@ ON CONFLICT (id) DO UPDATE SET
     fc_hi_ms = excluded.fc_hi_ms,
     fc_basis = excluded.fc_basis,
     fc_samples = excluded.fc_samples,
-    updated_at = excluded.updated_at
+    updated_at = excluded.updated_at,
+    -- CIX8 (ci-run-insights R5.39 to R5.41): the reconcile sets these; an ingest upsert that does not know
+    -- them (empty) keeps what is stored.
+    runner_origin = CASE WHEN excluded.runner_origin != '' THEN excluded.runner_origin ELSE jobs.runner_origin END,
+    runner_group = CASE WHEN excluded.runner_group != '' THEN excluded.runner_group ELSE jobs.runner_group END,
+    runner_labels = CASE WHEN excluded.runner_labels NOT IN ('', '[]') THEN excluded.runner_labels ELSE jobs.runner_labels END,
+    steps_source = CASE WHEN excluded.steps_source != '' THEN excluded.steps_source ELSE jobs.steps_source END,
+    checked_at = CASE WHEN excluded.checked_at != '' THEN excluded.checked_at ELSE jobs.checked_at END
 `
 
 type UpsertJobsRowParams struct {
@@ -646,6 +658,11 @@ type UpsertJobsRowParams struct {
 	FcBasis      string
 	FcSamples    int64
 	UpdatedAt    string
+	RunnerOrigin string
+	RunnerGroup  string
+	RunnerLabels string
+	StepsSource  string
+	CheckedAt    string
 }
 
 func (q *Queries) UpsertJobsRow(ctx context.Context, arg UpsertJobsRowParams) error {
@@ -691,6 +708,11 @@ func (q *Queries) UpsertJobsRow(ctx context.Context, arg UpsertJobsRowParams) er
 		arg.FcBasis,
 		arg.FcSamples,
 		arg.UpdatedAt,
+		arg.RunnerOrigin,
+		arg.RunnerGroup,
+		arg.RunnerLabels,
+		arg.StepsSource,
+		arg.CheckedAt,
 	)
 	return err
 }

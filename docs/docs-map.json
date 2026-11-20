@@ -16,11 +16,17 @@
     "apps/web/src/features/users/**": [
       "docs/features/github-integration/spec.md"
     ],
+    "apps/web/src/screens/insights/**": [
+      "docs/features/ci-run-insights/spec.md"
+    ],
     "apps/web/src/screens/registry/**": [
       "docs/features/registry/spec.md"
     ],
     "cmd/crsp/**": [
       "docs/features/cli/spec.md"
+    ],
+    "cmd/crsp/insights*wiring.go": [
+      "docs/features/ci-run-insights/spec.md"
     ],
     "cmd/crsp/registry*wiring.go": [
       "docs/features/registry/spec.md"
@@ -37,17 +43,32 @@
     "internal/agent/**": [
       "docs/features/machines/spec.md"
     ],
+    "internal/agent/jobsample*.go": [
+      "docs/features/ci-run-insights/spec.md"
+    ],
+    "internal/agent/jobsample/**": [
+      "docs/features/ci-run-insights/spec.md"
+    ],
     "internal/agent/registry.go": [
       "docs/features/registry/spec.md"
     ],
+    "internal/agentlink/insights*.go": [
+      "docs/features/ci-run-insights/spec.md"
+    ],
     "internal/agentlink/registry.go": [
       "docs/features/registry/spec.md"
+    ],
+    "internal/api/handlers_insights*.go": [
+      "docs/features/ci-run-insights/spec.md"
     ],
     "internal/api/handlers_jobs.go": [
       "docs/features/scheduling/spec.md"
     ],
     "internal/api/handlers_registry*.go": [
       "docs/features/registry/spec.md"
+    ],
+    "internal/api/stubs_insights.go": [
+      "docs/features/ci-run-insights/spec.md"
     ],
     "internal/api/stubs_registry_*.go": [
       "docs/features/registry/spec.md"
@@ -101,6 +122,9 @@
     "internal/doctor/**": [
       "docs/features/doctor/spec.md"
     ],
+    "internal/doctor/checks/workflows*.go": [
+      "docs/features/ci-run-insights/spec.md"
+    ],
     "internal/envsets/**": [
       "docs/features/runners/spec.md"
     ],
@@ -110,14 +134,23 @@
     "internal/github/**": [
       "docs/features/github-integration/spec.md"
     ],
+    "internal/github/rest_insights*.go": [
+      "docs/features/ci-run-insights/spec.md"
+    ],
     "internal/history/**": [
       "docs/features/observability/spec.md"
     ],
     "internal/hooks/**": [
       "docs/features/scheduling/spec.md"
     ],
+    "internal/insights/**": [
+      "docs/features/ci-run-insights/spec.md"
+    ],
     "internal/install/**": [
       "docs/features/operations/spec.md"
+    ],
+    "internal/jobsdata/reconcile/**": [
+      "docs/features/ci-run-insights/spec.md"
     ],
     "internal/load/**": [
       "docs/features/machines/spec.md"
@@ -177,11 +210,20 @@
     "internal/store/imagebuilds.go": [
       "docs/features/registry/spec.md"
     ],
+    "internal/store/insights*.go": [
+      "docs/features/ci-run-insights/spec.md"
+    ],
     "internal/store/migrations/00019_registry.sql": [
       "docs/features/registry/spec.md"
     ],
+    "internal/store/migrations/00030_ci_insights.sql": [
+      "docs/features/ci-run-insights/spec.md"
+    ],
     "internal/store/queries/image_builds.sql": [
       "docs/features/registry/spec.md"
+    ],
+    "internal/store/queries/insights_*.sql": [
+      "docs/features/ci-run-insights/spec.md"
     ],
     "internal/store/queries/registry_*.sql": [
       "docs/features/registry/spec.md"

@@ -2807,6 +2807,306 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/insights/findings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The Do next list across projects
+         * @description ci-run-insights R5.11 (CIX). Open findings ranked by minutes saved a week, then by first seen. No route dismisses a finding (R5.8).
+         */
+        get: operations["listInsightFindings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/insights/findings/{findingId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * One finding with its evidence
+         * @description ci-run-insights R5.7 (CIX).
+         */
+        get: operations["getInsightFinding"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/insights/findings/{findingId}/plans": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Make the plan of a setup change (nothing changes yet)
+         * @description ci-run-insights R5.10 (CIX). The plan is the Review step's data. 409 conflict when the finding has no action or is resolved.
+         */
+        post: operations["createInsightPlan"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/insights/plans/{planId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * One plan with its progress
+         * @description ci-run-insights R5.10 (CIX). The wizard reads this after a reload.
+         */
+        get: operations["getInsightPlan"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/insights/plans/{planId}/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Make the reviewed change
+         * @description ci-run-insights R5.10, R6.6 (CIX). 409 conflict unless the plan is draft. Each change writes an audit row.
+         */
+        post: operations["startInsightPlan"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/insights/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The count and minutes the Overview shows
+         * @description ci-run-insights R5.11 (CIX). The Overview only shows and links (UX-52).
+         */
+        get: operations["getInsightSummary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/insights/waits": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Wait, hold and run per repository, job key or day
+         * @description ci-run-insights R5.12 to R5.14 (CIX).
+         */
+        get: operations["getWaitSplit"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/insights/timeline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Which project held which runner when
+         * @description ci-run-insights R5.21 (CIX). At most 24 hours; the last 24 hours when from and to are absent.
+         */
+        get: operations["getPoolTimeline"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/insights/pool-sizing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Demand per label set and the wait with more slots
+         * @description ci-run-insights R5.15 to R5.17 (CIX). Estimates, labelled as such.
+         */
+        get: operations["getPoolSizing"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/insights/tests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Slowest, flaky, duplicated and empty tests
+         * @description ci-run-insights R5.33 to R5.37 (CIX).
+         */
+        get: operations["listTestInsights"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/insights/guardrails": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * G1 to G7 per project
+         * @description ci-run-insights R5.31, R5.32 (CIX).
+         */
+        get: operations["listGuardrailStatus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/insights/digests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The last weekly digests, with their text
+         * @description ci-run-insights R5.38 (CIX). The files stay local; nothing is sent.
+         */
+        get: operations["listInsightDigests"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/runs/{runId}/savings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * How much sooner the run could have ended
+         * @description ci-run-insights R5.23 to R5.27 (CIX).
+         */
+        get: operations["getRunSavings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/repositories/{repositoryId}/workflow-checks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Workflow file checks of the latest default-branch commit
+         * @description ci-run-insights R5.29, R5.30 (CIX).
+         */
+        get: operations["listWorkflowChecks"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/jobs/{jobId}/resources": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * CPU and memory of one job
+         * @description ci-run-insights R5.19, R5.20 (CIX).
+         */
+        get: operations["getJobResources"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -4531,6 +4831,25 @@ export interface components {
             queue_position?: number;
             queue_eta?: components["schemas"]["Eta"];
             forecast?: components["schemas"]["Forecast"];
+            /**
+             * @description ci-run-insights R5.39. Who ran the job; absent while not known.
+             * @enum {string}
+             */
+            runner_origin?: "crsp" | "other" | "hosted";
+            /** @description GitHub's runner group name of the runner that ran the job. */
+            runner_group?: string;
+            /** @description The labels of the runner that ran the job, as GitHub reports them. */
+            runner_labels?: string[];
+            /**
+             * @description ci-run-insights R5.40. Where the steps came from.
+             * @enum {string}
+             */
+            steps_source?: "events" | "rest";
+            /**
+             * Format: date-time
+             * @description ci-run-insights R5.41. When crsp last re-read the job from GitHub.
+             */
+            checked_at?: string;
         };
         JobPage: {
             items: components["schemas"]["Job"][];
@@ -5038,6 +5357,20 @@ export interface components {
             max_event_streams?: number;
             /** @description github-integration R5.43. How long no crsp machine of an operating system must have been up before a repository that turned the hosted fallback on runs on GitHub-hosted runners. Default 3. */
             fallback_grace_minutes?: number;
+            /** @description ci-run-insights R5.5. Keep CI logs and test reports on the owner's machines (owner decision D4). On by default. */
+            insights_keep_ci_data?: boolean;
+            /** @description ci-run-insights R5.5, R6.2. Default 30. */
+            insights_ci_data_days?: number;
+            /** @description ci-run-insights R5.5, R6.2. Default 1024. */
+            insights_ci_data_mib_per_repository?: number;
+            /** @description ci-run-insights R5.5, R6.2. Default 90. */
+            insights_test_results_days?: number;
+            /** @description ci-run-insights R5.5, R6.2. Default 7. */
+            insights_resource_samples_days?: number;
+            /** @description ci-run-insights R5.14. Default 120. */
+            insights_hold_cap_seconds?: number;
+            /** @description ci-run-insights R5.31. Name pattern of the guard report artifact. Default test-guardrails*. */
+            insights_guardrail_artifact?: string;
             /** @description operations R5.15. On by default. When on, a newer stable release installs by itself after a drain. When off, the console Review step asks first. */
             auto_update?: boolean;
         };
@@ -5907,6 +6240,319 @@ export interface components {
         RegistryPullList: {
             items: components["schemas"]["RegistryPull"][];
         };
+        /**
+         * @description ci-run-insights section 7. The screen area a finding belongs to.
+         * @enum {string}
+         */
+        InsightArea: "waits" | "pool" | "runs" | "workflows" | "guardrails" | "tests";
+        /**
+         * @description The dev-standards test guardrails G1 to G7.
+         * @enum {string}
+         */
+        Guardrail: "G1" | "G2" | "G3" | "G4" | "G5" | "G6" | "G7";
+        /**
+         * @description ci-run-insights R5.10. A setup change crsp can make after Review; absent when the fix is outside crsp.
+         * @enum {string}
+         */
+        InsightActionKind: "machine_slots" | "repo_parallel_limit" | "light_lane";
+        /** @description ci-run-insights R5.7. Text fields are plain words, shown as text, never as markup. */
+        InsightFinding: {
+            /** Format: int64 */
+            id: number;
+            /** @description The finding kind of ci-run-insights section 7, such as wait.hold or workflow.timeout. */
+            kind: string;
+            /** @enum {string} */
+            scope: "repo" | "pool";
+            /** Format: int64 */
+            repository_id?: number;
+            repository?: string;
+            /** @description What it is about inside its kind (a job key, a label set, a workflow file, a test). */
+            subject?: string;
+            area: components["schemas"]["InsightArea"];
+            title: string;
+            fix: string;
+            /** @description A workflow snippet for the fix, shown in a copyable block. */
+            snippet?: string;
+            /** @description The numbers the finding page shows; its keys depend on the kind. */
+            evidence: {
+                [key: string]: unknown;
+            };
+            /** @description An estimate (R5.9). */
+            minutes_saved_week: number;
+            guardrail?: components["schemas"]["Guardrail"];
+            action_kind?: components["schemas"]["InsightActionKind"];
+            /** Format: date-time */
+            first_seen: string;
+            /** Format: date-time */
+            last_seen: string;
+            /** Format: date-time */
+            resolved_at?: string;
+        };
+        InsightFindingList: {
+            items: components["schemas"]["InsightFinding"][];
+            total: number;
+            next_cursor?: string;
+            not_read_yet?: components["schemas"]["InsightBacklog"];
+        };
+        /** @description ci-run-insights R6.1. Work waiting for the GitHub hourly limit. */
+        InsightBacklog: {
+            jobs: number;
+            /** Format: date-time */
+            until?: string;
+        };
+        InsightSummary: {
+            open: number;
+            minutes_saved_week: number;
+            /** @description False under 50 finished jobs in the window. */
+            enough_data?: boolean;
+        };
+        InsightPlanChange: {
+            /** @description The machine id or repository it changes. */
+            target: string;
+            target_name?: string;
+            /** @description The setting, such as job_slots, light_slots or max_parallel_jobs. */
+            field: string;
+            from: number;
+            to: number;
+            words: string;
+            /** @description Running jobs the change waits for (UX-62). */
+            jobs_waited_for?: string[];
+        };
+        InsightPlanResult: {
+            target: string;
+            field: string;
+            /** @enum {string} */
+            state: "pending" | "done" | "failed" | "skipped";
+            error?: string;
+        };
+        InsightPlan: {
+            id: string;
+            /** Format: int64 */
+            finding_id: number;
+            action_kind: components["schemas"]["InsightActionKind"];
+            /** @enum {string} */
+            state: "draft" | "running" | "done" | "failed" | "stopped";
+            changes: components["schemas"]["InsightPlanChange"][];
+            results: components["schemas"]["InsightPlanResult"][];
+            /** @description The estimate in words, such as "p95 wait from about 9 to about 3 min". */
+            estimate?: string;
+            created_by?: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            started_at?: string;
+            /** Format: date-time */
+            finished_at?: string;
+        };
+        WaitSplitRow: {
+            /** @description The repository, the job key or the day (year-month-day, UTC). */
+            key: string;
+            jobs: number;
+            wait: components["schemas"]["DurationStats"];
+            hold: components["schemas"]["DurationStats"];
+            run: components["schemas"]["DurationStats"];
+            holds_over_cap?: number;
+            /** @description Holds over the cap by reason (image_pull, runner_start, registration, load, unknown). */
+            hold_reasons?: {
+                [key: string]: number;
+            };
+        };
+        DurationStats: {
+            /** Format: int64 */
+            total_seconds: number;
+            p50_seconds?: number;
+            p95_seconds?: number;
+            /** @description Jobs with a known value; unknown is never counted as 0. */
+            known?: number;
+        };
+        WaitSplit: {
+            days: number;
+            /** @enum {string} */
+            group: "repository" | "job_key" | "day";
+            hold_cap_seconds: number;
+            rows: components["schemas"]["WaitSplitRow"][];
+        };
+        TimelineSegment: {
+            /** @enum {string} */
+            kind: "job" | "idle";
+            /** Format: date-time */
+            start: string;
+            /** Format: date-time */
+            end: string;
+            /** Format: int64 */
+            job_id?: number;
+            repository?: string;
+            job_ident?: string;
+            event?: string;
+            markers?: ("idle_while_waiting" | "after_merge_work")[];
+            /** @description For a marked segment, the jobs that waited meanwhile. */
+            waiting_job_ids?: number[];
+        };
+        TimelineLane: {
+            runner_name: string;
+            /** @enum {string} */
+            origin: "crsp" | "other" | "hosted";
+            machine_name?: string;
+            labels?: string[];
+            segments: components["schemas"]["TimelineSegment"][];
+        };
+        PoolTimeline: {
+            /** Format: date-time */
+            from: string;
+            /** Format: date-time */
+            to: string;
+            lanes: components["schemas"]["TimelineLane"][];
+        };
+        SlotEstimate: {
+            extra_slots: number;
+            /** @description Absent when the queue would still grow. */
+            mean_wait_seconds?: number;
+            p95_wait_seconds?: number;
+            utilisation?: number;
+        };
+        LabelSetDemand: {
+            labels: string[];
+            slots: number;
+            /** @description Busy slot minutes over available slot minutes, 0 to 1 (can exceed 1 when the queue grows). */
+            utilisation: number;
+            jobs_per_hour: number;
+            mean_service_seconds?: number;
+            cv_arrivals?: number;
+            cv_service?: number;
+            p50_wait_seconds?: number;
+            p95_wait_seconds?: number;
+            /** @description Set when the queue grows; the smallest slot count with utilisation under 0.85. */
+            min_slots_needed?: number;
+            estimates: components["schemas"]["SlotEstimate"][];
+            p95_wait_by_day?: components["schemas"]["DayValue"][];
+        };
+        DayValue: {
+            /** Format: date */
+            day: string;
+            value: number;
+        };
+        PoolSizing: {
+            days: number;
+            /** @description The estimate's method in words (Allen-Cunneen with Sakasegawa). */
+            method: string;
+            label_sets: components["schemas"]["LabelSetDemand"][];
+        };
+        TestInsight: {
+            test_id: string;
+            name: string;
+            suite?: string;
+            file?: string;
+            repository: string;
+            job_idents?: string[];
+            /** @enum {string} */
+            kind?: "unit" | "integration" | "e2e";
+            runs: number;
+            failures?: number;
+            p50_ms?: number;
+            p95_ms?: number;
+            /** @description Set when the p95 is over the G1 limit of its kind. */
+            over_limit_seconds?: number;
+            flaky_runs?: number;
+            /** @description -1 when the format does not report them. */
+            assertions?: number;
+            /** Format: date-time */
+            last_seen?: string;
+        };
+        TestInsightList: {
+            items: components["schemas"]["TestInsight"][];
+            total: number;
+            next_cursor?: string;
+            /** @description False when no test report was found in the window. */
+            reports_found: boolean;
+        };
+        GuardrailState: {
+            guardrail: components["schemas"]["Guardrail"];
+            /** @enum {string} */
+            state: "pass" | "break" | "off" | "unknown";
+            count?: number;
+            reason?: string;
+            /** @enum {string} */
+            source: "guard_report" | "crsp";
+            /** Format: date-time */
+            reported_at?: string;
+        };
+        GuardrailStatus: {
+            /** Format: int64 */
+            repository_id: number;
+            repository: string;
+            guardrails: components["schemas"]["GuardrailState"][];
+            /** @description The guard's known-list count per day, 30 days. */
+            known_count_by_day?: components["schemas"]["DayValue"][];
+        };
+        GuardrailStatusList: {
+            items: components["schemas"]["GuardrailStatus"][];
+        };
+        InsightDigest: {
+            /** @example 2026-W47 */
+            week: string;
+            /** Format: date-time */
+            written_at: string;
+            /** @description The digest file's Markdown, shown as text. */
+            text: string;
+        };
+        InsightDigestList: {
+            items: components["schemas"]["InsightDigest"][];
+        };
+        RunSaving: {
+            minutes: number;
+            /** @description "The run would end {n} min sooner if {change}." */
+            words: string;
+            job: string;
+            /** @enum {string} */
+            change?: "no_wait" | "median_run" | "start_after_needs";
+        };
+        RunWaste: {
+            /** @enum {string} */
+            kind: "superseded" | "duplicate_event" | "retested_tree" | "fail_fast";
+            minutes: number;
+            words: string;
+        };
+        RunSavings: {
+            savings: components["schemas"]["RunSaving"][];
+            waste: components["schemas"]["RunWaste"][];
+            /** @description Why nothing is computed (the run is not finished, no needs graph). */
+            reason?: string;
+        };
+        WorkflowCheck: {
+            workflow: string;
+            /** @enum {string} */
+            check_id: "workflow.timeout" | "workflow.retry" | "workflow.matrix_axis" | "workflow.step_order" | "workflow.cache" | "workflow.slow_tests_on_pr";
+            job?: string;
+            /** @enum {string} */
+            status: "ok" | "fail" | "skip";
+            line?: number;
+            detail?: string;
+            guardrail?: components["schemas"]["Guardrail"];
+        };
+        WorkflowCheckList: {
+            head_sha?: string;
+            /** Format: date-time */
+            checked_at?: string;
+            items: components["schemas"]["WorkflowCheck"][];
+        };
+        ResourceSample: {
+            /** Format: date-time */
+            at: string;
+            cpu_cores: number;
+            /** Format: int64 */
+            memory_bytes: number;
+            known?: boolean;
+        };
+        JobResources: {
+            samples: components["schemas"]["ResourceSample"][];
+            cpu_p95_cores?: number;
+            cpu_peak_cores?: number;
+            /** Format: int64 */
+            memory_p95_bytes?: number;
+            /** Format: int64 */
+            memory_peak_bytes?: number;
+            unknown_reason?: string;
+        };
     };
     responses: {
         /** @description Any error, in the error envelope. */
@@ -5975,6 +6621,7 @@ export interface components {
         SetName: string;
         RunnerId: string;
         JobId: number;
+        FindingId: number;
         RunId: string;
         BackupId: string;
         ImageId: string;
@@ -9897,6 +10544,365 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    listInsightFindings: {
+        parameters: {
+            query?: {
+                repository_id?: number;
+                area?: components["schemas"]["InsightArea"];
+                guardrail?: components["schemas"]["Guardrail"];
+                state?: "open" | "resolved";
+                limit?: number;
+                cursor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page of findings. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InsightFindingList"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getInsightFinding: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                findingId: components["parameters"]["FindingId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The finding. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InsightFinding"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    createInsightPlan: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                findingId: components["parameters"]["FindingId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The plan, in draft. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InsightPlan"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getInsightPlan: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                planId: components["parameters"]["PlanId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The plan. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InsightPlan"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    startInsightPlan: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                planId: components["parameters"]["PlanId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Running. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InsightPlan"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getInsightSummary: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The summary. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InsightSummary"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getWaitSplit: {
+        parameters: {
+            query?: {
+                days?: 7 | 14 | 30;
+                group?: "repository" | "job_key" | "day";
+                repository_id?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The split. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WaitSplit"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getPoolTimeline: {
+        parameters: {
+            query?: {
+                from?: string;
+                to?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The lanes. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PoolTimeline"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getPoolSizing: {
+        parameters: {
+            query?: {
+                days?: 7 | 14 | 30;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The sizing. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PoolSizing"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    listTestInsights: {
+        parameters: {
+            query?: {
+                view?: "slowest" | "flaky" | "duplicated" | "no_assertions";
+                repository_id?: number;
+                days?: 7 | 14 | 30;
+                limit?: number;
+                cursor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page of tests. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TestInsightList"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    listGuardrailStatus: {
+        parameters: {
+            query?: {
+                repository_id?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One row per project. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GuardrailStatusList"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    listInsightDigests: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Up to 12 digests, newest first. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InsightDigestList"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getRunSavings: {
+        parameters: {
+            query?: {
+                attempt?: number;
+            };
+            header?: never;
+            path: {
+                runId: components["parameters"]["RunId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Up to 3 savings and the run's waste notes. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunSavings"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    listWorkflowChecks: {
+        parameters: {
+            query?: {
+                /** @description Another commit; the latest default-branch commit checked when absent. */
+                head_sha?: string;
+            };
+            header?: never;
+            path: {
+                /** @description The numeric GitHub repository id. */
+                repositoryId: components["parameters"]["RepositoryId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The checks. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkflowCheckList"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getJobResources: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                jobId: components["parameters"]["JobId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The samples and the summary. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobResources"];
+                };
             };
             default: components["responses"]["Error"];
         };

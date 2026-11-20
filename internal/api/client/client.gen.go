@@ -566,6 +566,81 @@ func (e GithubGrantStepId) Valid() bool {
 	}
 }
 
+// Defines values for Guardrail.
+const (
+	G1 Guardrail = "G1"
+	G2 Guardrail = "G2"
+	G3 Guardrail = "G3"
+	G4 Guardrail = "G4"
+	G5 Guardrail = "G5"
+	G6 Guardrail = "G6"
+	G7 Guardrail = "G7"
+)
+
+// Valid indicates whether the value is a known member of the Guardrail enum.
+func (e Guardrail) Valid() bool {
+	switch e {
+	case G1:
+		return true
+	case G2:
+		return true
+	case G3:
+		return true
+	case G4:
+		return true
+	case G5:
+		return true
+	case G6:
+		return true
+	case G7:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for GuardrailStateSource.
+const (
+	GuardrailStateSourceCrsp        GuardrailStateSource = "crsp"
+	GuardrailStateSourceGuardReport GuardrailStateSource = "guard_report"
+)
+
+// Valid indicates whether the value is a known member of the GuardrailStateSource enum.
+func (e GuardrailStateSource) Valid() bool {
+	switch e {
+	case GuardrailStateSourceCrsp:
+		return true
+	case GuardrailStateSourceGuardReport:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for GuardrailStateState.
+const (
+	GuardrailStateStateBreak   GuardrailStateState = "break"
+	GuardrailStateStateOff     GuardrailStateState = "off"
+	GuardrailStateStatePass    GuardrailStateState = "pass"
+	GuardrailStateStateUnknown GuardrailStateState = "unknown"
+)
+
+// Valid indicates whether the value is a known member of the GuardrailStateState enum.
+func (e GuardrailStateState) Valid() bool {
+	switch e {
+	case GuardrailStateStateBreak:
+		return true
+	case GuardrailStateStateOff:
+		return true
+	case GuardrailStateStatePass:
+		return true
+	case GuardrailStateStateUnknown:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for HealthStatus.
 const (
 	HealthStatusOk HealthStatus = "ok"
@@ -728,6 +803,126 @@ func (e ImagePushState) Valid() bool {
 	}
 }
 
+// Defines values for InsightActionKind.
+const (
+	LightLane         InsightActionKind = "light_lane"
+	MachineSlots      InsightActionKind = "machine_slots"
+	RepoParallelLimit InsightActionKind = "repo_parallel_limit"
+)
+
+// Valid indicates whether the value is a known member of the InsightActionKind enum.
+func (e InsightActionKind) Valid() bool {
+	switch e {
+	case LightLane:
+		return true
+	case MachineSlots:
+		return true
+	case RepoParallelLimit:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for InsightArea.
+const (
+	InsightAreaGuardrails InsightArea = "guardrails"
+	InsightAreaPool       InsightArea = "pool"
+	InsightAreaRuns       InsightArea = "runs"
+	InsightAreaTests      InsightArea = "tests"
+	InsightAreaWaits      InsightArea = "waits"
+	InsightAreaWorkflows  InsightArea = "workflows"
+)
+
+// Valid indicates whether the value is a known member of the InsightArea enum.
+func (e InsightArea) Valid() bool {
+	switch e {
+	case InsightAreaGuardrails:
+		return true
+	case InsightAreaPool:
+		return true
+	case InsightAreaRuns:
+		return true
+	case InsightAreaTests:
+		return true
+	case InsightAreaWaits:
+		return true
+	case InsightAreaWorkflows:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for InsightFindingScope.
+const (
+	InsightFindingScopePool InsightFindingScope = "pool"
+	InsightFindingScopeRepo InsightFindingScope = "repo"
+)
+
+// Valid indicates whether the value is a known member of the InsightFindingScope enum.
+func (e InsightFindingScope) Valid() bool {
+	switch e {
+	case InsightFindingScopePool:
+		return true
+	case InsightFindingScopeRepo:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for InsightPlanState.
+const (
+	InsightPlanStateDone    InsightPlanState = "done"
+	InsightPlanStateDraft   InsightPlanState = "draft"
+	InsightPlanStateFailed  InsightPlanState = "failed"
+	InsightPlanStateRunning InsightPlanState = "running"
+	InsightPlanStateStopped InsightPlanState = "stopped"
+)
+
+// Valid indicates whether the value is a known member of the InsightPlanState enum.
+func (e InsightPlanState) Valid() bool {
+	switch e {
+	case InsightPlanStateDone:
+		return true
+	case InsightPlanStateDraft:
+		return true
+	case InsightPlanStateFailed:
+		return true
+	case InsightPlanStateRunning:
+		return true
+	case InsightPlanStateStopped:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for InsightPlanResultState.
+const (
+	InsightPlanResultStateDone    InsightPlanResultState = "done"
+	InsightPlanResultStateFailed  InsightPlanResultState = "failed"
+	InsightPlanResultStatePending InsightPlanResultState = "pending"
+	InsightPlanResultStateSkipped InsightPlanResultState = "skipped"
+)
+
+// Valid indicates whether the value is a known member of the InsightPlanResultState enum.
+func (e InsightPlanResultState) Valid() bool {
+	switch e {
+	case InsightPlanResultStateDone:
+		return true
+	case InsightPlanResultStateFailed:
+		return true
+	case InsightPlanResultStatePending:
+		return true
+	case InsightPlanResultStateSkipped:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for InstallationAccountType.
 const (
 	InstallationAccountTypeOrganization InstallationAccountType = "Organization"
@@ -809,6 +1004,27 @@ func (e JobJobType) Valid() bool {
 	}
 }
 
+// Defines values for JobRunnerOrigin.
+const (
+	JobRunnerOriginCrsp   JobRunnerOrigin = "crsp"
+	JobRunnerOriginHosted JobRunnerOrigin = "hosted"
+	JobRunnerOriginOther  JobRunnerOrigin = "other"
+)
+
+// Valid indicates whether the value is a known member of the JobRunnerOrigin enum.
+func (e JobRunnerOrigin) Valid() bool {
+	switch e {
+	case JobRunnerOriginCrsp:
+		return true
+	case JobRunnerOriginHosted:
+		return true
+	case JobRunnerOriginOther:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for JobState.
 const (
 	JobStateDone    JobState = "done"
@@ -824,6 +1040,24 @@ func (e JobState) Valid() bool {
 	case JobStateQueued:
 		return true
 	case JobStateRunning:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for JobStepsSource.
+const (
+	JobStepsSourceEvents JobStepsSource = "events"
+	JobStepsSourceRest   JobStepsSource = "rest"
+)
+
+// Valid indicates whether the value is a known member of the JobStepsSource enum.
+func (e JobStepsSource) Valid() bool {
+	switch e {
+	case JobStepsSourceEvents:
+		return true
+	case JobStepsSourceRest:
 		return true
 	default:
 		return false
@@ -851,6 +1085,27 @@ func (e JobDetailJobType) Valid() bool {
 	}
 }
 
+// Defines values for JobDetailRunnerOrigin.
+const (
+	JobDetailRunnerOriginCrsp   JobDetailRunnerOrigin = "crsp"
+	JobDetailRunnerOriginHosted JobDetailRunnerOrigin = "hosted"
+	JobDetailRunnerOriginOther  JobDetailRunnerOrigin = "other"
+)
+
+// Valid indicates whether the value is a known member of the JobDetailRunnerOrigin enum.
+func (e JobDetailRunnerOrigin) Valid() bool {
+	switch e {
+	case JobDetailRunnerOriginCrsp:
+		return true
+	case JobDetailRunnerOriginHosted:
+		return true
+	case JobDetailRunnerOriginOther:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for JobDetailState.
 const (
 	JobDetailStateDone    JobDetailState = "done"
@@ -866,6 +1121,24 @@ func (e JobDetailState) Valid() bool {
 	case JobDetailStateQueued:
 		return true
 	case JobDetailStateRunning:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for JobDetailStepsSource.
+const (
+	JobDetailStepsSourceEvents JobDetailStepsSource = "events"
+	JobDetailStepsSourceRest   JobDetailStepsSource = "rest"
+)
+
+// Valid indicates whether the value is a known member of the JobDetailStepsSource enum.
+func (e JobDetailStepsSource) Valid() bool {
+	switch e {
+	case JobDetailStepsSourceEvents:
+		return true
+	case JobDetailStepsSourceRest:
 		return true
 	default:
 		return false
@@ -2279,6 +2552,27 @@ func (e RunItemState) Valid() bool {
 	}
 }
 
+// Defines values for RunSavingChange.
+const (
+	MedianRun       RunSavingChange = "median_run"
+	NoWait          RunSavingChange = "no_wait"
+	StartAfterNeeds RunSavingChange = "start_after_needs"
+)
+
+// Valid indicates whether the value is a known member of the RunSavingChange enum.
+func (e RunSavingChange) Valid() bool {
+	switch e {
+	case MedianRun:
+		return true
+	case NoWait:
+		return true
+	case StartAfterNeeds:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for RunSummaryState.
 const (
 	RunSummaryStateDone    RunSummaryState = "done"
@@ -2294,6 +2588,30 @@ func (e RunSummaryState) Valid() bool {
 	case RunSummaryStateQueued:
 		return true
 	case RunSummaryStateRunning:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RunWasteKind.
+const (
+	RunWasteKindDuplicateEvent RunWasteKind = "duplicate_event"
+	RunWasteKindFailFast       RunWasteKind = "fail_fast"
+	RunWasteKindRetestedTree   RunWasteKind = "retested_tree"
+	RunWasteKindSuperseded     RunWasteKind = "superseded"
+)
+
+// Valid indicates whether the value is a known member of the RunWasteKind enum.
+func (e RunWasteKind) Valid() bool {
+	switch e {
+	case RunWasteKindDuplicateEvent:
+		return true
+	case RunWasteKindFailFast:
+		return true
+	case RunWasteKindRetestedTree:
+		return true
+	case RunWasteKindSuperseded:
 		return true
 	default:
 		return false
@@ -2663,6 +2981,27 @@ func (e StepItemState) Valid() bool {
 	}
 }
 
+// Defines values for TestInsightKind.
+const (
+	E2e         TestInsightKind = "e2e"
+	Integration TestInsightKind = "integration"
+	Unit        TestInsightKind = "unit"
+)
+
+// Valid indicates whether the value is a known member of the TestInsightKind enum.
+func (e TestInsightKind) Valid() bool {
+	switch e {
+	case E2e:
+		return true
+	case Integration:
+		return true
+	case Unit:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for Theme.
 const (
 	ThemeDark   Theme = "dark"
@@ -2678,6 +3017,63 @@ func (e Theme) Valid() bool {
 	case ThemeLight:
 		return true
 	case ThemeSystem:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for TimelineLaneOrigin.
+const (
+	TimelineLaneOriginCrsp   TimelineLaneOrigin = "crsp"
+	TimelineLaneOriginHosted TimelineLaneOrigin = "hosted"
+	TimelineLaneOriginOther  TimelineLaneOrigin = "other"
+)
+
+// Valid indicates whether the value is a known member of the TimelineLaneOrigin enum.
+func (e TimelineLaneOrigin) Valid() bool {
+	switch e {
+	case TimelineLaneOriginCrsp:
+		return true
+	case TimelineLaneOriginHosted:
+		return true
+	case TimelineLaneOriginOther:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for TimelineSegmentKind.
+const (
+	TimelineSegmentKindIdle TimelineSegmentKind = "idle"
+	TimelineSegmentKindJob  TimelineSegmentKind = "job"
+)
+
+// Valid indicates whether the value is a known member of the TimelineSegmentKind enum.
+func (e TimelineSegmentKind) Valid() bool {
+	switch e {
+	case TimelineSegmentKindIdle:
+		return true
+	case TimelineSegmentKindJob:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for TimelineSegmentMarkers.
+const (
+	AfterMergeWork   TimelineSegmentMarkers = "after_merge_work"
+	IdleWhileWaiting TimelineSegmentMarkers = "idle_while_waiting"
+)
+
+// Valid indicates whether the value is a known member of the TimelineSegmentMarkers enum.
+func (e TimelineSegmentMarkers) Valid() bool {
+	switch e {
+	case AfterMergeWork:
+		return true
+	case IdleWhileWaiting:
 		return true
 	default:
 		return false
@@ -2903,6 +3299,27 @@ func (e WaitReason) Valid() bool {
 	}
 }
 
+// Defines values for WaitSplitGroup.
+const (
+	WaitSplitGroupDay        WaitSplitGroup = "day"
+	WaitSplitGroupJobKey     WaitSplitGroup = "job_key"
+	WaitSplitGroupRepository WaitSplitGroup = "repository"
+)
+
+// Valid indicates whether the value is a known member of the WaitSplitGroup enum.
+func (e WaitSplitGroup) Valid() bool {
+	switch e {
+	case WaitSplitGroupDay:
+		return true
+	case WaitSplitGroupJobKey:
+		return true
+	case WaitSplitGroupRepository:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for WebhookHealthLastResult.
 const (
 	WebhookHealthLastResultFailed WebhookHealthLastResult = "failed"
@@ -2951,6 +3368,57 @@ const (
 func (e WebhookModeUpdateMode) Valid() bool {
 	switch e {
 	case WebhookModeUpdateModeWebhook:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for WorkflowCheckCheckId.
+const (
+	WorkflowCache         WorkflowCheckCheckId = "workflow.cache"
+	WorkflowMatrixAxis    WorkflowCheckCheckId = "workflow.matrix_axis"
+	WorkflowRetry         WorkflowCheckCheckId = "workflow.retry"
+	WorkflowSlowTestsOnPr WorkflowCheckCheckId = "workflow.slow_tests_on_pr"
+	WorkflowStepOrder     WorkflowCheckCheckId = "workflow.step_order"
+	WorkflowTimeout       WorkflowCheckCheckId = "workflow.timeout"
+)
+
+// Valid indicates whether the value is a known member of the WorkflowCheckCheckId enum.
+func (e WorkflowCheckCheckId) Valid() bool {
+	switch e {
+	case WorkflowCache:
+		return true
+	case WorkflowMatrixAxis:
+		return true
+	case WorkflowRetry:
+		return true
+	case WorkflowSlowTestsOnPr:
+		return true
+	case WorkflowStepOrder:
+		return true
+	case WorkflowTimeout:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for WorkflowCheckStatus.
+const (
+	WorkflowCheckStatusFail WorkflowCheckStatus = "fail"
+	WorkflowCheckStatusOk   WorkflowCheckStatus = "ok"
+	WorkflowCheckStatusSkip WorkflowCheckStatus = "skip"
+)
+
+// Valid indicates whether the value is a known member of the WorkflowCheckStatus enum.
+func (e WorkflowCheckStatus) Valid() bool {
+	switch e {
+	case WorkflowCheckStatusFail:
+		return true
+	case WorkflowCheckStatusOk:
+		return true
+	case WorkflowCheckStatusSkip:
 		return true
 	default:
 		return false
@@ -3032,6 +3500,132 @@ func (e ListRepositoriesParamsPool) Valid() bool {
 	}
 }
 
+// Defines values for ListInsightFindingsParamsState.
+const (
+	Open     ListInsightFindingsParamsState = "open"
+	Resolved ListInsightFindingsParamsState = "resolved"
+)
+
+// Valid indicates whether the value is a known member of the ListInsightFindingsParamsState enum.
+func (e ListInsightFindingsParamsState) Valid() bool {
+	switch e {
+	case Open:
+		return true
+	case Resolved:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for GetPoolSizingParamsDays.
+const (
+	GetPoolSizingParamsDaysN14 GetPoolSizingParamsDays = 14
+	GetPoolSizingParamsDaysN30 GetPoolSizingParamsDays = 30
+	GetPoolSizingParamsDaysN7  GetPoolSizingParamsDays = 7
+)
+
+// Valid indicates whether the value is a known member of the GetPoolSizingParamsDays enum.
+func (e GetPoolSizingParamsDays) Valid() bool {
+	switch e {
+	case GetPoolSizingParamsDaysN14:
+		return true
+	case GetPoolSizingParamsDaysN30:
+		return true
+	case GetPoolSizingParamsDaysN7:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ListTestInsightsParamsView.
+const (
+	Duplicated   ListTestInsightsParamsView = "duplicated"
+	Flaky        ListTestInsightsParamsView = "flaky"
+	NoAssertions ListTestInsightsParamsView = "no_assertions"
+	Slowest      ListTestInsightsParamsView = "slowest"
+)
+
+// Valid indicates whether the value is a known member of the ListTestInsightsParamsView enum.
+func (e ListTestInsightsParamsView) Valid() bool {
+	switch e {
+	case Duplicated:
+		return true
+	case Flaky:
+		return true
+	case NoAssertions:
+		return true
+	case Slowest:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ListTestInsightsParamsDays.
+const (
+	ListTestInsightsParamsDaysN14 ListTestInsightsParamsDays = 14
+	ListTestInsightsParamsDaysN30 ListTestInsightsParamsDays = 30
+	ListTestInsightsParamsDaysN7  ListTestInsightsParamsDays = 7
+)
+
+// Valid indicates whether the value is a known member of the ListTestInsightsParamsDays enum.
+func (e ListTestInsightsParamsDays) Valid() bool {
+	switch e {
+	case ListTestInsightsParamsDaysN14:
+		return true
+	case ListTestInsightsParamsDaysN30:
+		return true
+	case ListTestInsightsParamsDaysN7:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for GetWaitSplitParamsDays.
+const (
+	GetWaitSplitParamsDaysN14 GetWaitSplitParamsDays = 14
+	GetWaitSplitParamsDaysN30 GetWaitSplitParamsDays = 30
+	GetWaitSplitParamsDaysN7  GetWaitSplitParamsDays = 7
+)
+
+// Valid indicates whether the value is a known member of the GetWaitSplitParamsDays enum.
+func (e GetWaitSplitParamsDays) Valid() bool {
+	switch e {
+	case GetWaitSplitParamsDaysN14:
+		return true
+	case GetWaitSplitParamsDaysN30:
+		return true
+	case GetWaitSplitParamsDaysN7:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for GetWaitSplitParamsGroup.
+const (
+	GetWaitSplitParamsGroupDay        GetWaitSplitParamsGroup = "day"
+	GetWaitSplitParamsGroupJobKey     GetWaitSplitParamsGroup = "job_key"
+	GetWaitSplitParamsGroupRepository GetWaitSplitParamsGroup = "repository"
+)
+
+// Valid indicates whether the value is a known member of the GetWaitSplitParamsGroup enum.
+func (e GetWaitSplitParamsGroup) Valid() bool {
+	switch e {
+	case GetWaitSplitParamsGroupDay:
+		return true
+	case GetWaitSplitParamsGroupJobKey:
+		return true
+	case GetWaitSplitParamsGroupRepository:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ListJobsParamsState.
 const (
 	ListJobsParamsStateDone    ListJobsParamsState = "done"
@@ -3082,19 +3676,19 @@ func (e ListJobGroupsParamsBy) Valid() bool {
 
 // Defines values for GetJobStatsParamsDays.
 const (
-	N14 GetJobStatsParamsDays = 14
-	N30 GetJobStatsParamsDays = 30
-	N7  GetJobStatsParamsDays = 7
+	GetJobStatsParamsDaysN14 GetJobStatsParamsDays = 14
+	GetJobStatsParamsDaysN30 GetJobStatsParamsDays = 30
+	GetJobStatsParamsDaysN7  GetJobStatsParamsDays = 7
 )
 
 // Valid indicates whether the value is a known member of the GetJobStatsParamsDays enum.
 func (e GetJobStatsParamsDays) Valid() bool {
 	switch e {
-	case N14:
+	case GetJobStatsParamsDaysN14:
 		return true
-	case N30:
+	case GetJobStatsParamsDaysN30:
 		return true
-	case N7:
+	case GetJobStatsParamsDaysN7:
 		return true
 	default:
 		return false
@@ -3484,6 +4078,12 @@ type DayStat struct {
 	WaitP90 float32 `json:"wait_p90"`
 }
 
+// DayValue defines model for DayValue.
+type DayValue struct {
+	Day   openapi_types.Date `json:"day"`
+	Value float32            `json:"value"`
+}
+
 // DockerCompactMode The automatic compact of Docker's disk file. auto (default) is on for a Windows machine with a Docker Desktop disk file and off elsewhere (caches R5.51 to R5.54).
 type DockerCompactMode string
 
@@ -3590,6 +4190,15 @@ type DrainHolder struct {
 // DrainRequest defines model for DrainRequest.
 type DrainRequest struct {
 	Reason *string `json:"reason,omitempty"`
+}
+
+// DurationStats defines model for DurationStats.
+type DurationStats struct {
+	// Known Jobs with a known value; unknown is never counted as 0.
+	Known        *int  `json:"known,omitempty"`
+	P50Seconds   *int  `json:"p50_seconds,omitempty"`
+	P95Seconds   *int  `json:"p95_seconds,omitempty"`
+	TotalSeconds int64 `json:"total_seconds"`
 }
 
 // EnvSet defines model for EnvSet.
@@ -3797,6 +4406,42 @@ type GithubGrantStep struct {
 // GithubGrantStepId defines model for GithubGrantStep.Id.
 type GithubGrantStepId string
 
+// Guardrail The dev-standards test guardrails G1 to G7.
+type Guardrail string
+
+// GuardrailState defines model for GuardrailState.
+type GuardrailState struct {
+	Count *int `json:"count,omitempty"`
+
+	// Guardrail The dev-standards test guardrails G1 to G7.
+	Guardrail  Guardrail            `json:"guardrail"`
+	Reason     *string              `json:"reason,omitempty"`
+	ReportedAt *time.Time           `json:"reported_at,omitempty"`
+	Source     GuardrailStateSource `json:"source"`
+	State      GuardrailStateState  `json:"state"`
+}
+
+// GuardrailStateSource defines model for GuardrailState.Source.
+type GuardrailStateSource string
+
+// GuardrailStateState defines model for GuardrailState.State.
+type GuardrailStateState string
+
+// GuardrailStatus defines model for GuardrailStatus.
+type GuardrailStatus struct {
+	Guardrails []GuardrailState `json:"guardrails"`
+
+	// KnownCountByDay The guard's known-list count per day, 30 days.
+	KnownCountByDay *[]DayValue `json:"known_count_by_day,omitempty"`
+	Repository      string      `json:"repository"`
+	RepositoryId    int64       `json:"repository_id"`
+}
+
+// GuardrailStatusList defines model for GuardrailStatusList.
+type GuardrailStatusList struct {
+	Items []GuardrailStatus `json:"items"`
+}
+
 // Health defines model for Health.
 type Health struct {
 	Status  HealthStatus `json:"status"`
@@ -3959,6 +4604,136 @@ type ImageTool struct {
 	Version *string `json:"version,omitempty"`
 }
 
+// InsightActionKind ci-run-insights R5.10. A setup change crsp can make after Review; absent when the fix is outside crsp.
+type InsightActionKind string
+
+// InsightArea ci-run-insights section 7. The screen area a finding belongs to.
+type InsightArea string
+
+// InsightBacklog ci-run-insights R6.1. Work waiting for the GitHub hourly limit.
+type InsightBacklog struct {
+	Jobs  int        `json:"jobs"`
+	Until *time.Time `json:"until,omitempty"`
+}
+
+// InsightDigest defines model for InsightDigest.
+type InsightDigest struct {
+	// Text The digest file's Markdown, shown as text.
+	Text      string    `json:"text"`
+	Week      string    `json:"week"`
+	WrittenAt time.Time `json:"written_at"`
+}
+
+// InsightDigestList defines model for InsightDigestList.
+type InsightDigestList struct {
+	Items []InsightDigest `json:"items"`
+}
+
+// InsightFinding ci-run-insights R5.7. Text fields are plain words, shown as text, never as markup.
+type InsightFinding struct {
+	// ActionKind ci-run-insights R5.10. A setup change crsp can make after Review; absent when the fix is outside crsp.
+	ActionKind *InsightActionKind `json:"action_kind,omitempty"`
+
+	// Area ci-run-insights section 7. The screen area a finding belongs to.
+	Area InsightArea `json:"area"`
+
+	// Evidence The numbers the finding page shows; its keys depend on the kind.
+	Evidence  map[string]interface{} `json:"evidence"`
+	FirstSeen time.Time              `json:"first_seen"`
+	Fix       string                 `json:"fix"`
+
+	// Guardrail The dev-standards test guardrails G1 to G7.
+	Guardrail *Guardrail `json:"guardrail,omitempty"`
+	Id        int64      `json:"id"`
+
+	// Kind The finding kind of ci-run-insights section 7, such as wait.hold or workflow.timeout.
+	Kind     string    `json:"kind"`
+	LastSeen time.Time `json:"last_seen"`
+
+	// MinutesSavedWeek An estimate (R5.9).
+	MinutesSavedWeek int                 `json:"minutes_saved_week"`
+	Repository       *string             `json:"repository,omitempty"`
+	RepositoryId     *int64              `json:"repository_id,omitempty"`
+	ResolvedAt       *time.Time          `json:"resolved_at,omitempty"`
+	Scope            InsightFindingScope `json:"scope"`
+
+	// Snippet A workflow snippet for the fix, shown in a copyable block.
+	Snippet *string `json:"snippet,omitempty"`
+
+	// Subject What it is about inside its kind (a job key, a label set, a workflow file, a test).
+	Subject *string `json:"subject,omitempty"`
+	Title   string  `json:"title"`
+}
+
+// InsightFindingScope defines model for InsightFinding.Scope.
+type InsightFindingScope string
+
+// InsightFindingList defines model for InsightFindingList.
+type InsightFindingList struct {
+	Items      []InsightFinding `json:"items"`
+	NextCursor *string          `json:"next_cursor,omitempty"`
+
+	// NotReadYet ci-run-insights R6.1. Work waiting for the GitHub hourly limit.
+	NotReadYet *InsightBacklog `json:"not_read_yet,omitempty"`
+	Total      int             `json:"total"`
+}
+
+// InsightPlan defines model for InsightPlan.
+type InsightPlan struct {
+	// ActionKind ci-run-insights R5.10. A setup change crsp can make after Review; absent when the fix is outside crsp.
+	ActionKind InsightActionKind   `json:"action_kind"`
+	Changes    []InsightPlanChange `json:"changes"`
+	CreatedAt  time.Time           `json:"created_at"`
+	CreatedBy  *string             `json:"created_by,omitempty"`
+
+	// Estimate The estimate in words, such as "p95 wait from about 9 to about 3 min".
+	Estimate   *string             `json:"estimate,omitempty"`
+	FindingId  int64               `json:"finding_id"`
+	FinishedAt *time.Time          `json:"finished_at,omitempty"`
+	Id         string              `json:"id"`
+	Results    []InsightPlanResult `json:"results"`
+	StartedAt  *time.Time          `json:"started_at,omitempty"`
+	State      InsightPlanState    `json:"state"`
+}
+
+// InsightPlanState defines model for InsightPlan.State.
+type InsightPlanState string
+
+// InsightPlanChange defines model for InsightPlanChange.
+type InsightPlanChange struct {
+	// Field The setting, such as job_slots, light_slots or max_parallel_jobs.
+	Field string `json:"field"`
+	From  int    `json:"from"`
+
+	// JobsWaitedFor Running jobs the change waits for (UX-62).
+	JobsWaitedFor *[]string `json:"jobs_waited_for,omitempty"`
+
+	// Target The machine id or repository it changes.
+	Target     string  `json:"target"`
+	TargetName *string `json:"target_name,omitempty"`
+	To         int     `json:"to"`
+	Words      string  `json:"words"`
+}
+
+// InsightPlanResult defines model for InsightPlanResult.
+type InsightPlanResult struct {
+	Error  *string                `json:"error,omitempty"`
+	Field  string                 `json:"field"`
+	State  InsightPlanResultState `json:"state"`
+	Target string                 `json:"target"`
+}
+
+// InsightPlanResultState defines model for InsightPlanResult.State.
+type InsightPlanResultState string
+
+// InsightSummary defines model for InsightSummary.
+type InsightSummary struct {
+	// EnoughData False under 50 finished jobs in the window.
+	EnoughData       *bool `json:"enough_data,omitempty"`
+	MinutesSavedWeek int   `json:"minutes_saved_week"`
+	Open             int   `json:"open"`
+}
+
 // InstallCommands defines model for InstallCommands.
 type InstallCommands struct {
 	AgentPort int `json:"agent_port"`
@@ -4003,8 +4778,11 @@ type Isolation string
 
 // Job One job attempt (observability R5.7, R5.8).
 type Job struct {
-	Backend        *string    `json:"backend,omitempty"`
-	Branch         *string    `json:"branch,omitempty"`
+	Backend *string `json:"backend,omitempty"`
+	Branch  *string `json:"branch,omitempty"`
+
+	// CheckedAt ci-run-insights R5.41. When crsp last re-read the job from GitHub.
+	CheckedAt      *time.Time `json:"checked_at,omitempty"`
 	CleanupSeconds *int       `json:"cleanup_seconds,omitempty"`
 	CompletedAt    *time.Time `json:"completed_at,omitempty"`
 	CreatedAt      *time.Time `json:"created_at,omitempty"`
@@ -4039,21 +4817,33 @@ type Job struct {
 	QueueEta *Eta `json:"queue_eta,omitempty"`
 
 	// QueuePosition 1-based place in the queue, queued jobs only.
-	QueuePosition   *int       `json:"queue_position,omitempty"`
-	QueuedAt        *time.Time `json:"queued_at,omitempty"`
-	Repository      string     `json:"repository"`
-	RepositoryId    *int64     `json:"repository_id,omitempty"`
-	Result          *JobResult `json:"result,omitempty"`
-	RunAttempt      int        `json:"run_attempt"`
-	RunId           int64      `json:"run_id"`
-	RunSeconds      *int       `json:"run_seconds,omitempty"`
-	Runner          *RunnerRef `json:"runner,omitempty"`
-	RunnerId        *string    `json:"runner_id,omitempty"`
-	RunnerName      *string    `json:"runner_name,omitempty"`
-	SlotAt          *time.Time `json:"slot_at,omitempty"`
-	SlotWaitSeconds *int       `json:"slot_wait_seconds,omitempty"`
-	StartedAt       *time.Time `json:"started_at,omitempty"`
-	State           JobState   `json:"state"`
+	QueuePosition *int       `json:"queue_position,omitempty"`
+	QueuedAt      *time.Time `json:"queued_at,omitempty"`
+	Repository    string     `json:"repository"`
+	RepositoryId  *int64     `json:"repository_id,omitempty"`
+	Result        *JobResult `json:"result,omitempty"`
+	RunAttempt    int        `json:"run_attempt"`
+	RunId         int64      `json:"run_id"`
+	RunSeconds    *int       `json:"run_seconds,omitempty"`
+	Runner        *RunnerRef `json:"runner,omitempty"`
+
+	// RunnerGroup GitHub's runner group name of the runner that ran the job.
+	RunnerGroup *string `json:"runner_group,omitempty"`
+	RunnerId    *string `json:"runner_id,omitempty"`
+
+	// RunnerLabels The labels of the runner that ran the job, as GitHub reports them.
+	RunnerLabels *[]string `json:"runner_labels,omitempty"`
+	RunnerName   *string   `json:"runner_name,omitempty"`
+
+	// RunnerOrigin ci-run-insights R5.39. Who ran the job; absent while not known.
+	RunnerOrigin    *JobRunnerOrigin `json:"runner_origin,omitempty"`
+	SlotAt          *time.Time       `json:"slot_at,omitempty"`
+	SlotWaitSeconds *int             `json:"slot_wait_seconds,omitempty"`
+	StartedAt       *time.Time       `json:"started_at,omitempty"`
+	State           JobState         `json:"state"`
+
+	// StepsSource ci-run-insights R5.40. Where the steps came from.
+	StepsSource *JobStepsSource `json:"steps_source,omitempty"`
 
 	// TaskId The task id the branch starts with, when it does.
 	TaskId  *string `json:"task_id,omitempty"`
@@ -4073,17 +4863,26 @@ type Job struct {
 // JobJobType The scheduler class of the job. Not the job name; filter by name with the `job_type` query.
 type JobJobType string
 
+// JobRunnerOrigin ci-run-insights R5.39. Who ran the job; absent while not known.
+type JobRunnerOrigin string
+
 // JobState defines model for Job.State.
 type JobState string
 
+// JobStepsSource ci-run-insights R5.40. Where the steps came from.
+type JobStepsSource string
+
 // JobDetail A job with its steps, the last 30 runs of its key, its attempts and the ETA of its run (OPS34).
 type JobDetail struct {
-	Attempts       []AttemptRef `json:"attempts"`
-	Backend        *string      `json:"backend,omitempty"`
-	Branch         *string      `json:"branch,omitempty"`
-	CleanupSeconds *int         `json:"cleanup_seconds,omitempty"`
-	CompletedAt    *time.Time   `json:"completed_at,omitempty"`
-	CreatedAt      *time.Time   `json:"created_at,omitempty"`
+	Attempts []AttemptRef `json:"attempts"`
+	Backend  *string      `json:"backend,omitempty"`
+	Branch   *string      `json:"branch,omitempty"`
+
+	// CheckedAt ci-run-insights R5.41. When crsp last re-read the job from GitHub.
+	CheckedAt      *time.Time `json:"checked_at,omitempty"`
+	CleanupSeconds *int       `json:"cleanup_seconds,omitempty"`
+	CompletedAt    *time.Time `json:"completed_at,omitempty"`
+	CreatedAt      *time.Time `json:"created_at,omitempty"`
 
 	// Forecast A duration in seconds with a range and the basis it rests on (OPS34 D4). The range is p25 to p90, at least 10 percent either way.
 	Forecast          *Forecast `json:"forecast,omitempty"`
@@ -4126,17 +4925,29 @@ type JobDetail struct {
 	RunAttempt    int        `json:"run_attempt"`
 
 	// RunEta Seconds from now, with a range. When a queued job starts, or when a run ends.
-	RunEta          *Eta           `json:"run_eta,omitempty"`
-	RunId           int64          `json:"run_id"`
-	RunSeconds      *int           `json:"run_seconds,omitempty"`
-	Runner          *RunnerRef     `json:"runner,omitempty"`
-	RunnerId        *string        `json:"runner_id,omitempty"`
-	RunnerName      *string        `json:"runner_name,omitempty"`
-	SlotAt          *time.Time     `json:"slot_at,omitempty"`
-	SlotWaitSeconds *int           `json:"slot_wait_seconds,omitempty"`
-	StartedAt       *time.Time     `json:"started_at,omitempty"`
-	State           JobDetailState `json:"state"`
-	Steps           []StepItem     `json:"steps"`
+	RunEta     *Eta       `json:"run_eta,omitempty"`
+	RunId      int64      `json:"run_id"`
+	RunSeconds *int       `json:"run_seconds,omitempty"`
+	Runner     *RunnerRef `json:"runner,omitempty"`
+
+	// RunnerGroup GitHub's runner group name of the runner that ran the job.
+	RunnerGroup *string `json:"runner_group,omitempty"`
+	RunnerId    *string `json:"runner_id,omitempty"`
+
+	// RunnerLabels The labels of the runner that ran the job, as GitHub reports them.
+	RunnerLabels *[]string `json:"runner_labels,omitempty"`
+	RunnerName   *string   `json:"runner_name,omitempty"`
+
+	// RunnerOrigin ci-run-insights R5.39. Who ran the job; absent while not known.
+	RunnerOrigin    *JobDetailRunnerOrigin `json:"runner_origin,omitempty"`
+	SlotAt          *time.Time             `json:"slot_at,omitempty"`
+	SlotWaitSeconds *int                   `json:"slot_wait_seconds,omitempty"`
+	StartedAt       *time.Time             `json:"started_at,omitempty"`
+	State           JobDetailState         `json:"state"`
+	Steps           []StepItem             `json:"steps"`
+
+	// StepsSource ci-run-insights R5.40. Where the steps came from.
+	StepsSource *JobDetailStepsSource `json:"steps_source,omitempty"`
 
 	// TaskId The task id the branch starts with, when it does.
 	TaskId  *string `json:"task_id,omitempty"`
@@ -4156,8 +4967,14 @@ type JobDetail struct {
 // JobDetailJobType The scheduler class of the job. Not the job name; filter by name with the `job_type` query.
 type JobDetailJobType string
 
+// JobDetailRunnerOrigin ci-run-insights R5.39. Who ran the job; absent while not known.
+type JobDetailRunnerOrigin string
+
 // JobDetailState defines model for JobDetail.State.
 type JobDetailState string
+
+// JobDetailStepsSource ci-run-insights R5.40. Where the steps came from.
+type JobDetailStepsSource string
 
 // JobGroupList defines model for JobGroupList.
 type JobGroupList struct {
@@ -4196,6 +5013,16 @@ type JobPage struct {
 
 	// Total The count of the filter without paging.
 	Total *int `json:"total,omitempty"`
+}
+
+// JobResources defines model for JobResources.
+type JobResources struct {
+	CpuP95Cores     *float32         `json:"cpu_p95_cores,omitempty"`
+	CpuPeakCores    *float32         `json:"cpu_peak_cores,omitempty"`
+	MemoryP95Bytes  *int64           `json:"memory_p95_bytes,omitempty"`
+	MemoryPeakBytes *int64           `json:"memory_peak_bytes,omitempty"`
+	Samples         []ResourceSample `json:"samples"`
+	UnknownReason   *string          `json:"unknown_reason,omitempty"`
 }
 
 // JobResult defines model for JobResult.
@@ -4252,6 +5079,26 @@ type JoinCodeCreated struct {
 	Code     string          `json:"code"`
 	Commands InstallCommands `json:"commands"`
 	JoinCode JoinCode        `json:"join_code"`
+}
+
+// LabelSetDemand defines model for LabelSetDemand.
+type LabelSetDemand struct {
+	CvArrivals         *float32       `json:"cv_arrivals,omitempty"`
+	CvService          *float32       `json:"cv_service,omitempty"`
+	Estimates          []SlotEstimate `json:"estimates"`
+	JobsPerHour        float32        `json:"jobs_per_hour"`
+	Labels             []string       `json:"labels"`
+	MeanServiceSeconds *float32       `json:"mean_service_seconds,omitempty"`
+
+	// MinSlotsNeeded Set when the queue grows; the smallest slot count with utilisation under 0.85.
+	MinSlotsNeeded *int        `json:"min_slots_needed,omitempty"`
+	P50WaitSeconds *float32    `json:"p50_wait_seconds,omitempty"`
+	P95WaitByDay   *[]DayValue `json:"p95_wait_by_day,omitempty"`
+	P95WaitSeconds *float32    `json:"p95_wait_seconds,omitempty"`
+	Slots          int         `json:"slots"`
+
+	// Utilisation Busy slot minutes over available slot minutes, 0 to 1 (can exceed 1 when the queue grows).
+	Utilisation float32 `json:"utilisation"`
 }
 
 // LayerNeededBy The repositories on the machine that ask for a layer (LOOK12).
@@ -4954,6 +5801,22 @@ type PoolSizeCheckRequest struct {
 type PoolSizeRecommended struct {
 	Cpus      int `json:"cpus"`
 	MemoryGib int `json:"memory_gib"`
+}
+
+// PoolSizing defines model for PoolSizing.
+type PoolSizing struct {
+	Days      int              `json:"days"`
+	LabelSets []LabelSetDemand `json:"label_sets"`
+
+	// Method The estimate's method in words (Allen-Cunneen with Sakasegawa).
+	Method string `json:"method"`
+}
+
+// PoolTimeline defines model for PoolTimeline.
+type PoolTimeline struct {
+	From  time.Time      `json:"from"`
+	Lanes []TimelineLane `json:"lanes"`
+	To    time.Time      `json:"to"`
 }
 
 // Preferences defines model for Preferences.
@@ -5735,6 +6598,14 @@ type ResolvedEnvVar struct {
 	Value string `json:"value"`
 }
 
+// ResourceSample defines model for ResourceSample.
+type ResourceSample struct {
+	At          time.Time `json:"at"`
+	CpuCores    float32   `json:"cpu_cores"`
+	Known       *bool     `json:"known,omitempty"`
+	MemoryBytes int64     `json:"memory_bytes"`
+}
+
 // Role defines model for Role.
 type Role string
 
@@ -5798,6 +6669,27 @@ type RunPage struct {
 	Total int       `json:"total"`
 }
 
+// RunSaving defines model for RunSaving.
+type RunSaving struct {
+	Change  *RunSavingChange `json:"change,omitempty"`
+	Job     string           `json:"job"`
+	Minutes float32          `json:"minutes"`
+
+	// Words "The run would end {n} min sooner if {change}."
+	Words string `json:"words"`
+}
+
+// RunSavingChange defines model for RunSaving.Change.
+type RunSavingChange string
+
+// RunSavings defines model for RunSavings.
+type RunSavings struct {
+	// Reason Why nothing is computed (the run is not finished, no needs graph).
+	Reason  *string     `json:"reason,omitempty"`
+	Savings []RunSaving `json:"savings"`
+	Waste   []RunWaste  `json:"waste"`
+}
+
 // RunSummary One run attempt in a list.
 type RunSummary struct {
 	Attempt     int        `json:"attempt"`
@@ -5832,6 +6724,16 @@ type RunSummary struct {
 
 // RunSummaryState defines model for RunSummary.State.
 type RunSummaryState string
+
+// RunWaste defines model for RunWaste.
+type RunWaste struct {
+	Kind    RunWasteKind `json:"kind"`
+	Minutes float32      `json:"minutes"`
+	Words   string       `json:"words"`
+}
+
+// RunWasteKind defines model for RunWaste.Kind.
+type RunWasteKind string
 
 // Runner defines model for Runner.
 type Runner struct {
@@ -6008,7 +6910,28 @@ type Settings struct {
 	BackupTimeLocal *string `json:"backup_time_local,omitempty"`
 
 	// FallbackGraceMinutes github-integration R5.43. How long no crsp machine of an operating system must have been up before a repository that turned the hosted fallback on runs on GitHub-hosted runners. Default 3.
-	FallbackGraceMinutes       *int `json:"fallback_grace_minutes,omitempty"`
+	FallbackGraceMinutes *int `json:"fallback_grace_minutes,omitempty"`
+
+	// InsightsCiDataDays ci-run-insights R5.5, R6.2. Default 30.
+	InsightsCiDataDays *int `json:"insights_ci_data_days,omitempty"`
+
+	// InsightsCiDataMibPerRepository ci-run-insights R5.5, R6.2. Default 1024.
+	InsightsCiDataMibPerRepository *int `json:"insights_ci_data_mib_per_repository,omitempty"`
+
+	// InsightsGuardrailArtifact ci-run-insights R5.31. Name pattern of the guard report artifact. Default test-guardrails*.
+	InsightsGuardrailArtifact *string `json:"insights_guardrail_artifact,omitempty"`
+
+	// InsightsHoldCapSeconds ci-run-insights R5.14. Default 120.
+	InsightsHoldCapSeconds *int `json:"insights_hold_cap_seconds,omitempty"`
+
+	// InsightsKeepCiData ci-run-insights R5.5. Keep CI logs and test reports on the owner's machines (owner decision D4). On by default.
+	InsightsKeepCiData *bool `json:"insights_keep_ci_data,omitempty"`
+
+	// InsightsResourceSamplesDays ci-run-insights R5.5, R6.2. Default 7.
+	InsightsResourceSamplesDays *int `json:"insights_resource_samples_days,omitempty"`
+
+	// InsightsTestResultsDays ci-run-insights R5.5, R6.2. Default 90.
+	InsightsTestResultsDays    *int `json:"insights_test_results_days,omitempty"`
 	MaxEventStreams            *int `json:"max_event_streams,omitempty"`
 	RetentionAuditDays         *int `json:"retention_audit_days,omitempty"`
 	RetentionJobHistoryDays    *int `json:"retention_job_history_days,omitempty"`
@@ -6074,6 +6997,16 @@ type Slot struct {
 
 // SlotKind defines model for Slot.Kind.
 type SlotKind string
+
+// SlotEstimate defines model for SlotEstimate.
+type SlotEstimate struct {
+	ExtraSlots int `json:"extra_slots"`
+
+	// MeanWaitSeconds Absent when the queue would still grow.
+	MeanWaitSeconds *float32 `json:"mean_wait_seconds,omitempty"`
+	P95WaitSeconds  *float32 `json:"p95_wait_seconds,omitempty"`
+	Utilisation     *float32 `json:"utilisation,omitempty"`
+}
 
 // SlotStatus defines model for SlotStatus.
 type SlotStatus struct {
@@ -6205,6 +7138,41 @@ type StepItemResult string
 // StepItemState defines model for StepItem.State.
 type StepItemState string
 
+// TestInsight defines model for TestInsight.
+type TestInsight struct {
+	// Assertions -1 when the format does not report them.
+	Assertions *int             `json:"assertions,omitempty"`
+	Failures   *int             `json:"failures,omitempty"`
+	File       *string          `json:"file,omitempty"`
+	FlakyRuns  *int             `json:"flaky_runs,omitempty"`
+	JobIdents  *[]string        `json:"job_idents,omitempty"`
+	Kind       *TestInsightKind `json:"kind,omitempty"`
+	LastSeen   *time.Time       `json:"last_seen,omitempty"`
+	Name       string           `json:"name"`
+
+	// OverLimitSeconds Set when the p95 is over the G1 limit of its kind.
+	OverLimitSeconds *int    `json:"over_limit_seconds,omitempty"`
+	P50Ms            *int    `json:"p50_ms,omitempty"`
+	P95Ms            *int    `json:"p95_ms,omitempty"`
+	Repository       string  `json:"repository"`
+	Runs             int     `json:"runs"`
+	Suite            *string `json:"suite,omitempty"`
+	TestId           string  `json:"test_id"`
+}
+
+// TestInsightKind defines model for TestInsight.Kind.
+type TestInsightKind string
+
+// TestInsightList defines model for TestInsightList.
+type TestInsightList struct {
+	Items      []TestInsight `json:"items"`
+	NextCursor *string       `json:"next_cursor,omitempty"`
+
+	// ReportsFound False when no test report was found in the window.
+	ReportsFound bool `json:"reports_found"`
+	Total        int  `json:"total"`
+}
+
 // Theme defines model for Theme.
 type Theme string
 
@@ -6227,6 +7195,39 @@ type Ticket struct {
 	// WaitReason observability R5.5.
 	WaitReason *WaitReason `json:"wait_reason,omitempty"`
 }
+
+// TimelineLane defines model for TimelineLane.
+type TimelineLane struct {
+	Labels      *[]string          `json:"labels,omitempty"`
+	MachineName *string            `json:"machine_name,omitempty"`
+	Origin      TimelineLaneOrigin `json:"origin"`
+	RunnerName  string             `json:"runner_name"`
+	Segments    []TimelineSegment  `json:"segments"`
+}
+
+// TimelineLaneOrigin defines model for TimelineLane.Origin.
+type TimelineLaneOrigin string
+
+// TimelineSegment defines model for TimelineSegment.
+type TimelineSegment struct {
+	End        time.Time                 `json:"end"`
+	Event      *string                   `json:"event,omitempty"`
+	JobId      *int64                    `json:"job_id,omitempty"`
+	JobIdent   *string                   `json:"job_ident,omitempty"`
+	Kind       TimelineSegmentKind       `json:"kind"`
+	Markers    *[]TimelineSegmentMarkers `json:"markers,omitempty"`
+	Repository *string                   `json:"repository,omitempty"`
+	Start      time.Time                 `json:"start"`
+
+	// WaitingJobIds For a marked segment, the jobs that waited meanwhile.
+	WaitingJobIds *[]int64 `json:"waiting_job_ids,omitempty"`
+}
+
+// TimelineSegmentKind defines model for TimelineSegment.Kind.
+type TimelineSegmentKind string
+
+// TimelineSegmentMarkers defines model for TimelineSegment.Markers.
+type TimelineSegmentMarkers string
 
 // Trial defines model for Trial.
 type Trial struct {
@@ -6406,6 +7407,32 @@ type VariableStatus string
 // WaitReason observability R5.5.
 type WaitReason string
 
+// WaitSplit defines model for WaitSplit.
+type WaitSplit struct {
+	Days           int            `json:"days"`
+	Group          WaitSplitGroup `json:"group"`
+	HoldCapSeconds int            `json:"hold_cap_seconds"`
+	Rows           []WaitSplitRow `json:"rows"`
+}
+
+// WaitSplitGroup defines model for WaitSplit.Group.
+type WaitSplitGroup string
+
+// WaitSplitRow defines model for WaitSplitRow.
+type WaitSplitRow struct {
+	Hold DurationStats `json:"hold"`
+
+	// HoldReasons Holds over the cap by reason (image_pull, runner_start, registration, load, unknown).
+	HoldReasons  *map[string]int `json:"hold_reasons,omitempty"`
+	HoldsOverCap *int            `json:"holds_over_cap,omitempty"`
+	Jobs         int             `json:"jobs"`
+
+	// Key The repository, the job key or the day (year-month-day, UTC).
+	Key  string        `json:"key"`
+	Run  DurationStats `json:"run"`
+	Wait DurationStats `json:"wait"`
+}
+
 // WaitingJob One queued or held job with the first reason it waits (scheduling R5.48).
 type WaitingJob struct {
 	JobId     int64   `json:"job_id"`
@@ -6450,6 +7477,32 @@ type WebhookModeUpdate struct {
 // WebhookModeUpdateMode defines model for WebhookModeUpdate.Mode.
 type WebhookModeUpdateMode string
 
+// WorkflowCheck defines model for WorkflowCheck.
+type WorkflowCheck struct {
+	CheckId WorkflowCheckCheckId `json:"check_id"`
+	Detail  *string              `json:"detail,omitempty"`
+
+	// Guardrail The dev-standards test guardrails G1 to G7.
+	Guardrail *Guardrail          `json:"guardrail,omitempty"`
+	Job       *string             `json:"job,omitempty"`
+	Line      *int                `json:"line,omitempty"`
+	Status    WorkflowCheckStatus `json:"status"`
+	Workflow  string              `json:"workflow"`
+}
+
+// WorkflowCheckCheckId defines model for WorkflowCheck.CheckId.
+type WorkflowCheckCheckId string
+
+// WorkflowCheckStatus defines model for WorkflowCheck.Status.
+type WorkflowCheckStatus string
+
+// WorkflowCheckList defines model for WorkflowCheckList.
+type WorkflowCheckList struct {
+	CheckedAt *time.Time      `json:"checked_at,omitempty"`
+	HeadSha   *string         `json:"head_sha,omitempty"`
+	Items     []WorkflowCheck `json:"items"`
+}
+
 // BackupId defines model for BackupId.
 type BackupId = string
 
@@ -6473,6 +7526,9 @@ type Confirmed = bool
 
 // Cursor defines model for Cursor.
 type Cursor = string
+
+// FindingId defines model for FindingId.
+type FindingId = int64
 
 // From defines model for From.
 type From = time.Time
@@ -6697,6 +7753,66 @@ type RebuildImageParams struct {
 	Confirm *Confirm `form:"confirm,omitempty" json:"confirm,omitempty"`
 }
 
+// ListInsightFindingsParams defines parameters for ListInsightFindings.
+type ListInsightFindingsParams struct {
+	RepositoryId *int64                          `form:"repository_id,omitempty" json:"repository_id,omitempty"`
+	Area         *InsightArea                    `form:"area,omitempty" json:"area,omitempty"`
+	Guardrail    *Guardrail                      `form:"guardrail,omitempty" json:"guardrail,omitempty"`
+	State        *ListInsightFindingsParamsState `form:"state,omitempty" json:"state,omitempty"`
+	Limit        *int                            `form:"limit,omitempty" json:"limit,omitempty"`
+	Cursor       *string                         `form:"cursor,omitempty" json:"cursor,omitempty"`
+}
+
+// ListInsightFindingsParamsState defines parameters for ListInsightFindings.
+type ListInsightFindingsParamsState string
+
+// ListGuardrailStatusParams defines parameters for ListGuardrailStatus.
+type ListGuardrailStatusParams struct {
+	RepositoryId *int64 `form:"repository_id,omitempty" json:"repository_id,omitempty"`
+}
+
+// GetPoolSizingParams defines parameters for GetPoolSizing.
+type GetPoolSizingParams struct {
+	Days *GetPoolSizingParamsDays `form:"days,omitempty" json:"days,omitempty"`
+}
+
+// GetPoolSizingParamsDays defines parameters for GetPoolSizing.
+type GetPoolSizingParamsDays int
+
+// ListTestInsightsParams defines parameters for ListTestInsights.
+type ListTestInsightsParams struct {
+	View         *ListTestInsightsParamsView `form:"view,omitempty" json:"view,omitempty"`
+	RepositoryId *int64                      `form:"repository_id,omitempty" json:"repository_id,omitempty"`
+	Days         *ListTestInsightsParamsDays `form:"days,omitempty" json:"days,omitempty"`
+	Limit        *int                        `form:"limit,omitempty" json:"limit,omitempty"`
+	Cursor       *string                     `form:"cursor,omitempty" json:"cursor,omitempty"`
+}
+
+// ListTestInsightsParamsView defines parameters for ListTestInsights.
+type ListTestInsightsParamsView string
+
+// ListTestInsightsParamsDays defines parameters for ListTestInsights.
+type ListTestInsightsParamsDays int
+
+// GetPoolTimelineParams defines parameters for GetPoolTimeline.
+type GetPoolTimelineParams struct {
+	From *time.Time `form:"from,omitempty" json:"from,omitempty"`
+	To   *time.Time `form:"to,omitempty" json:"to,omitempty"`
+}
+
+// GetWaitSplitParams defines parameters for GetWaitSplit.
+type GetWaitSplitParams struct {
+	Days         *GetWaitSplitParamsDays  `form:"days,omitempty" json:"days,omitempty"`
+	Group        *GetWaitSplitParamsGroup `form:"group,omitempty" json:"group,omitempty"`
+	RepositoryId *int64                   `form:"repository_id,omitempty" json:"repository_id,omitempty"`
+}
+
+// GetWaitSplitParamsDays defines parameters for GetWaitSplit.
+type GetWaitSplitParamsDays int
+
+// GetWaitSplitParamsGroup defines parameters for GetWaitSplit.
+type GetWaitSplitParamsGroup string
+
 // ListJobsParams defines parameters for ListJobs.
 type ListJobsParams struct {
 	State        *ListJobsParamsState `form:"state,omitempty" json:"state,omitempty"`
@@ -6822,6 +7938,12 @@ type ListRegistryPullsParams struct {
 	MachineId *string `form:"machine_id,omitempty" json:"machine_id,omitempty"`
 }
 
+// ListWorkflowChecksParams defines parameters for ListWorkflowChecks.
+type ListWorkflowChecksParams struct {
+	// HeadSha Another commit; the latest default-branch commit checked when absent.
+	HeadSha *string `form:"head_sha,omitempty" json:"head_sha,omitempty"`
+}
+
 // ListRunnersParams defines parameters for ListRunners.
 type ListRunnersParams struct {
 	MachineId *string      `form:"machine_id,omitempty" json:"machine_id,omitempty"`
@@ -6864,6 +7986,11 @@ type ListRunsParamsState string
 // GetRunParams defines parameters for GetRun.
 type GetRunParams struct {
 	// Attempt The attempt; the newest when absent.
+	Attempt *int `form:"attempt,omitempty" json:"attempt,omitempty"`
+}
+
+// GetRunSavingsParams defines parameters for GetRunSavings.
+type GetRunSavingsParams struct {
 	Attempt *int `form:"attempt,omitempty" json:"attempt,omitempty"`
 }
 
@@ -7531,6 +8658,90 @@ type ClientInterface interface {
 	// Corresponds with POST /api/v1/images/{imageId}/rebuild (the `RebuildImage` operationId).
 	RebuildImage(ctx context.Context, imageId ImageId, params *RebuildImageParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// ListInsightDigests The last weekly digests, with their text
+	//
+	// ci-run-insights R5.38 (CIX). The files stay local; nothing is sent.
+	//
+	// Corresponds with GET /api/v1/insights/digests (the `ListInsightDigests` operationId).
+	ListInsightDigests(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListInsightFindings The Do next list across projects
+	//
+	// ci-run-insights R5.11 (CIX). Open findings ranked by minutes saved a week, then by first seen. No route dismisses a finding (R5.8).
+	//
+	// Corresponds with GET /api/v1/insights/findings (the `ListInsightFindings` operationId).
+	ListInsightFindings(ctx context.Context, params *ListInsightFindingsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetInsightFinding One finding with its evidence
+	//
+	// ci-run-insights R5.7 (CIX).
+	//
+	// Corresponds with GET /api/v1/insights/findings/{findingId} (the `GetInsightFinding` operationId).
+	GetInsightFinding(ctx context.Context, findingId FindingId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CreateInsightPlan Make the plan of a setup change (nothing changes yet)
+	//
+	// ci-run-insights R5.10 (CIX). The plan is the Review step's data. 409 conflict when the finding has no action or is resolved.
+	//
+	// Corresponds with POST /api/v1/insights/findings/{findingId}/plans (the `CreateInsightPlan` operationId).
+	CreateInsightPlan(ctx context.Context, findingId FindingId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListGuardrailStatus G1 to G7 per project
+	//
+	// ci-run-insights R5.31, R5.32 (CIX).
+	//
+	// Corresponds with GET /api/v1/insights/guardrails (the `ListGuardrailStatus` operationId).
+	ListGuardrailStatus(ctx context.Context, params *ListGuardrailStatusParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetInsightPlan One plan with its progress
+	//
+	// ci-run-insights R5.10 (CIX). The wizard reads this after a reload.
+	//
+	// Corresponds with GET /api/v1/insights/plans/{planId} (the `GetInsightPlan` operationId).
+	GetInsightPlan(ctx context.Context, planId PlanId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// StartInsightPlan Make the reviewed change
+	//
+	// ci-run-insights R5.10, R6.6 (CIX). 409 conflict unless the plan is draft. Each change writes an audit row.
+	//
+	// Corresponds with POST /api/v1/insights/plans/{planId}/start (the `StartInsightPlan` operationId).
+	StartInsightPlan(ctx context.Context, planId PlanId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetPoolSizing Demand per label set and the wait with more slots
+	//
+	// ci-run-insights R5.15 to R5.17 (CIX). Estimates, labelled as such.
+	//
+	// Corresponds with GET /api/v1/insights/pool-sizing (the `GetPoolSizing` operationId).
+	GetPoolSizing(ctx context.Context, params *GetPoolSizingParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetInsightSummary The count and minutes the Overview shows
+	//
+	// ci-run-insights R5.11 (CIX). The Overview only shows and links (UX-52).
+	//
+	// Corresponds with GET /api/v1/insights/summary (the `GetInsightSummary` operationId).
+	GetInsightSummary(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListTestInsights Slowest, flaky, duplicated and empty tests
+	//
+	// ci-run-insights R5.33 to R5.37 (CIX).
+	//
+	// Corresponds with GET /api/v1/insights/tests (the `ListTestInsights` operationId).
+	ListTestInsights(ctx context.Context, params *ListTestInsightsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetPoolTimeline Which project held which runner when
+	//
+	// ci-run-insights R5.21 (CIX). At most 24 hours; the last 24 hours when from and to are absent.
+	//
+	// Corresponds with GET /api/v1/insights/timeline (the `GetPoolTimeline` operationId).
+	GetPoolTimeline(ctx context.Context, params *GetPoolTimelineParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetWaitSplit Wait, hold and run per repository, job key or day
+	//
+	// ci-run-insights R5.12 to R5.14 (CIX).
+	//
+	// Corresponds with GET /api/v1/insights/waits (the `GetWaitSplit` operationId).
+	GetWaitSplit(ctx context.Context, params *GetWaitSplitParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// GetInstallCommand The install command per OS, without a join code
 	//
 	// operations R5.1 and machines R5.3. Carries the controller address, agent port and certificate fingerprint. The join code is added only by createJoinCode.
@@ -7570,6 +8781,13 @@ type ClientInterface interface {
 	//
 	// Corresponds with GET /api/v1/jobs/{jobId} (the `GetJob` operationId).
 	GetJob(ctx context.Context, jobId JobId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetJobResources CPU and memory of one job
+	//
+	// ci-run-insights R5.19, R5.20 (CIX).
+	//
+	// Corresponds with GET /api/v1/jobs/{jobId}/resources (the `GetJobResources` operationId).
+	GetJobResources(ctx context.Context, jobId JobId, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// CreateJoinCodeWithBody Make a one-time join code and the install commands
 	//
@@ -8287,6 +9505,13 @@ type ClientInterface interface {
 	// Corresponds with PUT /api/v1/repositories/{repositoryId}/webhook-mode (the `SetRepositoryWebhookMode` operationId).
 	SetRepositoryWebhookMode(ctx context.Context, repositoryId RepositoryId, body SetRepositoryWebhookModeJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// ListWorkflowChecks Workflow file checks of the latest default-branch commit
+	//
+	// ci-run-insights R5.29, R5.30 (CIX).
+	//
+	// Corresponds with GET /api/v1/repositories/{repositoryId}/workflow-checks (the `ListWorkflowChecks` operationId).
+	ListWorkflowChecks(ctx context.Context, repositoryId RepositoryId, params *ListWorkflowChecksParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// PlanRepositoryChangesWithBody Plan turning the pool on or off for repositories
 	//
 	// github-integration R5.20 and R5.29, web-console R5.18. Nothing changes. The plan names each variable to write or delete and the workflows that still use a variable that would go.
@@ -8463,6 +9688,13 @@ type ClientInterface interface {
 	//
 	// Corresponds with GET /api/v1/runs/{runId} (the `GetRun` operationId).
 	GetRun(ctx context.Context, runId int64, params *GetRunParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetRunSavings How much sooner the run could have ended
+	//
+	// ci-run-insights R5.23 to R5.27 (CIX).
+	//
+	// Corresponds with GET /api/v1/runs/{runId}/savings (the `GetRunSavings` operationId).
+	GetRunSavings(ctx context.Context, runId RunId, params *GetRunSavingsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// RestartService Restart the service after a drain
 	//
@@ -9702,6 +10934,210 @@ func (c *Client) RebuildImage(ctx context.Context, imageId ImageId, params *Rebu
 	return c.Client.Do(req)
 }
 
+// ListInsightDigests The last weekly digests, with their text
+//
+// ci-run-insights R5.38 (CIX). The files stay local; nothing is sent.
+//
+// Corresponds with GET /api/v1/insights/digests (the `ListInsightDigests` operationId).
+func (c *Client) ListInsightDigests(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListInsightDigestsRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ListInsightFindings The Do next list across projects
+//
+// ci-run-insights R5.11 (CIX). Open findings ranked by minutes saved a week, then by first seen. No route dismisses a finding (R5.8).
+//
+// Corresponds with GET /api/v1/insights/findings (the `ListInsightFindings` operationId).
+func (c *Client) ListInsightFindings(ctx context.Context, params *ListInsightFindingsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListInsightFindingsRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GetInsightFinding One finding with its evidence
+//
+// ci-run-insights R5.7 (CIX).
+//
+// Corresponds with GET /api/v1/insights/findings/{findingId} (the `GetInsightFinding` operationId).
+func (c *Client) GetInsightFinding(ctx context.Context, findingId FindingId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetInsightFindingRequest(c.Server, findingId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// CreateInsightPlan Make the plan of a setup change (nothing changes yet)
+//
+// ci-run-insights R5.10 (CIX). The plan is the Review step's data. 409 conflict when the finding has no action or is resolved.
+//
+// Corresponds with POST /api/v1/insights/findings/{findingId}/plans (the `CreateInsightPlan` operationId).
+func (c *Client) CreateInsightPlan(ctx context.Context, findingId FindingId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateInsightPlanRequest(c.Server, findingId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ListGuardrailStatus G1 to G7 per project
+//
+// ci-run-insights R5.31, R5.32 (CIX).
+//
+// Corresponds with GET /api/v1/insights/guardrails (the `ListGuardrailStatus` operationId).
+func (c *Client) ListGuardrailStatus(ctx context.Context, params *ListGuardrailStatusParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListGuardrailStatusRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GetInsightPlan One plan with its progress
+//
+// ci-run-insights R5.10 (CIX). The wizard reads this after a reload.
+//
+// Corresponds with GET /api/v1/insights/plans/{planId} (the `GetInsightPlan` operationId).
+func (c *Client) GetInsightPlan(ctx context.Context, planId PlanId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetInsightPlanRequest(c.Server, planId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// StartInsightPlan Make the reviewed change
+//
+// ci-run-insights R5.10, R6.6 (CIX). 409 conflict unless the plan is draft. Each change writes an audit row.
+//
+// Corresponds with POST /api/v1/insights/plans/{planId}/start (the `StartInsightPlan` operationId).
+func (c *Client) StartInsightPlan(ctx context.Context, planId PlanId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewStartInsightPlanRequest(c.Server, planId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GetPoolSizing Demand per label set and the wait with more slots
+//
+// ci-run-insights R5.15 to R5.17 (CIX). Estimates, labelled as such.
+//
+// Corresponds with GET /api/v1/insights/pool-sizing (the `GetPoolSizing` operationId).
+func (c *Client) GetPoolSizing(ctx context.Context, params *GetPoolSizingParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetPoolSizingRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GetInsightSummary The count and minutes the Overview shows
+//
+// ci-run-insights R5.11 (CIX). The Overview only shows and links (UX-52).
+//
+// Corresponds with GET /api/v1/insights/summary (the `GetInsightSummary` operationId).
+func (c *Client) GetInsightSummary(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetInsightSummaryRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// ListTestInsights Slowest, flaky, duplicated and empty tests
+//
+// ci-run-insights R5.33 to R5.37 (CIX).
+//
+// Corresponds with GET /api/v1/insights/tests (the `ListTestInsights` operationId).
+func (c *Client) ListTestInsights(ctx context.Context, params *ListTestInsightsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListTestInsightsRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GetPoolTimeline Which project held which runner when
+//
+// ci-run-insights R5.21 (CIX). At most 24 hours; the last 24 hours when from and to are absent.
+//
+// Corresponds with GET /api/v1/insights/timeline (the `GetPoolTimeline` operationId).
+func (c *Client) GetPoolTimeline(ctx context.Context, params *GetPoolTimelineParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetPoolTimelineRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GetWaitSplit Wait, hold and run per repository, job key or day
+//
+// ci-run-insights R5.12 to R5.14 (CIX).
+//
+// Corresponds with GET /api/v1/insights/waits (the `GetWaitSplit` operationId).
+func (c *Client) GetWaitSplit(ctx context.Context, params *GetWaitSplitParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetWaitSplitRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 // GetInstallCommand The install command per OS, without a join code
 //
 // operations R5.1 and machines R5.3. Carries the controller address, agent port and certificate fingerprint. The join code is added only by createJoinCode.
@@ -9792,6 +11228,23 @@ func (c *Client) ListJobSummaries(ctx context.Context, params *ListJobSummariesP
 // Corresponds with GET /api/v1/jobs/{jobId} (the `GetJob` operationId).
 func (c *Client) GetJob(ctx context.Context, jobId JobId, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetJobRequest(c.Server, jobId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GetJobResources CPU and memory of one job
+//
+// ci-run-insights R5.19, R5.20 (CIX).
+//
+// Corresponds with GET /api/v1/jobs/{jobId}/resources (the `GetJobResources` operationId).
+func (c *Client) GetJobResources(ctx context.Context, jobId JobId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetJobResourcesRequest(c.Server, jobId)
 	if err != nil {
 		return nil, err
 	}
@@ -11418,6 +12871,23 @@ func (c *Client) SetRepositoryWebhookMode(ctx context.Context, repositoryId Repo
 	return c.Client.Do(req)
 }
 
+// ListWorkflowChecks Workflow file checks of the latest default-branch commit
+//
+// ci-run-insights R5.29, R5.30 (CIX).
+//
+// Corresponds with GET /api/v1/repositories/{repositoryId}/workflow-checks (the `ListWorkflowChecks` operationId).
+func (c *Client) ListWorkflowChecks(ctx context.Context, repositoryId RepositoryId, params *ListWorkflowChecksParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListWorkflowChecksRequest(c.Server, repositoryId, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 // PlanRepositoryChangesWithBody Plan turning the pool on or off for repositories
 //
 // github-integration R5.20 and R5.29, web-console R5.18. Nothing changes. The plan names each variable to write or delete and the workflows that still use a variable that would go.
@@ -11815,6 +13285,23 @@ func (c *Client) ListRuns(ctx context.Context, params *ListRunsParams, reqEditor
 // Corresponds with GET /api/v1/runs/{runId} (the `GetRun` operationId).
 func (c *Client) GetRun(ctx context.Context, runId int64, params *GetRunParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetRunRequest(c.Server, runId, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// GetRunSavings How much sooner the run could have ended
+//
+// ci-run-insights R5.23 to R5.27 (CIX).
+//
+// Corresponds with GET /api/v1/runs/{runId}/savings (the `GetRunSavings` operationId).
+func (c *Client) GetRunSavings(ctx context.Context, runId RunId, params *GetRunSavingsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetRunSavingsRequest(c.Server, runId, params)
 	if err != nil {
 		return nil, err
 	}
@@ -14784,6 +16271,664 @@ func NewRebuildImageRequest(server string, imageId ImageId, params *RebuildImage
 	return req, nil
 }
 
+// NewListInsightDigestsRequest constructs an http.Request for the ListInsightDigests method
+func NewListInsightDigestsRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/insights/digests")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewListInsightFindingsRequest constructs an http.Request for the ListInsightFindings method
+func NewListInsightFindingsRequest(server string, params *ListInsightFindingsParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/insights/findings")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.RepositoryId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "repository_id", *params.RepositoryId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: "int64"}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Area != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "area", *params.Area, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Guardrail != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "guardrail", *params.Guardrail, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.State != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "state", *params.State, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Limit != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "limit", *params.Limit, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Cursor != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "cursor", *params.Cursor, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetInsightFindingRequest constructs an http.Request for the GetInsightFinding method
+func NewGetInsightFindingRequest(server string, findingId FindingId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "findingId", findingId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "integer", Format: "int64"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/insights/findings/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewCreateInsightPlanRequest constructs an http.Request for the CreateInsightPlan method
+func NewCreateInsightPlanRequest(server string, findingId FindingId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "findingId", findingId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "integer", Format: "int64"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/insights/findings/%s/plans", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewListGuardrailStatusRequest constructs an http.Request for the ListGuardrailStatus method
+func NewListGuardrailStatusRequest(server string, params *ListGuardrailStatusParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/insights/guardrails")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.RepositoryId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "repository_id", *params.RepositoryId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: "int64"}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetInsightPlanRequest constructs an http.Request for the GetInsightPlan method
+func NewGetInsightPlanRequest(server string, planId PlanId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "planId", planId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/insights/plans/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewStartInsightPlanRequest constructs an http.Request for the StartInsightPlan method
+func NewStartInsightPlanRequest(server string, planId PlanId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "planId", planId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/insights/plans/%s/start", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetPoolSizingRequest constructs an http.Request for the GetPoolSizing method
+func NewGetPoolSizingRequest(server string, params *GetPoolSizingParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/insights/pool-sizing")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.Days != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "days", *params.Days, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetInsightSummaryRequest constructs an http.Request for the GetInsightSummary method
+func NewGetInsightSummaryRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/insights/summary")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewListTestInsightsRequest constructs an http.Request for the ListTestInsights method
+func NewListTestInsightsRequest(server string, params *ListTestInsightsParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/insights/tests")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.View != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "view", *params.View, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.RepositoryId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "repository_id", *params.RepositoryId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: "int64"}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Days != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "days", *params.Days, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Limit != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "limit", *params.Limit, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Cursor != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "cursor", *params.Cursor, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetPoolTimelineRequest constructs an http.Request for the GetPoolTimeline method
+func NewGetPoolTimelineRequest(server string, params *GetPoolTimelineParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/insights/timeline")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.From != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "from", *params.From, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: "date-time"}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.To != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "to", *params.To, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: "date-time"}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetWaitSplitRequest constructs an http.Request for the GetWaitSplit method
+func NewGetWaitSplitRequest(server string, params *GetWaitSplitParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/insights/waits")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.Days != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "days", *params.Days, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.Group != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "group", *params.Group, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.RepositoryId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "repository_id", *params.RepositoryId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: "int64"}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewGetInstallCommandRequest constructs an http.Request for the GetInstallCommand method
 func NewGetInstallCommandRequest(server string) (*http.Request, error) {
 	var err error
@@ -15356,6 +17501,40 @@ func NewGetJobRequest(server string, jobId JobId) (*http.Request, error) {
 	}
 
 	operationPath := fmt.Sprintf("/api/v1/jobs/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetJobResourcesRequest constructs an http.Request for the GetJobResources method
+func NewGetJobResourcesRequest(server string, jobId JobId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "jobId", jobId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "integer", Format: "int64"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/jobs/%s/resources", pathParam0)
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -18037,6 +20216,67 @@ func NewSetRepositoryWebhookModeRequestWithBody(server string, repositoryId Repo
 	return req, nil
 }
 
+// NewListWorkflowChecksRequest constructs an http.Request for the ListWorkflowChecks method
+func NewListWorkflowChecksRequest(server string, repositoryId RepositoryId, params *ListWorkflowChecksParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "repositoryId", repositoryId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "integer", Format: "int64"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/repositories/%s/workflow-checks", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.HeadSha != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "head_sha", *params.HeadSha, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewPlanRepositoryChangesRequest calls the generic PlanRepositoryChanges builder with application/json body
 func NewPlanRepositoryChangesRequest(server string, body PlanRepositoryChangesJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
@@ -18897,6 +21137,67 @@ func NewGetRunRequest(server string, runId int64, params *GetRunParams) (*http.R
 	}
 
 	operationPath := fmt.Sprintf("/api/v1/runs/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.Attempt != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "attempt", *params.Attempt, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetRunSavingsRequest constructs an http.Request for the GetRunSavings method
+func NewGetRunSavingsRequest(server string, runId RunId, params *GetRunSavingsParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "runId", runId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/runs/%s/savings", pathParam0)
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -20632,6 +22933,114 @@ type ClientWithResponsesInterface interface {
 	// Corresponds with POST /api/v1/images/{imageId}/rebuild (the `RebuildImage` operationId).
 	RebuildImageWithResponse(ctx context.Context, imageId ImageId, params *RebuildImageParams, reqEditors ...RequestEditorFn) (*RebuildImageResponse, error)
 
+	// ListInsightDigestsWithResponse The last weekly digests, with their text
+	//
+	// ci-run-insights R5.38 (CIX). The files stay local; nothing is sent.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/v1/insights/digests (the `ListInsightDigests` operationId).
+	ListInsightDigestsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*ListInsightDigestsResponse, error)
+
+	// ListInsightFindingsWithResponse The Do next list across projects
+	//
+	// ci-run-insights R5.11 (CIX). Open findings ranked by minutes saved a week, then by first seen. No route dismisses a finding (R5.8).
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/v1/insights/findings (the `ListInsightFindings` operationId).
+	ListInsightFindingsWithResponse(ctx context.Context, params *ListInsightFindingsParams, reqEditors ...RequestEditorFn) (*ListInsightFindingsResponse, error)
+
+	// GetInsightFindingWithResponse One finding with its evidence
+	//
+	// ci-run-insights R5.7 (CIX).
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/v1/insights/findings/{findingId} (the `GetInsightFinding` operationId).
+	GetInsightFindingWithResponse(ctx context.Context, findingId FindingId, reqEditors ...RequestEditorFn) (*GetInsightFindingResponse, error)
+
+	// CreateInsightPlanWithResponse Make the plan of a setup change (nothing changes yet)
+	//
+	// ci-run-insights R5.10 (CIX). The plan is the Review step's data. 409 conflict when the finding has no action or is resolved.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /api/v1/insights/findings/{findingId}/plans (the `CreateInsightPlan` operationId).
+	CreateInsightPlanWithResponse(ctx context.Context, findingId FindingId, reqEditors ...RequestEditorFn) (*CreateInsightPlanResponse, error)
+
+	// ListGuardrailStatusWithResponse G1 to G7 per project
+	//
+	// ci-run-insights R5.31, R5.32 (CIX).
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/v1/insights/guardrails (the `ListGuardrailStatus` operationId).
+	ListGuardrailStatusWithResponse(ctx context.Context, params *ListGuardrailStatusParams, reqEditors ...RequestEditorFn) (*ListGuardrailStatusResponse, error)
+
+	// GetInsightPlanWithResponse One plan with its progress
+	//
+	// ci-run-insights R5.10 (CIX). The wizard reads this after a reload.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/v1/insights/plans/{planId} (the `GetInsightPlan` operationId).
+	GetInsightPlanWithResponse(ctx context.Context, planId PlanId, reqEditors ...RequestEditorFn) (*GetInsightPlanResponse, error)
+
+	// StartInsightPlanWithResponse Make the reviewed change
+	//
+	// ci-run-insights R5.10, R6.6 (CIX). 409 conflict unless the plan is draft. Each change writes an audit row.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /api/v1/insights/plans/{planId}/start (the `StartInsightPlan` operationId).
+	StartInsightPlanWithResponse(ctx context.Context, planId PlanId, reqEditors ...RequestEditorFn) (*StartInsightPlanResponse, error)
+
+	// GetPoolSizingWithResponse Demand per label set and the wait with more slots
+	//
+	// ci-run-insights R5.15 to R5.17 (CIX). Estimates, labelled as such.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/v1/insights/pool-sizing (the `GetPoolSizing` operationId).
+	GetPoolSizingWithResponse(ctx context.Context, params *GetPoolSizingParams, reqEditors ...RequestEditorFn) (*GetPoolSizingResponse, error)
+
+	// GetInsightSummaryWithResponse The count and minutes the Overview shows
+	//
+	// ci-run-insights R5.11 (CIX). The Overview only shows and links (UX-52).
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/v1/insights/summary (the `GetInsightSummary` operationId).
+	GetInsightSummaryWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetInsightSummaryResponse, error)
+
+	// ListTestInsightsWithResponse Slowest, flaky, duplicated and empty tests
+	//
+	// ci-run-insights R5.33 to R5.37 (CIX).
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/v1/insights/tests (the `ListTestInsights` operationId).
+	ListTestInsightsWithResponse(ctx context.Context, params *ListTestInsightsParams, reqEditors ...RequestEditorFn) (*ListTestInsightsResponse, error)
+
+	// GetPoolTimelineWithResponse Which project held which runner when
+	//
+	// ci-run-insights R5.21 (CIX). At most 24 hours; the last 24 hours when from and to are absent.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/v1/insights/timeline (the `GetPoolTimeline` operationId).
+	GetPoolTimelineWithResponse(ctx context.Context, params *GetPoolTimelineParams, reqEditors ...RequestEditorFn) (*GetPoolTimelineResponse, error)
+
+	// GetWaitSplitWithResponse Wait, hold and run per repository, job key or day
+	//
+	// ci-run-insights R5.12 to R5.14 (CIX).
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/v1/insights/waits (the `GetWaitSplit` operationId).
+	GetWaitSplitWithResponse(ctx context.Context, params *GetWaitSplitParams, reqEditors ...RequestEditorFn) (*GetWaitSplitResponse, error)
+
 	// GetInstallCommandWithResponse The install command per OS, without a join code
 	//
 	// operations R5.1 and machines R5.3. Carries the controller address, agent port and certificate fingerprint. The join code is added only by createJoinCode.
@@ -20683,6 +23092,15 @@ type ClientWithResponsesInterface interface {
 	//
 	// Corresponds with GET /api/v1/jobs/{jobId} (the `GetJob` operationId).
 	GetJobWithResponse(ctx context.Context, jobId JobId, reqEditors ...RequestEditorFn) (*GetJobResponse, error)
+
+	// GetJobResourcesWithResponse CPU and memory of one job
+	//
+	// ci-run-insights R5.19, R5.20 (CIX).
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/v1/jobs/{jobId}/resources (the `GetJobResources` operationId).
+	GetJobResourcesWithResponse(ctx context.Context, jobId JobId, reqEditors ...RequestEditorFn) (*GetJobResourcesResponse, error)
 
 	// CreateJoinCodeWithBodyWithResponse Make a one-time join code and the install commands
 	//
@@ -21484,6 +23902,15 @@ type ClientWithResponsesInterface interface {
 	// Corresponds with PUT /api/v1/repositories/{repositoryId}/webhook-mode (the `SetRepositoryWebhookMode` operationId).
 	SetRepositoryWebhookModeWithResponse(ctx context.Context, repositoryId RepositoryId, body SetRepositoryWebhookModeJSONRequestBody, reqEditors ...RequestEditorFn) (*SetRepositoryWebhookModeResponse, error)
 
+	// ListWorkflowChecksWithResponse Workflow file checks of the latest default-branch commit
+	//
+	// ci-run-insights R5.29, R5.30 (CIX).
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/v1/repositories/{repositoryId}/workflow-checks (the `ListWorkflowChecks` operationId).
+	ListWorkflowChecksWithResponse(ctx context.Context, repositoryId RepositoryId, params *ListWorkflowChecksParams, reqEditors ...RequestEditorFn) (*ListWorkflowChecksResponse, error)
+
 	// PlanRepositoryChangesWithBodyWithResponse Plan turning the pool on or off for repositories
 	//
 	// github-integration R5.20 and R5.29, web-console R5.18. Nothing changes. The plan names each variable to write or delete and the workflows that still use a variable that would go.
@@ -21686,6 +24113,15 @@ type ClientWithResponsesInterface interface {
 	//
 	// Corresponds with GET /api/v1/runs/{runId} (the `GetRun` operationId).
 	GetRunWithResponse(ctx context.Context, runId int64, params *GetRunParams, reqEditors ...RequestEditorFn) (*GetRunResponse, error)
+
+	// GetRunSavingsWithResponse How much sooner the run could have ended
+	//
+	// ci-run-insights R5.23 to R5.27 (CIX).
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with GET /api/v1/runs/{runId}/savings (the `GetRunSavings` operationId).
+	GetRunSavingsWithResponse(ctx context.Context, runId RunId, params *GetRunSavingsParams, reqEditors ...RequestEditorFn) (*GetRunSavingsResponse, error)
 
 	// RestartServiceWithResponse Restart the service after a drain
 	//
@@ -24205,6 +26641,582 @@ func (r RebuildImageResponse) ContentType() string {
 	return ""
 }
 
+type ListInsightDigestsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *InsightDigestList
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r ListInsightDigestsResponse) GetJSON200() *InsightDigestList {
+	return r.JSON200
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r ListInsightDigestsResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r ListInsightDigestsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ListInsightDigestsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListInsightDigestsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ListInsightDigestsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type ListInsightFindingsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *InsightFindingList
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r ListInsightFindingsResponse) GetJSON200() *InsightFindingList {
+	return r.JSON200
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r ListInsightFindingsResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r ListInsightFindingsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ListInsightFindingsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListInsightFindingsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ListInsightFindingsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type GetInsightFindingResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *InsightFinding
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetInsightFindingResponse) GetJSON200() *InsightFinding {
+	return r.JSON200
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r GetInsightFindingResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r GetInsightFindingResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetInsightFindingResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetInsightFindingResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetInsightFindingResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type CreateInsightPlanResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON201 the response for an HTTP 201 `application/json` response
+	JSON201 *InsightPlan
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON201 returns the response for an HTTP 201 `application/json` response
+func (r CreateInsightPlanResponse) GetJSON201() *InsightPlan {
+	return r.JSON201
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r CreateInsightPlanResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r CreateInsightPlanResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r CreateInsightPlanResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CreateInsightPlanResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r CreateInsightPlanResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type ListGuardrailStatusResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *GuardrailStatusList
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r ListGuardrailStatusResponse) GetJSON200() *GuardrailStatusList {
+	return r.JSON200
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r ListGuardrailStatusResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r ListGuardrailStatusResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ListGuardrailStatusResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListGuardrailStatusResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ListGuardrailStatusResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type GetInsightPlanResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *InsightPlan
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetInsightPlanResponse) GetJSON200() *InsightPlan {
+	return r.JSON200
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r GetInsightPlanResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r GetInsightPlanResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetInsightPlanResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetInsightPlanResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetInsightPlanResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type StartInsightPlanResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON202 the response for an HTTP 202 `application/json` response
+	JSON202 *InsightPlan
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON202 returns the response for an HTTP 202 `application/json` response
+func (r StartInsightPlanResponse) GetJSON202() *InsightPlan {
+	return r.JSON202
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r StartInsightPlanResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r StartInsightPlanResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r StartInsightPlanResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r StartInsightPlanResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r StartInsightPlanResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type GetPoolSizingResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *PoolSizing
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetPoolSizingResponse) GetJSON200() *PoolSizing {
+	return r.JSON200
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r GetPoolSizingResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r GetPoolSizingResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetPoolSizingResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetPoolSizingResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetPoolSizingResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type GetInsightSummaryResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *InsightSummary
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetInsightSummaryResponse) GetJSON200() *InsightSummary {
+	return r.JSON200
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r GetInsightSummaryResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r GetInsightSummaryResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetInsightSummaryResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetInsightSummaryResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetInsightSummaryResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type ListTestInsightsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *TestInsightList
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r ListTestInsightsResponse) GetJSON200() *TestInsightList {
+	return r.JSON200
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r ListTestInsightsResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r ListTestInsightsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ListTestInsightsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListTestInsightsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ListTestInsightsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type GetPoolTimelineResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *PoolTimeline
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetPoolTimelineResponse) GetJSON200() *PoolTimeline {
+	return r.JSON200
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r GetPoolTimelineResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r GetPoolTimelineResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetPoolTimelineResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetPoolTimelineResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetPoolTimelineResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type GetWaitSplitResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *WaitSplit
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetWaitSplitResponse) GetJSON200() *WaitSplit {
+	return r.JSON200
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r GetWaitSplitResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r GetWaitSplitResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetWaitSplitResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetWaitSplitResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetWaitSplitResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 type GetInstallCommandResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -24487,6 +27499,54 @@ func (r GetJobResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r GetJobResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type GetJobResourcesResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *JobResources
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetJobResourcesResponse) GetJSON200() *JobResources {
+	return r.JSON200
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r GetJobResourcesResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r GetJobResourcesResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetJobResourcesResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetJobResourcesResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetJobResourcesResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -27620,6 +30680,54 @@ func (r SetRepositoryWebhookModeResponse) ContentType() string {
 	return ""
 }
 
+type ListWorkflowChecksResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *WorkflowCheckList
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r ListWorkflowChecksResponse) GetJSON200() *WorkflowCheckList {
+	return r.JSON200
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r ListWorkflowChecksResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r ListWorkflowChecksResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r ListWorkflowChecksResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListWorkflowChecksResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r ListWorkflowChecksResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 type PlanRepositoryChangesResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -28478,6 +31586,54 @@ func (r GetRunResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r GetRunResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type GetRunSavingsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *RunSavings
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r GetRunSavingsResponse) GetJSON200() *RunSavings {
+	return r.JSON200
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r GetRunSavingsResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r GetRunSavingsResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r GetRunSavingsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetRunSavingsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r GetRunSavingsResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -30659,6 +33815,186 @@ func (c *ClientWithResponses) RebuildImageWithResponse(ctx context.Context, imag
 	return ParseRebuildImageResponse(rsp)
 }
 
+// ListInsightDigestsWithResponse The last weekly digests, with their text
+//
+// ci-run-insights R5.38 (CIX). The files stay local; nothing is sent.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/v1/insights/digests (the `ListInsightDigests` operationId).
+func (c *ClientWithResponses) ListInsightDigestsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*ListInsightDigestsResponse, error) {
+	rsp, err := c.ListInsightDigests(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListInsightDigestsResponse(rsp)
+}
+
+// ListInsightFindingsWithResponse The Do next list across projects
+//
+// ci-run-insights R5.11 (CIX). Open findings ranked by minutes saved a week, then by first seen. No route dismisses a finding (R5.8).
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/v1/insights/findings (the `ListInsightFindings` operationId).
+func (c *ClientWithResponses) ListInsightFindingsWithResponse(ctx context.Context, params *ListInsightFindingsParams, reqEditors ...RequestEditorFn) (*ListInsightFindingsResponse, error) {
+	rsp, err := c.ListInsightFindings(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListInsightFindingsResponse(rsp)
+}
+
+// GetInsightFindingWithResponse One finding with its evidence
+//
+// ci-run-insights R5.7 (CIX).
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/v1/insights/findings/{findingId} (the `GetInsightFinding` operationId).
+func (c *ClientWithResponses) GetInsightFindingWithResponse(ctx context.Context, findingId FindingId, reqEditors ...RequestEditorFn) (*GetInsightFindingResponse, error) {
+	rsp, err := c.GetInsightFinding(ctx, findingId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetInsightFindingResponse(rsp)
+}
+
+// CreateInsightPlanWithResponse Make the plan of a setup change (nothing changes yet)
+//
+// ci-run-insights R5.10 (CIX). The plan is the Review step's data. 409 conflict when the finding has no action or is resolved.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /api/v1/insights/findings/{findingId}/plans (the `CreateInsightPlan` operationId).
+func (c *ClientWithResponses) CreateInsightPlanWithResponse(ctx context.Context, findingId FindingId, reqEditors ...RequestEditorFn) (*CreateInsightPlanResponse, error) {
+	rsp, err := c.CreateInsightPlan(ctx, findingId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateInsightPlanResponse(rsp)
+}
+
+// ListGuardrailStatusWithResponse G1 to G7 per project
+//
+// ci-run-insights R5.31, R5.32 (CIX).
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/v1/insights/guardrails (the `ListGuardrailStatus` operationId).
+func (c *ClientWithResponses) ListGuardrailStatusWithResponse(ctx context.Context, params *ListGuardrailStatusParams, reqEditors ...RequestEditorFn) (*ListGuardrailStatusResponse, error) {
+	rsp, err := c.ListGuardrailStatus(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListGuardrailStatusResponse(rsp)
+}
+
+// GetInsightPlanWithResponse One plan with its progress
+//
+// ci-run-insights R5.10 (CIX). The wizard reads this after a reload.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/v1/insights/plans/{planId} (the `GetInsightPlan` operationId).
+func (c *ClientWithResponses) GetInsightPlanWithResponse(ctx context.Context, planId PlanId, reqEditors ...RequestEditorFn) (*GetInsightPlanResponse, error) {
+	rsp, err := c.GetInsightPlan(ctx, planId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetInsightPlanResponse(rsp)
+}
+
+// StartInsightPlanWithResponse Make the reviewed change
+//
+// ci-run-insights R5.10, R6.6 (CIX). 409 conflict unless the plan is draft. Each change writes an audit row.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /api/v1/insights/plans/{planId}/start (the `StartInsightPlan` operationId).
+func (c *ClientWithResponses) StartInsightPlanWithResponse(ctx context.Context, planId PlanId, reqEditors ...RequestEditorFn) (*StartInsightPlanResponse, error) {
+	rsp, err := c.StartInsightPlan(ctx, planId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseStartInsightPlanResponse(rsp)
+}
+
+// GetPoolSizingWithResponse Demand per label set and the wait with more slots
+//
+// ci-run-insights R5.15 to R5.17 (CIX). Estimates, labelled as such.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/v1/insights/pool-sizing (the `GetPoolSizing` operationId).
+func (c *ClientWithResponses) GetPoolSizingWithResponse(ctx context.Context, params *GetPoolSizingParams, reqEditors ...RequestEditorFn) (*GetPoolSizingResponse, error) {
+	rsp, err := c.GetPoolSizing(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetPoolSizingResponse(rsp)
+}
+
+// GetInsightSummaryWithResponse The count and minutes the Overview shows
+//
+// ci-run-insights R5.11 (CIX). The Overview only shows and links (UX-52).
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/v1/insights/summary (the `GetInsightSummary` operationId).
+func (c *ClientWithResponses) GetInsightSummaryWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetInsightSummaryResponse, error) {
+	rsp, err := c.GetInsightSummary(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetInsightSummaryResponse(rsp)
+}
+
+// ListTestInsightsWithResponse Slowest, flaky, duplicated and empty tests
+//
+// ci-run-insights R5.33 to R5.37 (CIX).
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/v1/insights/tests (the `ListTestInsights` operationId).
+func (c *ClientWithResponses) ListTestInsightsWithResponse(ctx context.Context, params *ListTestInsightsParams, reqEditors ...RequestEditorFn) (*ListTestInsightsResponse, error) {
+	rsp, err := c.ListTestInsights(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListTestInsightsResponse(rsp)
+}
+
+// GetPoolTimelineWithResponse Which project held which runner when
+//
+// ci-run-insights R5.21 (CIX). At most 24 hours; the last 24 hours when from and to are absent.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/v1/insights/timeline (the `GetPoolTimeline` operationId).
+func (c *ClientWithResponses) GetPoolTimelineWithResponse(ctx context.Context, params *GetPoolTimelineParams, reqEditors ...RequestEditorFn) (*GetPoolTimelineResponse, error) {
+	rsp, err := c.GetPoolTimeline(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetPoolTimelineResponse(rsp)
+}
+
+// GetWaitSplitWithResponse Wait, hold and run per repository, job key or day
+//
+// ci-run-insights R5.12 to R5.14 (CIX).
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/v1/insights/waits (the `GetWaitSplit` operationId).
+func (c *ClientWithResponses) GetWaitSplitWithResponse(ctx context.Context, params *GetWaitSplitParams, reqEditors ...RequestEditorFn) (*GetWaitSplitResponse, error) {
+	rsp, err := c.GetWaitSplit(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetWaitSplitResponse(rsp)
+}
+
 // GetInstallCommandWithResponse The install command per OS, without a join code
 //
 // operations R5.1 and machines R5.3. Carries the controller address, agent port and certificate fingerprint. The join code is added only by createJoinCode.
@@ -30745,6 +34081,21 @@ func (c *ClientWithResponses) GetJobWithResponse(ctx context.Context, jobId JobI
 		return nil, err
 	}
 	return ParseGetJobResponse(rsp)
+}
+
+// GetJobResourcesWithResponse CPU and memory of one job
+//
+// ci-run-insights R5.19, R5.20 (CIX).
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/v1/jobs/{jobId}/resources (the `GetJobResources` operationId).
+func (c *ClientWithResponses) GetJobResourcesWithResponse(ctx context.Context, jobId JobId, reqEditors ...RequestEditorFn) (*GetJobResourcesResponse, error) {
+	rsp, err := c.GetJobResources(ctx, jobId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetJobResourcesResponse(rsp)
 }
 
 // CreateJoinCodeWithBodyWithResponse Make a one-time join code and the install commands
@@ -32087,6 +35438,21 @@ func (c *ClientWithResponses) SetRepositoryWebhookModeWithResponse(ctx context.C
 	return ParseSetRepositoryWebhookModeResponse(rsp)
 }
 
+// ListWorkflowChecksWithResponse Workflow file checks of the latest default-branch commit
+//
+// ci-run-insights R5.29, R5.30 (CIX).
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/v1/repositories/{repositoryId}/workflow-checks (the `ListWorkflowChecks` operationId).
+func (c *ClientWithResponses) ListWorkflowChecksWithResponse(ctx context.Context, repositoryId RepositoryId, params *ListWorkflowChecksParams, reqEditors ...RequestEditorFn) (*ListWorkflowChecksResponse, error) {
+	rsp, err := c.ListWorkflowChecks(ctx, repositoryId, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListWorkflowChecksResponse(rsp)
+}
+
 // PlanRepositoryChangesWithBodyWithResponse Plan turning the pool on or off for repositories
 //
 // github-integration R5.20 and R5.29, web-console R5.18. Nothing changes. The plan names each variable to write or delete and the workflows that still use a variable that would go.
@@ -32426,6 +35792,21 @@ func (c *ClientWithResponses) GetRunWithResponse(ctx context.Context, runId int6
 		return nil, err
 	}
 	return ParseGetRunResponse(rsp)
+}
+
+// GetRunSavingsWithResponse How much sooner the run could have ended
+//
+// ci-run-insights R5.23 to R5.27 (CIX).
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with GET /api/v1/runs/{runId}/savings (the `GetRunSavings` operationId).
+func (c *ClientWithResponses) GetRunSavingsWithResponse(ctx context.Context, runId RunId, params *GetRunSavingsParams, reqEditors ...RequestEditorFn) (*GetRunSavingsResponse, error) {
+	rsp, err := c.GetRunSavings(ctx, runId, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetRunSavingsResponse(rsp)
 }
 
 // RestartServiceWithResponse Restart the service after a drain
@@ -34561,6 +37942,402 @@ func ParseRebuildImageResponse(rsp *http.Response) (*RebuildImageResponse, error
 	return response, nil
 }
 
+// ParseListInsightDigestsResponse parses an HTTP response from a ListInsightDigestsWithResponse call
+func ParseListInsightDigestsResponse(rsp *http.Response) (*ListInsightDigestsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListInsightDigestsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest InsightDigestList
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListInsightFindingsResponse parses an HTTP response from a ListInsightFindingsWithResponse call
+func ParseListInsightFindingsResponse(rsp *http.Response) (*ListInsightFindingsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListInsightFindingsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest InsightFindingList
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetInsightFindingResponse parses an HTTP response from a GetInsightFindingWithResponse call
+func ParseGetInsightFindingResponse(rsp *http.Response) (*GetInsightFindingResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetInsightFindingResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest InsightFinding
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseCreateInsightPlanResponse parses an HTTP response from a CreateInsightPlanWithResponse call
+func ParseCreateInsightPlanResponse(rsp *http.Response) (*CreateInsightPlanResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CreateInsightPlanResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest InsightPlan
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListGuardrailStatusResponse parses an HTTP response from a ListGuardrailStatusWithResponse call
+func ParseListGuardrailStatusResponse(rsp *http.Response) (*ListGuardrailStatusResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListGuardrailStatusResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest GuardrailStatusList
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetInsightPlanResponse parses an HTTP response from a GetInsightPlanWithResponse call
+func ParseGetInsightPlanResponse(rsp *http.Response) (*GetInsightPlanResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetInsightPlanResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest InsightPlan
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseStartInsightPlanResponse parses an HTTP response from a StartInsightPlanWithResponse call
+func ParseStartInsightPlanResponse(rsp *http.Response) (*StartInsightPlanResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &StartInsightPlanResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 202:
+		var dest InsightPlan
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON202 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetPoolSizingResponse parses an HTTP response from a GetPoolSizingWithResponse call
+func ParseGetPoolSizingResponse(rsp *http.Response) (*GetPoolSizingResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetPoolSizingResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest PoolSizing
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetInsightSummaryResponse parses an HTTP response from a GetInsightSummaryWithResponse call
+func ParseGetInsightSummaryResponse(rsp *http.Response) (*GetInsightSummaryResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetInsightSummaryResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest InsightSummary
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListTestInsightsResponse parses an HTTP response from a ListTestInsightsWithResponse call
+func ParseListTestInsightsResponse(rsp *http.Response) (*ListTestInsightsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListTestInsightsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest TestInsightList
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetPoolTimelineResponse parses an HTTP response from a GetPoolTimelineWithResponse call
+func ParseGetPoolTimelineResponse(rsp *http.Response) (*GetPoolTimelineResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetPoolTimelineResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest PoolTimeline
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetWaitSplitResponse parses an HTTP response from a GetWaitSplitWithResponse call
+func ParseGetWaitSplitResponse(rsp *http.Response) (*GetWaitSplitResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetWaitSplitResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest WaitSplit
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParseGetInstallCommandResponse parses an HTTP response from a GetInstallCommandWithResponse call
 func ParseGetInstallCommandResponse(rsp *http.Response) (*GetInstallCommandResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -34742,6 +38519,39 @@ func ParseGetJobResponse(rsp *http.Response) (*GetJobResponse, error) {
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest JobDetail
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetJobResourcesResponse parses an HTTP response from a GetJobResourcesWithResponse call
+func ParseGetJobResourcesResponse(rsp *http.Response) (*GetJobResourcesResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetJobResourcesResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest JobResources
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -36926,6 +40736,39 @@ func ParseSetRepositoryWebhookModeResponse(rsp *http.Response) (*SetRepositoryWe
 	return response, nil
 }
 
+// ParseListWorkflowChecksResponse parses an HTTP response from a ListWorkflowChecksWithResponse call
+func ParseListWorkflowChecksResponse(rsp *http.Response) (*ListWorkflowChecksResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListWorkflowChecksResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest WorkflowCheckList
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParsePlanRepositoryChangesResponse parses an HTTP response from a PlanRepositoryChangesWithResponse call
 func ParsePlanRepositoryChangesResponse(rsp *http.Response) (*PlanRepositoryChangesResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -37503,6 +41346,39 @@ func ParseGetRunResponse(rsp *http.Response) (*GetRunResponse, error) {
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest RunItem
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetRunSavingsResponse parses an HTTP response from a GetRunSavingsWithResponse call
+func ParseGetRunSavingsResponse(rsp *http.Response) (*GetRunSavingsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetRunSavingsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest RunSavings
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}

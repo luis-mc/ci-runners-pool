@@ -57,6 +57,10 @@ const (
 	// agent asks only when the controller's HelloAck says version 3 or more; the
 	// controller answers only an agent whose MachineReport says `registry`.
 	ProtocolVersion_PROTOCOL_VERSION_3 ProtocolVersion = 3
+	// Version 4 adds JobResourceSamples (CIX8, docs/features/ci-run-insights
+	// R5.19): CPU and memory per running job. An agent sends it only when the
+	// controller's HelloAck says version 4 or more.
+	ProtocolVersion_PROTOCOL_VERSION_4 ProtocolVersion = 4
 )
 
 // Enum value maps for ProtocolVersion.
@@ -66,12 +70,14 @@ var (
 		1: "PROTOCOL_VERSION_1",
 		2: "PROTOCOL_VERSION_2",
 		3: "PROTOCOL_VERSION_3",
+		4: "PROTOCOL_VERSION_4",
 	}
 	ProtocolVersion_value = map[string]int32{
 		"PROTOCOL_VERSION_UNSPECIFIED": 0,
 		"PROTOCOL_VERSION_1":           1,
 		"PROTOCOL_VERSION_2":           2,
 		"PROTOCOL_VERSION_3":           3,
+		"PROTOCOL_VERSION_4":           4,
 	}
 )
 
@@ -812,6 +818,7 @@ type SessionRequest struct {
 	//	*SessionRequest_PushReport
 	//	*SessionRequest_PullReport
 	//	*SessionRequest_BuildReport
+	//	*SessionRequest_JobResourceSamples
 	Message       isSessionRequest_Message `protobuf_oneof:"message"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -1106,6 +1113,15 @@ func (x *SessionRequest) GetBuildReport() *BuildReport {
 	return nil
 }
 
+func (x *SessionRequest) GetJobResourceSamples() *JobResourceSamples {
+	if x != nil {
+		if x, ok := x.Message.(*SessionRequest_JobResourceSamples); ok {
+			return x.JobResourceSamples
+		}
+	}
+	return nil
+}
+
 type isSessionRequest_Message interface {
 	isSessionRequest_Message()
 }
@@ -1230,6 +1246,11 @@ type SessionRequest_BuildReport struct {
 	BuildReport *BuildReport `protobuf:"bytes,30,opt,name=build_report,json=buildReport,proto3,oneof"`
 }
 
+type SessionRequest_JobResourceSamples struct {
+	// CIX8: CPU and memory per running job (ci-run-insights R5.19). Protocol version 4.
+	JobResourceSamples *JobResourceSamples `protobuf:"bytes,31,opt,name=job_resource_samples,json=jobResourceSamples,proto3,oneof"`
+}
+
 func (*SessionRequest_Hello) isSessionRequest_Message() {}
 
 func (*SessionRequest_Heartbeat) isSessionRequest_Message() {}
@@ -1285,6 +1306,8 @@ func (*SessionRequest_PushReport) isSessionRequest_Message() {}
 func (*SessionRequest_PullReport) isSessionRequest_Message() {}
 
 func (*SessionRequest_BuildReport) isSessionRequest_Message() {}
+
+func (*SessionRequest_JobResourceSamples) isSessionRequest_Message() {}
 
 // SessionResponse is one message from the controller.
 type SessionResponse struct {
@@ -8205,6 +8228,170 @@ func (x *PullReport) GetAtUnixMs() int64 {
 	return 0
 }
 
+// JobResourceSamples carries the CPU and memory of one running job
+// (ci-run-insights R5.19, R5.20). The agent samples every 5 seconds the job's
+// container cgroup (container and VM backends) or the runner's process tree
+// (a persistent runner), and sends a batch about every 15 seconds and a final
+// one when the job ends. The controller answers nothing; a lost batch only
+// leaves a gap. Protocol version 4.
+type JobResourceSamples struct {
+	state    protoimpl.MessageState `protogen:"open.v1"`
+	RunnerId string                 `protobuf:"bytes,1,opt,name=runner_id,json=runnerId,proto3" json:"runner_id,omitempty"`
+	Job      *JobRef                `protobuf:"bytes,2,opt,name=job,proto3" json:"job,omitempty"`
+	// What was measured: "cgroup" or "process_tree".
+	Source  string               `protobuf:"bytes,3,opt,name=source,proto3" json:"source,omitempty"`
+	Samples []*JobResourceSample `protobuf:"bytes,4,rep,name=samples,proto3" json:"samples,omitempty"`
+	// True on the last batch of the job, sent when the job ends.
+	Final bool `protobuf:"varint,5,opt,name=final,proto3" json:"final,omitempty"`
+	// Why a value could not be read; samples then have known = false.
+	UnknownReason string `protobuf:"bytes,6,opt,name=unknown_reason,json=unknownReason,proto3" json:"unknown_reason,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *JobResourceSamples) Reset() {
+	*x = JobResourceSamples{}
+	mi := &file_agent_v1_agent_proto_msgTypes[79]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *JobResourceSamples) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*JobResourceSamples) ProtoMessage() {}
+
+func (x *JobResourceSamples) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_v1_agent_proto_msgTypes[79]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use JobResourceSamples.ProtoReflect.Descriptor instead.
+func (*JobResourceSamples) Descriptor() ([]byte, []int) {
+	return file_agent_v1_agent_proto_rawDescGZIP(), []int{79}
+}
+
+func (x *JobResourceSamples) GetRunnerId() string {
+	if x != nil {
+		return x.RunnerId
+	}
+	return ""
+}
+
+func (x *JobResourceSamples) GetJob() *JobRef {
+	if x != nil {
+		return x.Job
+	}
+	return nil
+}
+
+func (x *JobResourceSamples) GetSource() string {
+	if x != nil {
+		return x.Source
+	}
+	return ""
+}
+
+func (x *JobResourceSamples) GetSamples() []*JobResourceSample {
+	if x != nil {
+		return x.Samples
+	}
+	return nil
+}
+
+func (x *JobResourceSamples) GetFinal() bool {
+	if x != nil {
+		return x.Final
+	}
+	return false
+}
+
+func (x *JobResourceSamples) GetUnknownReason() string {
+	if x != nil {
+		return x.UnknownReason
+	}
+	return ""
+}
+
+// JobResourceSample is one reading.
+type JobResourceSample struct {
+	state    protoimpl.MessageState `protogen:"open.v1"`
+	AtUnixMs int64                  `protobuf:"varint,1,opt,name=at_unix_ms,json=atUnixMs,proto3" json:"at_unix_ms,omitempty"`
+	// CPU cores used since the previous sample, times 1000.
+	CpuMillis int64 `protobuf:"varint,2,opt,name=cpu_millis,json=cpuMillis,proto3" json:"cpu_millis,omitempty"`
+	// Resident memory of the job, in bytes.
+	MemoryBytes   int64 `protobuf:"varint,3,opt,name=memory_bytes,json=memoryBytes,proto3" json:"memory_bytes,omitempty"`
+	Known         bool  `protobuf:"varint,4,opt,name=known,proto3" json:"known,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *JobResourceSample) Reset() {
+	*x = JobResourceSample{}
+	mi := &file_agent_v1_agent_proto_msgTypes[80]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *JobResourceSample) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*JobResourceSample) ProtoMessage() {}
+
+func (x *JobResourceSample) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_v1_agent_proto_msgTypes[80]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use JobResourceSample.ProtoReflect.Descriptor instead.
+func (*JobResourceSample) Descriptor() ([]byte, []int) {
+	return file_agent_v1_agent_proto_rawDescGZIP(), []int{80}
+}
+
+func (x *JobResourceSample) GetAtUnixMs() int64 {
+	if x != nil {
+		return x.AtUnixMs
+	}
+	return 0
+}
+
+func (x *JobResourceSample) GetCpuMillis() int64 {
+	if x != nil {
+		return x.CpuMillis
+	}
+	return 0
+}
+
+func (x *JobResourceSample) GetMemoryBytes() int64 {
+	if x != nil {
+		return x.MemoryBytes
+	}
+	return 0
+}
+
+func (x *JobResourceSample) GetKnown() bool {
+	if x != nil {
+		return x.Known
+	}
+	return false
+}
+
 type GateDecision_Go struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	Slots []*SlotGrant           `protobuf:"bytes,1,rep,name=slots,proto3" json:"slots,omitempty"`
@@ -8216,7 +8403,7 @@ type GateDecision_Go struct {
 
 func (x *GateDecision_Go) Reset() {
 	*x = GateDecision_Go{}
-	mi := &file_agent_v1_agent_proto_msgTypes[79]
+	mi := &file_agent_v1_agent_proto_msgTypes[81]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8228,7 +8415,7 @@ func (x *GateDecision_Go) String() string {
 func (*GateDecision_Go) ProtoMessage() {}
 
 func (x *GateDecision_Go) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_v1_agent_proto_msgTypes[79]
+	mi := &file_agent_v1_agent_proto_msgTypes[81]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8273,7 +8460,7 @@ type GateDecision_Wait struct {
 
 func (x *GateDecision_Wait) Reset() {
 	*x = GateDecision_Wait{}
-	mi := &file_agent_v1_agent_proto_msgTypes[80]
+	mi := &file_agent_v1_agent_proto_msgTypes[82]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8285,7 +8472,7 @@ func (x *GateDecision_Wait) String() string {
 func (*GateDecision_Wait) ProtoMessage() {}
 
 func (x *GateDecision_Wait) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_v1_agent_proto_msgTypes[80]
+	mi := &file_agent_v1_agent_proto_msgTypes[82]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8339,7 +8526,7 @@ type GateDecision_Timeout struct {
 
 func (x *GateDecision_Timeout) Reset() {
 	*x = GateDecision_Timeout{}
-	mi := &file_agent_v1_agent_proto_msgTypes[81]
+	mi := &file_agent_v1_agent_proto_msgTypes[83]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8351,7 +8538,7 @@ func (x *GateDecision_Timeout) String() string {
 func (*GateDecision_Timeout) ProtoMessage() {}
 
 func (x *GateDecision_Timeout) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_v1_agent_proto_msgTypes[81]
+	mi := &file_agent_v1_agent_proto_msgTypes[83]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8393,7 +8580,7 @@ const file_agent_v1_agent_proto_rawDesc = "" +
 	"\x12machine_credential\x18\x02 \x01(\tR\x11machineCredential\x12\x1f\n" +
 	"\vcert_sha256\x18\x03 \x01(\tR\n" +
 	"certSha256\x125\n" +
-	"\bsettings\x18\x04 \x01(\v2\x19.agent.v1.MachineSettingsR\bsettings\"\xd2\r\n" +
+	"\bsettings\x18\x04 \x01(\v2\x19.agent.v1.MachineSettingsR\bsettings\"\xa4\x0e\n" +
 	"\x0eSessionRequest\x12'\n" +
 	"\x05hello\x18\x01 \x01(\v2\x0f.agent.v1.HelloH\x00R\x05hello\x123\n" +
 	"\theartbeat\x18\x02 \x01(\v2\x13.agent.v1.HeartbeatH\x00R\theartbeat\x127\n" +
@@ -8427,7 +8614,8 @@ const file_agent_v1_agent_proto_rawDesc = "" +
 	"pushReport\x127\n" +
 	"\vpull_report\x18\x1d \x01(\v2\x14.agent.v1.PullReportH\x00R\n" +
 	"pullReport\x12:\n" +
-	"\fbuild_report\x18\x1e \x01(\v2\x15.agent.v1.BuildReportH\x00R\vbuildReportB\t\n" +
+	"\fbuild_report\x18\x1e \x01(\v2\x15.agent.v1.BuildReportH\x00R\vbuildReport\x12P\n" +
+	"\x14job_resource_samples\x18\x1f \x01(\v2\x1c.agent.v1.JobResourceSamplesH\x00R\x12jobResourceSamplesB\t\n" +
 	"\amessage\"\xaf\f\n" +
 	"\x0fSessionResponse\x121\n" +
 	"\thello_ack\x18\x01 \x01(\v2\x12.agent.v1.HelloAckH\x00R\bhelloAck\x123\n" +
@@ -9120,12 +9308,27 @@ const file_agent_v1_agent_proto_rawDesc = "" +
 	"\x18STATE_WAITING_CONTROLLER\x10\x02\x12\x0e\n" +
 	"\n" +
 	"STATE_DONE\x10\x03\x12\x10\n" +
-	"\fSTATE_FAILED\x10\x04*{\n" +
+	"\fSTATE_FAILED\x10\x04\"\xe1\x01\n" +
+	"\x12JobResourceSamples\x12\x1b\n" +
+	"\trunner_id\x18\x01 \x01(\tR\brunnerId\x12\"\n" +
+	"\x03job\x18\x02 \x01(\v2\x10.agent.v1.JobRefR\x03job\x12\x16\n" +
+	"\x06source\x18\x03 \x01(\tR\x06source\x125\n" +
+	"\asamples\x18\x04 \x03(\v2\x1b.agent.v1.JobResourceSampleR\asamples\x12\x14\n" +
+	"\x05final\x18\x05 \x01(\bR\x05final\x12%\n" +
+	"\x0eunknown_reason\x18\x06 \x01(\tR\runknownReason\"\x89\x01\n" +
+	"\x11JobResourceSample\x12\x1c\n" +
+	"\n" +
+	"at_unix_ms\x18\x01 \x01(\x03R\batUnixMs\x12\x1d\n" +
+	"\n" +
+	"cpu_millis\x18\x02 \x01(\x03R\tcpuMillis\x12!\n" +
+	"\fmemory_bytes\x18\x03 \x01(\x03R\vmemoryBytes\x12\x14\n" +
+	"\x05known\x18\x04 \x01(\bR\x05known*\x93\x01\n" +
 	"\x0fProtocolVersion\x12 \n" +
 	"\x1cPROTOCOL_VERSION_UNSPECIFIED\x10\x00\x12\x16\n" +
 	"\x12PROTOCOL_VERSION_1\x10\x01\x12\x16\n" +
 	"\x12PROTOCOL_VERSION_2\x10\x02\x12\x16\n" +
-	"\x12PROTOCOL_VERSION_3\x10\x03*\xf8\x01\n" +
+	"\x12PROTOCOL_VERSION_3\x10\x03\x12\x16\n" +
+	"\x12PROTOCOL_VERSION_4\x10\x04*\xf8\x01\n" +
 	"\vRunnerState\x12\x1c\n" +
 	"\x18RUNNER_STATE_UNSPECIFIED\x10\x00\x12\x19\n" +
 	"\x15RUNNER_STATE_CREATING\x10\x01\x12\x15\n" +
@@ -9164,7 +9367,7 @@ func file_agent_v1_agent_proto_rawDescGZIP() []byte {
 }
 
 var file_agent_v1_agent_proto_enumTypes = make([]protoimpl.EnumInfo, 10)
-var file_agent_v1_agent_proto_msgTypes = make([]protoimpl.MessageInfo, 82)
+var file_agent_v1_agent_proto_msgTypes = make([]protoimpl.MessageInfo, 84)
 var file_agent_v1_agent_proto_goTypes = []any{
 	(ProtocolVersion)(0),             // 0: agent.v1.ProtocolVersion
 	(RunnerState)(0),                 // 1: agent.v1.RunnerState
@@ -9255,9 +9458,11 @@ var file_agent_v1_agent_proto_goTypes = []any{
 	(*PushReport)(nil),               // 86: agent.v1.PushReport
 	(*BuildReport)(nil),              // 87: agent.v1.BuildReport
 	(*PullReport)(nil),               // 88: agent.v1.PullReport
-	(*GateDecision_Go)(nil),          // 89: agent.v1.GateDecision.Go
-	(*GateDecision_Wait)(nil),        // 90: agent.v1.GateDecision.Wait
-	(*GateDecision_Timeout)(nil),     // 91: agent.v1.GateDecision.Timeout
+	(*JobResourceSamples)(nil),       // 89: agent.v1.JobResourceSamples
+	(*JobResourceSample)(nil),        // 90: agent.v1.JobResourceSample
+	(*GateDecision_Go)(nil),          // 91: agent.v1.GateDecision.Go
+	(*GateDecision_Wait)(nil),        // 92: agent.v1.GateDecision.Wait
+	(*GateDecision_Timeout)(nil),     // 93: agent.v1.GateDecision.Timeout
 }
 var file_agent_v1_agent_proto_depIdxs = []int32{
 	17,  // 0: agent.v1.JoinRequest.facts:type_name -> agent.v1.Facts
@@ -9291,94 +9496,97 @@ var file_agent_v1_agent_proto_depIdxs = []int32{
 	86,  // 28: agent.v1.SessionRequest.push_report:type_name -> agent.v1.PushReport
 	88,  // 29: agent.v1.SessionRequest.pull_report:type_name -> agent.v1.PullReport
 	87,  // 30: agent.v1.SessionRequest.build_report:type_name -> agent.v1.BuildReport
-	15,  // 31: agent.v1.SessionResponse.hello_ack:type_name -> agent.v1.HelloAck
-	16,  // 32: agent.v1.SessionResponse.heartbeat:type_name -> agent.v1.Heartbeat
-	45,  // 33: agent.v1.SessionResponse.settings:type_name -> agent.v1.MachineSettings
-	41,  // 34: agent.v1.SessionResponse.gate_decision:type_name -> agent.v1.GateDecision
-	43,  // 35: agent.v1.SessionResponse.release_ack:type_name -> agent.v1.ReleaseAck
-	23,  // 36: agent.v1.SessionResponse.add_runner:type_name -> agent.v1.AddRunner
-	28,  // 37: agent.v1.SessionResponse.remove_runner:type_name -> agent.v1.RemoveRunner
-	29,  // 38: agent.v1.SessionResponse.drain_runner:type_name -> agent.v1.DrainRunner
-	46,  // 39: agent.v1.SessionResponse.drain:type_name -> agent.v1.Drain
-	47,  // 40: agent.v1.SessionResponse.resume:type_name -> agent.v1.Resume
-	49,  // 41: agent.v1.SessionResponse.redetect:type_name -> agent.v1.Redetect
-	54,  // 42: agent.v1.SessionResponse.run_checks:type_name -> agent.v1.RunChecks
-	50,  // 43: agent.v1.SessionResponse.machine_removed:type_name -> agent.v1.MachineRemoved
-	57,  // 44: agent.v1.SessionResponse.update_agent:type_name -> agent.v1.UpdateAgent
-	30,  // 45: agent.v1.SessionResponse.stop_runner:type_name -> agent.v1.StopRunner
-	59,  // 46: agent.v1.SessionResponse.measure_caches:type_name -> agent.v1.MeasureCaches
-	62,  // 47: agent.v1.SessionResponse.wipe_cache:type_name -> agent.v1.WipeCache
-	64,  // 48: agent.v1.SessionResponse.report_machine:type_name -> agent.v1.ReportMachine
-	33,  // 49: agent.v1.SessionResponse.update_runner_files:type_name -> agent.v1.UpdateRunnerFiles
-	32,  // 50: agent.v1.SessionResponse.run_host_command:type_name -> agent.v1.RunHostCommand
-	27,  // 51: agent.v1.SessionResponse.runner_hygiene:type_name -> agent.v1.RunnerHygiene
-	67,  // 52: agent.v1.SessionResponse.scan_runner_leftovers:type_name -> agent.v1.ScanRunnerLeftovers
-	69,  // 53: agent.v1.SessionResponse.remove_runner_leftovers:type_name -> agent.v1.RemoveRunnerLeftovers
-	83,  // 54: agent.v1.SessionResponse.ensure_image_answer:type_name -> agent.v1.EnsureImageAnswer
-	85,  // 55: agent.v1.SessionResponse.registry_grant:type_name -> agent.v1.RegistryToken
-	0,   // 56: agent.v1.Hello.protocol_version:type_name -> agent.v1.ProtocolVersion
-	17,  // 57: agent.v1.Hello.facts:type_name -> agent.v1.Facts
-	20,  // 58: agent.v1.Hello.load:type_name -> agent.v1.LoadReport
-	21,  // 59: agent.v1.Hello.runners:type_name -> agent.v1.RunnerStates
-	44,  // 60: agent.v1.Hello.holders:type_name -> agent.v1.HolderReport
-	0,   // 61: agent.v1.HelloAck.protocol_version:type_name -> agent.v1.ProtocolVersion
-	45,  // 62: agent.v1.HelloAck.settings:type_name -> agent.v1.MachineSettings
-	18,  // 63: agent.v1.Facts.gpus:type_name -> agent.v1.Gpu
-	19,  // 64: agent.v1.Facts.backends:type_name -> agent.v1.BackendSupport
-	22,  // 65: agent.v1.RunnerStates.runners:type_name -> agent.v1.RunnerStatus
-	1,   // 66: agent.v1.RunnerStatus.state:type_name -> agent.v1.RunnerState
-	35,  // 67: agent.v1.RunnerStatus.current_job:type_name -> agent.v1.JobRef
-	24,  // 68: agent.v1.AddRunner.runner:type_name -> agent.v1.RunnerSpec
-	26,  // 69: agent.v1.RunnerClean.runners:type_name -> agent.v1.RunnerCleanStatus
-	1,   // 70: agent.v1.RunnerResult.state:type_name -> agent.v1.RunnerState
-	35,  // 71: agent.v1.UsageReport.job:type_name -> agent.v1.JobRef
-	35,  // 72: agent.v1.GateRequest.job:type_name -> agent.v1.JobRef
-	36,  // 73: agent.v1.GateRequest.holder:type_name -> agent.v1.Holder
-	2,   // 74: agent.v1.SlotGrant.kind:type_name -> agent.v1.SlotKind
-	89,  // 75: agent.v1.GateDecision.go:type_name -> agent.v1.GateDecision.Go
-	90,  // 76: agent.v1.GateDecision.wait:type_name -> agent.v1.GateDecision.Wait
-	91,  // 77: agent.v1.GateDecision.timeout:type_name -> agent.v1.GateDecision.Timeout
-	35,  // 78: agent.v1.JobCompleted.job:type_name -> agent.v1.JobRef
-	35,  // 79: agent.v1.ReleaseAck.job:type_name -> agent.v1.JobRef
-	36,  // 80: agent.v1.HolderReport.alive:type_name -> agent.v1.Holder
-	35,  // 81: agent.v1.HolderReport.running:type_name -> agent.v1.JobRef
-	35,  // 82: agent.v1.DrainStatus.waiting_for:type_name -> agent.v1.JobRef
-	53,  // 83: agent.v1.LogBatch.lines:type_name -> agent.v1.LogLine
-	3,   // 84: agent.v1.LogLine.level:type_name -> agent.v1.LogLevel
-	35,  // 85: agent.v1.LogLine.job:type_name -> agent.v1.JobRef
-	56,  // 86: agent.v1.CheckResults.results:type_name -> agent.v1.CheckResult
-	35,  // 87: agent.v1.UpdateReport.waiting_for:type_name -> agent.v1.JobRef
-	61,  // 88: agent.v1.CacheReport.caches:type_name -> agent.v1.CacheStatus
-	35,  // 89: agent.v1.CacheWipeStatus.waiting_for:type_name -> agent.v1.JobRef
-	78,  // 90: agent.v1.MachineReport.kvm:type_name -> agent.v1.KvmReport
-	79,  // 91: agent.v1.MachineReport.engine:type_name -> agent.v1.EngineReport
-	80,  // 92: agent.v1.MachineReport.images:type_name -> agent.v1.ImageReport
-	77,  // 93: agent.v1.MachineReport.package_failures:type_name -> agent.v1.PackageFailure
-	75,  // 94: agent.v1.MachineReport.symlink:type_name -> agent.v1.SymlinkReport
-	76,  // 95: agent.v1.MachineReport.macos_vms:type_name -> agent.v1.MacVmReport
-	74,  // 96: agent.v1.MachineReport.docker_disk:type_name -> agent.v1.DockerDiskReport
-	73,  // 97: agent.v1.MachineReport.runner_services:type_name -> agent.v1.RunnerServiceReport
-	66,  // 98: agent.v1.ScanRunnerLeftovers.owned:type_name -> agent.v1.OwnedRunner
-	66,  // 99: agent.v1.RemoveRunnerLeftovers.owned:type_name -> agent.v1.OwnedRunner
-	68,  // 100: agent.v1.RemoveRunnerLeftovers.items:type_name -> agent.v1.LeftoverRef
-	70,  // 101: agent.v1.RunnerLeftoversReport.items:type_name -> agent.v1.Leftover
-	71,  // 102: agent.v1.RunnerLeftoversReport.results:type_name -> agent.v1.LeftoverResult
-	4,   // 103: agent.v1.EnsureImageAnswer.outcome:type_name -> agent.v1.EnsureImageAnswer.Outcome
-	5,   // 104: agent.v1.RegistryTokenRequest.action:type_name -> agent.v1.RegistryTokenRequest.Action
-	6,   // 105: agent.v1.PushReport.state:type_name -> agent.v1.PushReport.State
-	7,   // 106: agent.v1.BuildReport.phase:type_name -> agent.v1.BuildReport.Phase
-	8,   // 107: agent.v1.PullReport.source:type_name -> agent.v1.PullReport.Source
-	9,   // 108: agent.v1.PullReport.state:type_name -> agent.v1.PullReport.State
-	40,  // 109: agent.v1.GateDecision.Go.slots:type_name -> agent.v1.SlotGrant
-	10,  // 110: agent.v1.AgentService.Join:input_type -> agent.v1.JoinRequest
-	12,  // 111: agent.v1.AgentService.Session:input_type -> agent.v1.SessionRequest
-	11,  // 112: agent.v1.AgentService.Join:output_type -> agent.v1.JoinResponse
-	13,  // 113: agent.v1.AgentService.Session:output_type -> agent.v1.SessionResponse
-	112, // [112:114] is the sub-list for method output_type
-	110, // [110:112] is the sub-list for method input_type
-	110, // [110:110] is the sub-list for extension type_name
-	110, // [110:110] is the sub-list for extension extendee
-	0,   // [0:110] is the sub-list for field type_name
+	89,  // 31: agent.v1.SessionRequest.job_resource_samples:type_name -> agent.v1.JobResourceSamples
+	15,  // 32: agent.v1.SessionResponse.hello_ack:type_name -> agent.v1.HelloAck
+	16,  // 33: agent.v1.SessionResponse.heartbeat:type_name -> agent.v1.Heartbeat
+	45,  // 34: agent.v1.SessionResponse.settings:type_name -> agent.v1.MachineSettings
+	41,  // 35: agent.v1.SessionResponse.gate_decision:type_name -> agent.v1.GateDecision
+	43,  // 36: agent.v1.SessionResponse.release_ack:type_name -> agent.v1.ReleaseAck
+	23,  // 37: agent.v1.SessionResponse.add_runner:type_name -> agent.v1.AddRunner
+	28,  // 38: agent.v1.SessionResponse.remove_runner:type_name -> agent.v1.RemoveRunner
+	29,  // 39: agent.v1.SessionResponse.drain_runner:type_name -> agent.v1.DrainRunner
+	46,  // 40: agent.v1.SessionResponse.drain:type_name -> agent.v1.Drain
+	47,  // 41: agent.v1.SessionResponse.resume:type_name -> agent.v1.Resume
+	49,  // 42: agent.v1.SessionResponse.redetect:type_name -> agent.v1.Redetect
+	54,  // 43: agent.v1.SessionResponse.run_checks:type_name -> agent.v1.RunChecks
+	50,  // 44: agent.v1.SessionResponse.machine_removed:type_name -> agent.v1.MachineRemoved
+	57,  // 45: agent.v1.SessionResponse.update_agent:type_name -> agent.v1.UpdateAgent
+	30,  // 46: agent.v1.SessionResponse.stop_runner:type_name -> agent.v1.StopRunner
+	59,  // 47: agent.v1.SessionResponse.measure_caches:type_name -> agent.v1.MeasureCaches
+	62,  // 48: agent.v1.SessionResponse.wipe_cache:type_name -> agent.v1.WipeCache
+	64,  // 49: agent.v1.SessionResponse.report_machine:type_name -> agent.v1.ReportMachine
+	33,  // 50: agent.v1.SessionResponse.update_runner_files:type_name -> agent.v1.UpdateRunnerFiles
+	32,  // 51: agent.v1.SessionResponse.run_host_command:type_name -> agent.v1.RunHostCommand
+	27,  // 52: agent.v1.SessionResponse.runner_hygiene:type_name -> agent.v1.RunnerHygiene
+	67,  // 53: agent.v1.SessionResponse.scan_runner_leftovers:type_name -> agent.v1.ScanRunnerLeftovers
+	69,  // 54: agent.v1.SessionResponse.remove_runner_leftovers:type_name -> agent.v1.RemoveRunnerLeftovers
+	83,  // 55: agent.v1.SessionResponse.ensure_image_answer:type_name -> agent.v1.EnsureImageAnswer
+	85,  // 56: agent.v1.SessionResponse.registry_grant:type_name -> agent.v1.RegistryToken
+	0,   // 57: agent.v1.Hello.protocol_version:type_name -> agent.v1.ProtocolVersion
+	17,  // 58: agent.v1.Hello.facts:type_name -> agent.v1.Facts
+	20,  // 59: agent.v1.Hello.load:type_name -> agent.v1.LoadReport
+	21,  // 60: agent.v1.Hello.runners:type_name -> agent.v1.RunnerStates
+	44,  // 61: agent.v1.Hello.holders:type_name -> agent.v1.HolderReport
+	0,   // 62: agent.v1.HelloAck.protocol_version:type_name -> agent.v1.ProtocolVersion
+	45,  // 63: agent.v1.HelloAck.settings:type_name -> agent.v1.MachineSettings
+	18,  // 64: agent.v1.Facts.gpus:type_name -> agent.v1.Gpu
+	19,  // 65: agent.v1.Facts.backends:type_name -> agent.v1.BackendSupport
+	22,  // 66: agent.v1.RunnerStates.runners:type_name -> agent.v1.RunnerStatus
+	1,   // 67: agent.v1.RunnerStatus.state:type_name -> agent.v1.RunnerState
+	35,  // 68: agent.v1.RunnerStatus.current_job:type_name -> agent.v1.JobRef
+	24,  // 69: agent.v1.AddRunner.runner:type_name -> agent.v1.RunnerSpec
+	26,  // 70: agent.v1.RunnerClean.runners:type_name -> agent.v1.RunnerCleanStatus
+	1,   // 71: agent.v1.RunnerResult.state:type_name -> agent.v1.RunnerState
+	35,  // 72: agent.v1.UsageReport.job:type_name -> agent.v1.JobRef
+	35,  // 73: agent.v1.GateRequest.job:type_name -> agent.v1.JobRef
+	36,  // 74: agent.v1.GateRequest.holder:type_name -> agent.v1.Holder
+	2,   // 75: agent.v1.SlotGrant.kind:type_name -> agent.v1.SlotKind
+	91,  // 76: agent.v1.GateDecision.go:type_name -> agent.v1.GateDecision.Go
+	92,  // 77: agent.v1.GateDecision.wait:type_name -> agent.v1.GateDecision.Wait
+	93,  // 78: agent.v1.GateDecision.timeout:type_name -> agent.v1.GateDecision.Timeout
+	35,  // 79: agent.v1.JobCompleted.job:type_name -> agent.v1.JobRef
+	35,  // 80: agent.v1.ReleaseAck.job:type_name -> agent.v1.JobRef
+	36,  // 81: agent.v1.HolderReport.alive:type_name -> agent.v1.Holder
+	35,  // 82: agent.v1.HolderReport.running:type_name -> agent.v1.JobRef
+	35,  // 83: agent.v1.DrainStatus.waiting_for:type_name -> agent.v1.JobRef
+	53,  // 84: agent.v1.LogBatch.lines:type_name -> agent.v1.LogLine
+	3,   // 85: agent.v1.LogLine.level:type_name -> agent.v1.LogLevel
+	35,  // 86: agent.v1.LogLine.job:type_name -> agent.v1.JobRef
+	56,  // 87: agent.v1.CheckResults.results:type_name -> agent.v1.CheckResult
+	35,  // 88: agent.v1.UpdateReport.waiting_for:type_name -> agent.v1.JobRef
+	61,  // 89: agent.v1.CacheReport.caches:type_name -> agent.v1.CacheStatus
+	35,  // 90: agent.v1.CacheWipeStatus.waiting_for:type_name -> agent.v1.JobRef
+	78,  // 91: agent.v1.MachineReport.kvm:type_name -> agent.v1.KvmReport
+	79,  // 92: agent.v1.MachineReport.engine:type_name -> agent.v1.EngineReport
+	80,  // 93: agent.v1.MachineReport.images:type_name -> agent.v1.ImageReport
+	77,  // 94: agent.v1.MachineReport.package_failures:type_name -> agent.v1.PackageFailure
+	75,  // 95: agent.v1.MachineReport.symlink:type_name -> agent.v1.SymlinkReport
+	76,  // 96: agent.v1.MachineReport.macos_vms:type_name -> agent.v1.MacVmReport
+	74,  // 97: agent.v1.MachineReport.docker_disk:type_name -> agent.v1.DockerDiskReport
+	73,  // 98: agent.v1.MachineReport.runner_services:type_name -> agent.v1.RunnerServiceReport
+	66,  // 99: agent.v1.ScanRunnerLeftovers.owned:type_name -> agent.v1.OwnedRunner
+	66,  // 100: agent.v1.RemoveRunnerLeftovers.owned:type_name -> agent.v1.OwnedRunner
+	68,  // 101: agent.v1.RemoveRunnerLeftovers.items:type_name -> agent.v1.LeftoverRef
+	70,  // 102: agent.v1.RunnerLeftoversReport.items:type_name -> agent.v1.Leftover
+	71,  // 103: agent.v1.RunnerLeftoversReport.results:type_name -> agent.v1.LeftoverResult
+	4,   // 104: agent.v1.EnsureImageAnswer.outcome:type_name -> agent.v1.EnsureImageAnswer.Outcome
+	5,   // 105: agent.v1.RegistryTokenRequest.action:type_name -> agent.v1.RegistryTokenRequest.Action
+	6,   // 106: agent.v1.PushReport.state:type_name -> agent.v1.PushReport.State
+	7,   // 107: agent.v1.BuildReport.phase:type_name -> agent.v1.BuildReport.Phase
+	8,   // 108: agent.v1.PullReport.source:type_name -> agent.v1.PullReport.Source
+	9,   // 109: agent.v1.PullReport.state:type_name -> agent.v1.PullReport.State
+	35,  // 110: agent.v1.JobResourceSamples.job:type_name -> agent.v1.JobRef
+	90,  // 111: agent.v1.JobResourceSamples.samples:type_name -> agent.v1.JobResourceSample
+	40,  // 112: agent.v1.GateDecision.Go.slots:type_name -> agent.v1.SlotGrant
+	10,  // 113: agent.v1.AgentService.Join:input_type -> agent.v1.JoinRequest
+	12,  // 114: agent.v1.AgentService.Session:input_type -> agent.v1.SessionRequest
+	11,  // 115: agent.v1.AgentService.Join:output_type -> agent.v1.JoinResponse
+	13,  // 116: agent.v1.AgentService.Session:output_type -> agent.v1.SessionResponse
+	115, // [115:117] is the sub-list for method output_type
+	113, // [113:115] is the sub-list for method input_type
+	113, // [113:113] is the sub-list for extension type_name
+	113, // [113:113] is the sub-list for extension extendee
+	0,   // [0:113] is the sub-list for field type_name
 }
 
 func init() { file_agent_v1_agent_proto_init() }
@@ -9419,6 +9627,7 @@ func file_agent_v1_agent_proto_init() {
 		(*SessionRequest_PushReport)(nil),
 		(*SessionRequest_PullReport)(nil),
 		(*SessionRequest_BuildReport)(nil),
+		(*SessionRequest_JobResourceSamples)(nil),
 	}
 	file_agent_v1_agent_proto_msgTypes[3].OneofWrappers = []any{
 		(*SessionResponse_HelloAck)(nil),
@@ -9463,7 +9672,7 @@ func file_agent_v1_agent_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_agent_v1_agent_proto_rawDesc), len(file_agent_v1_agent_proto_rawDesc)),
 			NumEnums:      10,
-			NumMessages:   82,
+			NumMessages:   84,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
