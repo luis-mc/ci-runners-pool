@@ -71,3 +71,7 @@ Run 1 plain `go test -json ./...`, run 2 through the tiered go-test.sh (2707 pas
 - `scripts/delivery/fast_guards.py` fails locally only for missing gitleaks and golangci-lint binaries (exit 127); typecheck passes.
 - Checks run: actionlint 1.7.7 (with shellcheck) on ci.yml, parity.yml, dev-standards.yml: clean; unittest scripts/ci: 32 OK; bash -n and shellcheck go-test.sh; tiered go-test.sh -race full run; Playwright all non-ux-routes files (676 passed) and one ux-routes quarter (536 passed) against a local build, with the preinstalled Chromium 1243 (the repo's Playwright wants 1255, not installable here; used a throwaway config that was not committed).
 - Gate for items 1 to 8: the CI run the orchestrator starts on this branch head.
+
+PR: https://github.com/luis-mc/ci-runners-shared-pool/pull/320 (draft, opened with the GitHub MCP tool; gh is not available here).
+
+CODE DONE a6ba591
