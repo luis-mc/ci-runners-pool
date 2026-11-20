@@ -44,4 +44,4 @@ Also: `internal/github/rest_insights.go` (JobLog, DownloadArtifact streamed thro
 - A job log whose fetch fails (not 404/410) leaves no row and is not retried until the next `JobCompleted` for it.
 - The collector queue is in memory; a restart drops it (the next completed jobs queue again).
 
-CODE DONE: see the final commit of the branch.
+CODE DONE 3ad9ecc
