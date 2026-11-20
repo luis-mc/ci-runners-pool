@@ -30,6 +30,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.beatTicketStmt, err = db.PrepareContext(ctx, beatTicket); err != nil {
 		return nil, fmt.Errorf("error preparing query BeatTicket: %w", err)
 	}
+	if q.cIDataBytesByRepositoryStmt, err = db.PrepareContext(ctx, cIDataBytesByRepository); err != nil {
+		return nil, fmt.Errorf("error preparing query CIDataBytesByRepository: %w", err)
+	}
 	if q.claimRegistryScanStmt, err = db.PrepareContext(ctx, claimRegistryScan); err != nil {
 		return nil, fmt.Errorf("error preparing query ClaimRegistryScan: %w", err)
 	}
@@ -48,6 +51,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.countMachineSlotsStmt, err = db.PrepareContext(ctx, countMachineSlots); err != nil {
 		return nil, fmt.Errorf("error preparing query CountMachineSlots: %w", err)
 	}
+	if q.countOpenInsightFindingsStmt, err = db.PrepareContext(ctx, countOpenInsightFindings); err != nil {
+		return nil, fmt.Errorf("error preparing query CountOpenInsightFindings: %w", err)
+	}
 	if q.countRepositoryRunningStmt, err = db.PrepareContext(ctx, countRepositoryRunning); err != nil {
 		return nil, fmt.Errorf("error preparing query CountRepositoryRunning: %w", err)
 	}
@@ -63,11 +69,23 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.deleteEndedRegistryTokenLeasesStmt, err = db.PrepareContext(ctx, deleteEndedRegistryTokenLeases); err != nil {
 		return nil, fmt.Errorf("error preparing query DeleteEndedRegistryTokenLeases: %w", err)
 	}
+	if q.deleteGuardrailReportsBeforeStmt, err = db.PrepareContext(ctx, deleteGuardrailReportsBefore); err != nil {
+		return nil, fmt.Errorf("error preparing query DeleteGuardrailReportsBefore: %w", err)
+	}
 	if q.deleteImageProfileStmt, err = db.PrepareContext(ctx, deleteImageProfile); err != nil {
 		return nil, fmt.Errorf("error preparing query DeleteImageProfile: %w", err)
 	}
+	if q.deleteInsightDigestStmt, err = db.PrepareContext(ctx, deleteInsightDigest); err != nil {
+		return nil, fmt.Errorf("error preparing query DeleteInsightDigest: %w", err)
+	}
 	if q.deleteJobHistoryBeforeStmt, err = db.PrepareContext(ctx, deleteJobHistoryBefore); err != nil {
 		return nil, fmt.Errorf("error preparing query DeleteJobHistoryBefore: %w", err)
+	}
+	if q.deleteJobResourceSamplesBeforeStmt, err = db.PrepareContext(ctx, deleteJobResourceSamplesBefore); err != nil {
+		return nil, fmt.Errorf("error preparing query DeleteJobResourceSamplesBefore: %w", err)
+	}
+	if q.deleteJobResourceSummaryBeforeStmt, err = db.PrepareContext(ctx, deleteJobResourceSummaryBefore); err != nil {
+		return nil, fmt.Errorf("error preparing query DeleteJobResourceSummaryBefore: %w", err)
 	}
 	if q.deleteJobStepsStmt, err = db.PrepareContext(ctx, deleteJobSteps); err != nil {
 		return nil, fmt.Errorf("error preparing query DeleteJobSteps: %w", err)
@@ -99,6 +117,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.deleteRegistryTokenLeaseStmt, err = db.PrepareContext(ctx, deleteRegistryTokenLease); err != nil {
 		return nil, fmt.Errorf("error preparing query DeleteRegistryTokenLease: %w", err)
 	}
+	if q.deleteResolvedInsightFindingsBeforeStmt, err = db.PrepareContext(ctx, deleteResolvedInsightFindingsBefore); err != nil {
+		return nil, fmt.Errorf("error preparing query DeleteResolvedInsightFindingsBefore: %w", err)
+	}
 	if q.deleteRunnerStmt, err = db.PrepareContext(ctx, deleteRunner); err != nil {
 		return nil, fmt.Errorf("error preparing query DeleteRunner: %w", err)
 	}
@@ -108,6 +129,12 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.deleteRunsOnFindingsStmt, err = db.PrepareContext(ctx, deleteRunsOnFindings); err != nil {
 		return nil, fmt.Errorf("error preparing query DeleteRunsOnFindings: %w", err)
 	}
+	if q.deleteTestResultsBeforeStmt, err = db.PrepareContext(ctx, deleteTestResultsBefore); err != nil {
+		return nil, fmt.Errorf("error preparing query DeleteTestResultsBefore: %w", err)
+	}
+	if q.deleteTestResultsForReportStmt, err = db.PrepareContext(ctx, deleteTestResultsForReport); err != nil {
+		return nil, fmt.Errorf("error preparing query DeleteTestResultsForReport: %w", err)
+	}
 	if q.deleteTicketStmt, err = db.PrepareContext(ctx, deleteTicket); err != nil {
 		return nil, fmt.Errorf("error preparing query DeleteTicket: %w", err)
 	}
@@ -116,6 +143,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	}
 	if q.deleteWebhookDeliveriesBeforeStmt, err = db.PrepareContext(ctx, deleteWebhookDeliveriesBefore); err != nil {
 		return nil, fmt.Errorf("error preparing query DeleteWebhookDeliveriesBefore: %w", err)
+	}
+	if q.deleteWorkflowChecksBeforeStmt, err = db.PrepareContext(ctx, deleteWorkflowChecksBefore); err != nil {
+		return nil, fmt.Errorf("error preparing query DeleteWorkflowChecksBefore: %w", err)
 	}
 	if q.endSessionStmt, err = db.PrepareContext(ctx, endSession); err != nil {
 		return nil, fmt.Errorf("error preparing query EndSession: %w", err)
@@ -137,6 +167,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	}
 	if q.finishImageBuildStmt, err = db.PrepareContext(ctx, finishImageBuild); err != nil {
 		return nil, fmt.Errorf("error preparing query FinishImageBuild: %w", err)
+	}
+	if q.finishInsightAnalyserRunStmt, err = db.PrepareContext(ctx, finishInsightAnalyserRun); err != nil {
+		return nil, fmt.Errorf("error preparing query FinishInsightAnalyserRun: %w", err)
 	}
 	if q.finishRegistryCleanupStmt, err = db.PrepareContext(ctx, finishRegistryCleanup); err != nil {
 		return nil, fmt.Errorf("error preparing query FinishRegistryCleanup: %w", err)
@@ -168,6 +201,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.getBackupStmt, err = db.PrepareContext(ctx, getBackup); err != nil {
 		return nil, fmt.Errorf("error preparing query GetBackup: %w", err)
 	}
+	if q.getCIJobLogStmt, err = db.PrepareContext(ctx, getCIJobLog); err != nil {
+		return nil, fmt.Errorf("error preparing query GetCIJobLog: %w", err)
+	}
 	if q.getDoctorRunStmt, err = db.PrepareContext(ctx, getDoctorRun); err != nil {
 		return nil, fmt.Errorf("error preparing query GetDoctorRun: %w", err)
 	}
@@ -183,8 +219,17 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.getImageProfileStmt, err = db.PrepareContext(ctx, getImageProfile); err != nil {
 		return nil, fmt.Errorf("error preparing query GetImageProfile: %w", err)
 	}
+	if q.getInsightFindingStmt, err = db.PrepareContext(ctx, getInsightFinding); err != nil {
+		return nil, fmt.Errorf("error preparing query GetInsightFinding: %w", err)
+	}
+	if q.getInsightPlanStmt, err = db.PrepareContext(ctx, getInsightPlan); err != nil {
+		return nil, fmt.Errorf("error preparing query GetInsightPlan: %w", err)
+	}
 	if q.getJobHistoryStmt, err = db.PrepareContext(ctx, getJobHistory); err != nil {
 		return nil, fmt.Errorf("error preparing query GetJobHistory: %w", err)
+	}
+	if q.getJobResourceSummaryStmt, err = db.PrepareContext(ctx, getJobResourceSummary); err != nil {
+		return nil, fmt.Errorf("error preparing query GetJobResourceSummary: %w", err)
 	}
 	if q.getJobsRowStmt, err = db.PrepareContext(ctx, getJobsRow); err != nil {
 		return nil, fmt.Errorf("error preparing query GetJobsRow: %w", err)
@@ -209,6 +254,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	}
 	if q.getNotificationChannelStmt, err = db.PrepareContext(ctx, getNotificationChannel); err != nil {
 		return nil, fmt.Errorf("error preparing query GetNotificationChannel: %w", err)
+	}
+	if q.getOpenInsightFindingStmt, err = db.PrepareContext(ctx, getOpenInsightFinding); err != nil {
+		return nil, fmt.Errorf("error preparing query GetOpenInsightFinding: %w", err)
 	}
 	if q.getOpenMachineChangeStmt, err = db.PrepareContext(ctx, getOpenMachineChange); err != nil {
 		return nil, fmt.Errorf("error preparing query GetOpenMachineChange: %w", err)
@@ -303,6 +351,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.getWorkflowGraphStmt, err = db.PrepareContext(ctx, getWorkflowGraph); err != nil {
 		return nil, fmt.Errorf("error preparing query GetWorkflowGraph: %w", err)
 	}
+	if q.hasWorkflowChecksForCommitStmt, err = db.PrepareContext(ctx, hasWorkflowChecksForCommit); err != nil {
+		return nil, fmt.Errorf("error preparing query HasWorkflowChecksForCommit: %w", err)
+	}
 	if q.insertAuditEntryStmt, err = db.PrepareContext(ctx, insertAuditEntry); err != nil {
 		return nil, fmt.Errorf("error preparing query InsertAuditEntry: %w", err)
 	}
@@ -311,6 +362,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	}
 	if q.insertBackupStmt, err = db.PrepareContext(ctx, insertBackup); err != nil {
 		return nil, fmt.Errorf("error preparing query InsertBackup: %w", err)
+	}
+	if q.insertCIReportFileStmt, err = db.PrepareContext(ctx, insertCIReportFile); err != nil {
+		return nil, fmt.Errorf("error preparing query InsertCIReportFile: %w", err)
 	}
 	if q.insertCliTokenStmt, err = db.PrepareContext(ctx, insertCliToken); err != nil {
 		return nil, fmt.Errorf("error preparing query InsertCliToken: %w", err)
@@ -326,6 +380,18 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	}
 	if q.insertImageProfileIfAbsentStmt, err = db.PrepareContext(ctx, insertImageProfileIfAbsent); err != nil {
 		return nil, fmt.Errorf("error preparing query InsertImageProfileIfAbsent: %w", err)
+	}
+	if q.insertInsightAnalyserRunStmt, err = db.PrepareContext(ctx, insertInsightAnalyserRun); err != nil {
+		return nil, fmt.Errorf("error preparing query InsertInsightAnalyserRun: %w", err)
+	}
+	if q.insertInsightFindingStmt, err = db.PrepareContext(ctx, insertInsightFinding); err != nil {
+		return nil, fmt.Errorf("error preparing query InsertInsightFinding: %w", err)
+	}
+	if q.insertInsightPlanStmt, err = db.PrepareContext(ctx, insertInsightPlan); err != nil {
+		return nil, fmt.Errorf("error preparing query InsertInsightPlan: %w", err)
+	}
+	if q.insertJobResourceSampleStmt, err = db.PrepareContext(ctx, insertJobResourceSample); err != nil {
+		return nil, fmt.Errorf("error preparing query InsertJobResourceSample: %w", err)
 	}
 	if q.insertJobStepStmt, err = db.PrepareContext(ctx, insertJobStep); err != nil {
 		return nil, fmt.Errorf("error preparing query InsertJobStep: %w", err)
@@ -399,6 +465,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.insertSlotLogStmt, err = db.PrepareContext(ctx, insertSlotLog); err != nil {
 		return nil, fmt.Errorf("error preparing query InsertSlotLog: %w", err)
 	}
+	if q.insertTestResultStmt, err = db.PrepareContext(ctx, insertTestResult); err != nil {
+		return nil, fmt.Errorf("error preparing query InsertTestResult: %w", err)
+	}
 	if q.insertTicketStmt, err = db.PrepareContext(ctx, insertTicket); err != nil {
 		return nil, fmt.Errorf("error preparing query InsertTicket: %w", err)
 	}
@@ -417,11 +486,20 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.lastRestoreDrillStmt, err = db.PrepareContext(ctx, lastRestoreDrill); err != nil {
 		return nil, fmt.Errorf("error preparing query LastRestoreDrill: %w", err)
 	}
+	if q.latestDefaultBranchCheckedCommitStmt, err = db.PrepareContext(ctx, latestDefaultBranchCheckedCommit); err != nil {
+		return nil, fmt.Errorf("error preparing query LatestDefaultBranchCheckedCommit: %w", err)
+	}
 	if q.listAuditEventsStmt, err = db.PrepareContext(ctx, listAuditEvents); err != nil {
 		return nil, fmt.Errorf("error preparing query ListAuditEvents: %w", err)
 	}
 	if q.listBackupsStmt, err = db.PrepareContext(ctx, listBackups); err != nil {
 		return nil, fmt.Errorf("error preparing query ListBackups: %w", err)
+	}
+	if q.listCIJobLogsOldestFirstStmt, err = db.PrepareContext(ctx, listCIJobLogsOldestFirst); err != nil {
+		return nil, fmt.Errorf("error preparing query ListCIJobLogsOldestFirst: %w", err)
+	}
+	if q.listCIReportFilesForRunStmt, err = db.PrepareContext(ctx, listCIReportFilesForRun); err != nil {
+		return nil, fmt.Errorf("error preparing query ListCIReportFilesForRun: %w", err)
 	}
 	if q.listCliTokensStmt, err = db.PrepareContext(ctx, listCliTokens); err != nil {
 		return nil, fmt.Errorf("error preparing query ListCliTokens: %w", err)
@@ -432,11 +510,20 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.listDanglingRegistryLayersStmt, err = db.PrepareContext(ctx, listDanglingRegistryLayers); err != nil {
 		return nil, fmt.Errorf("error preparing query ListDanglingRegistryLayers: %w", err)
 	}
+	if q.listExpiredCIJobLogsStmt, err = db.PrepareContext(ctx, listExpiredCIJobLogs); err != nil {
+		return nil, fmt.Errorf("error preparing query ListExpiredCIJobLogs: %w", err)
+	}
+	if q.listExpiredCIReportFilesStmt, err = db.PrepareContext(ctx, listExpiredCIReportFiles); err != nil {
+		return nil, fmt.Errorf("error preparing query ListExpiredCIReportFiles: %w", err)
+	}
 	if q.listExpiredSlotsStmt, err = db.PrepareContext(ctx, listExpiredSlots); err != nil {
 		return nil, fmt.Errorf("error preparing query ListExpiredSlots: %w", err)
 	}
 	if q.listExpiredTicketsStmt, err = db.PrepareContext(ctx, listExpiredTickets); err != nil {
 		return nil, fmt.Errorf("error preparing query ListExpiredTickets: %w", err)
+	}
+	if q.listGuardrailReportsSinceStmt, err = db.PrepareContext(ctx, listGuardrailReportsSince); err != nil {
+		return nil, fmt.Errorf("error preparing query ListGuardrailReportsSince: %w", err)
 	}
 	if q.listImageBuildsStmt, err = db.PrepareContext(ctx, listImageBuilds); err != nil {
 		return nil, fmt.Errorf("error preparing query ListImageBuilds: %w", err)
@@ -453,6 +540,12 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.listInFlightPullMachinesOfRegistryImageStmt, err = db.PrepareContext(ctx, listInFlightPullMachinesOfRegistryImage); err != nil {
 		return nil, fmt.Errorf("error preparing query ListInFlightPullMachinesOfRegistryImage: %w", err)
 	}
+	if q.listInsightAnalyserRunsStmt, err = db.PrepareContext(ctx, listInsightAnalyserRuns); err != nil {
+		return nil, fmt.Errorf("error preparing query ListInsightAnalyserRuns: %w", err)
+	}
+	if q.listInsightDigestsStmt, err = db.PrepareContext(ctx, listInsightDigests); err != nil {
+		return nil, fmt.Errorf("error preparing query ListInsightDigests: %w", err)
+	}
 	if q.listInstallationsStmt, err = db.PrepareContext(ctx, listInstallations); err != nil {
 		return nil, fmt.Errorf("error preparing query ListInstallations: %w", err)
 	}
@@ -461,6 +554,12 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	}
 	if q.listJobHistoryStmt, err = db.PrepareContext(ctx, listJobHistory); err != nil {
 		return nil, fmt.Errorf("error preparing query ListJobHistory: %w", err)
+	}
+	if q.listJobResourceSamplesStmt, err = db.PrepareContext(ctx, listJobResourceSamples); err != nil {
+		return nil, fmt.Errorf("error preparing query ListJobResourceSamples: %w", err)
+	}
+	if q.listJobResourceSummariesForKeyStmt, err = db.PrepareContext(ctx, listJobResourceSummariesForKey); err != nil {
+		return nil, fmt.Errorf("error preparing query ListJobResourceSummariesForKey: %w", err)
 	}
 	if q.listJobStepsStmt, err = db.PrepareContext(ctx, listJobSteps); err != nil {
 		return nil, fmt.Errorf("error preparing query ListJobSteps: %w", err)
@@ -494,6 +593,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	}
 	if q.listOpenGitHubJobsStmt, err = db.PrepareContext(ctx, listOpenGitHubJobs); err != nil {
 		return nil, fmt.Errorf("error preparing query ListOpenGitHubJobs: %w", err)
+	}
+	if q.listOpenInsightFindingsStmt, err = db.PrepareContext(ctx, listOpenInsightFindings); err != nil {
+		return nil, fmt.Errorf("error preparing query ListOpenInsightFindings: %w", err)
 	}
 	if q.listOpenRegistryRecommendationsStmt, err = db.PrepareContext(ctx, listOpenRegistryRecommendations); err != nil {
 		return nil, fmt.Errorf("error preparing query ListOpenRegistryRecommendations: %w", err)
@@ -576,14 +678,32 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.listSettingsStmt, err = db.PrepareContext(ctx, listSettings); err != nil {
 		return nil, fmt.Errorf("error preparing query ListSettings: %w", err)
 	}
+	if q.listStaleJobRunsStmt, err = db.PrepareContext(ctx, listStaleJobRuns); err != nil {
+		return nil, fmt.Errorf("error preparing query ListStaleJobRuns: %w", err)
+	}
+	if q.listTestResultsBetweenStmt, err = db.PrepareContext(ctx, listTestResultsBetween); err != nil {
+		return nil, fmt.Errorf("error preparing query ListTestResultsBetween: %w", err)
+	}
+	if q.listTestResultsForRunStmt, err = db.PrepareContext(ctx, listTestResultsForRun); err != nil {
+		return nil, fmt.Errorf("error preparing query ListTestResultsForRun: %w", err)
+	}
 	if q.listUsersStmt, err = db.PrepareContext(ctx, listUsers); err != nil {
 		return nil, fmt.Errorf("error preparing query ListUsers: %w", err)
+	}
+	if q.listWorkflowChecksForCommitStmt, err = db.PrepareContext(ctx, listWorkflowChecksForCommit); err != nil {
+		return nil, fmt.Errorf("error preparing query ListWorkflowChecksForCommit: %w", err)
 	}
 	if q.machinePullSpeedStmt, err = db.PrepareContext(ctx, machinePullSpeed); err != nil {
 		return nil, fmt.Errorf("error preparing query MachinePullSpeed: %w", err)
 	}
 	if q.markBackupDeletedStmt, err = db.PrepareContext(ctx, markBackupDeleted); err != nil {
 		return nil, fmt.Errorf("error preparing query MarkBackupDeleted: %w", err)
+	}
+	if q.markCIJobLogExpiredStmt, err = db.PrepareContext(ctx, markCIJobLogExpired); err != nil {
+		return nil, fmt.Errorf("error preparing query MarkCIJobLogExpired: %w", err)
+	}
+	if q.markCIReportFileExpiredStmt, err = db.PrepareContext(ctx, markCIReportFileExpired); err != nil {
+		return nil, fmt.Errorf("error preparing query MarkCIReportFileExpired: %w", err)
 	}
 	if q.markInstallationRemovedStmt, err = db.PrepareContext(ctx, markInstallationRemoved); err != nil {
 		return nil, fmt.Errorf("error preparing query MarkInstallationRemoved: %w", err)
@@ -642,6 +762,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.renameMachineStmt, err = db.PrepareContext(ctx, renameMachine); err != nil {
 		return nil, fmt.Errorf("error preparing query RenameMachine: %w", err)
 	}
+	if q.resolveInsightFindingsNotSeenStmt, err = db.PrepareContext(ctx, resolveInsightFindingsNotSeen); err != nil {
+		return nil, fmt.Errorf("error preparing query ResolveInsightFindingsNotSeen: %w", err)
+	}
 	if q.restoreRegistryImageStmt, err = db.PrepareContext(ctx, restoreRegistryImage); err != nil {
 		return nil, fmt.Errorf("error preparing query RestoreRegistryImage: %w", err)
 	}
@@ -669,17 +792,26 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.setImageBuildPushStateStmt, err = db.PrepareContext(ctx, setImageBuildPushState); err != nil {
 		return nil, fmt.Errorf("error preparing query SetImageBuildPushState: %w", err)
 	}
+	if q.setJobCheckedAtStmt, err = db.PrepareContext(ctx, setJobCheckedAt); err != nil {
+		return nil, fmt.Errorf("error preparing query SetJobCheckedAt: %w", err)
+	}
 	if q.setJobCompletedStmt, err = db.PrepareContext(ctx, setJobCompleted); err != nil {
 		return nil, fmt.Errorf("error preparing query SetJobCompleted: %w", err)
 	}
 	if q.setJobForecastStmt, err = db.PrepareContext(ctx, setJobForecast); err != nil {
 		return nil, fmt.Errorf("error preparing query SetJobForecast: %w", err)
 	}
+	if q.setJobRunnerOriginStmt, err = db.PrepareContext(ctx, setJobRunnerOrigin); err != nil {
+		return nil, fmt.Errorf("error preparing query SetJobRunnerOrigin: %w", err)
+	}
 	if q.setJobSlotStmt, err = db.PrepareContext(ctx, setJobSlot); err != nil {
 		return nil, fmt.Errorf("error preparing query SetJobSlot: %w", err)
 	}
 	if q.setJobStartedStmt, err = db.PrepareContext(ctx, setJobStarted); err != nil {
 		return nil, fmt.Errorf("error preparing query SetJobStarted: %w", err)
+	}
+	if q.setJobStepsSourceStmt, err = db.PrepareContext(ctx, setJobStepsSource); err != nil {
+		return nil, fmt.Errorf("error preparing query SetJobStepsSource: %w", err)
 	}
 	if q.setMachineChangeStateStmt, err = db.PrepareContext(ctx, setMachineChangeState); err != nil {
 		return nil, fmt.Errorf("error preparing query SetMachineChangeState: %w", err)
@@ -789,6 +921,12 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.typicalImageBuildSecondsStmt, err = db.PrepareContext(ctx, typicalImageBuildSeconds); err != nil {
 		return nil, fmt.Errorf("error preparing query TypicalImageBuildSeconds: %w", err)
 	}
+	if q.updateInsightFindingSeenStmt, err = db.PrepareContext(ctx, updateInsightFindingSeen); err != nil {
+		return nil, fmt.Errorf("error preparing query UpdateInsightFindingSeen: %w", err)
+	}
+	if q.updateInsightPlanStateStmt, err = db.PrepareContext(ctx, updateInsightPlanState); err != nil {
+		return nil, fmt.Errorf("error preparing query UpdateInsightPlanState: %w", err)
+	}
 	if q.updateMachineFactsStmt, err = db.PrepareContext(ctx, updateMachineFacts); err != nil {
 		return nil, fmt.Errorf("error preparing query UpdateMachineFacts: %w", err)
 	}
@@ -810,6 +948,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.updateUserRoleStmt, err = db.PrepareContext(ctx, updateUserRole); err != nil {
 		return nil, fmt.Errorf("error preparing query UpdateUserRole: %w", err)
 	}
+	if q.upsertCIJobLogStmt, err = db.PrepareContext(ctx, upsertCIJobLog); err != nil {
+		return nil, fmt.Errorf("error preparing query UpsertCIJobLog: %w", err)
+	}
 	if q.upsertDailySummaryStmt, err = db.PrepareContext(ctx, upsertDailySummary); err != nil {
 		return nil, fmt.Errorf("error preparing query UpsertDailySummary: %w", err)
 	}
@@ -822,14 +963,23 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.upsertGitHubJobStmt, err = db.PrepareContext(ctx, upsertGitHubJob); err != nil {
 		return nil, fmt.Errorf("error preparing query UpsertGitHubJob: %w", err)
 	}
+	if q.upsertGuardrailReportStmt, err = db.PrepareContext(ctx, upsertGuardrailReport); err != nil {
+		return nil, fmt.Errorf("error preparing query UpsertGuardrailReport: %w", err)
+	}
 	if q.upsertImageProfileStmt, err = db.PrepareContext(ctx, upsertImageProfile); err != nil {
 		return nil, fmt.Errorf("error preparing query UpsertImageProfile: %w", err)
+	}
+	if q.upsertInsightDigestStmt, err = db.PrepareContext(ctx, upsertInsightDigest); err != nil {
+		return nil, fmt.Errorf("error preparing query UpsertInsightDigest: %w", err)
 	}
 	if q.upsertInstallationStmt, err = db.PrepareContext(ctx, upsertInstallation); err != nil {
 		return nil, fmt.Errorf("error preparing query UpsertInstallation: %w", err)
 	}
 	if q.upsertJobHistoryStmt, err = db.PrepareContext(ctx, upsertJobHistory); err != nil {
 		return nil, fmt.Errorf("error preparing query UpsertJobHistory: %w", err)
+	}
+	if q.upsertJobResourceSummaryStmt, err = db.PrepareContext(ctx, upsertJobResourceSummary); err != nil {
+		return nil, fmt.Errorf("error preparing query UpsertJobResourceSummary: %w", err)
 	}
 	if q.upsertJobsRowStmt, err = db.PrepareContext(ctx, upsertJobsRow); err != nil {
 		return nil, fmt.Errorf("error preparing query UpsertJobsRow: %w", err)
@@ -867,6 +1017,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.upsertTrayBindingStmt, err = db.PrepareContext(ctx, upsertTrayBinding); err != nil {
 		return nil, fmt.Errorf("error preparing query UpsertTrayBinding: %w", err)
 	}
+	if q.upsertWorkflowCheckStmt, err = db.PrepareContext(ctx, upsertWorkflowCheck); err != nil {
+		return nil, fmt.Errorf("error preparing query UpsertWorkflowCheck: %w", err)
+	}
 	if q.useJoinCodeStmt, err = db.PrepareContext(ctx, useJoinCode); err != nil {
 		return nil, fmt.Errorf("error preparing query UseJoinCode: %w", err)
 	}
@@ -889,6 +1042,11 @@ func (q *Queries) Close() error {
 	if q.beatTicketStmt != nil {
 		if cerr := q.beatTicketStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing beatTicketStmt: %w", cerr)
+		}
+	}
+	if q.cIDataBytesByRepositoryStmt != nil {
+		if cerr := q.cIDataBytesByRepositoryStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing cIDataBytesByRepositoryStmt: %w", cerr)
 		}
 	}
 	if q.claimRegistryScanStmt != nil {
@@ -921,6 +1079,11 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing countMachineSlotsStmt: %w", cerr)
 		}
 	}
+	if q.countOpenInsightFindingsStmt != nil {
+		if cerr := q.countOpenInsightFindingsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing countOpenInsightFindingsStmt: %w", cerr)
+		}
+	}
 	if q.countRepositoryRunningStmt != nil {
 		if cerr := q.countRepositoryRunningStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing countRepositoryRunningStmt: %w", cerr)
@@ -946,14 +1109,34 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing deleteEndedRegistryTokenLeasesStmt: %w", cerr)
 		}
 	}
+	if q.deleteGuardrailReportsBeforeStmt != nil {
+		if cerr := q.deleteGuardrailReportsBeforeStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing deleteGuardrailReportsBeforeStmt: %w", cerr)
+		}
+	}
 	if q.deleteImageProfileStmt != nil {
 		if cerr := q.deleteImageProfileStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing deleteImageProfileStmt: %w", cerr)
 		}
 	}
+	if q.deleteInsightDigestStmt != nil {
+		if cerr := q.deleteInsightDigestStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing deleteInsightDigestStmt: %w", cerr)
+		}
+	}
 	if q.deleteJobHistoryBeforeStmt != nil {
 		if cerr := q.deleteJobHistoryBeforeStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing deleteJobHistoryBeforeStmt: %w", cerr)
+		}
+	}
+	if q.deleteJobResourceSamplesBeforeStmt != nil {
+		if cerr := q.deleteJobResourceSamplesBeforeStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing deleteJobResourceSamplesBeforeStmt: %w", cerr)
+		}
+	}
+	if q.deleteJobResourceSummaryBeforeStmt != nil {
+		if cerr := q.deleteJobResourceSummaryBeforeStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing deleteJobResourceSummaryBeforeStmt: %w", cerr)
 		}
 	}
 	if q.deleteJobStepsStmt != nil {
@@ -1006,6 +1189,11 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing deleteRegistryTokenLeaseStmt: %w", cerr)
 		}
 	}
+	if q.deleteResolvedInsightFindingsBeforeStmt != nil {
+		if cerr := q.deleteResolvedInsightFindingsBeforeStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing deleteResolvedInsightFindingsBeforeStmt: %w", cerr)
+		}
+	}
 	if q.deleteRunnerStmt != nil {
 		if cerr := q.deleteRunnerStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing deleteRunnerStmt: %w", cerr)
@@ -1021,6 +1209,16 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing deleteRunsOnFindingsStmt: %w", cerr)
 		}
 	}
+	if q.deleteTestResultsBeforeStmt != nil {
+		if cerr := q.deleteTestResultsBeforeStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing deleteTestResultsBeforeStmt: %w", cerr)
+		}
+	}
+	if q.deleteTestResultsForReportStmt != nil {
+		if cerr := q.deleteTestResultsForReportStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing deleteTestResultsForReportStmt: %w", cerr)
+		}
+	}
 	if q.deleteTicketStmt != nil {
 		if cerr := q.deleteTicketStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing deleteTicketStmt: %w", cerr)
@@ -1034,6 +1232,11 @@ func (q *Queries) Close() error {
 	if q.deleteWebhookDeliveriesBeforeStmt != nil {
 		if cerr := q.deleteWebhookDeliveriesBeforeStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing deleteWebhookDeliveriesBeforeStmt: %w", cerr)
+		}
+	}
+	if q.deleteWorkflowChecksBeforeStmt != nil {
+		if cerr := q.deleteWorkflowChecksBeforeStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing deleteWorkflowChecksBeforeStmt: %w", cerr)
 		}
 	}
 	if q.endSessionStmt != nil {
@@ -1069,6 +1272,11 @@ func (q *Queries) Close() error {
 	if q.finishImageBuildStmt != nil {
 		if cerr := q.finishImageBuildStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing finishImageBuildStmt: %w", cerr)
+		}
+	}
+	if q.finishInsightAnalyserRunStmt != nil {
+		if cerr := q.finishInsightAnalyserRunStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing finishInsightAnalyserRunStmt: %w", cerr)
 		}
 	}
 	if q.finishRegistryCleanupStmt != nil {
@@ -1121,6 +1329,11 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing getBackupStmt: %w", cerr)
 		}
 	}
+	if q.getCIJobLogStmt != nil {
+		if cerr := q.getCIJobLogStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getCIJobLogStmt: %w", cerr)
+		}
+	}
 	if q.getDoctorRunStmt != nil {
 		if cerr := q.getDoctorRunStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing getDoctorRunStmt: %w", cerr)
@@ -1146,9 +1359,24 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing getImageProfileStmt: %w", cerr)
 		}
 	}
+	if q.getInsightFindingStmt != nil {
+		if cerr := q.getInsightFindingStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getInsightFindingStmt: %w", cerr)
+		}
+	}
+	if q.getInsightPlanStmt != nil {
+		if cerr := q.getInsightPlanStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getInsightPlanStmt: %w", cerr)
+		}
+	}
 	if q.getJobHistoryStmt != nil {
 		if cerr := q.getJobHistoryStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing getJobHistoryStmt: %w", cerr)
+		}
+	}
+	if q.getJobResourceSummaryStmt != nil {
+		if cerr := q.getJobResourceSummaryStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getJobResourceSummaryStmt: %w", cerr)
 		}
 	}
 	if q.getJobsRowStmt != nil {
@@ -1189,6 +1417,11 @@ func (q *Queries) Close() error {
 	if q.getNotificationChannelStmt != nil {
 		if cerr := q.getNotificationChannelStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing getNotificationChannelStmt: %w", cerr)
+		}
+	}
+	if q.getOpenInsightFindingStmt != nil {
+		if cerr := q.getOpenInsightFindingStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getOpenInsightFindingStmt: %w", cerr)
 		}
 	}
 	if q.getOpenMachineChangeStmt != nil {
@@ -1346,6 +1579,11 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing getWorkflowGraphStmt: %w", cerr)
 		}
 	}
+	if q.hasWorkflowChecksForCommitStmt != nil {
+		if cerr := q.hasWorkflowChecksForCommitStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing hasWorkflowChecksForCommitStmt: %w", cerr)
+		}
+	}
 	if q.insertAuditEntryStmt != nil {
 		if cerr := q.insertAuditEntryStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing insertAuditEntryStmt: %w", cerr)
@@ -1359,6 +1597,11 @@ func (q *Queries) Close() error {
 	if q.insertBackupStmt != nil {
 		if cerr := q.insertBackupStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing insertBackupStmt: %w", cerr)
+		}
+	}
+	if q.insertCIReportFileStmt != nil {
+		if cerr := q.insertCIReportFileStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing insertCIReportFileStmt: %w", cerr)
 		}
 	}
 	if q.insertCliTokenStmt != nil {
@@ -1384,6 +1627,26 @@ func (q *Queries) Close() error {
 	if q.insertImageProfileIfAbsentStmt != nil {
 		if cerr := q.insertImageProfileIfAbsentStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing insertImageProfileIfAbsentStmt: %w", cerr)
+		}
+	}
+	if q.insertInsightAnalyserRunStmt != nil {
+		if cerr := q.insertInsightAnalyserRunStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing insertInsightAnalyserRunStmt: %w", cerr)
+		}
+	}
+	if q.insertInsightFindingStmt != nil {
+		if cerr := q.insertInsightFindingStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing insertInsightFindingStmt: %w", cerr)
+		}
+	}
+	if q.insertInsightPlanStmt != nil {
+		if cerr := q.insertInsightPlanStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing insertInsightPlanStmt: %w", cerr)
+		}
+	}
+	if q.insertJobResourceSampleStmt != nil {
+		if cerr := q.insertJobResourceSampleStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing insertJobResourceSampleStmt: %w", cerr)
 		}
 	}
 	if q.insertJobStepStmt != nil {
@@ -1506,6 +1769,11 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing insertSlotLogStmt: %w", cerr)
 		}
 	}
+	if q.insertTestResultStmt != nil {
+		if cerr := q.insertTestResultStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing insertTestResultStmt: %w", cerr)
+		}
+	}
 	if q.insertTicketStmt != nil {
 		if cerr := q.insertTicketStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing insertTicketStmt: %w", cerr)
@@ -1536,6 +1804,11 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing lastRestoreDrillStmt: %w", cerr)
 		}
 	}
+	if q.latestDefaultBranchCheckedCommitStmt != nil {
+		if cerr := q.latestDefaultBranchCheckedCommitStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing latestDefaultBranchCheckedCommitStmt: %w", cerr)
+		}
+	}
 	if q.listAuditEventsStmt != nil {
 		if cerr := q.listAuditEventsStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing listAuditEventsStmt: %w", cerr)
@@ -1544,6 +1817,16 @@ func (q *Queries) Close() error {
 	if q.listBackupsStmt != nil {
 		if cerr := q.listBackupsStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing listBackupsStmt: %w", cerr)
+		}
+	}
+	if q.listCIJobLogsOldestFirstStmt != nil {
+		if cerr := q.listCIJobLogsOldestFirstStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listCIJobLogsOldestFirstStmt: %w", cerr)
+		}
+	}
+	if q.listCIReportFilesForRunStmt != nil {
+		if cerr := q.listCIReportFilesForRunStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listCIReportFilesForRunStmt: %w", cerr)
 		}
 	}
 	if q.listCliTokensStmt != nil {
@@ -1561,6 +1844,16 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing listDanglingRegistryLayersStmt: %w", cerr)
 		}
 	}
+	if q.listExpiredCIJobLogsStmt != nil {
+		if cerr := q.listExpiredCIJobLogsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listExpiredCIJobLogsStmt: %w", cerr)
+		}
+	}
+	if q.listExpiredCIReportFilesStmt != nil {
+		if cerr := q.listExpiredCIReportFilesStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listExpiredCIReportFilesStmt: %w", cerr)
+		}
+	}
 	if q.listExpiredSlotsStmt != nil {
 		if cerr := q.listExpiredSlotsStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing listExpiredSlotsStmt: %w", cerr)
@@ -1569,6 +1862,11 @@ func (q *Queries) Close() error {
 	if q.listExpiredTicketsStmt != nil {
 		if cerr := q.listExpiredTicketsStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing listExpiredTicketsStmt: %w", cerr)
+		}
+	}
+	if q.listGuardrailReportsSinceStmt != nil {
+		if cerr := q.listGuardrailReportsSinceStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listGuardrailReportsSinceStmt: %w", cerr)
 		}
 	}
 	if q.listImageBuildsStmt != nil {
@@ -1596,6 +1894,16 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing listInFlightPullMachinesOfRegistryImageStmt: %w", cerr)
 		}
 	}
+	if q.listInsightAnalyserRunsStmt != nil {
+		if cerr := q.listInsightAnalyserRunsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listInsightAnalyserRunsStmt: %w", cerr)
+		}
+	}
+	if q.listInsightDigestsStmt != nil {
+		if cerr := q.listInsightDigestsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listInsightDigestsStmt: %w", cerr)
+		}
+	}
 	if q.listInstallationsStmt != nil {
 		if cerr := q.listInstallationsStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing listInstallationsStmt: %w", cerr)
@@ -1609,6 +1917,16 @@ func (q *Queries) Close() error {
 	if q.listJobHistoryStmt != nil {
 		if cerr := q.listJobHistoryStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing listJobHistoryStmt: %w", cerr)
+		}
+	}
+	if q.listJobResourceSamplesStmt != nil {
+		if cerr := q.listJobResourceSamplesStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listJobResourceSamplesStmt: %w", cerr)
+		}
+	}
+	if q.listJobResourceSummariesForKeyStmt != nil {
+		if cerr := q.listJobResourceSummariesForKeyStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listJobResourceSummariesForKeyStmt: %w", cerr)
 		}
 	}
 	if q.listJobStepsStmt != nil {
@@ -1664,6 +1982,11 @@ func (q *Queries) Close() error {
 	if q.listOpenGitHubJobsStmt != nil {
 		if cerr := q.listOpenGitHubJobsStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing listOpenGitHubJobsStmt: %w", cerr)
+		}
+	}
+	if q.listOpenInsightFindingsStmt != nil {
+		if cerr := q.listOpenInsightFindingsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listOpenInsightFindingsStmt: %w", cerr)
 		}
 	}
 	if q.listOpenRegistryRecommendationsStmt != nil {
@@ -1801,9 +2124,29 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing listSettingsStmt: %w", cerr)
 		}
 	}
+	if q.listStaleJobRunsStmt != nil {
+		if cerr := q.listStaleJobRunsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listStaleJobRunsStmt: %w", cerr)
+		}
+	}
+	if q.listTestResultsBetweenStmt != nil {
+		if cerr := q.listTestResultsBetweenStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listTestResultsBetweenStmt: %w", cerr)
+		}
+	}
+	if q.listTestResultsForRunStmt != nil {
+		if cerr := q.listTestResultsForRunStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listTestResultsForRunStmt: %w", cerr)
+		}
+	}
 	if q.listUsersStmt != nil {
 		if cerr := q.listUsersStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing listUsersStmt: %w", cerr)
+		}
+	}
+	if q.listWorkflowChecksForCommitStmt != nil {
+		if cerr := q.listWorkflowChecksForCommitStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listWorkflowChecksForCommitStmt: %w", cerr)
 		}
 	}
 	if q.machinePullSpeedStmt != nil {
@@ -1814,6 +2157,16 @@ func (q *Queries) Close() error {
 	if q.markBackupDeletedStmt != nil {
 		if cerr := q.markBackupDeletedStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing markBackupDeletedStmt: %w", cerr)
+		}
+	}
+	if q.markCIJobLogExpiredStmt != nil {
+		if cerr := q.markCIJobLogExpiredStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing markCIJobLogExpiredStmt: %w", cerr)
+		}
+	}
+	if q.markCIReportFileExpiredStmt != nil {
+		if cerr := q.markCIReportFileExpiredStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing markCIReportFileExpiredStmt: %w", cerr)
 		}
 	}
 	if q.markInstallationRemovedStmt != nil {
@@ -1911,6 +2264,11 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing renameMachineStmt: %w", cerr)
 		}
 	}
+	if q.resolveInsightFindingsNotSeenStmt != nil {
+		if cerr := q.resolveInsightFindingsNotSeenStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing resolveInsightFindingsNotSeenStmt: %w", cerr)
+		}
+	}
 	if q.restoreRegistryImageStmt != nil {
 		if cerr := q.restoreRegistryImageStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing restoreRegistryImageStmt: %w", cerr)
@@ -1956,6 +2314,11 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing setImageBuildPushStateStmt: %w", cerr)
 		}
 	}
+	if q.setJobCheckedAtStmt != nil {
+		if cerr := q.setJobCheckedAtStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing setJobCheckedAtStmt: %w", cerr)
+		}
+	}
 	if q.setJobCompletedStmt != nil {
 		if cerr := q.setJobCompletedStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing setJobCompletedStmt: %w", cerr)
@@ -1966,6 +2329,11 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing setJobForecastStmt: %w", cerr)
 		}
 	}
+	if q.setJobRunnerOriginStmt != nil {
+		if cerr := q.setJobRunnerOriginStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing setJobRunnerOriginStmt: %w", cerr)
+		}
+	}
 	if q.setJobSlotStmt != nil {
 		if cerr := q.setJobSlotStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing setJobSlotStmt: %w", cerr)
@@ -1974,6 +2342,11 @@ func (q *Queries) Close() error {
 	if q.setJobStartedStmt != nil {
 		if cerr := q.setJobStartedStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing setJobStartedStmt: %w", cerr)
+		}
+	}
+	if q.setJobStepsSourceStmt != nil {
+		if cerr := q.setJobStepsSourceStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing setJobStepsSourceStmt: %w", cerr)
 		}
 	}
 	if q.setMachineChangeStateStmt != nil {
@@ -2156,6 +2529,16 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing typicalImageBuildSecondsStmt: %w", cerr)
 		}
 	}
+	if q.updateInsightFindingSeenStmt != nil {
+		if cerr := q.updateInsightFindingSeenStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing updateInsightFindingSeenStmt: %w", cerr)
+		}
+	}
+	if q.updateInsightPlanStateStmt != nil {
+		if cerr := q.updateInsightPlanStateStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing updateInsightPlanStateStmt: %w", cerr)
+		}
+	}
 	if q.updateMachineFactsStmt != nil {
 		if cerr := q.updateMachineFactsStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing updateMachineFactsStmt: %w", cerr)
@@ -2191,6 +2574,11 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing updateUserRoleStmt: %w", cerr)
 		}
 	}
+	if q.upsertCIJobLogStmt != nil {
+		if cerr := q.upsertCIJobLogStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing upsertCIJobLogStmt: %w", cerr)
+		}
+	}
 	if q.upsertDailySummaryStmt != nil {
 		if cerr := q.upsertDailySummaryStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing upsertDailySummaryStmt: %w", cerr)
@@ -2211,9 +2599,19 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing upsertGitHubJobStmt: %w", cerr)
 		}
 	}
+	if q.upsertGuardrailReportStmt != nil {
+		if cerr := q.upsertGuardrailReportStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing upsertGuardrailReportStmt: %w", cerr)
+		}
+	}
 	if q.upsertImageProfileStmt != nil {
 		if cerr := q.upsertImageProfileStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing upsertImageProfileStmt: %w", cerr)
+		}
+	}
+	if q.upsertInsightDigestStmt != nil {
+		if cerr := q.upsertInsightDigestStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing upsertInsightDigestStmt: %w", cerr)
 		}
 	}
 	if q.upsertInstallationStmt != nil {
@@ -2224,6 +2622,11 @@ func (q *Queries) Close() error {
 	if q.upsertJobHistoryStmt != nil {
 		if cerr := q.upsertJobHistoryStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing upsertJobHistoryStmt: %w", cerr)
+		}
+	}
+	if q.upsertJobResourceSummaryStmt != nil {
+		if cerr := q.upsertJobResourceSummaryStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing upsertJobResourceSummaryStmt: %w", cerr)
 		}
 	}
 	if q.upsertJobsRowStmt != nil {
@@ -2286,6 +2689,11 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing upsertTrayBindingStmt: %w", cerr)
 		}
 	}
+	if q.upsertWorkflowCheckStmt != nil {
+		if cerr := q.upsertWorkflowCheckStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing upsertWorkflowCheckStmt: %w", cerr)
+		}
+	}
 	if q.useJoinCodeStmt != nil {
 		if cerr := q.useJoinCodeStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing useJoinCodeStmt: %w", cerr)
@@ -2342,19 +2750,25 @@ type Queries struct {
 	tx                                          *sql.Tx
 	addRegistryPullDailyStmt                    *sql.Stmt
 	beatTicketStmt                              *sql.Stmt
+	cIDataBytesByRepositoryStmt                 *sql.Stmt
 	claimRegistryScanStmt                       *sql.Stmt
 	clearRepositoryProfileStmt                  *sql.Stmt
 	closeRegistryRecommendationStmt             *sql.Stmt
 	countJobsByStateStmt                        *sql.Stmt
 	countLiveRegistryTokenLeasesNamingStmt      *sql.Stmt
 	countMachineSlotsStmt                       *sql.Stmt
+	countOpenInsightFindingsStmt                *sql.Stmt
 	countRepositoryRunningStmt                  *sql.Stmt
 	countUsersStmt                              *sql.Stmt
 	dailySummarisedDaysStmt                     *sql.Stmt
 	deleteAuditBeforeStmt                       *sql.Stmt
 	deleteEndedRegistryTokenLeasesStmt          *sql.Stmt
+	deleteGuardrailReportsBeforeStmt            *sql.Stmt
 	deleteImageProfileStmt                      *sql.Stmt
+	deleteInsightDigestStmt                     *sql.Stmt
 	deleteJobHistoryBeforeStmt                  *sql.Stmt
+	deleteJobResourceSamplesBeforeStmt          *sql.Stmt
+	deleteJobResourceSummaryBeforeStmt          *sql.Stmt
 	deleteJobStepsStmt                          *sql.Stmt
 	deleteJobTicketsStmt                        *sql.Stmt
 	deleteMachineLoadBeforeStmt                 *sql.Stmt
@@ -2365,12 +2779,16 @@ type Queries struct {
 	deletePendingFactsStmt                      *sql.Stmt
 	deleteRegistryLayerStmt                     *sql.Stmt
 	deleteRegistryTokenLeaseStmt                *sql.Stmt
+	deleteResolvedInsightFindingsBeforeStmt     *sql.Stmt
 	deleteRunnerStmt                            *sql.Stmt
 	deleteRunnerUsageBeforeStmt                 *sql.Stmt
 	deleteRunsOnFindingsStmt                    *sql.Stmt
+	deleteTestResultsBeforeStmt                 *sql.Stmt
+	deleteTestResultsForReportStmt              *sql.Stmt
 	deleteTicketStmt                            *sql.Stmt
 	deleteUserStmt                              *sql.Stmt
 	deleteWebhookDeliveriesBeforeStmt           *sql.Stmt
+	deleteWorkflowChecksBeforeStmt              *sql.Stmt
 	endSessionStmt                              *sql.Stmt
 	endUserSessionsStmt                         *sql.Stmt
 	enqueueJobStmt                              *sql.Stmt
@@ -2378,6 +2796,7 @@ type Queries struct {
 	finishBackupStmt                            *sql.Stmt
 	finishDoctorRunStmt                         *sql.Stmt
 	finishImageBuildStmt                        *sql.Stmt
+	finishInsightAnalyserRunStmt                *sql.Stmt
 	finishRegistryCleanupStmt                   *sql.Stmt
 	finishRegistryScanStmt                      *sql.Stmt
 	finishRestoreDrillStmt                      *sql.Stmt
@@ -2388,12 +2807,16 @@ type Queries struct {
 	getActiveRegistryReplacePlanForImageStmt    *sql.Stmt
 	getActiveSessionStmt                        *sql.Stmt
 	getBackupStmt                               *sql.Stmt
+	getCIJobLogStmt                             *sql.Stmt
 	getDoctorRunStmt                            *sql.Stmt
 	getGitHubAppStmt                            *sql.Stmt
 	getGitHubJobStmt                            *sql.Stmt
 	getImageBuildStmt                           *sql.Stmt
 	getImageProfileStmt                         *sql.Stmt
+	getInsightFindingStmt                       *sql.Stmt
+	getInsightPlanStmt                          *sql.Stmt
 	getJobHistoryStmt                           *sql.Stmt
+	getJobResourceSummaryStmt                   *sql.Stmt
 	getJobsRowStmt                              *sql.Stmt
 	getJoinCodeStmt                             *sql.Stmt
 	getMachineStmt                              *sql.Stmt
@@ -2402,6 +2825,7 @@ type Queries struct {
 	getMachineSettingsStmt                      *sql.Stmt
 	getMetaStmt                                 *sql.Stmt
 	getNotificationChannelStmt                  *sql.Stmt
+	getOpenInsightFindingStmt                   *sql.Stmt
 	getOpenMachineChangeStmt                    *sql.Stmt
 	getOwnerStmt                                *sql.Stmt
 	getPendingFactsStmt                         *sql.Stmt
@@ -2433,14 +2857,20 @@ type Queries struct {
 	getTrayBindingStmt                          *sql.Stmt
 	getUserStmt                                 *sql.Stmt
 	getWorkflowGraphStmt                        *sql.Stmt
+	hasWorkflowChecksForCommitStmt              *sql.Stmt
 	insertAuditEntryStmt                        *sql.Stmt
 	insertAuditEventStmt                        *sql.Stmt
 	insertBackupStmt                            *sql.Stmt
+	insertCIReportFileStmt                      *sql.Stmt
 	insertCliTokenStmt                          *sql.Stmt
 	insertDoctorFindingStmt                     *sql.Stmt
 	insertDoctorRunStmt                         *sql.Stmt
 	insertImageBuildStmt                        *sql.Stmt
 	insertImageProfileIfAbsentStmt              *sql.Stmt
+	insertInsightAnalyserRunStmt                *sql.Stmt
+	insertInsightFindingStmt                    *sql.Stmt
+	insertInsightPlanStmt                       *sql.Stmt
+	insertJobResourceSampleStmt                 *sql.Stmt
 	insertJobStepStmt                           *sql.Stmt
 	insertJoinCodeStmt                          *sql.Stmt
 	insertLinkCodeStmt                          *sql.Stmt
@@ -2465,27 +2895,38 @@ type Queries struct {
 	insertSetupCodeStmt                         *sql.Stmt
 	insertSlotStmt                              *sql.Stmt
 	insertSlotLogStmt                           *sql.Stmt
+	insertTestResultStmt                        *sql.Stmt
 	insertTicketStmt                            *sql.Stmt
 	insertUserStmt                              *sql.Stmt
 	insertWebhookDeliveryStmt                   *sql.Stmt
 	lastDoctorRunStmt                           *sql.Stmt
 	lastRegistryCleanupStmt                     *sql.Stmt
 	lastRestoreDrillStmt                        *sql.Stmt
+	latestDefaultBranchCheckedCommitStmt        *sql.Stmt
 	listAuditEventsStmt                         *sql.Stmt
 	listBackupsStmt                             *sql.Stmt
+	listCIJobLogsOldestFirstStmt                *sql.Stmt
+	listCIReportFilesForRunStmt                 *sql.Stmt
 	listCliTokensStmt                           *sql.Stmt
 	listDailySummariesStmt                      *sql.Stmt
 	listDanglingRegistryLayersStmt              *sql.Stmt
+	listExpiredCIJobLogsStmt                    *sql.Stmt
+	listExpiredCIReportFilesStmt                *sql.Stmt
 	listExpiredSlotsStmt                        *sql.Stmt
 	listExpiredTicketsStmt                      *sql.Stmt
+	listGuardrailReportsSinceStmt               *sql.Stmt
 	listImageBuildsStmt                         *sql.Stmt
 	listImageBuildsInFlightStmt                 *sql.Stmt
 	listImageBuildsOfMachineStmt                *sql.Stmt
 	listImageProfilesStmt                       *sql.Stmt
 	listInFlightPullMachinesOfRegistryImageStmt *sql.Stmt
+	listInsightAnalyserRunsStmt                 *sql.Stmt
+	listInsightDigestsStmt                      *sql.Stmt
 	listInstallationsStmt                       *sql.Stmt
 	listJobAttemptsStmt                         *sql.Stmt
 	listJobHistoryStmt                          *sql.Stmt
+	listJobResourceSamplesStmt                  *sql.Stmt
+	listJobResourceSummariesForKeyStmt          *sql.Stmt
 	listJobStepsStmt                            *sql.Stmt
 	listLatestFindingsStmt                      *sql.Stmt
 	listLiveRegistryTokenLeasesStmt             *sql.Stmt
@@ -2497,6 +2938,7 @@ type Queries struct {
 	listNotificationChannelsStmt                *sql.Stmt
 	listOldStagedRegistryImagesStmt             *sql.Stmt
 	listOpenGitHubJobsStmt                      *sql.Stmt
+	listOpenInsightFindingsStmt                 *sql.Stmt
 	listOpenRegistryRecommendationsStmt         *sql.Stmt
 	listPoolRepositoriesStmt                    *sql.Stmt
 	listQueuedRegistryScansStmt                 *sql.Stmt
@@ -2524,9 +2966,15 @@ type Queries struct {
 	listRunningJobsOfRegistryImageStmt          *sql.Stmt
 	listRunsOnFindingsStmt                      *sql.Stmt
 	listSettingsStmt                            *sql.Stmt
+	listStaleJobRunsStmt                        *sql.Stmt
+	listTestResultsBetweenStmt                  *sql.Stmt
+	listTestResultsForRunStmt                   *sql.Stmt
 	listUsersStmt                               *sql.Stmt
+	listWorkflowChecksForCommitStmt             *sql.Stmt
 	machinePullSpeedStmt                        *sql.Stmt
 	markBackupDeletedStmt                       *sql.Stmt
+	markCIJobLogExpiredStmt                     *sql.Stmt
+	markCIReportFileExpiredStmt                 *sql.Stmt
 	markInstallationRemovedStmt                 *sql.Stmt
 	markMachineRemovedStmt                      *sql.Stmt
 	markMachineSeenStmt                         *sql.Stmt
@@ -2546,6 +2994,7 @@ type Queries struct {
 	recordSignInStmt                            *sql.Stmt
 	refuseRegistryImageStmt                     *sql.Stmt
 	renameMachineStmt                           *sql.Stmt
+	resolveInsightFindingsNotSeenStmt           *sql.Stmt
 	restoreRegistryImageStmt                    *sql.Stmt
 	revokeCliTokenStmt                          *sql.Stmt
 	revokeJoinCodeStmt                          *sql.Stmt
@@ -2555,10 +3004,13 @@ type Queries struct {
 	setGitHubJobWaitStmt                        *sql.Stmt
 	setImageBuildProgressStmt                   *sql.Stmt
 	setImageBuildPushStateStmt                  *sql.Stmt
+	setJobCheckedAtStmt                         *sql.Stmt
 	setJobCompletedStmt                         *sql.Stmt
 	setJobForecastStmt                          *sql.Stmt
+	setJobRunnerOriginStmt                      *sql.Stmt
 	setJobSlotStmt                              *sql.Stmt
 	setJobStartedStmt                           *sql.Stmt
+	setJobStepsSourceStmt                       *sql.Stmt
 	setMachineChangeStateStmt                   *sql.Stmt
 	setMachineStateStmt                         *sql.Stmt
 	setManagedVariableStatusStmt                *sql.Stmt
@@ -2595,6 +3047,8 @@ type Queries struct {
 	touchSessionStmt                            *sql.Stmt
 	trimSlotLogStmt                             *sql.Stmt
 	typicalImageBuildSecondsStmt                *sql.Stmt
+	updateInsightFindingSeenStmt                *sql.Stmt
+	updateInsightPlanStateStmt                  *sql.Stmt
 	updateMachineFactsStmt                      *sql.Stmt
 	updateMachineSettingsStmt                   *sql.Stmt
 	updateNotificationChannelStmt               *sql.Stmt
@@ -2602,13 +3056,17 @@ type Queries struct {
 	updateRegistryMirrorSettingsStmt            *sql.Stmt
 	updateRegistrySettingsRowStmt               *sql.Stmt
 	updateUserRoleStmt                          *sql.Stmt
+	upsertCIJobLogStmt                          *sql.Stmt
 	upsertDailySummaryStmt                      *sql.Stmt
 	upsertDoctorStateStmt                       *sql.Stmt
 	upsertGitHubAppStmt                         *sql.Stmt
 	upsertGitHubJobStmt                         *sql.Stmt
+	upsertGuardrailReportStmt                   *sql.Stmt
 	upsertImageProfileStmt                      *sql.Stmt
+	upsertInsightDigestStmt                     *sql.Stmt
 	upsertInstallationStmt                      *sql.Stmt
 	upsertJobHistoryStmt                        *sql.Stmt
+	upsertJobResourceSummaryStmt                *sql.Stmt
 	upsertJobsRowStmt                           *sql.Stmt
 	upsertManagedVariableStmt                   *sql.Stmt
 	upsertRegistryLayerStmt                     *sql.Stmt
@@ -2621,6 +3079,7 @@ type Queries struct {
 	upsertRunnerUsageStmt                       *sql.Stmt
 	upsertRunsRowStmt                           *sql.Stmt
 	upsertTrayBindingStmt                       *sql.Stmt
+	upsertWorkflowCheckStmt                     *sql.Stmt
 	useJoinCodeStmt                             *sql.Stmt
 	useLinkCodeStmt                             *sql.Stmt
 	useSetupCodeStmt                            *sql.Stmt
@@ -2632,19 +3091,25 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		tx:                                          tx,
 		addRegistryPullDailyStmt:                    q.addRegistryPullDailyStmt,
 		beatTicketStmt:                              q.beatTicketStmt,
+		cIDataBytesByRepositoryStmt:                 q.cIDataBytesByRepositoryStmt,
 		claimRegistryScanStmt:                       q.claimRegistryScanStmt,
 		clearRepositoryProfileStmt:                  q.clearRepositoryProfileStmt,
 		closeRegistryRecommendationStmt:             q.closeRegistryRecommendationStmt,
 		countJobsByStateStmt:                        q.countJobsByStateStmt,
 		countLiveRegistryTokenLeasesNamingStmt:      q.countLiveRegistryTokenLeasesNamingStmt,
 		countMachineSlotsStmt:                       q.countMachineSlotsStmt,
+		countOpenInsightFindingsStmt:                q.countOpenInsightFindingsStmt,
 		countRepositoryRunningStmt:                  q.countRepositoryRunningStmt,
 		countUsersStmt:                              q.countUsersStmt,
 		dailySummarisedDaysStmt:                     q.dailySummarisedDaysStmt,
 		deleteAuditBeforeStmt:                       q.deleteAuditBeforeStmt,
 		deleteEndedRegistryTokenLeasesStmt:          q.deleteEndedRegistryTokenLeasesStmt,
+		deleteGuardrailReportsBeforeStmt:            q.deleteGuardrailReportsBeforeStmt,
 		deleteImageProfileStmt:                      q.deleteImageProfileStmt,
+		deleteInsightDigestStmt:                     q.deleteInsightDigestStmt,
 		deleteJobHistoryBeforeStmt:                  q.deleteJobHistoryBeforeStmt,
+		deleteJobResourceSamplesBeforeStmt:          q.deleteJobResourceSamplesBeforeStmt,
+		deleteJobResourceSummaryBeforeStmt:          q.deleteJobResourceSummaryBeforeStmt,
 		deleteJobStepsStmt:                          q.deleteJobStepsStmt,
 		deleteJobTicketsStmt:                        q.deleteJobTicketsStmt,
 		deleteMachineLoadBeforeStmt:                 q.deleteMachineLoadBeforeStmt,
@@ -2655,12 +3120,16 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		deletePendingFactsStmt:                      q.deletePendingFactsStmt,
 		deleteRegistryLayerStmt:                     q.deleteRegistryLayerStmt,
 		deleteRegistryTokenLeaseStmt:                q.deleteRegistryTokenLeaseStmt,
+		deleteResolvedInsightFindingsBeforeStmt:     q.deleteResolvedInsightFindingsBeforeStmt,
 		deleteRunnerStmt:                            q.deleteRunnerStmt,
 		deleteRunnerUsageBeforeStmt:                 q.deleteRunnerUsageBeforeStmt,
 		deleteRunsOnFindingsStmt:                    q.deleteRunsOnFindingsStmt,
+		deleteTestResultsBeforeStmt:                 q.deleteTestResultsBeforeStmt,
+		deleteTestResultsForReportStmt:              q.deleteTestResultsForReportStmt,
 		deleteTicketStmt:                            q.deleteTicketStmt,
 		deleteUserStmt:                              q.deleteUserStmt,
 		deleteWebhookDeliveriesBeforeStmt:           q.deleteWebhookDeliveriesBeforeStmt,
+		deleteWorkflowChecksBeforeStmt:              q.deleteWorkflowChecksBeforeStmt,
 		endSessionStmt:                              q.endSessionStmt,
 		endUserSessionsStmt:                         q.endUserSessionsStmt,
 		enqueueJobStmt:                              q.enqueueJobStmt,
@@ -2668,6 +3137,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		finishBackupStmt:                            q.finishBackupStmt,
 		finishDoctorRunStmt:                         q.finishDoctorRunStmt,
 		finishImageBuildStmt:                        q.finishImageBuildStmt,
+		finishInsightAnalyserRunStmt:                q.finishInsightAnalyserRunStmt,
 		finishRegistryCleanupStmt:                   q.finishRegistryCleanupStmt,
 		finishRegistryScanStmt:                      q.finishRegistryScanStmt,
 		finishRestoreDrillStmt:                      q.finishRestoreDrillStmt,
@@ -2678,12 +3148,16 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		getActiveRegistryReplacePlanForImageStmt:    q.getActiveRegistryReplacePlanForImageStmt,
 		getActiveSessionStmt:                        q.getActiveSessionStmt,
 		getBackupStmt:                               q.getBackupStmt,
+		getCIJobLogStmt:                             q.getCIJobLogStmt,
 		getDoctorRunStmt:                            q.getDoctorRunStmt,
 		getGitHubAppStmt:                            q.getGitHubAppStmt,
 		getGitHubJobStmt:                            q.getGitHubJobStmt,
 		getImageBuildStmt:                           q.getImageBuildStmt,
 		getImageProfileStmt:                         q.getImageProfileStmt,
+		getInsightFindingStmt:                       q.getInsightFindingStmt,
+		getInsightPlanStmt:                          q.getInsightPlanStmt,
 		getJobHistoryStmt:                           q.getJobHistoryStmt,
+		getJobResourceSummaryStmt:                   q.getJobResourceSummaryStmt,
 		getJobsRowStmt:                              q.getJobsRowStmt,
 		getJoinCodeStmt:                             q.getJoinCodeStmt,
 		getMachineStmt:                              q.getMachineStmt,
@@ -2692,6 +3166,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		getMachineSettingsStmt:                      q.getMachineSettingsStmt,
 		getMetaStmt:                                 q.getMetaStmt,
 		getNotificationChannelStmt:                  q.getNotificationChannelStmt,
+		getOpenInsightFindingStmt:                   q.getOpenInsightFindingStmt,
 		getOpenMachineChangeStmt:                    q.getOpenMachineChangeStmt,
 		getOwnerStmt:                                q.getOwnerStmt,
 		getPendingFactsStmt:                         q.getPendingFactsStmt,
@@ -2723,14 +3198,20 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		getTrayBindingStmt:                          q.getTrayBindingStmt,
 		getUserStmt:                                 q.getUserStmt,
 		getWorkflowGraphStmt:                        q.getWorkflowGraphStmt,
+		hasWorkflowChecksForCommitStmt:              q.hasWorkflowChecksForCommitStmt,
 		insertAuditEntryStmt:                        q.insertAuditEntryStmt,
 		insertAuditEventStmt:                        q.insertAuditEventStmt,
 		insertBackupStmt:                            q.insertBackupStmt,
+		insertCIReportFileStmt:                      q.insertCIReportFileStmt,
 		insertCliTokenStmt:                          q.insertCliTokenStmt,
 		insertDoctorFindingStmt:                     q.insertDoctorFindingStmt,
 		insertDoctorRunStmt:                         q.insertDoctorRunStmt,
 		insertImageBuildStmt:                        q.insertImageBuildStmt,
 		insertImageProfileIfAbsentStmt:              q.insertImageProfileIfAbsentStmt,
+		insertInsightAnalyserRunStmt:                q.insertInsightAnalyserRunStmt,
+		insertInsightFindingStmt:                    q.insertInsightFindingStmt,
+		insertInsightPlanStmt:                       q.insertInsightPlanStmt,
+		insertJobResourceSampleStmt:                 q.insertJobResourceSampleStmt,
 		insertJobStepStmt:                           q.insertJobStepStmt,
 		insertJoinCodeStmt:                          q.insertJoinCodeStmt,
 		insertLinkCodeStmt:                          q.insertLinkCodeStmt,
@@ -2755,27 +3236,38 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		insertSetupCodeStmt:                         q.insertSetupCodeStmt,
 		insertSlotStmt:                              q.insertSlotStmt,
 		insertSlotLogStmt:                           q.insertSlotLogStmt,
+		insertTestResultStmt:                        q.insertTestResultStmt,
 		insertTicketStmt:                            q.insertTicketStmt,
 		insertUserStmt:                              q.insertUserStmt,
 		insertWebhookDeliveryStmt:                   q.insertWebhookDeliveryStmt,
 		lastDoctorRunStmt:                           q.lastDoctorRunStmt,
 		lastRegistryCleanupStmt:                     q.lastRegistryCleanupStmt,
 		lastRestoreDrillStmt:                        q.lastRestoreDrillStmt,
+		latestDefaultBranchCheckedCommitStmt:        q.latestDefaultBranchCheckedCommitStmt,
 		listAuditEventsStmt:                         q.listAuditEventsStmt,
 		listBackupsStmt:                             q.listBackupsStmt,
+		listCIJobLogsOldestFirstStmt:                q.listCIJobLogsOldestFirstStmt,
+		listCIReportFilesForRunStmt:                 q.listCIReportFilesForRunStmt,
 		listCliTokensStmt:                           q.listCliTokensStmt,
 		listDailySummariesStmt:                      q.listDailySummariesStmt,
 		listDanglingRegistryLayersStmt:              q.listDanglingRegistryLayersStmt,
+		listExpiredCIJobLogsStmt:                    q.listExpiredCIJobLogsStmt,
+		listExpiredCIReportFilesStmt:                q.listExpiredCIReportFilesStmt,
 		listExpiredSlotsStmt:                        q.listExpiredSlotsStmt,
 		listExpiredTicketsStmt:                      q.listExpiredTicketsStmt,
+		listGuardrailReportsSinceStmt:               q.listGuardrailReportsSinceStmt,
 		listImageBuildsStmt:                         q.listImageBuildsStmt,
 		listImageBuildsInFlightStmt:                 q.listImageBuildsInFlightStmt,
 		listImageBuildsOfMachineStmt:                q.listImageBuildsOfMachineStmt,
 		listImageProfilesStmt:                       q.listImageProfilesStmt,
 		listInFlightPullMachinesOfRegistryImageStmt: q.listInFlightPullMachinesOfRegistryImageStmt,
+		listInsightAnalyserRunsStmt:                 q.listInsightAnalyserRunsStmt,
+		listInsightDigestsStmt:                      q.listInsightDigestsStmt,
 		listInstallationsStmt:                       q.listInstallationsStmt,
 		listJobAttemptsStmt:                         q.listJobAttemptsStmt,
 		listJobHistoryStmt:                          q.listJobHistoryStmt,
+		listJobResourceSamplesStmt:                  q.listJobResourceSamplesStmt,
+		listJobResourceSummariesForKeyStmt:          q.listJobResourceSummariesForKeyStmt,
 		listJobStepsStmt:                            q.listJobStepsStmt,
 		listLatestFindingsStmt:                      q.listLatestFindingsStmt,
 		listLiveRegistryTokenLeasesStmt:             q.listLiveRegistryTokenLeasesStmt,
@@ -2787,6 +3279,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		listNotificationChannelsStmt:                q.listNotificationChannelsStmt,
 		listOldStagedRegistryImagesStmt:             q.listOldStagedRegistryImagesStmt,
 		listOpenGitHubJobsStmt:                      q.listOpenGitHubJobsStmt,
+		listOpenInsightFindingsStmt:                 q.listOpenInsightFindingsStmt,
 		listOpenRegistryRecommendationsStmt:         q.listOpenRegistryRecommendationsStmt,
 		listPoolRepositoriesStmt:                    q.listPoolRepositoriesStmt,
 		listQueuedRegistryScansStmt:                 q.listQueuedRegistryScansStmt,
@@ -2814,9 +3307,15 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		listRunningJobsOfRegistryImageStmt:          q.listRunningJobsOfRegistryImageStmt,
 		listRunsOnFindingsStmt:                      q.listRunsOnFindingsStmt,
 		listSettingsStmt:                            q.listSettingsStmt,
+		listStaleJobRunsStmt:                        q.listStaleJobRunsStmt,
+		listTestResultsBetweenStmt:                  q.listTestResultsBetweenStmt,
+		listTestResultsForRunStmt:                   q.listTestResultsForRunStmt,
 		listUsersStmt:                               q.listUsersStmt,
+		listWorkflowChecksForCommitStmt:             q.listWorkflowChecksForCommitStmt,
 		machinePullSpeedStmt:                        q.machinePullSpeedStmt,
 		markBackupDeletedStmt:                       q.markBackupDeletedStmt,
+		markCIJobLogExpiredStmt:                     q.markCIJobLogExpiredStmt,
+		markCIReportFileExpiredStmt:                 q.markCIReportFileExpiredStmt,
 		markInstallationRemovedStmt:                 q.markInstallationRemovedStmt,
 		markMachineRemovedStmt:                      q.markMachineRemovedStmt,
 		markMachineSeenStmt:                         q.markMachineSeenStmt,
@@ -2836,6 +3335,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		recordSignInStmt:                            q.recordSignInStmt,
 		refuseRegistryImageStmt:                     q.refuseRegistryImageStmt,
 		renameMachineStmt:                           q.renameMachineStmt,
+		resolveInsightFindingsNotSeenStmt:           q.resolveInsightFindingsNotSeenStmt,
 		restoreRegistryImageStmt:                    q.restoreRegistryImageStmt,
 		revokeCliTokenStmt:                          q.revokeCliTokenStmt,
 		revokeJoinCodeStmt:                          q.revokeJoinCodeStmt,
@@ -2845,10 +3345,13 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		setGitHubJobWaitStmt:                        q.setGitHubJobWaitStmt,
 		setImageBuildProgressStmt:                   q.setImageBuildProgressStmt,
 		setImageBuildPushStateStmt:                  q.setImageBuildPushStateStmt,
+		setJobCheckedAtStmt:                         q.setJobCheckedAtStmt,
 		setJobCompletedStmt:                         q.setJobCompletedStmt,
 		setJobForecastStmt:                          q.setJobForecastStmt,
+		setJobRunnerOriginStmt:                      q.setJobRunnerOriginStmt,
 		setJobSlotStmt:                              q.setJobSlotStmt,
 		setJobStartedStmt:                           q.setJobStartedStmt,
+		setJobStepsSourceStmt:                       q.setJobStepsSourceStmt,
 		setMachineChangeStateStmt:                   q.setMachineChangeStateStmt,
 		setMachineStateStmt:                         q.setMachineStateStmt,
 		setManagedVariableStatusStmt:                q.setManagedVariableStatusStmt,
@@ -2885,6 +3388,8 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		touchSessionStmt:                            q.touchSessionStmt,
 		trimSlotLogStmt:                             q.trimSlotLogStmt,
 		typicalImageBuildSecondsStmt:                q.typicalImageBuildSecondsStmt,
+		updateInsightFindingSeenStmt:                q.updateInsightFindingSeenStmt,
+		updateInsightPlanStateStmt:                  q.updateInsightPlanStateStmt,
 		updateMachineFactsStmt:                      q.updateMachineFactsStmt,
 		updateMachineSettingsStmt:                   q.updateMachineSettingsStmt,
 		updateNotificationChannelStmt:               q.updateNotificationChannelStmt,
@@ -2892,13 +3397,17 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		updateRegistryMirrorSettingsStmt:            q.updateRegistryMirrorSettingsStmt,
 		updateRegistrySettingsRowStmt:               q.updateRegistrySettingsRowStmt,
 		updateUserRoleStmt:                          q.updateUserRoleStmt,
+		upsertCIJobLogStmt:                          q.upsertCIJobLogStmt,
 		upsertDailySummaryStmt:                      q.upsertDailySummaryStmt,
 		upsertDoctorStateStmt:                       q.upsertDoctorStateStmt,
 		upsertGitHubAppStmt:                         q.upsertGitHubAppStmt,
 		upsertGitHubJobStmt:                         q.upsertGitHubJobStmt,
+		upsertGuardrailReportStmt:                   q.upsertGuardrailReportStmt,
 		upsertImageProfileStmt:                      q.upsertImageProfileStmt,
+		upsertInsightDigestStmt:                     q.upsertInsightDigestStmt,
 		upsertInstallationStmt:                      q.upsertInstallationStmt,
 		upsertJobHistoryStmt:                        q.upsertJobHistoryStmt,
+		upsertJobResourceSummaryStmt:                q.upsertJobResourceSummaryStmt,
 		upsertJobsRowStmt:                           q.upsertJobsRowStmt,
 		upsertManagedVariableStmt:                   q.upsertManagedVariableStmt,
 		upsertRegistryLayerStmt:                     q.upsertRegistryLayerStmt,
@@ -2911,6 +3420,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		upsertRunnerUsageStmt:                       q.upsertRunnerUsageStmt,
 		upsertRunsRowStmt:                           q.upsertRunsRowStmt,
 		upsertTrayBindingStmt:                       q.upsertTrayBindingStmt,
+		upsertWorkflowCheckStmt:                     q.upsertWorkflowCheckStmt,
 		useJoinCodeStmt:                             q.useJoinCodeStmt,
 		useLinkCodeStmt:                             q.useLinkCodeStmt,
 		useSetupCodeStmt:                            q.useSetupCodeStmt,
