@@ -284,3 +284,40 @@ func TestReviewBodyWrapsWithoutCutting(t *testing.T) {
 		}
 	}
 }
+
+// TRAY9: a done stage of an earlier update is not Done when a newer release is offered.
+func TestLeftoverDoneStageTable(t *testing.T) {
+	stage := func(name, v string) *tray.StageInfo { return &tray.StageInfo{Name: name, Version: v} }
+	cases := []struct {
+		name         string
+		from, to     string
+		mode         Mode
+		snap         Snapshot
+		want         State
+		heading, msg string
+	}{
+		{"review: leftover done 0.1.17", "0.1.17", "0.1.18", ModeReview, Snapshot{ServiceUp: true, ServiceVersion: "0.1.17", Stage: stage("done", "0.1.17")}, StateReview, "Update to 0.1.18", ""},
+		{"live: leftover done 0.1.17", "0.1.17", "0.1.18", ModeLive, Snapshot{ServiceUp: true, ServiceVersion: "0.1.17", Stage: stage("done", "0.1.17")}, StateReview, "Update to 0.1.18", ""},
+		{"live: real done 0.1.18", "0.1.17", "0.1.18", ModeLive, Snapshot{ServiceUp: true, ServiceVersion: "0.1.18", Stage: stage("done", "0.1.18")}, StateDone, "Updated", "Now running 0.1.18."},
+		{"live: done after restart, window opened on new version", "0.1.18", "", ModeLive, Snapshot{ServiceUp: true, ServiceVersion: "0.1.18", Stage: stage("done", "0.1.18")}, StateDone, "Updated", "Now running 0.1.18."},
+		{"live: done, same version, nothing newer offered", "0.1.18", "0.1.18", ModeLive, Snapshot{ServiceUp: true, ServiceVersion: "0.1.18", Stage: stage("done", "0.1.18")}, StateDone, "Updated", "Now running 0.1.18."},
+		{"review: no stage", "0.1.17", "0.1.18", ModeReview, Snapshot{ServiceUp: true, ServiceVersion: "0.1.17"}, StateReview, "Update to 0.1.18", ""},
+		{"review: old failed stage", "0.1.17", "0.1.18", ModeReview, Snapshot{ServiceUp: true, ServiceVersion: "0.1.17", Stage: stage("failed", "0.1.17")}, StateReview, "Update to 0.1.18", ""},
+	}
+	for _, c := range cases {
+		m := NewModel(c.from, c.to, c.mode)
+		m.Observe(c.snap)
+		v := m.View()
+		if v.State != c.want || v.Heading != c.heading || (c.msg != "" && (len(v.Body) == 0 || v.Body[0] != c.msg)) {
+			t.Errorf("%s: %+v", c.name, v)
+		}
+	}
+	// the person presses Update now over a leftover done: the window downloads, not Done
+	m := NewModel("0.1.17", "0.1.18", ModeReview)
+	m.Observe(Snapshot{ServiceUp: true, ServiceVersion: "0.1.17", Stage: stage("done", "0.1.17")})
+	m.Requested()
+	m.RequestReturned(nil)
+	if m.State() != StateDownloading {
+		t.Errorf("requested over leftover: %s", m.State())
+	}
+}
