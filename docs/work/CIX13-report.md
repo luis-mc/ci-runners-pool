@@ -30,3 +30,4 @@ Not run locally: golangci-lint (installed binary built with Go 1.25, repo target
 - Wiring in `cmd/crsp` (CIX18), see gap 2.
 
 CODE DONE (sha below)
+CODE DONE 6e093d74fa56cc1a70feb0285dc2e6f3007d8c10
