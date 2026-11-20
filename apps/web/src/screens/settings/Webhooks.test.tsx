@@ -154,10 +154,12 @@ describe('Settings > Access > Webhooks', () => {
   });
 
   it('keeps Save blocked, with its reason, for someone who is not the owner', async () => {
+    // `open` already waited for the heading. The old `findByText('Webhooks')` matched the heading and the
+    // Facts label at once, so findBy kept retrying until it hit the 5 s test timeout.
     await open(signedIn(viewer).on('GET', PATH, { state: 'off' }));
-    await screen.findByText('Webhooks');
     const save = await screen.findByRole<HTMLButtonElement>('button', { name: 'Save' });
     expect(save.disabled || save.getAttribute('aria-disabled') === 'true').toBe(true);
+    expect((await screen.findAllByText(/Only the owner can do this/)).length).toBeGreaterThan(0);
   });
 });
 
