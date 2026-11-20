@@ -566,7 +566,7 @@ A field's width caps its box, never its name and help: a lone field's name and h
 ## 52. Trend chart
 
 - **Used for:** one to four series over time or over categories, as lines or columns, with an optional range band.
-- **Looks:** inline SVG to scale with the top and bottom value and the first and last time named; lines differ by dash as well as colour, and a legend names them. A table under "Show as table" lists every point.
+- **Looks:** inline SVG to scale with the top and bottom value and the first and last time named; lines differ by dash as well as colour, and a legend names them. A table under "Show as table" lists every point. A `stacked` mode stacks the parts of one total (component 63).
 - **Source:** `packages/ui/src/components/Charts.tsx` (`TrendChart`), `packages/ui/src/components.css`
 - **Rules:** UX-41, UX-17, UX-18, UX-11, UX-58.
 - **Guard:** `packages/ui/src/components/Viz.test.tsx`.
@@ -598,9 +598,9 @@ A field's width caps its box, never its name and help: a lone field's name and h
 ## 56. Short text
 
 - **Used for:** a long name in a table cell, such as a branch (`dependabot/npm_and_yarn/vite-8.3.8`), that would otherwise wrap over many lines.
-- **Looks:** the name cut in the middle with an ellipsis, so its start and its end both stay readable (`RES15-jobs…ection`), with a dotted underline when it is cut. The full name is the hover text and the text a screen reader reads; the detail of the item always shows it whole. A name that fits is shown as it is. **A name that may be long and has no middle to cut (LOOK38, `ClampText`):** a machine or runner name in a table cell or a card title breaks anywhere to fit its box (`overflow-wrap: anywhere`) and stops at two lines; the whole name is the hover text. A card title is clamped the same way, and the grid keeps a two-line title off the card above it.
+- **Looks:** the name cut in the middle with an ellipsis, so its start and its end both stay readable (`RES15-jobs…ection`), with a dotted underline when it is cut. The full name is the hover text and the text a screen reader reads; the detail of the item always shows it whole. A cut name carries its full text the three ways of component 62 (tooltip on hover and focus, tap on touch, screen-reader text). A name that fits is shown as it is. **A name that may be long and has no middle to cut (LOOK38, `ClampText`):** a machine or runner name in a table cell or a card title breaks anywhere to fit its box (`overflow-wrap: anywhere`) and stops at two lines; the whole name is the hover text. A card title is clamped the same way, and the grid keeps a two-line title off the card above it.
 - **Source:** `packages/ui/src/components/ShortText.tsx`, `packages/ui/src/components.css`
-- **Rules:** UX-49, UX-17.
+- **Rules:** UX-49, UX-17, UX-72.
 - **Guard:** `packages/ui/src/components/parts.test.tsx`.
 
 ## 57. Row action
@@ -610,6 +610,84 @@ A field's width caps its box, never its name and help: a lone field's name and h
 - **Source:** `packages/ui/src/components/RowAction.tsx`, `packages/ui/src/components.css`
 - **Rules:** UX-72, UX-16, UX-8.
 - **Guard:** `packages/ui/src/components/parts.test.tsx`.
+
+## 58. Stat tile
+
+- **Used for:** one key number of a page with its change and its trend: the four tiles of the Jobs Overview (UX-75). Owner decisions D9, D10 of feature ci-run-insights.
+- **Anatomy:** a card (the shared card, CORE-7) with, top to bottom: the label (*Waiting now*), the value in the large type role with its unit, the change line (an arrow glyph, the amount and *vs the previous 7 days*), a sparkline (component 53) and, when the tile leads somewhere, the whole tile is one link whose name says the target (*Open the jobs that wait now*). Tiles of one row share one width and one height.
+- **States:** *normal*; *better* (`✓`, Done tone), *worse* (`◷`, Needs you tone; never the Problem tone for a number that is only slower) and *same* (no glyph tone), each a word, a glyph and a colour (UX-58); *no data yet* (the value is a dash, the change and the sparkline say *no data yet*); *loading* (the label stays, the value area says *Loading*); *failed* (a quiet line with the reason and a retry link, UX-4).
+- **Tokens:** `--ds-color-surface`, `--ds-color-divider`, `--ds-color-text`, `--ds-color-text-muted`, the tone tokens `--ds-color-done`, `--ds-color-needs-you` with their tints, `--ds-color-note` for the sparkline line, `--ds-space-3`, `--ds-space-4`, `--ds-space-5`, `--ds-radius-2`, the type roles for a large value and a quiet label. No new token.
+- **Keyboard and screen reader:** the tile is one tab stop; Enter opens its link. The sparkline is hidden from assistive technology; the tile says the same in words: *Waiting now: 3 jobs, up 2 against the previous 7 days, worse. Oldest 4 min.* (UX-17). The focus ring is the shared one (UX-17).
+- **Phone (360, 393 px):** two tiles per row, equal width, row gap `--ds-space-3`; the label and the change line wrap (UX-72), the value never wraps and the unit goes under it only when it does not fit; a tile never gets narrower than 160 px. Four tiles make two rows, never one long column.
+- **Looks:** the tiles sit in the card grid (component 8) above every other card.
+- **Source:** `packages/ui/src/components/StatTile.tsx` (`StatTile`), `packages/ui/src/components.css` (to be built; the apps do not follow this yet).
+- **Rules:** UX-75, UX-52, UX-58, UX-17, UX-41, UX-16, CORE-2, CORE-7.
+- **Guard:** `packages/ui/src/components/parts.test.tsx` (to be written with the part).
+
+## 59. Ranked findings list
+
+- **Used for:** the things crsp found that cost the pool time, best first: the *Needs you* strip of the Overview (top 3) and the to-do list of Run insights (D8, D16 of feature ci-run-insights).
+- **Anatomy:** an ordered list (component 45). Each item: the rank number; the title in plain words (*Add one runner of type docker on pc-1*); the minutes saved a week (*about 40 min a week*, a number with its unit); the confidence word *sure*, *likely* or *a guess* as a badge (component 17) with a glyph; one line of the fix; a fold *How we know* (component 47) with the data behind it; the link *Show the jobs behind it*. In the full variant (Run insights only) the item also has the secondary button *Dismiss* (UX-52 keeps every command off the Overview; in the strip variant a finding has the link only and its own page holds Dismiss and Mark done).
+- **States:** *to do* (default), *done*, *dismissed* (the three lists of Run insights are a segmented choice, component 12; a dismissed item is grey and says why, UX-70, and *Restore* brings it back); *empty* (*Nothing needs you now.* in the strip, content.md); *loading*; *failed*.
+- **Confidence words:** *sure* (the data proves it: every case, no exception), *likely* (the data points to it), *a guess* (an estimate; it is said in the words and never drawn like a fact). Text first, colour second (UX-58, UX-76).
+- **Tokens:** `--ds-color-divider`, `--ds-color-text`, `--ds-color-text-muted`, `--ds-color-note-tint` (likely), `--ds-color-needs-you-tint` (a guess), `--ds-color-done-tint` (sure), the matching `on-*-tint` tokens, `--ds-space-3`, `--ds-space-4`, `--ds-radius-1`. No new token.
+- **Keyboard and screen reader:** Down and Up move through the items (UX-57); Tab reaches the fold, the link and *Dismiss* of the item in that order. A screen reader reads the rank, the title, the minutes, the confidence word and the fix as the item's name, in that order (*1 of 3: …, about 40 minutes a week, likely*). *Dismiss* names its finding (`Dismiss: Add one runner…`) and moves focus to the next item; the change is announced (*Dismissed. Restore*) in the polite live region.
+- **Phone (360, 393 px):** each item is a card with the same lines in the same place (UX-72): rank and title, then minutes and confidence word on one line, then the fix, then the fold and the link, each a full-width 44 px target. The title wraps; it is never cut.
+- **Looks:** no table: the item is a row of words, not columns (UX-25).
+- **Source:** `packages/ui/src/components/FindingList.tsx` (`FindingList`, variant `strip` or `full`), `packages/ui/src/components.css` (to be built; the apps do not follow this yet).
+- **Rules:** UX-76, UX-52, UX-58, UX-57, UX-70, UX-17, UX-72, CORE-3, CORE-4, CORE-5.
+- **Guard:** `packages/ui/src/components/parts.test.tsx` (to be written with the part).
+
+## 60. Bar list
+
+- **Used for:** a ranking of named things by one or two values: the *Busiest repositories* card (wait and run minutes, runs), where the time goes by part.
+- **Anatomy:** one row per item: the label (a name, with the long-name rule of component 62), a horizontal bar on a shared scale, the value as text (*212 min*). **Every row links** to the filtered list behind it (UX-52); the row is one link and its name says the target (*Open the 124 jobs of repo-a*). A row of two values (wait and run) draws two segments in one bar, as in the stacked mode (component 63), with the values said in words. The scale starts at zero. A *Show as table* fold (component 47) lists every row (UX-17).
+- **States:** *normal*; *hover and focus* (the shared hover and focus ring on the whole row); *empty* (*Nothing to rank in this range.*); *loading*; *no data yet*. The bar of a row never replaces its number.
+- **Tokens:** `--ds-color-note` and `--ds-color-needs-you` for the two segments with a hatch on the second (a pattern as well as colour, UX-58), `--ds-color-divider` for the track, `--ds-color-text`, `--ds-color-text-muted`, `--ds-space-2`, `--ds-space-3`, `--ds-control-height` as the row's smallest height. No new token.
+- **Keyboard and screen reader:** each row is one tab stop; Down and Up move through the rows (UX-57); Enter opens the list. A row reads *repo-a: 212 minutes, 124 jobs. Open the 124 jobs.* The bars are hidden from assistive technology; the table under *Show as table* is the text equivalent.
+- **Phone (360, 393 px):** the label sits above its bar (the bar fills the row width), the value to the right of the label; the label wraps and never cuts (UX-72); rows are at least `--ds-target-min` high.
+- **Looks:** a card body, never a bordered box inside a box.
+- **Source:** `packages/ui/src/components/BarList.tsx` (`BarList`), `packages/ui/src/components.css` (to be built; the apps do not follow this yet).
+- **Rules:** UX-41, UX-17, UX-52, UX-57, UX-58, UX-72, UX-16, CORE-2, CORE-4.
+- **Guard:** `packages/ui/src/components/Viz.test.tsx` (to be written with the part).
+
+## 61. Runner timeline
+
+- **Used for:** what each runner did over time, so a wait can be seen next to a runner that stood idle. On Jobs it shows all machines; on each machine page it shows that machine only (D20 of feature ci-run-insights, UX-77).
+- **Anatomy:** one lane per runner, a time axis shared by all lanes (the range is 24 hours or 7 days; the first and last time are named, UX-18). In a lane: a bar per job (a run is a solid bar; the wait before it is a lighter hatched segment, as in the Waterfall, component 50); a stretch where the runner was **idle while a job queued** is a dashed outline with the words *idle while queued* in its legend and its text; "now" is the dashed line of the Waterfall. The lane label is the runner name (component 62 for a long name) with its machine as a muted second line (hidden on a machine page). A bar that opens a job is a button. The heat of a busy hour is read from the Heatmap (component 54): the part reuses its colour steps for a busy-percent strip under the lanes, not a new scale.
+- **States:** *live* (the right edge is now and moves); *a past range*; *a runner with no job in the range* (the lane says *no jobs*); *empty* (*No runner has worked in this range.*); *loading*; *failed*; *filtered to one machine*.
+- **Tokens:** `--ds-color-note` (run), `--ds-color-needs-you` (wait, hatched), `--ds-color-problem` is not used; `--ds-color-border` for the dashed idle box, `--ds-color-divider` for the axis and lane lines, `--ds-color-text`, `--ds-color-text-muted`, `--ds-space-1`, `--ds-space-2`, `--ds-space-3`, `--ds-control-height` as a lane's height. No new token.
+- **Keyboard and screen reader:** the lanes are one list; Down and Up move between runners, Left and Right between the bars of a lane in time order, Enter opens the job (UX-57). Each bar names itself (*build, repo-a, waited 2 min, ran 5 min, on runner-1*). *Show as table* lists every bar and every idle stretch in words (UX-17); *idle while queued* is said in the table, not by the pattern alone.
+- **Phone (360, 393 px):** the lane names do not fit beside the bars, so each lane is two rows: the name above, the bars below at the full width (never hidden: the study's lane names hidden at 393 px are not allowed, CORE-3). The range is 24 hours; a long range is reached by *Show as table*. A bar is at least `--ds-target-min` high.
+- **Looks:** the card has the legend (run, wait, idle while queued, now) above the lanes.
+- **Source:** `packages/ui/src/components/RunnerTimeline.tsx` (`RunnerTimeline`), `packages/ui/src/components.css` (to be built; the apps do not follow this yet; data from the slot log).
+- **Rules:** UX-77, UX-41, UX-17, UX-18, UX-57, UX-58, UX-49, UX-72, CORE-1, CORE-2.
+- **Guard:** `packages/ui/src/components/Viz.test.tsx` (to be written with the part).
+
+## 62. Cell full-text
+
+- **Used for:** a table cell, card title or list line whose text may be longer than its box. It is the way UX-72 (D14, D15) makes the full text reachable.
+- **Anatomy:** by default the text is whole: it wraps and a long path, id or word with no space breaks anywhere to fit. Only where the box has a line limit (a name at two lines, `ClampText`, component 56) or a very narrow column does the text end in an ellipsis. A cell that ends in an ellipsis is a *cut cell*, and a cut cell always carries the full text three ways: **a tooltip** with the whole text on mouse hover and on keyboard focus (the cell is focusable with `tabindex="0"` only when it is cut); **a tap** on touch expands the row to show the cell whole, and a second tap folds it; and **the text itself** for a screen reader (the whole text is in the DOM, the cut is drawn by the style). A cell that is not cut has none of these. Rows may differ in height.
+- **States:** *whole* (not cut); *cut* (ellipsis, a dotted underline, focusable); *tooltip shown* (hover or focus; Escape closes it, UX-57); *expanded* (touch; the row grows, the cell shows whole text, `aria-expanded` is true); *folded*. The middle cut of a branch (`ShortText`, component 56) is a cut cell too and follows the same three ways.
+- **Tokens:** `--ds-color-surface` and `--ds-color-border` for the tooltip, `--ds-color-text`, `--ds-space-2`, `--ds-radius-2`, `--ds-z-menu` for the tooltip layer, `--ds-color-focus`. No new token.
+- **Keyboard and screen reader:** Tab reaches only cut cells; the tooltip opens on focus and on hover and stays while the pointer is over it (it is readable and can be dismissed with Escape, WCAG 1.4.13); Enter or Space on a cut cell expands the row as a tap does. The full text is the cell's accessible text, so a screen reader reads it whole, never the ellipsis. A tooltip is not the only way: on touch the tap is, and the row's detail page always shows the text whole.
+- **Phone (360, 393 px):** no hover exists, so the tap is the way; the expanded row pushes the rows below it down, never over them; the tap target is the whole cell, at least `--ds-target-min` high. A long path or id breaks anywhere and needs no tap while it fits in two lines.
+- **Looks:** a cut cell is told from a whole one by the dotted underline and the ellipsis only; nothing else changes.
+- **Source:** `packages/ui/src/components/CellText.tsx` (`CellText`), `packages/ui/src/components/ShortText.tsx`, `packages/ui/src/components.css` (to be built; the apps do not follow this yet).
+- **Rules:** UX-72, UX-17, UX-49, UX-57, UX-16, CORE-3, CORE-4.
+- **Guard:** `packages/ui/src/components/parts.test.tsx` and the `cutText` guard of `e2e/tests/web-console/ux-routes.spec.ts`, which asks that every cut cell has a tooltip and a tap (to be written with the part).
+
+## 63. Stacked mode of the trend chart
+
+- **Used for:** two or more parts of one total over time, such as wait and run time per day (*Where the time goes*) or the wait parts (GitHub, queue, slot hold and start, cleanup). It extends the Trend chart (component 52); it is not a new chart.
+- **Anatomy:** the Trend chart with the mode `stacked`: columns, one per day or hour, stacked from zero in a fixed part order, the same on every column; a legend names the parts and the total. A column opens the filtered list of its day (*Open the 124 jobs of that day*, UX-52). The top and bottom values and the first and last time are named as in component 52. *Show as table* lists every part of every column (UX-17).
+- **States:** as component 52 (*no data yet*, *loading*, *failed*) plus *a column picked* (the selected day and its list under the chart, as in the Charts tab).
+- **Tokens:** the same as component 52: `--ds-color-needs-you` (wait, with a hatch) and `--ds-color-note` (run) for two parts; a third and fourth part use `--ds-color-done` and `--ds-color-text-muted`. Parts differ by pattern and by the stacking order as well as by colour (UX-58). The chart colours must pass the contrast check of the gallery in light and dark (see the open points of the LOOK40 report). No new token.
+- **Keyboard and screen reader:** each column is a tab stop in time order; Left and Right move between columns; Enter opens the list. A column reads *Tue 18 Nov: waiting 46 min, running 62 min, 124 jobs*. The table is the text equivalent.
+- **Phone (360, 393 px):** it fits 360 px without scrolling: at most 14 columns, labels on every other column; a column is at least 20 px wide and `--ds-target-min` high to press.
+- **Source:** `packages/ui/src/components/Charts.tsx` (`TrendChart`, `mode="stacked"`), `packages/ui/src/components.css` (to be built; the apps do not follow this yet).
+- **Rules:** UX-41, UX-17, UX-18, UX-52, UX-58, UX-16.
+- **Guard:** `packages/ui/src/components/Viz.test.tsx` (to be written with the mode).
 
 ## How to add a component
 

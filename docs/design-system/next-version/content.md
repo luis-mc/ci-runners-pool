@@ -150,7 +150,7 @@ A message is one or two short sentences in plain words. It names the thing, neve
 | Date | Year-month-day. | 2026-11-02 |
 | Time | 24-hour, local time. | 14:30 |
 | Date and time | Date, a space, then time. | 2026-11-02 14:30 |
-| Short date and time | Day, month name, time; only in a one-line table cell (UX-72). The detail shows the full form above. | 18 Nov 13:28 |
+| Short date and time | Day, month name, time; only where a cell is narrow (UX-72). The detail shows the full form above. | 18 Nov 13:28 |
 | Number | Digits, with a space for thousands. A dot for decimals. | 12 345.5 |
 | Count | A number before the noun. The noun agrees with the count. | 1 item, 3 items |
 | Size | A number and a unit, with a space. | 4.2 MB |
@@ -1104,6 +1104,43 @@ One word set for the button at the end of a table row. The guard reads this tabl
 | Copy | The button of a code block in a cell (Doctor, a finding's command): copies the text and says Copied. It changes nothing. A press. |
 | On, Off | The word of a switch in a cell (Repositories, the pool for a repository): it shows the state; pressing it changes the state. Admin only. |
 | Why, Details | Button inside a cell that has a long text, to read it whole. Not a row action. |
+
+## Jobs redesign words (LOOK40, concept A, owner decisions of 20 Nov 2026; feature ci-run-insights)
+
+The words of the Jobs Overview, its new tabs and parts (UX-74 to UX-77, components 58 to 63). A word of a UX rule is not repeated here.
+
+| Word | Where and meaning |
+|---|---|
+| Overview, Live, Done, Run elsewhere, Run insights, Charts | The six tabs of Jobs, in this order (D9 to D13, D20, D7, D8). Overview is first and the landing. *Live* replaces the tabs Queue and Running. |
+| Group by | Choice above the Done list, with None, Repository, Machine, Runner, Runner type, Job type. It replaces the five *By* tabs (D11). |
+| Queued, Running, No runner | Filter chips of Live; the queued jobs come first, then the running ones. |
+| Waiting now | KPI tile: how many jobs wait, with the oldest wait as its second line. |
+| Wait slow end (p90) | KPI tile: the wait that 9 in 10 jobs stay under. Hint: *9 in 10 jobs wait less than this.* |
+| Jobs that passed | KPI tile: the share of finished jobs that passed, with the flaky count. |
+| Pool busy | KPI tile: the share of runner time spent running jobs. |
+| vs the previous 7 days | The change line of a tile; *vs the previous 14 days*, *vs the previous 30 days* follow the range. 7 days is the default range. |
+| better, worse, same | The word of a change, beside its glyph and colour (UX-58). A fall in *Waiting now* is *better*. |
+| Needs you | Title of the strip of the top 3 findings by minutes saved a week. |
+| Nothing needs you now. | Empty strip. |
+| about {n} min a week | The minutes a finding saves. |
+| sure, likely, a guess | The confidence words of a finding (D16, UX-76): *sure* means the data proves it, *likely* means the data points to it, *a guess* is an estimate. |
+| How we know | Fold of a finding: the data behind it. |
+| Show the jobs behind it | Link of a finding: opens the filtered list. |
+| Dismiss, Restore | Buttons of a finding in Run insights only (UX-52). Busy words: Dismissing, Restoring. |
+| To do, Done, Dismissed | The three lists of Run insights. |
+| Where the time goes | Card and chart: waiting and running time per day (stacked). |
+| Wait parts | Chart: the parts of waiting (GitHub, queue, slot hold and start, cleanup). |
+| Busiest repositories | Card: a bar list of repositories by wait and run minutes. |
+| Failed and flaky | Card: failed jobs and jobs that passed on a rerun of the same commit. |
+| Runner timeline | Card and part title: lanes per runner on a time axis. On a machine page the title is *Runner timeline of {machine}*. |
+| idle while queued | Legend and table word of a stretch where a runner stood idle while a job queued. |
+| no jobs | A lane with no job in the range. |
+| No runner has worked in this range. | Empty runner timeline. |
+| Nothing to rank in this range. | Empty bar list. |
+| Open the {n} jobs of {name} | Link of a bar list row; *Open the {n} jobs of that day* for a chart column. |
+| Open the jobs that wait now | Link of the Waiting now tile. |
+| Loading | Value area of a tile that is loading. |
+| Run elsewhere | Tab: jobs GitHub gave to a runner that is not crsp; each row names that runner and its state follows GitHub (D7). |
 
 ## Runner leftover words
 
