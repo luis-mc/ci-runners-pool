@@ -132,6 +132,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.deleteTestResultsBeforeStmt, err = db.PrepareContext(ctx, deleteTestResultsBefore); err != nil {
 		return nil, fmt.Errorf("error preparing query DeleteTestResultsBefore: %w", err)
 	}
+	if q.deleteTestResultsForJobLogStmt, err = db.PrepareContext(ctx, deleteTestResultsForJobLog); err != nil {
+		return nil, fmt.Errorf("error preparing query DeleteTestResultsForJobLog: %w", err)
+	}
 	if q.deleteTestResultsForReportStmt, err = db.PrepareContext(ctx, deleteTestResultsForReport); err != nil {
 		return nil, fmt.Errorf("error preparing query DeleteTestResultsForReport: %w", err)
 	}
@@ -1215,6 +1218,11 @@ func (q *Queries) Close() error {
 	if q.deleteTestResultsBeforeStmt != nil {
 		if cerr := q.deleteTestResultsBeforeStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing deleteTestResultsBeforeStmt: %w", cerr)
+		}
+	}
+	if q.deleteTestResultsForJobLogStmt != nil {
+		if cerr := q.deleteTestResultsForJobLogStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing deleteTestResultsForJobLogStmt: %w", cerr)
 		}
 	}
 	if q.deleteTestResultsForReportStmt != nil {
@@ -2792,6 +2800,7 @@ type Queries struct {
 	deleteRunnerUsageBeforeStmt                 *sql.Stmt
 	deleteRunsOnFindingsStmt                    *sql.Stmt
 	deleteTestResultsBeforeStmt                 *sql.Stmt
+	deleteTestResultsForJobLogStmt              *sql.Stmt
 	deleteTestResultsForReportStmt              *sql.Stmt
 	deleteTicketStmt                            *sql.Stmt
 	deleteUserStmt                              *sql.Stmt
@@ -3134,6 +3143,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		deleteRunnerUsageBeforeStmt:                 q.deleteRunnerUsageBeforeStmt,
 		deleteRunsOnFindingsStmt:                    q.deleteRunsOnFindingsStmt,
 		deleteTestResultsBeforeStmt:                 q.deleteTestResultsBeforeStmt,
+		deleteTestResultsForJobLogStmt:              q.deleteTestResultsForJobLogStmt,
 		deleteTestResultsForReportStmt:              q.deleteTestResultsForReportStmt,
 		deleteTicketStmt:                            q.deleteTicketStmt,
 		deleteUserStmt:                              q.deleteUserStmt,
