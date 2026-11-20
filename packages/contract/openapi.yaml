@@ -9035,7 +9035,22 @@ components:
           format: date-time
     RegistryImageSummary:
       type: object
-      required: [id, kind, name, key, profile, arch, state, manifest_digest, size_bytes, unique_bytes, pulls_7_days, scan_state, pushed_at]
+      required:
+        [
+          id,
+          kind,
+          name,
+          key,
+          profile,
+          arch,
+          state,
+          manifest_digest,
+          size_bytes,
+          unique_bytes,
+          pulls_7_days,
+          scan_state,
+          pushed_at,
+        ]
       properties:
         id: { type: string }
         kind:
@@ -9201,7 +9216,17 @@ components:
         after_sha256: { type: string }
     RegistryCompare:
       type: object
-      required: [new, old, stack_files, base_changed, shared_bytes, frees_bytes, repositories, keep_days_default]
+      required:
+        [
+          new,
+          old,
+          stack_files,
+          base_changed,
+          shared_bytes,
+          frees_bytes,
+          repositories,
+          keep_days_default,
+        ]
       properties:
         new:
           $ref: '#/components/schemas/RegistryImageSummary'
@@ -9220,7 +9245,17 @@ components:
         keep_days_default: { type: integer }
     RegistryStoreSettings:
       type: object
-      required: [folder, unused_days, keep_old_days, variant_gone_days, variant_unused_days, cleanup_weekday, cleanup_hour, alone_rules]
+      required:
+        [
+          folder,
+          unused_days,
+          keep_old_days,
+          variant_gone_days,
+          variant_unused_days,
+          cleanup_weekday,
+          cleanup_hour,
+          alone_rules,
+        ]
       properties:
         folder: { type: string }
         folder_pending:
@@ -9243,7 +9278,16 @@ components:
           items: { $ref: '#/components/schemas/RegistryRule' }
     RegistryStoreSettingsInput:
       type: object
-      required: [folder, unused_days, keep_old_days, variant_gone_days, variant_unused_days, cleanup_weekday, cleanup_hour]
+      required:
+        [
+          folder,
+          unused_days,
+          keep_old_days,
+          variant_gone_days,
+          variant_unused_days,
+          cleanup_weekday,
+          cleanup_hour,
+        ]
       properties:
         folder: { type: string }
         unused_days: { type: integer, minimum: 1, maximum: 3650 }
@@ -9278,7 +9322,19 @@ components:
         keep_days: { type: integer, minimum: 0, maximum: 365 }
     RegistryReplacePlan:
       type: object
-      required: [id, state, new_image, old_image, keep_days, repositories, machines, steps_done, steps_total, created_at]
+      required:
+        [
+          id,
+          state,
+          new_image,
+          old_image,
+          keep_days,
+          repositories,
+          machines,
+          steps_done,
+          steps_total,
+          created_at,
+        ]
       properties:
         id: { type: string }
         state:
@@ -9310,7 +9366,8 @@ components:
         finished_at: { type: string, format: date-time }
     RegistryMirrorSettings:
       type: object
-      required: [enabled, upstreams, folder, budget_bytes, tag_recheck_minutes, used_bytes]
+      required:
+        [enabled, upstreams, folder, budget_bytes, tag_recheck_minutes, used_bytes]
       properties:
         enabled: { type: boolean }
         upstreams:
@@ -9353,7 +9410,16 @@ components:
         key: { type: string }
         reason:
           type: string
-          enum: [first_runner, layers_changed, pin_updated, base_updated, asked, stack_changed, not_in_registry]
+          enum:
+            [
+              first_runner,
+              layers_changed,
+              pin_updated,
+              base_updated,
+              asked,
+              stack_changed,
+              not_in_registry,
+            ]
         state:
           $ref: '#/components/schemas/ImageBuildState'
         push_state:
