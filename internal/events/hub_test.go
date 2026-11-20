@@ -189,6 +189,9 @@ func (l *leaveOnKeepAlive) Write(p []byte) (int, error) {
 	return n, err
 }
 
+// WriteString is the path io.WriteString takes; the recorder has its own.
+func (l *leaveOnKeepAlive) WriteString(str string) (int, error) { return l.Write([]byte(str)) }
+
 func TestSSEFormatAndServe(t *testing.T) {
 	h := NewHub(Options{Snapshotter: snap{}})
 	h.Publish(JobQueued, []byte(`{"id":7}`))

@@ -150,9 +150,8 @@ func TestMaintainReleasesWhenCancelledWhileDraining(t *testing.T) {
 // command may still run on the machine.
 func TestMaintainReleasesWhenCancelledWhileRunning(t *testing.T) {
 	var f *fixture
-	f = maintainFixture(t, func(w http.ResponseWriter, r *http.Request) {
-		f.cancel()           // Ctrl-C
-		<-r.Context().Done() // the CLI drops the request; the answer below goes nowhere
+	f = maintainFixture(t, func(w http.ResponseWriter, _ *http.Request) {
+		f.cancel() // Ctrl-C, before the answer below is sent
 		writeJSON(w, 200, map[string]any{"ok": true, "exit_code": 0, "output": ""})
 	})
 	code, _, errOut := f.run("machine", "maintain", "build-01", "--yes", "--", "compact")
