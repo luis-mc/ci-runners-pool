@@ -34,3 +34,7 @@ All 12 `.new` files merged by hand and deleted.
 - No `test_*.py` beside the changed scripts (only `test_guardrails.py`).
 
 CODE DONE 6c5552cdf5 (code commit; the report commit follows it)
+
+## Step 3 (1.51)
+
+Status: started. Merging 11 `.new` files from luismc-delivery 1.51.0 on branch `CRSP213-dev-standards-1-50`.
