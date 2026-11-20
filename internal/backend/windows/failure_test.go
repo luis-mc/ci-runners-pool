@@ -161,7 +161,7 @@ func TestRandomPasswordLettersAndDigitsOnly(t *testing.T) {
 			t.Fatalf("length %d: %q", len(p), p)
 		}
 		for _, c := range p {
-			if !(c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c >= '0' && c <= '9') {
+			if (c < 'a' || c > 'z') && (c < 'A' || c > 'Z') && (c < '0' || c > '9') {
 				t.Fatalf("password has %q, not a letter or digit", c)
 			}
 		}
