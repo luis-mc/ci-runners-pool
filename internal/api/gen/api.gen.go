@@ -2767,6 +2767,27 @@ func (e RunsOnFindingKind) Valid() bool {
 	}
 }
 
+// Defines values for SettingsInsightsUpdatePeriod.
+const (
+	EveryNthRun SettingsInsightsUpdatePeriod = "every_nth_run"
+	EveryRun    SettingsInsightsUpdatePeriod = "every_run"
+	Hourly      SettingsInsightsUpdatePeriod = "hourly"
+)
+
+// Valid indicates whether the value is a known member of the SettingsInsightsUpdatePeriod enum.
+func (e SettingsInsightsUpdatePeriod) Valid() bool {
+	switch e {
+	case EveryNthRun:
+		return true
+	case EveryRun:
+		return true
+	case Hourly:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for SetupStateStepsConnectGithub.
 const (
 	SetupStateStepsConnectGithubDone SetupStateStepsConnectGithub = "done"
@@ -6930,14 +6951,23 @@ type Settings struct {
 	InsightsResourceSamplesDays *int `json:"insights_resource_samples_days,omitempty"`
 
 	// InsightsTestResultsDays ci-run-insights R5.5, R6.2. Default 90.
-	InsightsTestResultsDays    *int `json:"insights_test_results_days,omitempty"`
-	MaxEventStreams            *int `json:"max_event_streams,omitempty"`
-	RetentionAuditDays         *int `json:"retention_audit_days,omitempty"`
-	RetentionJobHistoryDays    *int `json:"retention_job_history_days,omitempty"`
-	RetentionLoadRawHours      *int `json:"retention_load_raw_hours,omitempty"`
-	RetentionLogsDays          *int `json:"retention_logs_days,omitempty"`
-	RetentionLogsMibPerMachine *int `json:"retention_logs_mib_per_machine,omitempty"`
+	InsightsTestResultsDays *int `json:"insights_test_results_days,omitempty"`
+
+	// InsightsUpdateEveryNRuns ci-run-insights R5.44. N of every_nth_run. Default 5.
+	InsightsUpdateEveryNRuns *int `json:"insights_update_every_n_runs,omitempty"`
+
+	// InsightsUpdatePeriod ci-run-insights R5.44 (owner decisions D18, D19). How often insights are re-analysed. every_run (the default) analyses after each CI run; every_nth_run after every Nth run; hourly once an hour. The cost warning recommends a slower one.
+	InsightsUpdatePeriod       *SettingsInsightsUpdatePeriod `json:"insights_update_period,omitempty"`
+	MaxEventStreams            *int                          `json:"max_event_streams,omitempty"`
+	RetentionAuditDays         *int                          `json:"retention_audit_days,omitempty"`
+	RetentionJobHistoryDays    *int                          `json:"retention_job_history_days,omitempty"`
+	RetentionLoadRawHours      *int                          `json:"retention_load_raw_hours,omitempty"`
+	RetentionLogsDays          *int                          `json:"retention_logs_days,omitempty"`
+	RetentionLogsMibPerMachine *int                          `json:"retention_logs_mib_per_machine,omitempty"`
 }
+
+// SettingsInsightsUpdatePeriod ci-run-insights R5.44 (owner decisions D18, D19). How often insights are re-analysed. every_run (the default) analyses after each CI run; every_nth_run after every Nth run; hourly once an hour. The cost warning recommends a slower one.
+type SettingsInsightsUpdatePeriod string
 
 // SetupState defines model for SetupState.
 type SetupState struct {

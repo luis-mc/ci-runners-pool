@@ -269,6 +269,7 @@ func TestRunSchedule(t *testing.T) {
 	calls := 0
 	c.hook = func() {
 		calls++
+		c.now = c.now.Add(Interval) // time passes while the engine waits
 		if calls == 3 {
 			cancel() // the third wait is cancelled: three passes ran
 		}

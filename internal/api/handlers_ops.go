@@ -84,6 +84,9 @@ func toGenSettings(st settings.Settings) gen.Settings {
 		MaxEventStreams:            intPtr(st.MaxEventStreams),
 		FallbackGraceMinutes:       intPtr(st.FallbackGraceMinutes),
 		AutoUpdate:                 &st.AutoUpdate,
+
+		InsightsUpdatePeriod:     (*gen.SettingsInsightsUpdatePeriod)(&st.InsightsUpdatePeriod),
+		InsightsUpdateEveryNRuns: intPtr(st.InsightsUpdateEveryNthRuns),
 	}
 }
 
@@ -124,6 +127,9 @@ func (s *server) UpdateSettings(ctx context.Context, req gen.UpdateSettingsReque
 		MaxEventStreams:            b.MaxEventStreams,
 		FallbackGraceMinutes:       b.FallbackGraceMinutes,
 		AutoUpdate:                 b.AutoUpdate,
+
+		InsightsUpdatePeriod:       (*string)(b.InsightsUpdatePeriod),
+		InsightsUpdateEveryNthRuns: b.InsightsUpdateEveryNRuns,
 	})
 	if err != nil {
 		return fail(s.opsError(err))

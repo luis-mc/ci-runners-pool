@@ -137,6 +137,8 @@ func patchFor(key string, v int) Patch {
 		p.InsightsResourceSamplesDays = &v
 	case "insights_hold_cap_seconds":
 		p.InsightsHoldCapSeconds = &v
+	case "insights_update_every_n_runs":
+		p.InsightsUpdateEveryNthRuns = &v
 	}
 	return p
 }
@@ -217,5 +219,35 @@ func TestInsightsRanges(t *testing.T) {
 	}
 	if l := CIDataLimits(got); l.Keep || l.Days != 365*24*time.Hour || l.BytesPerRepository != 20480<<20 {
 		t.Fatalf("limits = %+v", l)
+	}
+}
+
+// CIX23 (D18, D19): the update period of CI run insights: default every run, N from 2 to 50, three periods.
+func TestInsightsUpdatePeriod(t *testing.T) {
+	ctx := context.Background()
+	s, _ := setup(t)
+	got, _ := s.Get(ctx)
+	if got.InsightsUpdatePeriod != "every_run" || got.InsightsUpdateEveryNthRuns != 5 {
+		t.Fatalf("defaults = %q, %d", got.InsightsUpdatePeriod, got.InsightsUpdateEveryNthRuns)
+	}
+	if Ranges["insights_update_every_n_runs"] != (Range{2, 50}) {
+		t.Errorf("N range = %v", Ranges["insights_update_every_n_runs"])
+	}
+	for _, n := range []int{1, 51} {
+		if _, err := s.Update(ctx, owner, Patch{InsightsUpdateEveryNthRuns: &n}); err == nil {
+			t.Errorf("N=%d was accepted", n)
+		}
+	}
+	bad := "daily"
+	if _, err := s.Update(ctx, owner, Patch{InsightsUpdatePeriod: &bad}); err == nil {
+		t.Error("an unknown period was accepted")
+	}
+	p, n := "every_nth_run", 10
+	if _, err := s.Update(ctx, owner, Patch{InsightsUpdatePeriod: &p, InsightsUpdateEveryNthRuns: &n}); err != nil {
+		t.Fatal(err)
+	}
+	got, _ = s.Get(ctx)
+	if got.InsightsUpdatePeriod != "every_nth_run" || got.InsightsUpdateEveryNthRuns != 10 {
+		t.Fatalf("saved = %q, %d", got.InsightsUpdatePeriod, got.InsightsUpdateEveryNthRuns)
 	}
 }

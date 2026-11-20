@@ -5371,6 +5371,13 @@ export interface components {
             insights_hold_cap_seconds?: number;
             /** @description ci-run-insights R5.31. Name pattern of the guard report artifact. Default test-guardrails*. */
             insights_guardrail_artifact?: string;
+            /**
+             * @description ci-run-insights R5.44 (owner decisions D18, D19). How often insights are re-analysed. every_run (the default) analyses after each CI run; every_nth_run after every Nth run; hourly once an hour. The cost warning recommends a slower one.
+             * @enum {string}
+             */
+            insights_update_period?: "every_run" | "every_nth_run" | "hourly";
+            /** @description ci-run-insights R5.44. N of every_nth_run. Default 5. */
+            insights_update_every_n_runs?: number;
             /** @description operations R5.15. On by default. When on, a newer stable release installs by itself after a drain. When off, the console Review step asks first. */
             auto_update?: boolean;
         };
