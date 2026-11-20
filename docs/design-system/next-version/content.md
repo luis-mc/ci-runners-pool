@@ -1215,5 +1215,5 @@ Run insights is a tab of Jobs, placed before Charts. Estimates always say *estim
 | Size and backends, estimate | {labels}: with {n} more slot(s) the p95 wait would be about {x} (now {y}). An estimate from the last 7 days. |
 | Size and backends, queue grows | The queue grows: at least {n} more slots are needed. |
 | Repository page, panes | CI checks, Guardrails, Job slots |
-| Repository page, CI checks | ✓ pass, ✕ fix, – skipped; columns Status, Check, Job, Line, Fix; "Checked {time}." |
+| Repository page, CI checks | ✓ pass, ✕ fix, – skipped; columns Status, Rule, Job, Line, Fix; "Checked {time}." |
 | Repository page, Job slots | No advice: the limit of this repository did not hold jobs back while slots were free. |
