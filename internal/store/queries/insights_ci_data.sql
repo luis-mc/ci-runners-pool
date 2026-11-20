@@ -44,3 +44,9 @@ SELECT repository_id, CAST(SUM(bytes) AS INTEGER) AS bytes FROM (
     UNION ALL
     SELECT repository_id, bytes FROM ci_report_files WHERE state IN ('stored', 'parsed')
 ) GROUP BY repository_id;
+
+-- name: ListCIReportFilesOldestFirst :many
+SELECT * FROM ci_report_files WHERE repository_id = ? AND state IN ('stored', 'parsed') ORDER BY fetched_at ASC, id ASC LIMIT ?;
+
+-- name: GetCIReportFile :one
+SELECT * FROM ci_report_files WHERE repository_id = ? AND artifact_id = ? AND member = ?;
