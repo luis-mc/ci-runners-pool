@@ -21,3 +21,8 @@ Branch CIX17-run-savings from CIX-integration 6b2697f. Owns `internal/insights/r
 
 ## Left
 Nothing for the spec rows; wiring in cmd/crsp is CIX18's.
+
+## Checks
+fast_guards.py: lint step fails here (golangci-lint built with go1.25, repo targets 1.27.4) and gitleaks is missing: sandbox tooling, not my files. test_guardrails: my files add no break (existing break: internal/notify/notify_test.go:144). docs_check: only the expected W1.
+
+CODE DONE 4eb3fca
