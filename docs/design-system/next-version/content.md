@@ -604,7 +604,7 @@ The words of the setting that lets the pool serve public repositories, and of th
 | {n} public repositories use the pool now. Their runners are drained and removed, and their pool is switched off. The settings are kept. | The line of the question card when turning off ({n} is public_on_pool; the singular uses repository, uses, Its and its). Primary: Turn off. Busy word: Turning off. |
 | No public repository uses the pool now. Nothing is stopped. | The line of the question card when turning off and none is on the pool. |
 | The pool was switched off for {n} public repositories. Their settings are kept. | Done message after turning off. |
-| Active types: Private (default) / Active types: Private & Public | The line near the title of Repositories. The value links to the setting. |
+| Types: Private (default) / Types: Private & Public | The line near the title of Repositories. The value links to the setting. |
 | Visibility, Private, Public, Internal | The column and its values. |
 | Public repositories are off, so the pool does not serve this one. | The reason in a greyed public row. Link: Turn on public repositories. |
 | Use pool | Primary action of the action bar on Repositories, for the ticked repositories. Also the action on a repository's page. |
@@ -630,7 +630,7 @@ The words of the first-run fixes (web-console 4.1 and 4.3, CRSP124). The console
 | Word | Where and meaning |
 |---|---|
 | First run is not finished. Next: {step}. | The banner. {step} is connect GitHub, add the first machine or turn on the first repository. The action is Open the setup page. |
-| Install the App on a repository | The button that opens GitHub's install page for the App in a new tab. Busy word: Opening GitHub. |
+| Add a repository | The button that opens GitHub's install page for the App in a new tab (Repositories, Turn on the pool). Busy word: Opening GitHub. |
 | Install the App on an organization | The same button in Add runners, when the App is on no organization. |
 | GitHub is open in a new tab. Pick the account and the repositories there, then come back to this tab. The list refreshes by itself. | Note under the install button after it opened GitHub. |
 | GitHub saved the App installation. The list below is read again. Tick the repositories you want and press Use pool. | Done message on Repositories after GitHub's return with setup_action install or update. Action: Use pool. |
@@ -668,11 +668,11 @@ The words of the Settings section Access for CI and of the action that sets up p
 | Access {name} is made / I have it | Title and close button of the card that shows the value once. |
 | This is the only time the value is shown. crsp keeps no copy of it. Copy it now, or revoke this access and make another. | Needs-you message on that card. |
 | Access value | Label of the code block that holds the value. |
-| Set up parity for a repository | The section of the action. |
+| Set up parity | The section of the action. |
 | No repository yet. Install the App on a repository first (Repositories). | Empty state of the section. |
 | crsp writes the access as the secret CRSP_ACCESS, and its address and certificate fingerprint as the variables CRSP_URL and CRSP_CA_FINGERPRINT, to the repository through the GitHub App. You copy nothing. The parity workflow reads them. | Note of the section. |
 | Repository | The field that chooses the repository. |
-| Set up parity for this repository | The primary button. Busy: Setting up. Reason when none is chosen: Choose a repository first. |
+| Set up parity | The primary button (one line at phone width). Busy: Setting up. Reason when none is chosen: Choose a repository first. |
 | Could not set up parity. Nothing was left behind. {reason} | Problem message when the setup fails. |
 | Parity is set up for {repository}. The workflow can run now. | Done message. |
 | The GitHub grant | See GitHub grant words: a missing App permission is shown by the shared part, not by words of this screen. |
@@ -827,6 +827,7 @@ The fixed words of the waterfall, job graph and charts (components 50 to 55, RES
 | Job, Stage, after, Detail | Job graph: table heads; "Stage {n}" heads a stage; "after: a, b" under a job. |
 | Series, When, Value, Range, Note | Trend chart table heads. |
 | Day, Total, Busiest hour | Heatmap table heads. |
+| Mon, Tue, Wed, Thu, Fri, Sat, Sun | Heatmap day labels on the grid (the narrow column); the table under it keeps the full weekday. |
 | forecast, actual, forecast = actual | Forecast chart axes and the diagonal's legend; table heads. |
 | inside the forecast range, outside the forecast range, no range | Forecast chart: said for each job. |
 | lowest, highest, last, values | Chart and sparkline text alternatives ("5 values, last 4 s"). |
@@ -1071,7 +1072,7 @@ The words of the new Jobs section (web-console 4.6, proposed). A wait names what
 
 ### Row action words (RES17, UX-72)
 
-One word set for the button at the end of a table row. The guard reads this table: a label not listed here fails the review layout spec.
+One word set for the button at the end of a table row. The guard reads this table: a label not listed here fails the `rowActionWords` guard of `e2e/tests/web-console/ux-routes.spec.ts` and the Jobs rows spec `e2e/tests/web-console/ux-jobs-rows.spec.ts`.
 
 | Word | Where and meaning |
 |---|---|
@@ -1079,6 +1080,12 @@ One word set for the button at the end of a table row. The guard reads this tabl
 | Open | Row action of a group row (By repository, machine, runner, runner type, job type). The group's name is already in the row. |
 | Open job | Row action of a job row (Jobs view of Queue, Running, Done): opens the Job page. |
 | Remove | Row action of a failed runner (Runners): removes it and does not open a page. A press, not a link. Admin only (busy word: Removing). |
+| Edit | Row action of a user (Settings, Access): opens the change of its role. A press, not a link. Admin only. |
+| Replace | Button of an unmanaged runner (Runners): replaces it with one the pool manages, after a question. A press. Admin only (busy word: Replacing). |
+| Delete registration | Button of an offline managed runner (Runners): deletes its registration on GitHub, after a question. A press. Admin only (busy word: Deleting). |
+| Revoke | Row action of a live access for CI (Settings, Access): stops it working, after a question. A press. Admin only. |
+| Copy | The button of a code block in a cell (Doctor, a finding's command): copies the text and says Copied. It changes nothing. A press. |
+| On, Off | The word of a switch in a cell (Repositories, the pool for a repository): it shows the state; pressing it changes the state. Admin only. |
 | Why, Details | Button inside a cell that has a long text, to read it whole. Not a row action. |
 
 ## Runner leftover words
@@ -1098,7 +1105,7 @@ The words of the Doctor finding that lists runner services, folders, accounts an
 | Runner leftovers on {machine}: {kind} {name} removed, ... | Done message when every item went and the finding is gone. |
 | The agent has no administrator rights. Run it as a service with rights. | The reason beside a disabled Remove when the finding says the agent needs rights. |
 
-## Registry words (RES20, owner decision D18 of 19 Nov 2026)
+## Registry words (RES20, owner decision D18 of 19 Nov 2026; REG5)
 
 The words of the Registry tab under Images and caches: the registry of ready-made job images that is part of crsp and not public. A row action there is `Open` (Row action words).
 
@@ -1119,3 +1126,13 @@ The words of the Registry tab under Images and caches: the registry of ready-mad
 | Refusal | A runner uses this image. The registry refuses to delete it until that job ends. |
 | Add runners | Pulling the job image from the registry on {machine}, {done} of {total} GB, about {time} left; The registry has key {key}, signed by crsp |
 | Note words | crsp never deletes what you may still want without your yes. Layers two images share are stored once. |
+| Banners | The registry is not running. {reason}; The registry is cleaning up. Machines can pull; new images wait until it ends. |
+| Empty | Nothing to recommend. The registry is within its budgets.; No images yet. The first machine that builds a job image pushes it here. |
+| Image page | Repositories that use it, Shared layers, Time saved this week, Layer, Shared, only here, {n} other images, no copy, used now, holds a copy, Not scanned yet. The result shows here when the scan ends., Go back to this one, Going back, Open the image, Open the registry, Open the variant, Open the cleanup |
+| States (image page only) | staged, refused; The registry has not checked this image yet. It is offered to machines when it passes.; The registry refused this image. It stays in staging until the next cleanup. |
+| Recommendations | {image} is a newer version of an image the registry holds; {image} was replaced and its days to go back are over; {image} was made for a branch that is gone; {image} is unused; The {kind} images are over their budget; Layers no image uses; {image} belongs to a profile that was removed |
+| Budgets page | Together the two may be at most {size}, half the free disk.; Mirror of upstream images; Open the mirror |
+| Mirror page | Mirror of upstream images; Mirror upstream images; Upstreams; Budget; Check a tag again after {n} minutes; Separate registries with commas. |
+| Replace wizard (live) | Go back to the old image; Pointers already moved stay moved.; The base image changed too, so the new image is built on a newer base. |
+| Add runners, Review | The registry has key {key}, {size}. A machine without a job image pulls it instead of building. |
+| Add runners, pulling | Waiting for the controller to send the job image to {machine}. The pull goes on when it answers.; The job image could not be pulled, so no runner was added. Nothing was changed on {machine}.; Build it here instead |

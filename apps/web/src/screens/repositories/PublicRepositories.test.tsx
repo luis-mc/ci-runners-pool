@@ -113,13 +113,13 @@ describe('Repositories: active types, Visibility and greyed public rows', () => 
   it('shows the active types as a chip in the toolbar, not a link, and the chip opens the setting (UX-8)', async () => {
     renderApp(list(setting(signedIn(), false)), '/repositories');
     const chip = await screen.findByRole('button', {
-      name: 'Active types: Private (default)',
+      name: 'Types: Private (default)',
     });
     expect(screen.queryByRole('link', { name: /Private \(default\)/ })).toBeNull();
     expect(
       within(screen.getByRole('group', { name: 'Repositories toolbar' })).getByRole(
         'button',
-        { name: /Active types/ },
+        { name: /Types/ },
       ),
     ).toBe(chip);
     fireEvent.click(chip);
@@ -131,7 +131,7 @@ describe('Repositories: active types, Visibility and greyed public rows', () => 
   it('shows Private & Public when the setting is on', async () => {
     renderApp(list(setting(signedIn(), true)), '/repositories');
     expect(
-      await screen.findByRole('button', { name: 'Active types: Private & Public' }),
+      await screen.findByRole('button', { name: 'Types: Private & Public' }),
     ).toBeTruthy();
   });
 
@@ -139,7 +139,7 @@ describe('Repositories: active types, Visibility and greyed public rows', () => 
     renderApp(list(setting(signedIn(), false)), '/repositories?public=1');
     const table = await screen.findByRole('table', { name: 'octo repositories' });
     expect(within(table).queryByRole('columnheader', { name: 'Visibility' })).toBeNull();
-    await screen.findByRole('button', { name: 'Active types: Private (default)' });
+    await screen.findByRole('button', { name: 'Types: Private (default)' });
     const rows = within(table).getAllByRole('row');
     const siteRow = rows.find((r) => within(r).queryByRole('link', { name: 'site' }));
     const appRow = rows.find((r) => within(r).queryByRole('link', { name: 'app' }));
@@ -158,14 +158,14 @@ describe('Repositories: active types, Visibility and greyed public rows', () => 
   it('does not grey public rows while the setting is on', async () => {
     renderApp(list(setting(signedIn(), true)), '/repositories');
     const table = await screen.findByRole('table', { name: 'octo repositories' });
-    await screen.findByRole('button', { name: 'Active types: Private & Public' });
+    await screen.findByRole('button', { name: 'Types: Private & Public' });
     for (const row of within(table).getAllByRole('row'))
       expect(row.getAttribute('data-inactive')).toBeNull();
   });
 
   it('disables Turn on for a selection that holds a public repository while off, with the reason', async () => {
     renderApp(list(setting(signedIn(), false)), '/repositories?public=1');
-    await screen.findByRole('button', { name: 'Active types: Private (default)' });
+    await screen.findByRole('button', { name: 'Types: Private (default)' });
     fireEvent.click(screen.getByRole('checkbox', { name: 'Select octo/site' }));
     const button = screen.getByRole<HTMLButtonElement>('button', { name: 'Use pool' });
     expect(button.disabled).toBe(true);

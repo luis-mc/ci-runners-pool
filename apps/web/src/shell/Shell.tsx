@@ -4,7 +4,6 @@ import {
   ActivityStrip,
   BannerSlot,
   Dialog,
-  Button,
   Frame,
   Header,
   Message,
@@ -16,6 +15,7 @@ import {
   Status,
   TextLink,
   TopMenu,
+  TopMenuButton,
   UserMenu,
   formatAgo,
   useNow,
@@ -77,9 +77,11 @@ function AreaMenu() {
   const here = AREAS.find((a) => (a.end ? pathname === a.to : pathname.startsWith(a.to)));
   return (
     <>
-      <Button onPress={() => setOpen((o) => !o)}>
-        {open ? 'Close the menu' : `Menu: ${here?.label ?? 'Areas'}`}
-      </Button>
+      <TopMenuButton
+        open={open}
+        here={here?.label ?? 'Areas'}
+        onToggle={() => setOpen((o) => !o)}
+      />
       {open ? <TopMenu items={AREAS} /> : null}
     </>
   );

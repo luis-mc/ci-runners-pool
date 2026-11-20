@@ -9,12 +9,13 @@
 | Feature | Apps | Topics | Status | Version | Last verified |
 |---|---|---|---|---|---|
 | [Caches](caches/spec.md) | controller, agent, web-console, cli | caching, scheduling, security, operations, ui | building | 0.1.0 | 2026-11-14 |
-| [Command line (CLI)](cli/spec.md) | cli, controller, agent, tray | operations, security, github, machines, runners, install | building | 0.1.0 | 2026-11-17 |
+| [Command line (CLI)](cli/spec.md) | cli, controller, agent, tray | operations, security, github, machines, runners, install | building | 0.1.0 | 2026-11-20 |
 | [Doctor](doctor/spec.md) | controller, agent, web-console, cli | observability, operations, machines, runners, github | building | 0.1.0 | 2026-11-14 |
-| [Machines](machines/spec.md) | controller, agent, web-console, cli | machines, security, install, scheduling, operations | building | 0.1.0 | 2026-11-17 |
-| [Observability](observability/spec.md) | controller, agent, web-console, cli | observability, scheduling, machines, runners, security, operations, ui | building | 0.1.0 | 2026-11-18 |
-| [Operations](operations/spec.md) | controller, agent, tray, cli, web-console | operations, install, security, runners | building | 0.1.0 | 2026-11-14 |
-| [Runners and isolation backends](runners/spec.md) | controller, agent, web-console, cli | runners, isolation, security, machines, ui | building | 0.1.0 | 2026-11-18 |
+| [Image registry](registry/spec.md) | controller, agent, web-console | caching, machines, runners, security, operations, ui | building | 0.1.0 | 2026-11-20 |
+| [Machines](machines/spec.md) | controller, agent, web-console, cli | machines, security, install, scheduling, operations | building | 0.1.0 | 2026-11-20 |
+| [Observability](observability/spec.md) | controller, agent, web-console, cli | observability, scheduling, machines, runners, security, operations, ui | building | 0.1.0 | 2026-11-20 |
+| [Operations](operations/spec.md) | controller, agent, tray, cli, web-console | operations, install, security, runners | building | 0.1.0 | 2026-11-20 |
+| [Runners and isolation backends](runners/spec.md) | controller, agent, web-console, cli | runners, isolation, security, machines, ui | building | 0.1.0 | 2026-11-20 |
 | [Scheduling, slots and load budget](scheduling/spec.md) | controller, agent, cli, web-console | scheduling, machines, runners, github, observability | building | 0.1.0 | 2026-11-18 |
 
 ### cli
@@ -22,14 +23,14 @@
 | Feature | Apps | Topics | Status | Version | Last verified |
 |---|---|---|---|---|---|
 | [Caches](caches/spec.md) | controller, agent, web-console, cli | caching, scheduling, security, operations, ui | building | 0.1.0 | 2026-11-14 |
-| [Command line (CLI)](cli/spec.md) | cli, controller, agent, tray | operations, security, github, machines, runners, install | building | 0.1.0 | 2026-11-17 |
+| [Command line (CLI)](cli/spec.md) | cli, controller, agent, tray | operations, security, github, machines, runners, install | building | 0.1.0 | 2026-11-20 |
 | [Doctor](doctor/spec.md) | controller, agent, web-console, cli | observability, operations, machines, runners, github | building | 0.1.0 | 2026-11-14 |
-| [GitHub integration](github-integration/spec.md) | controller, web-console, cli | github, security, runners, install | building | 0.1.0 | 2026-11-14 |
-| [Machines](machines/spec.md) | controller, agent, web-console, cli | machines, security, install, scheduling, operations | building | 0.1.0 | 2026-11-17 |
+| [GitHub integration](github-integration/spec.md) | controller, web-console, cli | github, security, runners, install | building | 0.1.0 | 2026-11-20 |
+| [Machines](machines/spec.md) | controller, agent, web-console, cli | machines, security, install, scheduling, operations | building | 0.1.0 | 2026-11-20 |
 | [Notifications](notifications/spec.md) | controller, web-console, tray, cli | observability, operations, ui, security | building | 0.1.0 | 2026-11-14 |
-| [Observability](observability/spec.md) | controller, agent, web-console, cli | observability, scheduling, machines, runners, security, operations, ui | building | 0.1.0 | 2026-11-18 |
-| [Operations](operations/spec.md) | controller, agent, tray, cli, web-console | operations, install, security, runners | building | 0.1.0 | 2026-11-14 |
-| [Runners and isolation backends](runners/spec.md) | controller, agent, web-console, cli | runners, isolation, security, machines, ui | building | 0.1.0 | 2026-11-18 |
+| [Observability](observability/spec.md) | controller, agent, web-console, cli | observability, scheduling, machines, runners, security, operations, ui | building | 0.1.0 | 2026-11-20 |
+| [Operations](operations/spec.md) | controller, agent, tray, cli, web-console | operations, install, security, runners | building | 0.1.0 | 2026-11-20 |
+| [Runners and isolation backends](runners/spec.md) | controller, agent, web-console, cli | runners, isolation, security, machines, ui | building | 0.1.0 | 2026-11-20 |
 | [Scheduling, slots and load budget](scheduling/spec.md) | controller, agent, cli, web-console | scheduling, machines, runners, github, observability | building | 0.1.0 | 2026-11-18 |
 | [Tray](tray/spec.md) | tray, cli | ui, install, operations, security | building | 0.1.0 | 2026-11-17 |
 
@@ -38,14 +39,15 @@
 | Feature | Apps | Topics | Status | Version | Last verified |
 |---|---|---|---|---|---|
 | [Caches](caches/spec.md) | controller, agent, web-console, cli | caching, scheduling, security, operations, ui | building | 0.1.0 | 2026-11-14 |
-| [Command line (CLI)](cli/spec.md) | cli, controller, agent, tray | operations, security, github, machines, runners, install | building | 0.1.0 | 2026-11-17 |
+| [Command line (CLI)](cli/spec.md) | cli, controller, agent, tray | operations, security, github, machines, runners, install | building | 0.1.0 | 2026-11-20 |
 | [Doctor](doctor/spec.md) | controller, agent, web-console, cli | observability, operations, machines, runners, github | building | 0.1.0 | 2026-11-14 |
-| [GitHub integration](github-integration/spec.md) | controller, web-console, cli | github, security, runners, install | building | 0.1.0 | 2026-11-14 |
-| [Machines](machines/spec.md) | controller, agent, web-console, cli | machines, security, install, scheduling, operations | building | 0.1.0 | 2026-11-17 |
+| [GitHub integration](github-integration/spec.md) | controller, web-console, cli | github, security, runners, install | building | 0.1.0 | 2026-11-20 |
+| [Image registry](registry/spec.md) | controller, agent, web-console | caching, machines, runners, security, operations, ui | building | 0.1.0 | 2026-11-20 |
+| [Machines](machines/spec.md) | controller, agent, web-console, cli | machines, security, install, scheduling, operations | building | 0.1.0 | 2026-11-20 |
 | [Notifications](notifications/spec.md) | controller, web-console, tray, cli | observability, operations, ui, security | building | 0.1.0 | 2026-11-14 |
-| [Observability](observability/spec.md) | controller, agent, web-console, cli | observability, scheduling, machines, runners, security, operations, ui | building | 0.1.0 | 2026-11-18 |
-| [Operations](operations/spec.md) | controller, agent, tray, cli, web-console | operations, install, security, runners | building | 0.1.0 | 2026-11-14 |
-| [Runners and isolation backends](runners/spec.md) | controller, agent, web-console, cli | runners, isolation, security, machines, ui | building | 0.1.0 | 2026-11-18 |
+| [Observability](observability/spec.md) | controller, agent, web-console, cli | observability, scheduling, machines, runners, security, operations, ui | building | 0.1.0 | 2026-11-20 |
+| [Operations](operations/spec.md) | controller, agent, tray, cli, web-console | operations, install, security, runners | building | 0.1.0 | 2026-11-20 |
+| [Runners and isolation backends](runners/spec.md) | controller, agent, web-console, cli | runners, isolation, security, machines, ui | building | 0.1.0 | 2026-11-20 |
 | [Scheduling, slots and load budget](scheduling/spec.md) | controller, agent, cli, web-console | scheduling, machines, runners, github, observability | building | 0.1.0 | 2026-11-18 |
 | [Web console](web-console/spec.md) | web-console, controller | ui, security, github | building | 0.1.0 | 2026-11-18 |
 
@@ -53,9 +55,9 @@
 
 | Feature | Apps | Topics | Status | Version | Last verified |
 |---|---|---|---|---|---|
-| [Command line (CLI)](cli/spec.md) | cli, controller, agent, tray | operations, security, github, machines, runners, install | building | 0.1.0 | 2026-11-17 |
+| [Command line (CLI)](cli/spec.md) | cli, controller, agent, tray | operations, security, github, machines, runners, install | building | 0.1.0 | 2026-11-20 |
 | [Notifications](notifications/spec.md) | controller, web-console, tray, cli | observability, operations, ui, security | building | 0.1.0 | 2026-11-14 |
-| [Operations](operations/spec.md) | controller, agent, tray, cli, web-console | operations, install, security, runners | building | 0.1.0 | 2026-11-14 |
+| [Operations](operations/spec.md) | controller, agent, tray, cli, web-console | operations, install, security, runners | building | 0.1.0 | 2026-11-20 |
 | [Tray](tray/spec.md) | tray, cli | ui, install, operations, security | building | 0.1.0 | 2026-11-17 |
 
 ### web-console
@@ -64,12 +66,13 @@
 |---|---|---|---|---|---|
 | [Caches](caches/spec.md) | controller, agent, web-console, cli | caching, scheduling, security, operations, ui | building | 0.1.0 | 2026-11-14 |
 | [Doctor](doctor/spec.md) | controller, agent, web-console, cli | observability, operations, machines, runners, github | building | 0.1.0 | 2026-11-14 |
-| [GitHub integration](github-integration/spec.md) | controller, web-console, cli | github, security, runners, install | building | 0.1.0 | 2026-11-14 |
-| [Machines](machines/spec.md) | controller, agent, web-console, cli | machines, security, install, scheduling, operations | building | 0.1.0 | 2026-11-17 |
+| [GitHub integration](github-integration/spec.md) | controller, web-console, cli | github, security, runners, install | building | 0.1.0 | 2026-11-20 |
+| [Image registry](registry/spec.md) | controller, agent, web-console | caching, machines, runners, security, operations, ui | building | 0.1.0 | 2026-11-20 |
+| [Machines](machines/spec.md) | controller, agent, web-console, cli | machines, security, install, scheduling, operations | building | 0.1.0 | 2026-11-20 |
 | [Notifications](notifications/spec.md) | controller, web-console, tray, cli | observability, operations, ui, security | building | 0.1.0 | 2026-11-14 |
-| [Observability](observability/spec.md) | controller, agent, web-console, cli | observability, scheduling, machines, runners, security, operations, ui | building | 0.1.0 | 2026-11-18 |
-| [Operations](operations/spec.md) | controller, agent, tray, cli, web-console | operations, install, security, runners | building | 0.1.0 | 2026-11-14 |
-| [Runners and isolation backends](runners/spec.md) | controller, agent, web-console, cli | runners, isolation, security, machines, ui | building | 0.1.0 | 2026-11-18 |
+| [Observability](observability/spec.md) | controller, agent, web-console, cli | observability, scheduling, machines, runners, security, operations, ui | building | 0.1.0 | 2026-11-20 |
+| [Operations](operations/spec.md) | controller, agent, tray, cli, web-console | operations, install, security, runners | building | 0.1.0 | 2026-11-20 |
+| [Runners and isolation backends](runners/spec.md) | controller, agent, web-console, cli | runners, isolation, security, machines, ui | building | 0.1.0 | 2026-11-20 |
 | [Scheduling, slots and load budget](scheduling/spec.md) | controller, agent, cli, web-console | scheduling, machines, runners, github, observability | building | 0.1.0 | 2026-11-18 |
 | [Web console](web-console/spec.md) | web-console, controller | ui, security, github | building | 0.1.0 | 2026-11-18 |
 
@@ -80,14 +83,15 @@
 | Feature | Apps | Topics | Status | Version | Last verified |
 |---|---|---|---|---|---|
 | [Caches](caches/spec.md) | controller, agent, web-console, cli | caching, scheduling, security, operations, ui | building | 0.1.0 | 2026-11-14 |
+| [Image registry](registry/spec.md) | controller, agent, web-console | caching, machines, runners, security, operations, ui | building | 0.1.0 | 2026-11-20 |
 
 ### github
 
 | Feature | Apps | Topics | Status | Version | Last verified |
 |---|---|---|---|---|---|
-| [Command line (CLI)](cli/spec.md) | cli, controller, agent, tray | operations, security, github, machines, runners, install | building | 0.1.0 | 2026-11-17 |
+| [Command line (CLI)](cli/spec.md) | cli, controller, agent, tray | operations, security, github, machines, runners, install | building | 0.1.0 | 2026-11-20 |
 | [Doctor](doctor/spec.md) | controller, agent, web-console, cli | observability, operations, machines, runners, github | building | 0.1.0 | 2026-11-14 |
-| [GitHub integration](github-integration/spec.md) | controller, web-console, cli | github, security, runners, install | building | 0.1.0 | 2026-11-14 |
+| [GitHub integration](github-integration/spec.md) | controller, web-console, cli | github, security, runners, install | building | 0.1.0 | 2026-11-20 |
 | [Scheduling, slots and load budget](scheduling/spec.md) | controller, agent, cli, web-console | scheduling, machines, runners, github, observability | building | 0.1.0 | 2026-11-18 |
 | [Web console](web-console/spec.md) | web-console, controller | ui, security, github | building | 0.1.0 | 2026-11-18 |
 
@@ -95,27 +99,28 @@
 
 | Feature | Apps | Topics | Status | Version | Last verified |
 |---|---|---|---|---|---|
-| [Command line (CLI)](cli/spec.md) | cli, controller, agent, tray | operations, security, github, machines, runners, install | building | 0.1.0 | 2026-11-17 |
-| [GitHub integration](github-integration/spec.md) | controller, web-console, cli | github, security, runners, install | building | 0.1.0 | 2026-11-14 |
-| [Machines](machines/spec.md) | controller, agent, web-console, cli | machines, security, install, scheduling, operations | building | 0.1.0 | 2026-11-17 |
-| [Operations](operations/spec.md) | controller, agent, tray, cli, web-console | operations, install, security, runners | building | 0.1.0 | 2026-11-14 |
+| [Command line (CLI)](cli/spec.md) | cli, controller, agent, tray | operations, security, github, machines, runners, install | building | 0.1.0 | 2026-11-20 |
+| [GitHub integration](github-integration/spec.md) | controller, web-console, cli | github, security, runners, install | building | 0.1.0 | 2026-11-20 |
+| [Machines](machines/spec.md) | controller, agent, web-console, cli | machines, security, install, scheduling, operations | building | 0.1.0 | 2026-11-20 |
+| [Operations](operations/spec.md) | controller, agent, tray, cli, web-console | operations, install, security, runners | building | 0.1.0 | 2026-11-20 |
 | [Tray](tray/spec.md) | tray, cli | ui, install, operations, security | building | 0.1.0 | 2026-11-17 |
 
 ### isolation
 
 | Feature | Apps | Topics | Status | Version | Last verified |
 |---|---|---|---|---|---|
-| [Runners and isolation backends](runners/spec.md) | controller, agent, web-console, cli | runners, isolation, security, machines, ui | building | 0.1.0 | 2026-11-18 |
+| [Runners and isolation backends](runners/spec.md) | controller, agent, web-console, cli | runners, isolation, security, machines, ui | building | 0.1.0 | 2026-11-20 |
 
 ### machines
 
 | Feature | Apps | Topics | Status | Version | Last verified |
 |---|---|---|---|---|---|
-| [Command line (CLI)](cli/spec.md) | cli, controller, agent, tray | operations, security, github, machines, runners, install | building | 0.1.0 | 2026-11-17 |
+| [Command line (CLI)](cli/spec.md) | cli, controller, agent, tray | operations, security, github, machines, runners, install | building | 0.1.0 | 2026-11-20 |
 | [Doctor](doctor/spec.md) | controller, agent, web-console, cli | observability, operations, machines, runners, github | building | 0.1.0 | 2026-11-14 |
-| [Machines](machines/spec.md) | controller, agent, web-console, cli | machines, security, install, scheduling, operations | building | 0.1.0 | 2026-11-17 |
-| [Observability](observability/spec.md) | controller, agent, web-console, cli | observability, scheduling, machines, runners, security, operations, ui | building | 0.1.0 | 2026-11-18 |
-| [Runners and isolation backends](runners/spec.md) | controller, agent, web-console, cli | runners, isolation, security, machines, ui | building | 0.1.0 | 2026-11-18 |
+| [Image registry](registry/spec.md) | controller, agent, web-console | caching, machines, runners, security, operations, ui | building | 0.1.0 | 2026-11-20 |
+| [Machines](machines/spec.md) | controller, agent, web-console, cli | machines, security, install, scheduling, operations | building | 0.1.0 | 2026-11-20 |
+| [Observability](observability/spec.md) | controller, agent, web-console, cli | observability, scheduling, machines, runners, security, operations, ui | building | 0.1.0 | 2026-11-20 |
+| [Runners and isolation backends](runners/spec.md) | controller, agent, web-console, cli | runners, isolation, security, machines, ui | building | 0.1.0 | 2026-11-20 |
 | [Scheduling, slots and load budget](scheduling/spec.md) | controller, agent, cli, web-console | scheduling, machines, runners, github, observability | building | 0.1.0 | 2026-11-18 |
 
 ### observability
@@ -124,7 +129,7 @@
 |---|---|---|---|---|---|
 | [Doctor](doctor/spec.md) | controller, agent, web-console, cli | observability, operations, machines, runners, github | building | 0.1.0 | 2026-11-14 |
 | [Notifications](notifications/spec.md) | controller, web-console, tray, cli | observability, operations, ui, security | building | 0.1.0 | 2026-11-14 |
-| [Observability](observability/spec.md) | controller, agent, web-console, cli | observability, scheduling, machines, runners, security, operations, ui | building | 0.1.0 | 2026-11-18 |
+| [Observability](observability/spec.md) | controller, agent, web-console, cli | observability, scheduling, machines, runners, security, operations, ui | building | 0.1.0 | 2026-11-20 |
 | [Scheduling, slots and load budget](scheduling/spec.md) | controller, agent, cli, web-console | scheduling, machines, runners, github, observability | building | 0.1.0 | 2026-11-18 |
 
 ### operations
@@ -132,24 +137,26 @@
 | Feature | Apps | Topics | Status | Version | Last verified |
 |---|---|---|---|---|---|
 | [Caches](caches/spec.md) | controller, agent, web-console, cli | caching, scheduling, security, operations, ui | building | 0.1.0 | 2026-11-14 |
-| [Command line (CLI)](cli/spec.md) | cli, controller, agent, tray | operations, security, github, machines, runners, install | building | 0.1.0 | 2026-11-17 |
+| [Command line (CLI)](cli/spec.md) | cli, controller, agent, tray | operations, security, github, machines, runners, install | building | 0.1.0 | 2026-11-20 |
 | [Doctor](doctor/spec.md) | controller, agent, web-console, cli | observability, operations, machines, runners, github | building | 0.1.0 | 2026-11-14 |
-| [Machines](machines/spec.md) | controller, agent, web-console, cli | machines, security, install, scheduling, operations | building | 0.1.0 | 2026-11-17 |
+| [Image registry](registry/spec.md) | controller, agent, web-console | caching, machines, runners, security, operations, ui | building | 0.1.0 | 2026-11-20 |
+| [Machines](machines/spec.md) | controller, agent, web-console, cli | machines, security, install, scheduling, operations | building | 0.1.0 | 2026-11-20 |
 | [Notifications](notifications/spec.md) | controller, web-console, tray, cli | observability, operations, ui, security | building | 0.1.0 | 2026-11-14 |
-| [Observability](observability/spec.md) | controller, agent, web-console, cli | observability, scheduling, machines, runners, security, operations, ui | building | 0.1.0 | 2026-11-18 |
-| [Operations](operations/spec.md) | controller, agent, tray, cli, web-console | operations, install, security, runners | building | 0.1.0 | 2026-11-14 |
+| [Observability](observability/spec.md) | controller, agent, web-console, cli | observability, scheduling, machines, runners, security, operations, ui | building | 0.1.0 | 2026-11-20 |
+| [Operations](operations/spec.md) | controller, agent, tray, cli, web-console | operations, install, security, runners | building | 0.1.0 | 2026-11-20 |
 | [Tray](tray/spec.md) | tray, cli | ui, install, operations, security | building | 0.1.0 | 2026-11-17 |
 
 ### runners
 
 | Feature | Apps | Topics | Status | Version | Last verified |
 |---|---|---|---|---|---|
-| [Command line (CLI)](cli/spec.md) | cli, controller, agent, tray | operations, security, github, machines, runners, install | building | 0.1.0 | 2026-11-17 |
+| [Command line (CLI)](cli/spec.md) | cli, controller, agent, tray | operations, security, github, machines, runners, install | building | 0.1.0 | 2026-11-20 |
 | [Doctor](doctor/spec.md) | controller, agent, web-console, cli | observability, operations, machines, runners, github | building | 0.1.0 | 2026-11-14 |
-| [GitHub integration](github-integration/spec.md) | controller, web-console, cli | github, security, runners, install | building | 0.1.0 | 2026-11-14 |
-| [Observability](observability/spec.md) | controller, agent, web-console, cli | observability, scheduling, machines, runners, security, operations, ui | building | 0.1.0 | 2026-11-18 |
-| [Operations](operations/spec.md) | controller, agent, tray, cli, web-console | operations, install, security, runners | building | 0.1.0 | 2026-11-14 |
-| [Runners and isolation backends](runners/spec.md) | controller, agent, web-console, cli | runners, isolation, security, machines, ui | building | 0.1.0 | 2026-11-18 |
+| [GitHub integration](github-integration/spec.md) | controller, web-console, cli | github, security, runners, install | building | 0.1.0 | 2026-11-20 |
+| [Image registry](registry/spec.md) | controller, agent, web-console | caching, machines, runners, security, operations, ui | building | 0.1.0 | 2026-11-20 |
+| [Observability](observability/spec.md) | controller, agent, web-console, cli | observability, scheduling, machines, runners, security, operations, ui | building | 0.1.0 | 2026-11-20 |
+| [Operations](operations/spec.md) | controller, agent, tray, cli, web-console | operations, install, security, runners | building | 0.1.0 | 2026-11-20 |
+| [Runners and isolation backends](runners/spec.md) | controller, agent, web-console, cli | runners, isolation, security, machines, ui | building | 0.1.0 | 2026-11-20 |
 | [Scheduling, slots and load budget](scheduling/spec.md) | controller, agent, cli, web-console | scheduling, machines, runners, github, observability | building | 0.1.0 | 2026-11-18 |
 
 ### scheduling
@@ -157,8 +164,8 @@
 | Feature | Apps | Topics | Status | Version | Last verified |
 |---|---|---|---|---|---|
 | [Caches](caches/spec.md) | controller, agent, web-console, cli | caching, scheduling, security, operations, ui | building | 0.1.0 | 2026-11-14 |
-| [Machines](machines/spec.md) | controller, agent, web-console, cli | machines, security, install, scheduling, operations | building | 0.1.0 | 2026-11-17 |
-| [Observability](observability/spec.md) | controller, agent, web-console, cli | observability, scheduling, machines, runners, security, operations, ui | building | 0.1.0 | 2026-11-18 |
+| [Machines](machines/spec.md) | controller, agent, web-console, cli | machines, security, install, scheduling, operations | building | 0.1.0 | 2026-11-20 |
+| [Observability](observability/spec.md) | controller, agent, web-console, cli | observability, scheduling, machines, runners, security, operations, ui | building | 0.1.0 | 2026-11-20 |
 | [Scheduling, slots and load budget](scheduling/spec.md) | controller, agent, cli, web-console | scheduling, machines, runners, github, observability | building | 0.1.0 | 2026-11-18 |
 
 ### security
@@ -166,13 +173,14 @@
 | Feature | Apps | Topics | Status | Version | Last verified |
 |---|---|---|---|---|---|
 | [Caches](caches/spec.md) | controller, agent, web-console, cli | caching, scheduling, security, operations, ui | building | 0.1.0 | 2026-11-14 |
-| [Command line (CLI)](cli/spec.md) | cli, controller, agent, tray | operations, security, github, machines, runners, install | building | 0.1.0 | 2026-11-17 |
-| [GitHub integration](github-integration/spec.md) | controller, web-console, cli | github, security, runners, install | building | 0.1.0 | 2026-11-14 |
-| [Machines](machines/spec.md) | controller, agent, web-console, cli | machines, security, install, scheduling, operations | building | 0.1.0 | 2026-11-17 |
+| [Command line (CLI)](cli/spec.md) | cli, controller, agent, tray | operations, security, github, machines, runners, install | building | 0.1.0 | 2026-11-20 |
+| [GitHub integration](github-integration/spec.md) | controller, web-console, cli | github, security, runners, install | building | 0.1.0 | 2026-11-20 |
+| [Image registry](registry/spec.md) | controller, agent, web-console | caching, machines, runners, security, operations, ui | building | 0.1.0 | 2026-11-20 |
+| [Machines](machines/spec.md) | controller, agent, web-console, cli | machines, security, install, scheduling, operations | building | 0.1.0 | 2026-11-20 |
 | [Notifications](notifications/spec.md) | controller, web-console, tray, cli | observability, operations, ui, security | building | 0.1.0 | 2026-11-14 |
-| [Observability](observability/spec.md) | controller, agent, web-console, cli | observability, scheduling, machines, runners, security, operations, ui | building | 0.1.0 | 2026-11-18 |
-| [Operations](operations/spec.md) | controller, agent, tray, cli, web-console | operations, install, security, runners | building | 0.1.0 | 2026-11-14 |
-| [Runners and isolation backends](runners/spec.md) | controller, agent, web-console, cli | runners, isolation, security, machines, ui | building | 0.1.0 | 2026-11-18 |
+| [Observability](observability/spec.md) | controller, agent, web-console, cli | observability, scheduling, machines, runners, security, operations, ui | building | 0.1.0 | 2026-11-20 |
+| [Operations](operations/spec.md) | controller, agent, tray, cli, web-console | operations, install, security, runners | building | 0.1.0 | 2026-11-20 |
+| [Runners and isolation backends](runners/spec.md) | controller, agent, web-console, cli | runners, isolation, security, machines, ui | building | 0.1.0 | 2026-11-20 |
 | [Tray](tray/spec.md) | tray, cli | ui, install, operations, security | building | 0.1.0 | 2026-11-17 |
 | [Web console](web-console/spec.md) | web-console, controller | ui, security, github | building | 0.1.0 | 2026-11-18 |
 
@@ -181,9 +189,10 @@
 | Feature | Apps | Topics | Status | Version | Last verified |
 |---|---|---|---|---|---|
 | [Caches](caches/spec.md) | controller, agent, web-console, cli | caching, scheduling, security, operations, ui | building | 0.1.0 | 2026-11-14 |
+| [Image registry](registry/spec.md) | controller, agent, web-console | caching, machines, runners, security, operations, ui | building | 0.1.0 | 2026-11-20 |
 | [Notifications](notifications/spec.md) | controller, web-console, tray, cli | observability, operations, ui, security | building | 0.1.0 | 2026-11-14 |
-| [Observability](observability/spec.md) | controller, agent, web-console, cli | observability, scheduling, machines, runners, security, operations, ui | building | 0.1.0 | 2026-11-18 |
-| [Runners and isolation backends](runners/spec.md) | controller, agent, web-console, cli | runners, isolation, security, machines, ui | building | 0.1.0 | 2026-11-18 |
+| [Observability](observability/spec.md) | controller, agent, web-console, cli | observability, scheduling, machines, runners, security, operations, ui | building | 0.1.0 | 2026-11-20 |
+| [Runners and isolation backends](runners/spec.md) | controller, agent, web-console, cli | runners, isolation, security, machines, ui | building | 0.1.0 | 2026-11-20 |
 | [Tray](tray/spec.md) | tray, cli | ui, install, operations, security | building | 0.1.0 | 2026-11-17 |
 | [Web console](web-console/spec.md) | web-console, controller | ui, security, github | building | 0.1.0 | 2026-11-18 |
 
@@ -194,14 +203,15 @@
 | Feature | Apps | Topics | Status | Version | Last verified |
 |---|---|---|---|---|---|
 | [Caches](caches/spec.md) | controller, agent, web-console, cli | caching, scheduling, security, operations, ui | building | 0.1.0 | 2026-11-14 |
-| [Command line (CLI)](cli/spec.md) | cli, controller, agent, tray | operations, security, github, machines, runners, install | building | 0.1.0 | 2026-11-17 |
+| [Command line (CLI)](cli/spec.md) | cli, controller, agent, tray | operations, security, github, machines, runners, install | building | 0.1.0 | 2026-11-20 |
 | [Doctor](doctor/spec.md) | controller, agent, web-console, cli | observability, operations, machines, runners, github | building | 0.1.0 | 2026-11-14 |
-| [GitHub integration](github-integration/spec.md) | controller, web-console, cli | github, security, runners, install | building | 0.1.0 | 2026-11-14 |
-| [Machines](machines/spec.md) | controller, agent, web-console, cli | machines, security, install, scheduling, operations | building | 0.1.0 | 2026-11-17 |
+| [GitHub integration](github-integration/spec.md) | controller, web-console, cli | github, security, runners, install | building | 0.1.0 | 2026-11-20 |
+| [Image registry](registry/spec.md) | controller, agent, web-console | caching, machines, runners, security, operations, ui | building | 0.1.0 | 2026-11-20 |
+| [Machines](machines/spec.md) | controller, agent, web-console, cli | machines, security, install, scheduling, operations | building | 0.1.0 | 2026-11-20 |
 | [Notifications](notifications/spec.md) | controller, web-console, tray, cli | observability, operations, ui, security | building | 0.1.0 | 2026-11-14 |
-| [Observability](observability/spec.md) | controller, agent, web-console, cli | observability, scheduling, machines, runners, security, operations, ui | building | 0.1.0 | 2026-11-18 |
-| [Operations](operations/spec.md) | controller, agent, tray, cli, web-console | operations, install, security, runners | building | 0.1.0 | 2026-11-14 |
-| [Runners and isolation backends](runners/spec.md) | controller, agent, web-console, cli | runners, isolation, security, machines, ui | building | 0.1.0 | 2026-11-18 |
+| [Observability](observability/spec.md) | controller, agent, web-console, cli | observability, scheduling, machines, runners, security, operations, ui | building | 0.1.0 | 2026-11-20 |
+| [Operations](operations/spec.md) | controller, agent, tray, cli, web-console | operations, install, security, runners | building | 0.1.0 | 2026-11-20 |
+| [Runners and isolation backends](runners/spec.md) | controller, agent, web-console, cli | runners, isolation, security, machines, ui | building | 0.1.0 | 2026-11-20 |
 | [Scheduling, slots and load budget](scheduling/spec.md) | controller, agent, cli, web-console | scheduling, machines, runners, github, observability | building | 0.1.0 | 2026-11-18 |
 | [Tray](tray/spec.md) | tray, cli | ui, install, operations, security | building | 0.1.0 | 2026-11-17 |
 | [Web console](web-console/spec.md) | web-console, controller | ui, security, github | building | 0.1.0 | 2026-11-18 |

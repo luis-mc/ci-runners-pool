@@ -1,0 +1,21 @@
+{
+  "sha": "9fb037999f264ba9a7fc6274d15fa3ae2ab98312",
+  "url": "https://api.github.com/repos/alice/demo/git/trees/9fb037999f264ba9a7fc6274d15fa3ae2ab98312",
+  "tree": [
+    {"path": ".crsp.yml", "mode": "100644", "type": "blob", "sha": "1111111111111111111111111111111111111111", "size": 22},
+    {"path": ".devcontainer", "mode": "040000", "type": "tree", "sha": "2222222222222222222222222222222222222222"},
+    {"path": ".devcontainer/devcontainer.json", "mode": "100644", "type": "blob", "sha": "3333333333333333333333333333333333333333", "size": 40},
+    {"path": ".github/workflows/ci.yml", "mode": "100644", "type": "blob", "sha": "4444444444444444444444444444444444444444", "size": 300},
+    {"path": ".nvmrc", "mode": "100644", "type": "blob", "sha": "5555555555555555555555555555555555555555", "size": 3},
+    {"path": "Dockerfile", "mode": "100644", "type": "blob", "sha": "6666666666666666666666666666666666666666", "size": 30},
+    {"path": "README.md", "mode": "100644", "type": "blob", "sha": "7777777777777777777777777777777777777777", "size": 900},
+    {"path": "compose.yaml", "mode": "100644", "type": "blob", "sha": "8888888888888888888888888888888888888888", "size": 41},
+    {"path": "go.mod", "mode": "100644", "type": "blob", "sha": "9999999999999999999999999999999999999999", "size": 30},
+    {"path": "node_modules/left-pad/package.json", "mode": "100644", "type": "blob", "sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "size": 10},
+    {"path": "package.json", "mode": "100644", "type": "blob", "sha": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", "size": 25},
+    {"path": "pnpm-lock.yaml", "mode": "100644", "type": "blob", "sha": "cccccccccccccccccccccccccccccccccccccccc", "size": 5000000},
+    {"path": "services/api/requirements-dev.txt", "mode": "100644", "type": "blob", "sha": "dddddddddddddddddddddddddddddddddddddddd", "size": 12},
+    {"path": "a/b/c/d/package.json", "mode": "100644", "type": "blob", "sha": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee", "size": 12}
+  ],
+  "truncated": false
+}

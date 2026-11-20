@@ -33,6 +33,10 @@ type Hooks struct {
 	OnMessage func(ctx context.Context, machineID string, msg *agentv1.SessionRequest, reply func(*agentv1.SessionResponse)) bool
 	// ControllerVersion is sent in HelloAck.
 	ControllerVersion string
+	// Registry says the controller answers the image registry calls (REG1,
+	// REG4 wire it). HelloAck then carries protocol version 3, and an agent
+	// asks only on that (registry R5.19); without it the agent builds as before.
+	Registry bool
 }
 
 // RecoveryPath is the frozen recovery call (internal/recovery.Path).
@@ -164,8 +168,12 @@ func (l *Link) Session(ctx context.Context, stream *connect.BidiStream[agentv1.S
 	if ver == "" {
 		ver = ControllerVersionFallback
 	}
+	ackVersion := agentv1.ProtocolVersion_PROTOCOL_VERSION_1
+	if svc.hooks.Registry {
+		ackVersion = agentv1.ProtocolVersion_PROTOCOL_VERSION_3
+	}
 	ack := &agentv1.SessionResponse{Message: &agentv1.SessionResponse_HelloAck{HelloAck: &agentv1.HelloAck{
-		ProtocolVersion: agentv1.ProtocolVersion_PROTOCOL_VERSION_1, ControllerVersion: ver,
+		ProtocolVersion: ackVersion, ControllerVersion: ver,
 		Settings: ProtoSettings(cur, mach.State), HeartbeatSeconds: int32(HeartbeatEvery / time.Second),
 	}}}
 	if err := stream.Send(ack); err != nil {

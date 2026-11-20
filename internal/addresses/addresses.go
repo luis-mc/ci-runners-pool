@@ -28,6 +28,11 @@ const (
 	// of the catalogue (internal/vmcheck/vm-images.json).
 	DefaultVMImageMirror = ""
 
+	// DockerHubRegistryURL is where Docker Hub's registry API answers; it is not
+	// on docker.io. The pull-through mirror and the engine settings use it for
+	// the upstream named docker.io (registry R5.63, R5.65).
+	DockerHubRegistryURL = "https://registry-1.docker.io"
+
 	// runnerReleasePath is where the GitHub Actions runner releases live under
 	// the GitHub address.
 	runnerReleasePath = "/actions/runner/releases/download"
@@ -180,4 +185,15 @@ func (a Set) InstallPage(slug string) string {
 // RunnerAsset is the download address of an Actions runner release asset.
 func (a Set) RunnerAsset(version, osName, arch, ext string) string {
 	return fmt.Sprintf("%s/v%s/actions-runner-%s-%s-%s.%s", a.RunnerDownloadURL, version, osName, arch, version, ext)
+}
+
+// RegistryAPIURL is the address of an upstream container registry named by its
+// host (docker.io, ghcr.io, registry.example.com:5000): Docker Hub's API host
+// for Docker Hub, the host itself over HTTPS for every other.
+func RegistryAPIURL(upstream string) string {
+	switch upstream {
+	case "docker.io", "index.docker.io", "registry-1.docker.io":
+		return DockerHubRegistryURL
+	}
+	return "https://" + upstream
 }

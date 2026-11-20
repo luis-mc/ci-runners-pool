@@ -182,6 +182,7 @@ function AccessCredentials({ version }: { version: number }) {
               <Table
                 caption="Access for CI"
                 columns={columns}
+                oneLine
                 rows={d.items}
                 rowKey={(c) => c.id}
               />
@@ -281,7 +282,7 @@ function ParitySetupAction({ onMade }: { onMade: () => void }) {
   });
 
   return (
-    <Section title="Set up parity for a repository">
+    <Section title="Set up parity">
       <Stack>
         <Load result={result} what="repositories" reload={reload}>
           {(d) => {
@@ -328,7 +329,7 @@ function ParitySetupAction({ onMade }: { onMade: () => void }) {
                       if (chosen) void run.run(chosen.id, chosen.full_name);
                     }}
                   >
-                    Set up parity for this repository
+                    Set up parity
                   </Button>
                 </Cluster>
               </Stack>

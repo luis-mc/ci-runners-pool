@@ -90,7 +90,9 @@ type controller struct {
 	Auth      *auth.Service
 	Repos     *repos.Service
 	Hub       *events.MemHub
-	closers   []func()
+	// Registry is the registry join (REG11); never nil in a built controller.
+	Registry *registryWiring
+	closers  []func()
 }
 
 // Close stops what buildController started.
@@ -350,6 +352,13 @@ func buildController(ctx context.Context, d controllerDeps) (*controller, error)
 			{Name: "Controller certificate authority key", Key: tlsca.CAKeySecret},
 			{Name: "Controller server key", Key: tlsca.ServerKeySecret},
 		},
+	}
+
+	// The image registry parts (registry REG11): build records, profiles, key
+	// choice, and the registry routes when a registry core is present.
+	if c.Registry, err = wireRegistry(ctx, d, c, gh, &repoLookup{store: repoStore}, hub); err != nil {
+		c.Close()
+		return nil, fmt.Errorf("wire the image registry: %w", err)
 	}
 
 	// First run: a one-time setup link while there is no owner (github-integration R5.1).

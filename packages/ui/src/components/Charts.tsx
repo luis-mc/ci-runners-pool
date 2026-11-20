@@ -288,7 +288,7 @@ export function Heatmap({ label, rows, unit }: HeatmapProps) {
         </div>
         {rows.map((r) => (
           <div key={r.label} className="ds-heat__row" aria-hidden="true">
-            <span className="ds-heat__day">{r.label}</span>
+            <span className="ds-heat__day">{r.short ?? r.label}</span>
             {Array.from({ length: 24 }, (_, h) => {
               const v = r.values[h] ?? 0;
               return (

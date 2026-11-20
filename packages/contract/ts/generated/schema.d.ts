@@ -2383,6 +2383,342 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/registry/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Where the registry runs, budgets, the last 7 days and the recommendations
+         * @description registry R5.33, R5.43 (REG4 reads, REG6 recommendations).
+         */
+        get: operations["getRegistryOverview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/registry/images": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Images in the registry, newest first
+         * @description registry R5.34 (REG4). Deleted images are not listed.
+         */
+        get: operations["listRegistryImages"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/registry/images/{registryImageId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * One image with lineage, layers, pulls by day, machines, pointers and scan
+         * @description registry R5.35 (REG4; scan by REG8).
+         */
+        get: operations["getRegistryImage"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete one image's manifest
+         * @description registry R5.46 (REG6). Without `confirm=true` it answers 409 needs_confirmation naming the running jobs that use it, the repositories that point to it and whether it is inside its rollback days; the question card lists them. An image a running job uses is refused even with confirm (409 conflict). Blobs wait for the cleanup.
+         */
+        delete: operations["deleteRegistryImage"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/registry/images/{registryImageId}/compare": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The image against the one it would replace
+         * @description registry R5.53 (REG7). 404 when the image updates nothing.
+         */
+        get: operations["compareRegistryImage"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/registry/budgets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Budgets of standard and custom images with their use and the free disk
+         * @description registry R5.41 (REG6).
+         */
+        get: operations["getRegistryBudgets"];
+        /**
+         * Set the two budgets
+         * @description registry R5.41 (REG6). 400 bad_request when the sum is above half the free disk of the registry folder's volume; the detail names the most it may be.
+         */
+        put: operations["putRegistryBudgets"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/registry/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Folder, days and cleanup time of the registry
+         * @description registry R5.42 (REG6). Not the registry logins of getRegistrySettings.
+         */
+        get: operations["getRegistryStoreSettings"];
+        /**
+         * Change the folder, the days or the cleanup time
+         * @description registry R5.42 (REG6). A new folder is used after the blobs are moved; the answer says so. Which rules crsp may act on alone is fixed (owner decision) and not part of the input.
+         */
+        put: operations["putRegistryStoreSettings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/registry/cleanup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Clean up now (read-only window, then garbage collection)
+         * @description registry R5.48 (REG6). 409 conflict when a cleanup runs.
+         */
+        post: operations["startRegistryCleanup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/registry/replace-plans": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Make a replace plan (nothing changes yet)
+         * @description registry R5.54 (REG7). The plan is the Review step's data.
+         */
+        post: operations["createRegistryReplacePlan"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/registry/replace-plans/{planId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * One replace plan with its progress
+         * @description registry R5.55 (REG7). The wizard reads this after a reload.
+         */
+        get: operations["getRegistryReplacePlan"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/registry/replace-plans/{planId}/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Replace (move the pointers, warm machines, keep the old image)
+         * @description registry R5.55 (REG7). 409 conflict unless the plan is draft or stopped.
+         */
+        post: operations["startRegistryReplacePlan"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/registry/replace-plans/{planId}/stop": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Stop a running replace after its current step
+         * @description registry R5.55 (REG7). Pointers already moved stay moved; Rollback undoes them.
+         */
+        post: operations["stopRegistryReplacePlan"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/registry/replace-plans/{planId}/rollback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Go back to the old image while it is kept
+         * @description registry R5.56 (REG7). 409 conflict after keep_until.
+         */
+        post: operations["rollbackRegistryReplacePlan"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/registry/mirror": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The pull-through mirror of upstream bases
+         * @description registry R5.63 to R5.67 (REG9).
+         */
+        get: operations["getRegistryMirrorSettings"];
+        /**
+         * Turn the mirror on or off, its upstreams and budget
+         * @description registry R5.63 to R5.67 (REG9).
+         */
+        put: operations["putRegistryMirrorSettings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/registry/builds": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Image builds, the running ones first, with their push state
+         * @description registry R5.68 to R5.71 (IMG1; push state by REG2).
+         */
+        get: operations["listImageBuilds"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/registry/builds/{buildId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * One build with its steps and log tail
+         * @description registry R5.69, R5.70 (IMG1).
+         */
+        get: operations["getImageBuild"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/registry/pulls": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Pulls in progress and waiting for the controller
+         * @description registry R5.36 (REG4 from REG2's reports). The Add runners pulling step reads it.
+         */
+        get: operations["listRegistryPulls"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/notification-channels": {
         parameters: {
             query?: never;
@@ -4543,7 +4879,7 @@ export interface components {
         LiveEvent: {
             id: string;
             /** @enum {string} */
-            type: "snapshot" | "job.queued" | "job.waiting" | "job.started" | "job.finished" | "machine.load" | "machine.state" | "runner.state" | "saved.today" | "doctor.progress" | "plan.progress" | "change.progress" | "image.state" | "cache.state" | "update.status";
+            type: "snapshot" | "job.queued" | "job.waiting" | "job.started" | "job.finished" | "machine.load" | "machine.state" | "runner.state" | "saved.today" | "doctor.progress" | "plan.progress" | "change.progress" | "image.state" | "image.build" | "cache.state" | "update.status";
             /** Format: date-time */
             at: string;
             /** @description True on a snapshot sent because missed events were no longer kept (R5.3). */
@@ -4561,6 +4897,7 @@ export interface components {
             plan?: components["schemas"]["Plan"];
             change?: components["schemas"]["MachineChange"];
             image?: components["schemas"]["Image"];
+            image_build?: components["schemas"]["ImageBuild"];
             cache?: components["schemas"]["Cache"];
             update?: components["schemas"]["UpdateStatus"];
         };
@@ -5125,6 +5462,395 @@ export interface components {
             /** Format: date-time */
             sent_at: string;
         };
+        /** @enum {string} */
+        RegistryImageKind: "standard" | "custom";
+        /**
+         * @description registry R5.29. staged and refused are shown only on the image page.
+         * @enum {string}
+         */
+        RegistryImageState: "staged" | "refused" | "current" | "variant" | "superseded" | "deleted";
+        /** @enum {string} */
+        RegistryArch: "amd64" | "arm64";
+        /** @enum {string} */
+        RegistryScanState: "not_scanned" | "queued" | "scanning" | "done" | "failed";
+        /**
+         * @description owner waits for a yes; crsp acts alone on due_at.
+         * @enum {string}
+         */
+        RegistryDecider: "owner" | "crsp";
+        /** @enum {string} */
+        RegistryRule: "replace" | "superseded" | "variant" | "unused" | "over_budget" | "dangling" | "profile_removed";
+        RegistryOverview: {
+            where: components["schemas"]["RegistryWhere"];
+            budgets: components["schemas"]["RegistryBudget"][];
+            last_7_days: components["schemas"]["RegistryWeek"];
+            /** @description Owner's-yes rules first, then crsp's by due date. None can be dismissed. */
+            recommendations: components["schemas"]["RegistryRecommendation"][];
+            images: {
+                standard: number;
+                custom: number;
+            };
+            in_flight: {
+                builds: number;
+                pulls: number;
+                pushes: number;
+            };
+            last_cleanup?: components["schemas"]["RegistryCleanup"];
+            /** Format: date-time */
+            next_cleanup_at?: string;
+        };
+        RegistryWhere: {
+            /** @description host:port on the controller's HTTPS listener (private LAN address only). */
+            host: string;
+            folder: string;
+            /** @description True during the cleanup window; pulls keep working. */
+            read_only: boolean;
+            running: boolean;
+            /** @description Why it is not running, in plain words. */
+            why_not?: string;
+        };
+        RegistryWeek: {
+            pulls: number;
+            builds_avoided: number;
+            saved_seconds: number;
+            /** Format: int64 */
+            bytes_pulled: number;
+        };
+        RegistryBudget: {
+            kind: components["schemas"]["RegistryImageKind"];
+            /** Format: int64 */
+            limit_bytes: number;
+            /** Format: int64 */
+            used_bytes: number;
+            /**
+             * Format: int64
+             * @description Layers shared with the other kind, counted once against the oldest image's kind.
+             */
+            shared_bytes: number;
+            over: boolean;
+        };
+        RegistryBudgets: {
+            standard: components["schemas"]["RegistryBudget"];
+            custom: components["schemas"]["RegistryBudget"];
+            /** Format: int64 */
+            free_disk_bytes: number;
+            /**
+             * Format: int64
+             * @description Half the free disk plus what the registry holds now; the two limits may not add up to more.
+             */
+            max_total_bytes: number;
+        };
+        RegistryBudgetsInput: {
+            /** Format: int64 */
+            standard_bytes: number;
+            /** Format: int64 */
+            custom_bytes: number;
+        };
+        RegistryRecommendation: {
+            id: string;
+            rule: components["schemas"]["RegistryRule"];
+            image_id?: string;
+            /** @description For replace, the image the new one would replace. */
+            other_image_id?: string;
+            kind?: components["schemas"]["RegistryImageKind"];
+            /** Format: int64 */
+            frees_bytes: number;
+            decider: components["schemas"]["RegistryDecider"];
+            /**
+             * Format: date-time
+             * @description When crsp acts alone, shown ahead. Absent when the owner decides.
+             */
+            due_at?: string;
+            /** Format: date-time */
+            created_at: string;
+        };
+        RegistryImageSummary: {
+            id: string;
+            kind: components["schemas"]["RegistryImageKind"];
+            /** @description crsp/std/<profile> or crsp/custom/<owner>-<repo>/<profile>. */
+            name: string;
+            /** @description The image key, 12 hex; lists show the first 6. It is also the tag. */
+            key: string;
+            profile: string;
+            arch: components["schemas"]["RegistryArch"];
+            state: components["schemas"]["RegistryImageState"];
+            manifest_digest: string;
+            source_repository?: string;
+            /** @description Empty for the default branch. */
+            branch?: string;
+            /** Format: int64 */
+            size_bytes: number;
+            /** Format: int64 */
+            unique_bytes: number;
+            pulls_7_days: number;
+            /** Format: date-time */
+            last_pull_at?: string;
+            /** Format: date-time */
+            keep_until?: string;
+            scan_state: components["schemas"]["RegistryScanState"];
+            /** Format: date-time */
+            pushed_at: string;
+            /** @description A newer image updates this one (an open replace recommendation). */
+            update_found?: boolean;
+        };
+        RegistryImageList: {
+            items: components["schemas"]["RegistryImageSummary"][];
+        };
+        RegistryImage: components["schemas"]["RegistryImageSummary"] & {
+            stack_hash?: string;
+            base_name?: string;
+            base_digest?: string;
+            commit?: string;
+            /** @description Machine id. */
+            pushed_by?: string;
+            /** Format: date-time */
+            promoted_at?: string;
+            replaces?: string;
+            replaced_by?: string;
+            /** @description The images of the same repository, profile and arch, newest first. */
+            lineage: components["schemas"]["RegistryLineageEntry"][];
+            layers: components["schemas"]["RegistryLayer"][];
+            /** @description 14 days, oldest first; every day present (0 when none). */
+            pulls_by_day: components["schemas"]["RegistryPullDay"][];
+            /** @description The text form of the chart (UX-41). */
+            pulls_text?: string;
+            saved_seconds?: number;
+            machines: components["schemas"]["RegistryImageMachine"][];
+            pointers: components["schemas"]["RegistryPointer"][];
+            scan?: components["schemas"]["RegistryScan"];
+            /** @description Images of the same profile and arch sharing over 60% of bytes. Information only; never offered for replace. */
+            similar?: {
+                image_id: string;
+                shared_percent: number;
+            }[];
+        };
+        RegistryLineageEntry: {
+            image_id: string;
+            key: string;
+            state: components["schemas"]["RegistryImageState"];
+            branch?: string;
+            /** Format: date-time */
+            pushed_at: string;
+        };
+        RegistryLayer: {
+            digest: string;
+            /** Format: int64 */
+            size_bytes: number;
+            media_type?: string;
+            /** @description How many other images hold this layer. */
+            shared_with: number;
+        };
+        RegistryPullDay: {
+            /** Format: date */
+            day: string;
+            pulls: number;
+        };
+        RegistryImageMachine: {
+            machine_id: string;
+            machine_name: string;
+            /** @description The machine's engine has the image now (agent inventory). */
+            holds: boolean;
+            /** Format: date-time */
+            last_used_at?: string;
+            in_use_by_runner?: boolean;
+        };
+        RegistryPointer: {
+            repository: string;
+            profile: string;
+            arch: components["schemas"]["RegistryArch"];
+            image_id: string;
+            previous_image_id?: string;
+            /** Format: date-time */
+            moved_at: string;
+            moved_by: string;
+        };
+        RegistryScan: {
+            state: components["schemas"]["RegistryScanState"];
+            packages?: number;
+            critical?: number;
+            high?: number;
+            medium?: number;
+            low?: number;
+            /** Format: date-time */
+            scanned_at?: string;
+            error?: string;
+        };
+        RegistryStackFileChange: {
+            path: string;
+            /** @enum {string} */
+            change: "added" | "removed" | "changed";
+            before_sha256?: string;
+            after_sha256?: string;
+        };
+        RegistryCompare: {
+            new: components["schemas"]["RegistryImageSummary"];
+            old: components["schemas"]["RegistryImageSummary"];
+            stack_files: components["schemas"]["RegistryStackFileChange"][];
+            base_changed: boolean;
+            /** Format: int64 */
+            shared_bytes: number;
+            /** Format: int64 */
+            frees_bytes: number;
+            /** @description Repositories whose pointer would move. */
+            repositories: string[];
+            keep_days_default: number;
+        };
+        RegistryStoreSettings: {
+            folder: string;
+            /** @description A new folder waiting for the blobs to move. */
+            folder_pending?: string;
+            unused_days: number;
+            keep_old_days: number;
+            variant_gone_days: number;
+            variant_unused_days: number;
+            /** @description 0 is Sunday. */
+            cleanup_weekday: number;
+            cleanup_hour: number;
+            /** @description The rules crsp acts on without a yes (fixed by the owner). */
+            readonly alone_rules: components["schemas"]["RegistryRule"][];
+        };
+        RegistryStoreSettingsInput: {
+            folder: string;
+            unused_days: number;
+            keep_old_days: number;
+            variant_gone_days: number;
+            variant_unused_days: number;
+            cleanup_weekday: number;
+            cleanup_hour: number;
+        };
+        RegistryCleanup: {
+            /** Format: int64 */
+            id: number;
+            /** @enum {string} */
+            trigger: "weekly" | "now";
+            /** @enum {string} */
+            state: "running" | "done" | "failed";
+            /** Format: int64 */
+            freed_bytes: number;
+            error?: string;
+            /** Format: date-time */
+            started_at: string;
+            /** Format: date-time */
+            finished_at?: string;
+        };
+        /** @enum {string} */
+        RegistryReplacePlanState: "draft" | "running" | "stopped" | "failed" | "done" | "rolled_back";
+        RegistryReplacePlanInput: {
+            new_image_id: string;
+            keep_days: number;
+        };
+        RegistryReplacePlan: {
+            id: string;
+            state: components["schemas"]["RegistryReplacePlanState"];
+            new_image: components["schemas"]["RegistryImageSummary"];
+            old_image: components["schemas"]["RegistryImageSummary"];
+            keep_days: number;
+            /** Format: date-time */
+            keep_until?: string;
+            repositories: string[];
+            /** @description Machines that held the old image and are warmed with the new one. */
+            machines: string[];
+            /** Format: int64 */
+            frees_bytes?: number;
+            steps_done: number;
+            steps_total: number;
+            /** @description What runs now, in plain words. */
+            step_text?: string;
+            error?: string;
+            can_rollback?: boolean;
+            created_by?: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            started_at?: string;
+            /** Format: date-time */
+            finished_at?: string;
+        };
+        RegistryMirrorSettings: {
+            enabled: boolean;
+            upstreams: string[];
+            folder: string;
+            /** Format: int64 */
+            budget_bytes: number;
+            tag_recheck_minutes: number;
+            /** Format: int64 */
+            used_bytes: number;
+            /** @description Where engines reach the mirror on the controller's listener. */
+            path?: string;
+        };
+        RegistryMirrorSettingsInput: {
+            enabled: boolean;
+            upstreams: string[];
+            folder?: string;
+            /** Format: int64 */
+            budget_bytes: number;
+            tag_recheck_minutes: number;
+        };
+        /** @enum {string} */
+        ImageBuildState: "queued" | "building" | "done" | "failed" | "cancelled";
+        /** @enum {string} */
+        ImagePushState: "none" | "pushing" | "waiting_controller" | "pushed" | "promoted" | "refused" | "failed";
+        ImageBuild: {
+            id: string;
+            machine_id: string;
+            machine_name?: string;
+            profile?: string;
+            arch?: components["schemas"]["RegistryArch"];
+            key: string;
+            /** @enum {string} */
+            reason?: "first_runner" | "layers_changed" | "pin_updated" | "base_updated" | "asked" | "stack_changed" | "not_in_registry";
+            state: components["schemas"]["ImageBuildState"];
+            push_state: components["schemas"]["ImagePushState"];
+            step: number;
+            steps_total: number;
+            step_name?: string;
+            /** @description From earlier builds; absent with no history (the bar is the unknown-total bar, UX-29). */
+            typical_seconds?: number;
+            seconds_left?: number;
+            /** Format: int64 */
+            size_bytes?: number;
+            failure?: {
+                step: string;
+                /** @enum {string} */
+                class: "network" | "checksum" | "disk" | "apt" | "timeout" | "other";
+                why: string;
+            };
+            /** @description Redacted, capped. Only on getImageBuild. */
+            log_tail?: string;
+            /** Format: date-time */
+            queued_at: string;
+            /** Format: date-time */
+            started_at?: string;
+            /** Format: date-time */
+            finished_at?: string;
+        };
+        ImageBuildList: {
+            items: components["schemas"]["ImageBuild"][];
+        };
+        RegistryPull: {
+            id: string;
+            machine_id: string;
+            machine_name?: string;
+            key: string;
+            image_id?: string;
+            /** @enum {string} */
+            source: "local" | "pulled" | "built";
+            /** @enum {string} */
+            state: "pulling" | "waiting_controller" | "done" | "failed";
+            /** Format: int64 */
+            bytes_done: number;
+            /** Format: int64 */
+            bytes_total: number;
+            /** @description From the machine's measured pull speed; absent with no history. */
+            seconds_left?: number;
+            repository?: string;
+            error?: string;
+            /** Format: date-time */
+            started_at: string;
+        };
+        RegistryPullList: {
+            items: components["schemas"]["RegistryPull"][];
+        };
     };
     responses: {
         /** @description Any error, in the error envelope. */
@@ -5196,6 +5922,9 @@ export interface components {
         RunId: string;
         BackupId: string;
         ImageId: string;
+        /** @description An image id of the pool registry, img_<random>. */
+        RegistryImageId: string;
+        BuildId: string;
         CacheId: string;
         ChannelId: string;
     };
@@ -8493,6 +9222,475 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Cache"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getRegistryOverview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The overview. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RegistryOverview"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    listRegistryImages: {
+        parameters: {
+            query?: {
+                kind?: components["schemas"]["RegistryImageKind"];
+                state?: components["schemas"]["RegistryImageState"];
+                /** @description owner/name; images it points to or that were built for it. */
+                repository?: string;
+                arch?: components["schemas"]["RegistryArch"];
+                profile?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The images. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RegistryImageList"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getRegistryImage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description An image id of the pool registry, img_<random>. */
+                registryImageId: components["parameters"]["RegistryImageId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The image. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RegistryImage"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    deleteRegistryImage: {
+        parameters: {
+            query?: {
+                /** @description The yes to a question card that named what goes (UX-62). */
+                confirm?: components["parameters"]["Confirm"];
+            };
+            header?: never;
+            path: {
+                /** @description An image id of the pool registry, img_<random>. */
+                registryImageId: components["parameters"]["RegistryImageId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The manifest is deleted; bytes are freed at the next cleanup. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RegistryImage"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    compareRegistryImage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description An image id of the pool registry, img_<random>. */
+                registryImageId: components["parameters"]["RegistryImageId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The comparison. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RegistryCompare"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getRegistryBudgets: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The budgets. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RegistryBudgets"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    putRegistryBudgets: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RegistryBudgetsInput"];
+            };
+        };
+        responses: {
+            /** @description The budgets now. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RegistryBudgets"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getRegistryStoreSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The settings. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RegistryStoreSettings"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    putRegistryStoreSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RegistryStoreSettingsInput"];
+            };
+        };
+        responses: {
+            /** @description The settings now. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RegistryStoreSettings"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    startRegistryCleanup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The cleanup started. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RegistryCleanup"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    createRegistryReplacePlan: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RegistryReplacePlanInput"];
+            };
+        };
+        responses: {
+            /** @description The plan, in draft. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RegistryReplacePlan"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getRegistryReplacePlan: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                planId: components["parameters"]["PlanId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The plan. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RegistryReplacePlan"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    startRegistryReplacePlan: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                planId: components["parameters"]["PlanId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Running. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RegistryReplacePlan"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    stopRegistryReplacePlan: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                planId: components["parameters"]["PlanId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Stopping. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RegistryReplacePlan"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    rollbackRegistryReplacePlan: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                planId: components["parameters"]["PlanId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The pointers move back. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RegistryReplacePlan"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getRegistryMirrorSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The mirror settings and use. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RegistryMirrorSettings"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    putRegistryMirrorSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RegistryMirrorSettingsInput"];
+            };
+        };
+        responses: {
+            /** @description The mirror settings now. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RegistryMirrorSettings"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    listImageBuilds: {
+        parameters: {
+            query?: {
+                machine_id?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The builds. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImageBuildList"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getImageBuild: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                buildId: components["parameters"]["BuildId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The build. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImageBuild"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    listRegistryPulls: {
+        parameters: {
+            query?: {
+                machine_id?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The pulls. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RegistryPullList"];
                 };
             };
             default: components["responses"]["Error"];

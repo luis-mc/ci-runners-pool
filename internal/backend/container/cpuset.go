@@ -273,3 +273,19 @@ func (b *Backend) RecoverCPUSets(ctx context.Context) error {
 	}
 	return nil
 }
+
+// Holders are the names that hold CPUs now: the pool containers a job may run in.
+func (a *CPUAllocator) Holders() []string {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	seen := map[string]bool{}
+	var out []string
+	for _, h := range a.owner {
+		if !seen[h] {
+			seen[h] = true
+			out = append(out, h)
+		}
+	}
+	sort.Strings(out)
+	return out
+}

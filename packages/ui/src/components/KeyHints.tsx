@@ -82,6 +82,27 @@ export function useKeyHints(items: readonly KeyHint[]): void {
   }, [signature, registry === null]);
 }
 
+/**
+ * Writes the real height of the bar (it wraps onto two lines on a phone) to `--ds-keyhints-height` on the frame, so
+ * the action bar and the page foot reserve what the bar takes, not a fixed 44 px. A bar that is not drawn gives 0.
+ */
+function measureHeight(el: HTMLElement | null): (() => void) | void {
+  const frame = el?.closest<HTMLElement>('.ds-frame');
+  if (!el || !frame || typeof ResizeObserver === 'undefined') return;
+  const write = () =>
+    frame.style.setProperty(
+      '--ds-keyhints-height',
+      `${el.getBoundingClientRect().height}px`,
+    );
+  write();
+  const ro = new ResizeObserver(write);
+  ro.observe(el);
+  return () => {
+    ro.disconnect();
+    frame.style.removeProperty('--ds-keyhints-height');
+  };
+}
+
 /** The bar: the registered keys, plus any `items` the caller passes. Draws nothing when no key works. */
 export function KeyHints({ items = [] }: { items?: readonly KeyHint[] | undefined }) {
   const registry = useContext(Ctx);
@@ -94,7 +115,7 @@ export function KeyHints({ items = [] }: { items?: readonly KeyHint[] | undefine
     }
   if (merged.length === 0) return null;
   return (
-    <footer className="ds-keyhints" aria-label="Keys">
+    <footer className="ds-keyhints" aria-label="Keys" ref={measureHeight}>
       <ul className="ds-keyhints__list ds-band" data-frame-band>
         {merged.map((h) => (
           <li key={keyId(h.keys)}>

@@ -12,6 +12,7 @@ import (
 	"connectrpc.com/connect"
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backend"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/backend/container"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/cpucap"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/dockercompact"
 	agentv1 "github.com/luis-mc/ci-runners-shared-pool/internal/gen/agent/v1"
@@ -20,6 +21,7 @@ import (
 	"github.com/luis-mc/ci-runners-shared-pool/internal/machines"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/recovery"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/redact"
+	enginemirror "github.com/luis-mc/ci-runners-shared-pool/internal/registry/mirror/engineconf"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/runnercache"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/runners"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/secrets"
@@ -96,11 +98,19 @@ type Config struct {
 	// DockerHost is the OS access of the docker-compact helper (caches R5.51 to R5.54); nil
 	// is the real one. Tests give a fake: the real compact never runs in tests.
 	DockerHost dockercompact.Host
+	// EngineMirrorPaths are the engine files the engine-mirror host step writes (registry
+	// R5.65); nil uses the system locations on Linux and writes nothing elsewhere.
+	EngineMirrorPaths *enginemirror.Paths
 
 	// DiskFloorGiB is the free space the DataDir volume needs before a job or VM
 	// starts, in GiB (runners R5.83). 0 sets no floor here; the commands resolve
 	// the setting with runnercache.FloorSetting (default 10).
 	DiskFloorGiB int
+
+	// Registry is the client of the image registry calls (registry R5.19); nil
+	// makes one. Run puts it into container.Link, where the container backend
+	// finds it.
+	Registry *RegistryClient
 
 	// Intervals; the defaults are the spec's (R5.35, R5.13, R5.16).
 	HeartbeatEvery time.Duration // 10 s
@@ -139,6 +149,9 @@ func (c Config) DataDirCache() SettingsCache { return c.cache() }
 func (c Config) cache() SettingsCache { return SettingsCache{Path: c.DataDir + "/settings.json"} }
 
 func (c *Config) defaults() {
+	if c.Registry == nil {
+		c.Registry = NewRegistryClient()
+	}
 	if c.Logger == nil {
 		c.Logger = slog.Default()
 	}
@@ -212,6 +225,8 @@ func SettingsFromProto(p *agentv1.MachineSettings) machines.Settings {
 // port (R5.9).
 func Run(ctx context.Context, cfg Config) error {
 	cfg.defaults()
+	container.Link.Set(cfg.Registry)
+	container.BuildLink.Set(cfg.Registry) // the build records live on the controller (IMG1)
 	log := cfg.Logger
 	if s, state, ok := cfg.cache().Load(); ok {
 		cfg.Gate.SetSettings(s, state) // R5.24: apply the last settings while the link is down
@@ -396,7 +411,7 @@ func runSession(ctx context.Context, cfg Config, key, id, pin string) error {
 		running = append(running, jobToProto(j))
 	}
 	hello := &agentv1.Hello{
-		MachineId: id, AgentVersion: cfg.Version, ProtocolVersion: agentv1.ProtocolVersion_PROTOCOL_VERSION_2,
+		MachineId: id, AgentVersion: cfg.Version, ProtocolVersion: agentv1.ProtocolVersion_PROTOCOL_VERSION_3,
 		SettingsVersion: set.Version, Facts: facts, Load: loadToProto(rep, cfg.Gate.SlotsUsed()),
 		Holders: &agentv1.HolderReport{Running: running},
 	}
@@ -417,6 +432,8 @@ func runSession(ctx context.Context, cfg Config, key, id, pin string) error {
 	if s := ack.GetHelloAck().GetSettings(); s != nil {
 		applySettings(cfg, s)
 	}
+	rs := cfg.Registry.attach(l.send, HelloAckHasRegistry(ack.GetHelloAck()))
+	defer cfg.Registry.detach(rs)
 	cfg.Backoff.Reset() // a successful session resets the backoff (R5.36)
 	cfg.Logger.Info("session open")
 
@@ -592,6 +609,10 @@ func (l *link) handle(ctx context.Context, msg *agentv1.SessionResponse) error {
 		l.wipes.start(ctx, m.WipeCache)
 	case *agentv1.SessionResponse_UpdateAgent:
 		l.handleUpdate(ctx, m.UpdateAgent)
+	case *agentv1.SessionResponse_EnsureImageAnswer:
+		cfg.Registry.onAnswer(m.EnsureImageAnswer)
+	case *agentv1.SessionResponse_RegistryGrant:
+		cfg.Registry.onToken(m.RegistryGrant)
 	case *agentv1.SessionResponse_MachineRemoved:
 		return ErrRemoved
 	}

@@ -24,6 +24,14 @@ type Authenticator interface {
 // R6.5). An operation that is in neither table is refused: the check fails
 // closed.
 var otherAreaAuth = map[string]string{
+	// The pool image registry (REG10 contract, docs/features/registry).
+	"getRegistryOverview": authUser, "listRegistryImages": authUser, "getRegistryImage": authUser, "compareRegistryImage": authUser,
+	"getRegistryBudgets": authUser, "getRegistryStoreSettings": authUser, "getRegistryReplacePlan": authUser,
+	"getRegistryMirrorSettings": authUser, "listImageBuilds": authUser, "getImageBuild": authUser, "listRegistryPulls": authUser,
+	"deleteRegistryImage": authAdmin, "putRegistryBudgets": authAdmin, "putRegistryStoreSettings": authAdmin,
+	"startRegistryCleanup": authAdmin, "createRegistryReplacePlan": authAdmin, "startRegistryReplacePlan": authAdmin,
+	"stopRegistryReplacePlan": authAdmin, "rollbackRegistryReplacePlan": authAdmin, "putRegistryMirrorSettings": authAdmin,
+
 	"getCaCertificate": authPublic, "getPackage": authPublic, "getHealth": authPublic,
 
 	"createConsoleLink": authUser, "exportAuditEvents": authUser, "exportJobs": authUser, "getImage": authUser, "getSpeedComparison": authUser,

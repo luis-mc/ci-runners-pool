@@ -7,7 +7,7 @@ One numbered section per shared component. A part that nearly fits is extended w
 ## 1. Page header
 
 - **Used for:** the headline that says where you are, with an optional line below it and the page's one primary action. (`Stack` of the layout part takes the gap `section`, 32 px, for the sections of a page such as a Settings tab; LOOK16.)
-- **Looks:** a large title with a quiet line below it. The primary action sits at the end of the title row, right-aligned. An optional hint is one muted line right-aligned under the action, inside the same slot; the slot is at most 22 rem wide, so a hint never widens it and never moves the action. A page that swaps one action for another (Stop new jobs and Resume) passes a hint in both states, so the header keeps its height and nothing below it moves. At phone width the slot is full width and the hint reads from the left.
+- **Looks:** a large title with a quiet line below it. The primary action sits at the end of the title row, right-aligned. An optional hint is one muted line right-aligned under the action, inside the same slot; the slot is at most 22 rem wide, so a hint never widens it and never moves the action. A page that swaps one action for another (Stop new jobs and Resume) passes a hint in both states, so the header keeps its height and nothing below it moves. At phone width the slot is full width and the hint reads from the left. Under a tab row (component 3) the header sits one page gap (`--ds-space-5`) below the row's underline, on every screen with sub-tabs, whether the tab row and the header share one `Page` or the tab row is its own (a layout route's `Page` followed by the screen's `Page`; `.ds-page + .ds-page`). LOOK36.
 - **Source:** `packages/ui/src/components/layout.tsx` (`PageHeader`: `title`, `lead`, `action`, `hint`)
 - **Rules:** UX-3, UX-4, UX-17.
 - **Guard:** none yet.
@@ -15,18 +15,18 @@ One numbered section per shared component. A part that nearly fits is extended w
 ## 2. Top menu and breadcrumbs
 
 - **Used for:** moving between the main areas, and showing the path back up. The console has exactly six areas: Overview, Shared Pool, Repositories, Jobs, Doctor, Settings. An area with parts (Shared Pool, Jobs, Settings) shows them as one tab row (component 3) under the menu, never as more menu items.
-- **Looks:** a row of the main areas, starting on the frame edge, with the current one marked as a tab is marked: bold primary text and a 3 px underline, never a box (UX-69). A quiet trail of links shows the path back up. The top bar above it holds the product name and status on the left and Commands and the login on the right inside the same frame; at phone width it is two lines, name and login, then status and Commands.
-- **Source:** `packages/ui/src/components/Shell.tsx` (`Header`, `TopMenu`)
+- **Looks:** a row of the main areas, starting on the frame edge, with the current one marked as a tab is marked: bold primary text and a 3 px underline, never a box (UX-69). A quiet trail of links shows the path back up. The top bar above it holds the product name and status on the left and Commands and the login on the right inside the same frame; at phone width it is two lines, name and login, then status and Commands. On a phone the areas are one Menu button (`TopMenuButton`), its box on the same frame edge as the title and the tab row; it opens the list under it (UX-15, UX-69). LOOK36.
+- **Source:** `packages/ui/src/components/Shell.tsx` (`Header`, `TopMenu`, `TopMenuButton`)
 - **Rules:** UX-1, UX-3, UX-16, UX-17, UX-69.
 - **Guard:** none yet.
 
 ## 3. Tabs
 
 - **Used for:** switching between views of the same thing. A tab never starts work. Tabs keep their panels mounted, so a tab keeps its state when the user comes back.
-- **Looks:** labels over one panel. When the labels do not fit the width the row wraps onto as many rows as it needs; it never scrolls sideways (UX-68, owner decision LOOK D6). The chosen tab is bold, in the primary colour, with a 3 px underline, so colour is not the only sign. The row is a tab list with arrow-key movement. The top menu wraps the same way.
+- **Looks:** labels over one panel. When the labels do not fit the width the row wraps onto as many rows as it needs; it never scrolls sideways (UX-68, owner decision LOOK D6). The first label starts on the frame's left edge, where the page title and the top menu start (UX-69): a tab has no side padding, and the gap between labels is `--ds-space-5`. A short label keeps the touch target: a tab is at least `--ds-target-min` wide (UX-16). A label is never cut: one that does not fit goes to the next row whole (only a label wider than the whole row breaks, at its spaces), so at 360 and 393 px the row is two or three lines. The page header or the first pane under the row is one page gap (`--ds-space-5`) below it (LOOK36). The chosen tab is bold, in the primary colour, with a 3 px underline, so colour is not the only sign. The row is a tab list with arrow-key movement. The top menu wraps the same way.
 - **Source:** `packages/ui/src/components/Controls.tsx` (`Tabs`)
 - **Rules:** UX-1, UX-8, UX-17, UX-68.
-- **Guard:** `packages/ui/src/components/Pane.test.tsx` (Tabs).
+- **Guard:** `packages/ui/src/components/Pane.test.tsx` (Tabs); `e2e/tests/web-console/ux-routes.spec.ts` (`tabEdges`, `tabGap`); `e2e/tests/design-layout.spec.ts` (tab row, title gap and left edges).
 
 ## 4. Wizard
 
@@ -43,7 +43,7 @@ One numbered section per shared component. A part that nearly fits is extended w
 - **Looks:** a bar fixed to the bottom edge with a quiet reason line above the buttons. It has a soft shadow.
 - **Source:** `src/ui/action-bar`
 - **Rules:** UX-4, UX-14, UX-16, UX-42.
-- **Guard:** none yet.
+- **Guard:** `e2e/tests/web-console/ux-routes.spec.ts` (`stickyWalk`: the bar stays in the window while the page scrolls, and the last text ends above it).
 
 ## 6. Action rows
 
@@ -56,10 +56,10 @@ One numbered section per shared component. A part that nearly fits is extended w
 ## 7. Buttons
 
 - **Used for:** every action. Primary, secondary and quiet styles. A running button is not pressable and says it is running.
-- **Looks:** a filled primary, an outlined secondary and a text-only quiet button, all with a clear focus ring.
+- **Looks:** a filled primary, an outlined secondary and a text-only quiet button, all with a clear focus ring. A button and a chip are as wide as their label (`white-space: nowrap`, `flex: none`, `inline-size: max-content`, `min-inline-size: var(--ds-target-min)`): a long label gets a short word (*Set up parity*), it never wraps or shrinks.
 - **Source:** `src/ui/button`
 - **Rules:** UX-4, UX-8, UX-13, UX-16.
-- **Guard:** none yet.
+- **Guard:** `e2e/tests/web-console/ux-routes.spec.ts` (`wrapped`, `wordBroken`: a button label is on one line and no word is broken inside).
 
 ## 8. Card, card grid and facts list
 
@@ -230,7 +230,7 @@ A `Tag` is the small outlined label that names a kind next to a word, such as `i
 - **Looks:** a bar that appears when something is selected, with the count and the actions.
 - **Source:** `src/ui/selection-bar`
 - **Rules:** UX-7, UX-12, UX-13, UX-38.
-- **Guard:** none yet.
+- **Guard:** `e2e/tests/web-console/ux-routes.spec.ts` (`selectAll`: Select all N and Clear; `stickyWalk`: the bar stays in the window).
 
 ## 21. Search bar and find layout
 
@@ -473,7 +473,7 @@ A `Tag` is the small outlined label that names a kind next to a word, such as `i
 ## 41. Selected row and key-hint bar
 
 - **Used for:** showing which list row is selected, and which keys work (UX-57).
-- **Looks:** the selected row of a table or a result list, the row under the cursor (`j` and `k`, or a click or Tab), is in reverse video: `--ds-color-primary` fill with `--ds-color-on-primary` text. A row the user has ticked (a choice list) takes the `--ds-color-selection` fill and keeps its text colour. The key-hint bar is fixed at the window foot, with a thin top border; its keys sit inside the page frame (UX-69). Each key is listed once, whatever the spelling (`j / k` and `j k` are one key). It lists only the keys that work on the page: a page registers its keys (`useKeyHints`) and a part that adds keys registers them too, so `j / k` and `Enter` show only where a list exists. Each key is in the key style of component 38. The hints are text, never buttons (UX-8). The bar is not drawn on a touch or coarse pointer, where there are no keys.
+- **Looks:** the selected row of a table or a result list, the row under the cursor (`j` and `k`, or a click or Tab), is in reverse video: `--ds-color-primary` fill with `--ds-color-on-primary` text. A row the user has ticked (a choice list) takes the `--ds-color-selection` fill and keeps its text colour. The key-hint bar is fixed at the window foot, with a thin top border; its keys sit inside the page frame (UX-69). Each key is listed once, whatever the spelling (`j / k` and `j k` are one key). It lists only the keys that work on the page: a page registers its keys (`useKeyHints`) and a part that adds keys registers them too, so `j / k` and `Enter` show only where a list exists. Each key is in the key style of component 38. The hints are text, never buttons (UX-8). The bar is not drawn on a touch or coarse pointer, where there are no keys. The page reserves the bar's real height, which is read from the bar itself (it wraps onto two lines on a phone), not a fixed 44 px.
 - **Source:** `packages/ui/src/components/Table.tsx`, `packages/ui/src/components/KeyHints.tsx` (`KeyHints`, `useKeyHints`), the `hints` slot of `Frame`, `packages/ui/src/components.css`
 - **Rules:** UX-8, UX-50, UX-57, UX-60.
 - **Guard:** none yet.
@@ -534,10 +534,10 @@ A field's width caps its box, never its name and help: a lone field's name and h
 ## 48. Action bar
 
 - **Used for:** the main action of a screen, always in the same place and the same order (UX-71, UX-4). Selection screens, edit screens, list screens with one main action, and every wizard.
-- **Looks:** one bar, sticky at the foot of the main content, above the key-hint bar (component 41), with a thin top border and the page fill. It never scrolls away. Left to right: the status line in muted text ("2 selected", "Unsaved changes (3)"; none when there is nothing to say), the secondary actions (Cancel, Back, Stop), the one primary action. A disabled primary says why next to it (UX-38). From 600 px down the bar is full width and the buttons stack at equal width, the primary on top, the secondary actions under it. A wizard draws its Back, Stop and primary through this part; a wizard inside a screen that has its own bar sits in the flow (not sticky) and draws default buttons. An edit screen draws its bar through `EditBar`: the status "Unsaved changes (n)" from the number of changes, Cancel (puts every field back to what is saved) and Save, both disabled until something changed, and the leave guard: leaving by a link, a tab, browser Back or by closing the browser tab asks "Discard changes?" with Keep editing and Discard (the tab close shows the browser's own question). The page passes the number and what Save and Cancel do. A tab of many sections (Settings) has one bar: each section registers what it changed with the tab, the status counts them all, and Save sends each changed section in turn.
+- **Looks:** one bar, sticky at the foot of the main content, above the key-hint bar (component 41), with a thin top border and the page fill. It never scrolls away: `Frame` draws it as a direct child of the main column, whatever wrapper the page puts it in, so it sticks to the window, the last row of the page ends above it, and it sits above the key-hint bar at its real height (no bar: no gap). Left to right: the status line in muted text ("2 selected", "Unsaved changes (3)"; none when there is nothing to say), the secondary actions (Cancel, Back, Stop), the one primary action. A disabled primary says why next to it (UX-38). From 600 px down the bar is full width and the buttons stack at equal width, the primary on top, the secondary actions under it. A wizard draws its Back, Stop and primary through this part; a wizard inside a screen that has its own bar sits in the flow (not sticky) and draws default buttons. An edit screen draws its bar through `EditBar`: the status "Unsaved changes (n)" from the number of changes, Cancel (puts every field back to what is saved) and Save, both disabled until something changed, and the leave guard: leaving by a link, a tab, browser Back or by closing the browser tab asks "Discard changes?" with Keep editing and Discard (the tab close shows the browser's own question). The page passes the number and what Save and Cancel do. A tab of many sections (Settings) has one bar: each section registers what it changed with the tab, the status counts them all, and Save sends each changed section in turn.
 - **Source:** `packages/ui/src/components/ActionBar.tsx` (`ActionBar`, `selectedStatus`, `unsavedStatus`), `packages/ui/src/components/EditBar.tsx` (`EditBar`, `LeaveGuard`), `packages/ui/src/components/Wizard.tsx`, `packages/ui/src/components.css`
 - **Rules:** UX-4, UX-13, UX-38, UX-71.
-- **Guard:** `scripts/design/action-bar.test.ts` (a primary button outside the bar, or two in it, fails; `action-bar.known.json` only shrinks).
+- **Guard:** `scripts/design/action-bar.test.ts` (a primary button outside the bar, or two in it, fails; `action-bar.known.json` only shrinks); `e2e/tests/web-console/ux-routes.spec.ts` (`stickyWalk`: the bar never scrolls away and never covers the last row or the key-hint bar).
 
 ## 49. Native update window and installer art
 
@@ -598,7 +598,7 @@ A field's width caps its box, never its name and help: a lone field's name and h
 ## 56. Short text
 
 - **Used for:** a long name in a table cell, such as a branch (`dependabot/npm_and_yarn/vite-8.3.8`), that would otherwise wrap over many lines.
-- **Looks:** the name cut in the middle with an ellipsis, so its start and its end both stay readable (`RES15-jobs…ection`), with a dotted underline when it is cut. The full name is the hover text and the text a screen reader reads; the detail of the item always shows it whole. A name that fits is shown as it is.
+- **Looks:** the name cut in the middle with an ellipsis, so its start and its end both stay readable (`RES15-jobs…ection`), with a dotted underline when it is cut. The full name is the hover text and the text a screen reader reads; the detail of the item always shows it whole. A name that fits is shown as it is. **A name that may be long and has no middle to cut (LOOK38, `ClampText`):** a machine or runner name in a table cell or a card title breaks anywhere to fit its box (`overflow-wrap: anywhere`) and stops at two lines; the whole name is the hover text. A card title is clamped the same way, and the grid keeps a two-line title off the card above it.
 - **Source:** `packages/ui/src/components/ShortText.tsx`, `packages/ui/src/components.css`
 - **Rules:** UX-49, UX-17.
 - **Guard:** `packages/ui/src/components/parts.test.tsx`.
@@ -606,7 +606,7 @@ A field's width caps its box, never its name and help: a lone field's name and h
 ## 57. Row action
 
 - **Used for:** the one button at the end of a table row that opens the thing the row is: a run, a group (repository, machine, runner, runner type, job type) or a job.
-- **Looks:** a normal button on one line, in a last column of fixed width (`--ds-row-action-width`), the same size in every row and every list. Its words come from the Row action words of content.md: *Open run*, *Open*, *Open job*; an action that acts on the row and opens no page (a failed runner's *Remove*) is a press in the same column, with the same one-line word. A group's name is already in the row, so the button says only *Open*; a screen reader hears the word and the name (`Open: runner-1`). At phone width it fills the last line of the card.
+- **Looks:** a normal button on one line, in a last column of fixed width (`--ds-row-action-width`), the same size in every row and every list. Its words come from the Row action words of content.md: *Open run*, *Open*, *Open job*; an action that acts on the row and opens no page (*Remove*, *Edit*, *Replace*, *Delete registration*, *Revoke*) is a press in the same column, with the same one-line word. A group's name is already in the row, so the button says only *Open*; a screen reader hears the word and the name (`Open: runner-1`). At phone width it fills the last line of the card.
 - **Source:** `packages/ui/src/components/RowAction.tsx`, `packages/ui/src/components.css`
 - **Rules:** UX-72, UX-16, UX-8.
 - **Guard:** `packages/ui/src/components/parts.test.tsx`.

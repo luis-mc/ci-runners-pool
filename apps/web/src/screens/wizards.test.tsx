@@ -40,8 +40,10 @@ function read(state: WizardState, name: string, canStop: boolean): WizardSnapsho
       };
     },
   );
+  // The bar is drawn in the main column by `Frame`, not inside the wizard box: find it by its name.
+  const bar = screen.queryByRole('region', { name: `${name} actions` }) ?? group;
   const buttons = Array.from(
-    group.querySelectorAll<HTMLButtonElement>('.ds-action-bar button'),
+    bar.querySelectorAll<HTMLButtonElement>('.ds-action-bar button'),
   ).map((b) => {
     const describedBy = b.getAttribute('aria-describedby');
     const reason = describedBy
@@ -70,7 +72,10 @@ function read(state: WizardState, name: string, canStop: boolean): WizardSnapsho
       text: (doneEl?.textContent ?? '').trim(),
       counts: group.querySelectorAll('.ds-facts__row').length,
     },
-    waitLines: group.querySelectorAll('[data-wait]').length,
+    waitLines: new Set([
+      ...group.querySelectorAll('[data-wait]'),
+      ...bar.querySelectorAll('[data-wait]'),
+    ]).size,
   };
 }
 

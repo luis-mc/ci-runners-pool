@@ -19,6 +19,7 @@ import (
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backend"
 	agentv1 "github.com/luis-mc/ci-runners-shared-pool/internal/gen/agent/v1"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/registry/builds"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/runners"
 )
 
@@ -44,6 +45,15 @@ type Link struct {
 	// Hygiene takes the clean-up reports of persistent runners and answers
 	// with their settings (runners R5.90, R5.91). Nil ignores them.
 	Hygiene HygieneSink
+
+	// Registry answers the image registry calls (protocol version 3, REG10).
+	// Nil answers "not in the registry" with no staging name (registry.go).
+	Registry RegistrySink
+
+	// Builds keeps the build reports of agents as build records (IMG1, R5.68).
+	// Nil drops them.
+	Builds   builds.Sink
+	buildIDs map[string]string // machine id + agent build id -> record id
 
 	mu      sync.Mutex
 	pending map[string]chan *agentv1.RunnerResult
@@ -90,6 +100,9 @@ func (l *Link) OnHello(machineID string) {
 // OnMessage takes the runner results and machine reports. It returns true when
 // it handled the message.
 func (l *Link) OnMessage(machineID string, msg *agentv1.SessionRequest) bool {
+	if l.onRegistry(machineID, msg) {
+		return true
+	}
 	switch m := msg.GetMessage().(type) {
 	case *agentv1.SessionRequest_RunnerResult:
 		l.mu.Lock()

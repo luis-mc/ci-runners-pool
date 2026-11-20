@@ -1,6 +1,7 @@
 // Shared Pool > Size and backends (D24, LOOK31): one row per machine with its job slots and the backends it allows.
 // The size wizard and the policy stay on the machine's own page; this page is the pool-wide view with a way in.
 import {
+  ClampText,
   Empty,
   LinkButton,
   Page,
@@ -27,20 +28,18 @@ export function allowedBackends(m: Pick<Machine, 'backends'>): string {
 export function PoolSizePage() {
   const { result, reload } = useMachines();
   const columns: Column<Machine>[] = [
-    { id: 'name', header: 'Machine', cell: (m) => m.name, sort: (m) => m.name },
+    {
+      id: 'name',
+      header: 'Machine',
+      cell: (m) => <ClampText text={m.name} />,
+      sort: (m) => m.name,
+    },
     {
       id: 'slots',
       header: 'Job slots',
       cell: (m) => `${m.slots_used} of ${m.settings.job_slots} in use`,
     },
     { id: 'backends', header: 'Backends', cell: (m) => allowedBackends(m) },
-    {
-      id: 'open',
-      header: 'Change',
-      cell: (m) => (
-        <LinkButton to={`/pool/machines/${m.id}`}>{`Open ${m.name}`}</LinkButton>
-      ),
-    },
   ];
   return (
     <Page>
@@ -64,6 +63,11 @@ export function PoolSizePage() {
                 columns={columns}
                 rows={data.items}
                 rowKey={(m) => m.id}
+                action={{
+                  label: 'Open',
+                  to: (m) => `/pool/machines/${m.id}`,
+                  name: (m) => m.name,
+                }}
               />
             </Section>
           )

@@ -3,6 +3,7 @@
 // (UX-10, UX-51). Apps pass data and children; they never write a class or a style (UX-2, R6.8).
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
+import { ClampText } from './ShortText';
 
 export function Pane({
   title,
@@ -33,13 +34,15 @@ export function Pane({
       data-actions={actions ? true : undefined}
     >
       <Heading className="ds-pane__title">
-        {to ? (
-          <Link to={to} className="ds-link">
-            {title}
-          </Link>
-        ) : (
-          title
-        )}
+        <ClampText text={title}>
+          {to ? (
+            <Link to={to} className="ds-link">
+              {title}
+            </Link>
+          ) : (
+            title
+          )}
+        </ClampText>
         {count === undefined ? null : <span className="ds-pane__count">{count}</span>}
       </Heading>
       <div className="ds-pane__body">{children}</div>

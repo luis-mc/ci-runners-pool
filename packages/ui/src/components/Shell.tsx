@@ -1,6 +1,7 @@
 // The frame of every signed-in screen (web-console spec 4.0): header, top menu (component 2), banner slot,
 // activity strip (component 27) and the page. Landmarks: header, nav, main (UX-17).
-import { useState, type ReactNode } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
+import { ActionBarSlotContext } from './ActionBar';
 import { Link, NavLink } from 'react-router-dom';
 import { Button } from './Button';
 import { KeyHintsProvider } from './KeyHints';
@@ -30,7 +31,7 @@ export function TopMenu({
             <NavLink
               to={i.to}
               {...(i.end ? { end: true } : {})}
-              className="ds-topmenu__link"
+              className={() => 'ds-topmenu__link'}
             >
               {i.label}
             </NavLink>
@@ -38,6 +39,24 @@ export function TopMenu({
         ))}
       </ul>
     </nav>
+  );
+}
+
+/** The phone's one Menu button, on the frame edge like the top menu it opens (UX-69, UX-15). */
+export function TopMenuButton({
+  open,
+  here,
+  onToggle,
+}: {
+  open: boolean;
+  /** The label of the open area. */
+  here: string;
+  onToggle: () => void;
+}) {
+  return (
+    <div className="ds-topmenu__toggle ds-band" data-frame-band data-menu-toggle>
+      <Button onPress={onToggle}>{open ? 'Close the menu' : `Menu: ${here}`}</Button>
+    </div>
   );
 }
 
@@ -249,18 +268,23 @@ export function Frame({
   hints?: ReactNode | undefined;
   children: ReactNode;
 }) {
+  const [slot, setSlot] = useState<HTMLElement | null>(null);
+  const host = useMemo(() => ({ slot }), [slot]);
   return (
     <KeyHintsProvider>
-      <div className="ds-frame">
-        {header}
-        {menu}
-        {banner}
-        {strip}
-        <main className="ds-main ds-band" id="main" data-frame-band>
-          {children}
-        </main>
-        {hints}
-      </div>
+      <ActionBarSlotContext.Provider value={host}>
+        <div className="ds-frame">
+          {header}
+          {menu}
+          {banner}
+          {strip}
+          <main className="ds-main ds-band" id="main" data-frame-band>
+            {children}
+            <div className="ds-bar-slot" ref={setSlot} />
+          </main>
+          {hints}
+        </div>
+      </ActionBarSlotContext.Provider>
     </KeyHintsProvider>
   );
 }
