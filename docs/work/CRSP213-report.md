@@ -37,4 +37,30 @@ CODE DONE 6c5552cdf5 (code commit; the report commit follows it)
 
 ## Step 3 (1.51)
 
-Status: started. Merging 11 `.new` files from luismc-delivery 1.51.0 on branch `CRSP213-dev-standards-1-50`.
+All 11 `.new` files merged and deleted (luismc-delivery 1.51.0).
+
+| File | Taken from template | Kept from project |
+|---|---|---|
+| `scripts/delivery/ci_watch.py` | Whole template: no-cancel default, `cancel_on_red` only for blocking failures (`blocking_job_re`), lists every failure (D105, DL-97), `--cancel-on-red` | no project change |
+| `scripts/delivery/artifact_prune.py` | Whole template (DL379 workflow-list note, regex) | no project change |
+| `.github/workflows/artifact-prune.yml` | Daily `schedule` + `workflow_dispatch`; `workflow_run` trigger removed; DL379 comments | `scripts/ci/artifact-prune.sh` step, `GH_REPO`, newer SHAs, `timeout-minutes: 10`; project workflow list kept as `# workflows:` note |
+| `.github/workflows/ci-fallback.yml` | `timeout-minutes: 30` (was 90) | Go/pnpm/node frozen install step (step 2) |
+| `.github/workflows/package-windows.yml` | `timeout-minutes: 10` on `clean-artifacts` | no tag trigger (CRSP145), installer gate, `crsp-windows-amd64`, newer SHAs |
+| `.github/workflows/train-cleanup.yml` | `timeout-minutes: 10` on `cleanup` | newer SHAs, formatting |
+| `.github/workflows/windows-msi-check.yml` | nothing new (already `timeout-minutes: 20`) | project gate, CRSP147 authoring check, newer SHAs |
+| `.githooks/commit-msg` | nothing new | project missing-config enforcement (step 2) |
+| `.githooks/pre-push` | nothing new | `project_gates()` Go/web gates (step 2) |
+| `scripts/delivery/smoke_packaged.py` | nothing new | `probe_context` |
+| `scripts/delivery/tools.json` | nothing new | syft 1.33.0, nfpm 2.49.0 |
+
+## G2 (job timeout-minutes)
+- Before, my files: ci-fallback.yml:15 (90), package-windows.yml:82 (none), train-cleanup.yml:24 (none).
+- After: none of my files. Left: ci.yml:233 and dev-standards.yml:23 (other agent).
+
+## Tests
+- `py_compile` ci_watch.py, artifact_prune.py: ok. `ci_watch.py --help`: runs.
+- `bash -n` on both hooks: ok (hooks unchanged, no mode change staged).
+- YAML parse of all workflows: ok.
+- actionlint: not installed here (no pinned binary fetched); not run.
+- `test_guardrails.py --root .`: exit 0. G2 2 breaks (ci.yml, dev-standards.yml, not mine). G1/G4/G5 unchanged from step 2.
+- `fast_guards.py`: see final note below.
