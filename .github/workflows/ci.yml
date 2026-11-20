@@ -4,8 +4,12 @@ name: CI
 # docs/architecture/stack-profile.md. GitHub-hosted runners only; this workflow
 # does not depend on any delivery plugin.
 #
-#   verify   lint, format, types, unit + integration + route-coverage tests, codegen
-#            drift, dependency scan, secret scan over full history, layer boundaries
+#   lint     secret scan over full history, workflow lint, CI script tests, format,
+#            Go and web lint, layer boundaries                                 (CRSP209)
+#   types    lockfile tidy, codegen drift, go vet, web typecheck, dependency scan
+#   tests    unit + integration + route-coverage tests (Go race, vitest)
+#   verify   the one name a required check matches: green when lint, types and tests are
+#            green (the three run in parallel; they were one serial job of 10 to 17 min)
 #   test-os  go test on Windows and macOS
 #   build    the six release targets (build.yml); artifacts crsp-<os>-<arch>
 #   e2e      Playwright against the built Linux binary
@@ -33,7 +37,9 @@ concurrency:
   # a dispatch run (ref refs/heads/<branch>) never cancel each other, and on main
   # a dispatch cannot replace a pending push run.
   group: ci-${{ github.event_name }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+  # CRSP209 (DL-97/DL-98): a release run (head branch *-integration) is never cancelled
+  # while its jobs run, red or green; a newer push waits in the group instead.
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' && !endsWith(github.head_ref, '-integration') && !endsWith(github.ref, '-integration') }}
 
 permissions:
   contents: read
@@ -54,6 +60,7 @@ jobs:
     outputs:
       skip: ${{ steps.check.outputs.skip }}
       image: ${{ steps.image-scope.outputs.image }}
+      release: ${{ steps.release.outputs.release }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -71,13 +78,32 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
           PR_HEAD_REF: ${{ github.head_ref }}
         run: python3 scripts/ci/image_scope.py
+      # CRSP209 (DL-97/DL-98): a release pull request is a ready pull request whose head
+      # branch ends in -integration. Its run never stops at the first failure and never
+      # skips a job: e2e and the image do not wait for format, lint and types to pass.
+      # Every other run (agent branch, draft made ready, dispatch) lets lint and types
+      # gate those two jobs, so a typo does not cost a 30-minute run.
+      - id: release
+        env:
+          EVENT: ${{ github.event_name }}
+          DRAFT: ${{ github.event.pull_request.draft }}
+          HEAD_REF: ${{ github.head_ref }}
+        run: |
+          release=false
+          if [ "$EVENT" = "pull_request" ] && [ "$DRAFT" != "true" ] && [[ "$HEAD_REF" == *-integration ]]; then
+            release=true
+          fi
+          echo "release=$release" >> "$GITHUB_OUTPUT"
 
-  verify:
-    name: verify
+  # CRSP209: verify was one serial job of 9.6 to 17 min. The same checks now run in
+  # three parallel jobs and the `verify` job at the end keeps the name a required
+  # check matches.
+  lint:
+    name: lint
     needs: decide
     if: ${{ always() && needs.decide.outputs.skip != 'true' && (github.event_name != 'pull_request' || !github.event.pull_request.draft) }}
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 20
     permissions:
       contents: read
       pull-requests: read
@@ -133,26 +159,12 @@ jobs:
           go mod download
           go mod verify
           pnpm install --frozen-lockfile
-      - name: Go lockfile is tidy
-        run: |
-          go mod tidy
-          git diff --exit-code go.mod go.sum || { echo "::error::go.mod/go.sum are not tidy. Run go mod tidy and commit."; exit 1; }
-
-      # 2 codegen drift: regenerate everything, fail if a generated file changed.
-      - name: Codegen drift
-        run: bash scripts/ci/codegen-drift.sh
 
       # 4 format
       - name: Format (gofmt, prettier)
         run: |
           bash scripts/ci/gofmt-check.sh
           pnpm run format:check
-
-      # 5 type check
-      - name: Type check
-        run: |
-          go vet ./...
-          pnpm run typecheck
 
       # 3 lint and 12 layer boundaries (depguard rules in .golangci.yml)
       - uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
@@ -171,8 +183,85 @@ jobs:
           pnpm -r lint
           pnpm run lint:root
 
+  types:
+    name: codegen and types
+    needs: decide
+    if: ${{ always() && needs.decide.outputs.skip != 'true' && (github.event_name != 'pull_request' || !github.event.pull_request.draft) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      # 1 install from the committed lockfiles, frozen.
+      - name: Install (frozen)
+        run: |
+          go mod download
+          go mod verify
+          pnpm install --frozen-lockfile
+      - name: Go lockfile is tidy
+        run: |
+          go mod tidy
+          git diff --exit-code go.mod go.sum || { echo "::error::go.mod/go.sum are not tidy. Run go mod tidy and commit."; exit 1; }
+
+      # 2 codegen drift: regenerate everything, fail if a generated file changed.
+      - name: Codegen drift
+        run: bash scripts/ci/codegen-drift.sh
+
+      # 5 type check
+      - name: Type check
+        run: |
+          go vet ./...
+          pnpm run typecheck
+
+      # 10 dependency scan
+      - name: Dependency scan
+        run: |
+          go tool govulncheck ./...
+          pnpm audit --prod
+
+  tests:
+    name: tests
+    needs: decide
+    if: ${{ always() && needs.decide.outputs.skip != 'true' && (github.event_name != 'pull_request' || !github.event.pull_request.draft) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      # 1 install from the committed lockfiles, frozen.
+      - name: Install (frozen)
+        run: |
+          go mod download
+          go mod verify
+          pnpm install --frozen-lockfile
+
       # 6 unit, 7 integration (real SQLite file), 8 contract, 9 route coverage.
       # The zero-test guard fails the step when no Go test ran (STACKSPEC 11.3).
+      # go-test.sh runs the packages in tiers, each with its own -timeout (G1).
+      # A failing test never stops the run: no -failfast, and the web tests run
+      # even when the Go tests failed (CRSP209).
       - name: Go tests (race)
         env:
           CGO_ENABLED: '1'
@@ -187,13 +276,27 @@ jobs:
           path: test-results/go-test.json
           if-no-files-found: ignore
       - name: Web tests and guards
+        if: ${{ always() }}
         run: pnpm exec vitest run
 
-      # 10 dependency scan
-      - name: Dependency scan
+  # The name a required check matches: green only when lint, types and tests are.
+  # Skipped, like the single job it replaces, when decide skips the run or the pull
+  # request is a draft.
+  verify:
+    name: verify
+    needs: [decide, lint, types, tests]
+    if: ${{ always() && needs.decide.outputs.skip != 'true' && (github.event_name != 'pull_request' || !github.event.pull_request.draft) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Lint, types and tests succeeded
+        env:
+          LINT: ${{ needs.lint.result }}
+          TYPES: ${{ needs.types.result }}
+          TESTS: ${{ needs.tests.result }}
         run: |
-          go tool govulncheck ./...
-          pnpm audit --prod
+          echo "lint=$LINT types=$TYPES tests=$TESTS"
+          [ "$LINT" = "success" ] && [ "$TYPES" = "success" ] && [ "$TESTS" = "success" ]
 
   test-os:
     name: go test (${{ matrix.os }})
@@ -230,7 +333,7 @@ jobs:
           CRSP_REAL_SYMLINK: '1'
         run: |
           reg add 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock' //t REG_DWORD //f //v AllowDevelopmentWithoutDevLicense //d 1
-          go test -count=1 -v -run '^TestProbeSymlinkReal$' ./internal/agent/
+          go test -timeout 10s -count=1 -v -run '^TestProbeSymlinkReal$' ./internal/agent/
 
   build:
     name: build
@@ -244,7 +347,8 @@ jobs:
   # runners R5.43: the matrix lists amd64 and arm64. Every layer builds on
   # amd64; arm64 builds the base image and the llvm layer, the only layer with
   # an arm64 pin (the others carry amd64-only tools). amd64 took 15 to 18 min
-  # from scratch, so its limit is 35 (20 cancelled it twice on 19 Nov).
+  # from scratch (20 cancelled it twice on 19 Nov). CRSP209: the limit is 30 (G2): the
+  # llvm layer (10.7 min, rebuilt every run) should now come from the cache, see below.
   #
   # OPS41: the job runs only when decide says so (image-scope). Every image is
   # built with buildx and the GitHub Actions cache, one cache scope per arch
@@ -255,10 +359,12 @@ jobs:
   # stage plus the crsp binary. Every self-check step stays.
   image:
     name: base image ${{ matrix.arch }} (build only)
-    needs: [decide, build]
-    if: ${{ always() && needs.decide.outputs.skip != 'true' && needs.decide.outputs.image != 'false' && needs.build.result == 'success' }}
+    needs: [decide, build, lint, types]
+    # A release pull request starts as soon as the build is done; any other run waits for
+    # lint and types to pass (CRSP209, DL-97/DL-98).
+    if: ${{ always() && needs.decide.outputs.skip != 'true' && needs.decide.outputs.image != 'false' && needs.build.result == 'success' && (needs.decide.outputs.release == 'true' || (needs.lint.result == 'success' && needs.types.result == 'success')) }}
     runs-on: ${{ matrix.runner }}
-    timeout-minutes: 35
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
@@ -294,6 +400,12 @@ jobs:
           build-args: TARGETARCH=${{ matrix.arch }}
           tags: ${{ env.REG }}/crsp-linux-base-tools:ci
           push: true
+          # CRSP209: the layers below build FROM this image. A provenance attestation
+          # carries a timestamp, so the pushed digest changed on every run and every
+          # layer built on it missed its cache (llvm: 10.7 min each run). Without the
+          # attestation the same cached layers push to the same digest.
+          provenance: false
+          sbom: false
           cache-from: type=gha,scope=base-${{ matrix.arch }}
           cache-to: type=gha,mode=max,scope=base-${{ matrix.arch }}
       - name: docker build base image (no push)
@@ -355,12 +467,18 @@ jobs:
             TARGETARCH=${{ matrix.arch }}
           tags: ${{ env.REG }}/crsp-layer-linux-packaging:ci
           push: true
+          provenance: false
+          sbom: false
           cache-from: type=gha,scope=linux-packaging-${{ matrix.arch }}
           cache-to: type=gha,mode=max,scope=linux-packaging-${{ matrix.arch }}
+      # CRSP209: its own cache scope (llvm-<arch>) read and written here; with the
+      # base digest should now be stable (provenance off above) the 10.7 min layer is a cache hit.
       - name: docker build llvm layer (no push)
         uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
         with:
           context: images/layers/llvm
+          provenance: false
+          sbom: false
           build-args: |
             BASE_IMAGE=${{ env.REG }}/crsp-linux-base-tools:ci
             TARGETARCH=${{ matrix.arch }}
@@ -415,8 +533,10 @@ jobs:
   # 30-minute job, so the specs run in 4 shards. Each shard has its own budget.
   e2e-shards:
     name: e2e shard ${{ matrix.shard }}
-    needs: [decide, build]
-    if: ${{ always() && needs.decide.outputs.skip != 'true' && needs.build.result == 'success' }}
+    needs: [decide, build, lint, types]
+    # A release pull request never waits for lint and types and is never skipped; any
+    # other run waits for them to pass (CRSP209, DL-97/DL-98).
+    if: ${{ always() && needs.decide.outputs.skip != 'true' && needs.build.result == 'success' && (needs.decide.outputs.release == 'true' || (needs.lint.result == 'success' && needs.types.result == 'success')) }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     strategy:
@@ -458,19 +578,60 @@ jobs:
         run: pnpm exec playwright install-deps chromium
 
       # Required. No retries, no continue-on-error (STACKSPEC 11.2, 11.3).
+      # CRSP209: Playwright's own --shard split by test count, so one shard ran 4.9 min
+      # and another 9.5. The spec files now go to shards by their recorded time
+      # (scripts/ci/e2e-weights.json, balanced by scripts/delivery/shard_balance.py);
+      # ux-routes.spec.ts has parallel cases of equal weight, so every shard takes a
+      # quarter of it with --shard. Both runs always happen; neither stops the other.
       - name: Playwright (gating specs)
         env:
           E2E_BINARY: bin/crsp
-        run: pnpm exec playwright test --shard=${{ matrix.shard }}/4
+          SHARD: ${{ matrix.shard }}
+        run: |
+          mkdir -p test-results
+          files=$(find e2e/tests -name '*.spec.ts' ! -name ux-routes.spec.ts | sort |
+            python3 scripts/delivery/shard_balance.py --shard "$SHARD/4" --timings scripts/ci/e2e-weights.json --files-from -)
+          if [ -z "$files" ]; then
+            echo "::error::no spec files for shard $SHARD: an empty list would run every spec"
+            exit 1
+          fi
+          echo "shard $SHARD files:"
+          echo "$files"
+          rc=0
+          # shellcheck disable=SC2086
+          PLAYWRIGHT_JSON_OUTPUT_NAME=test-results/playwright-times-files.json pnpm exec playwright test $files || rc=$?
+          PLAYWRIGHT_JSON_OUTPUT_NAME=test-results/playwright-times-routes.json pnpm exec playwright test --shard="$SHARD/4" e2e/tests/web-console/ux-routes.spec.ts || rc=$?
+          exit "$rc"
 
       # Quarantined specs (e2e/quarantine.json) still run and report, but cannot
-      # fail the build. An empty quarantine finds no tests; that is expected here.
+      # fail the build. CRSP209: an empty list (it is [] now) skips the step; it
+      # booted the server and Playwright to find 0 specs.
+      - name: Quarantine list
+        id: quarantine
+        run: |
+          n=0
+          if [ -f e2e/quarantine.json ]; then
+            n=$(node -e "console.log(JSON.parse(require('fs').readFileSync('e2e/quarantine.json','utf8')).length)")
+          fi
+          echo "count=$n" >> "$GITHUB_OUTPUT"
+          echo "quarantined specs: $n"
       - name: Playwright (quarantined specs, non-blocking)
+        if: ${{ steps.quarantine.outputs.count != '0' }}
         continue-on-error: true
         env:
           E2E_BINARY: bin/crsp
           E2E_QUARANTINE: only
+          PLAYWRIGHT_JSON_OUTPUT_NAME: test-results/playwright-times-quarantine.json
         run: pnpm exec playwright test --shard=${{ matrix.shard }}/4
+
+      # Per-test times (Playwright JSON reporter); the e2e-times job merges them into
+      # the artifact ci-run-times.
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: ${{ always() }}
+        with:
+          name: ci-e2e-times-${{ matrix.shard }}
+          path: test-results/playwright-times-*.json
+          if-no-files-found: ignore
 
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: failure()
@@ -479,12 +640,33 @@ jobs:
           path: test-results/artifacts
           if-no-files-found: ignore
 
+  # CRSP209 (G7): one artifact with every e2e test's time, stable name ci-run-times
+  # (artifact-prune keeps the newest). Not a required check, never fails the run.
+  e2e-times:
+    name: e2e test times
+    needs: [e2e-shards]
+    if: ${{ always() && needs.e2e-shards.result != 'skipped' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        continue-on-error: true
+        with:
+          pattern: ci-e2e-times-*
+          merge-multiple: false
+          path: ci-run-times
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: ci-run-times
+          path: ci-run-times
+          if-no-files-found: ignore
+
   # The name a required check matches: green only when every shard is green. When
   # decide skips the run, or the build did not succeed, the shards are skipped and
   # this job is skipped-equivalent (passes), as the single e2e job was.
   e2e:
     name: e2e (Playwright)
-    needs: [decide, build, e2e-shards]
+    needs: [decide, build, lint, types, e2e-shards]
     if: ${{ always() }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -494,9 +676,16 @@ jobs:
           SKIP: ${{ needs.decide.outputs.skip }}
           BUILD: ${{ needs.build.result }}
           SHARDS: ${{ needs.e2e-shards.result }}
+          RELEASE: ${{ needs.decide.outputs.release }}
+          LINT: ${{ needs.lint.result }}
+          TYPES: ${{ needs.types.result }}
         run: |
           if [ "$SKIP" = "true" ] || [ "$BUILD" != "success" ]; then
             echo "e2e did not run (decide skip=$SKIP, build=$BUILD); shards=$SHARDS"
+            [ "$SHARDS" = "skipped" ]
+          elif [ "$RELEASE" != "true" ] && { [ "$LINT" != "success" ] || [ "$TYPES" != "success" ]; }; then
+            # Not a release run: e2e waits for lint and types, and verify is red anyway.
+            echo "e2e waited for lint ($LINT) and types ($TYPES); shards=$SHARDS"
             [ "$SHARDS" = "skipped" ]
           else
             echo "shards=$SHARDS"

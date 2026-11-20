@@ -45,7 +45,7 @@ while read -r r; do
   [ "$r" -eq 0 ] || go_rc=$r
 done < "$rc_file"
 if [ "$go_rc" -ne 0 ]; then
-  echo "go test failed with exit code $go_rc" >&2
+  echo "Go tests failed with exit code $go_rc" >&2
   exit "$go_rc"
 fi
 exit "$sum_rc" # 0 passed, 3 zero-test guard, 4 or other: the summary itself broke
