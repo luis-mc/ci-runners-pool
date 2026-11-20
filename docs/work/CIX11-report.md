@@ -32,3 +32,7 @@ Branch CIX11-insights-engine (plan row 1, "CIX9"). Base origin/CIX-integration 6
 
 ## Left
 Nothing for CIX11. Spec rows of section 9 for my requirements point at real tests; change note `changes/CIX11.md`.
+
+Draft PR: https://github.com/luis-mc/ci-runners-shared-pool/pull/334 (opened through the GitHub MCP tool, gh is not allowed here).
+
+CODE DONE 16e5fdeef8eb35f1291c6cccf7d96a3745d50867
