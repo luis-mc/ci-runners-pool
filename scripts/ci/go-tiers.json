@@ -1,0 +1,28 @@
+{
+  "_note": "CRSP209 (guardrail G1). `go test -timeout` limits one package binary, not one test, so packages run in tiers. Unit tier (everything not listed): -timeout 10s, packages measured under 3 s with `go test -race` on 4 cores. integration: -timeout 60s, packages that start servers, sockets, SQLite or subprocesses, or measured 3 s to 40 s. slow: packages measured over 40 s that do not fit 60 s with honest headroom; their run uses the smallest safe -timeout (150 s) and they are the remaining G1 breaks until they are sped up. Measured on 20 Nov 2026 (docs/work/CRSP209-report.md). Move a package up a tier only with a new measurement.",
+  "integration": [
+    "./cmd/crsp",
+    "./guards",
+    "./images",
+    "./internal/addresses",
+    "./internal/agent",
+    "./internal/api",
+    "./internal/audit",
+    "./internal/backup",
+    "./internal/cli",
+    "./internal/github",
+    "./internal/hooks",
+    "./internal/listenaddr",
+    "./internal/machines",
+    "./internal/notify",
+    "./internal/registry/core",
+    "./internal/registry/records",
+    "./internal/repos",
+    "./internal/settings",
+    "./packaging/hooks"
+  ],
+  "slow": [
+    "./internal/scheduler",
+    "./internal/store"
+  ]
+}
