@@ -47,8 +47,8 @@ type PersistentSpec struct {
 // root, a read-only root with tmpfs work dirs. Only two named volumes are
 // writable besides: the runner folders and the dependency folders.
 func PersistentRunArgs(p PersistentSpec) ([]string, error) {
-	if p.ImageTag == "" {
-		return nil, errors.New("no image to run")
+	if err := ValidateImageRef(p.ImageTag); err != nil {
+		return nil, err
 	}
 	uid := p.UID
 	if uid == 0 {
@@ -113,6 +113,12 @@ func (b *Backend) StartPersistent(ctx context.Context, r backend.RunnerSpec, cfg
 	if !safeName.MatchString(r.Name) {
 		return h, fmt.Errorf("runner name %q cannot be used in a container", r.Name)
 	}
+	// The image comes the same way as a job pool's: local, registry, build
+	// (REG2). It is done before the lock: a pull takes the lock to install the CA.
+	r, err := b.withImage(ctx, r)
+	if err != nil {
+		return h, err
+	}
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	if err := b.ensurePersistentPool(ctx, r); err != nil {
@@ -130,6 +136,21 @@ func (b *Backend) StartPersistent(ctx context.Context, r backend.RunnerSpec, cfg
 	return h, nil
 }
 
+// withImage gives a runner spec without an image the image of its layers, through
+// PrepareImage (local, then registry, then build), as LocalAgent does for a job
+// pool. A spec that has an image keeps it.
+func (b *Backend) withImage(ctx context.Context, r backend.RunnerSpec) (backend.RunnerSpec, error) {
+	if r.Image.ID != "" {
+		return r, nil
+	}
+	img, err := b.PrepareImage(ctx, backend.ImageSpec{OS: r.OS, Arch: r.Arch, Layers: r.Pool.Layers, Extras: r.ExtraPackages})
+	if err != nil {
+		return r, err
+	}
+	r.Image = img
+	return r, nil
+}
+
 func (b *Backend) ensurePersistentPool(ctx context.Context, r backend.RunnerSpec) error {
 	exists, running, _, err := b.poolState(ctx, PersistentPool)
 	if err != nil {
@@ -143,6 +164,9 @@ func (b *Backend) ensurePersistentPool(ctx context.Context, r backend.RunnerSpec
 	if !exists {
 		tag, key, err := b.persistentImage(ctx, r)
 		if err != nil {
+			return err
+		}
+		if err := ValidateImageRef(tag); err != nil {
 			return err
 		}
 		uid, err := b.identity(ctx, PersistentPool)
@@ -171,6 +195,9 @@ func (b *Backend) ensurePersistentPool(ctx context.Context, r backend.RunnerSpec
 func (b *Backend) persistentImage(ctx context.Context, r backend.RunnerSpec) (tag, key string, err error) {
 	plan, err := PlanPool(b.cfg, r, "persistent", "pool", KVMFacts{})
 	if err != nil {
+		return "", "", err
+	}
+	if err := ValidateImageRef(plan.Pool.ImageTag); err != nil {
 		return "", "", err
 	}
 	return plan.Pool.ImageTag, plan.Pool.ImageKey, nil

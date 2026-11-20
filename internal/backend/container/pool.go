@@ -104,8 +104,8 @@ func RunArgs(p PoolSpec) ([]string, error) {
 	if p.Owner == "" || p.Repo == "" {
 		return nil, errors.New("a pool container belongs to one repository: owner and repo are needed")
 	}
-	if p.ImageTag == "" {
-		return nil, errors.New("no image to run")
+	if err := ValidateImageRef(p.ImageTag); err != nil {
+		return nil, err
 	}
 	name := PoolName(p.Owner, p.Repo)
 	uid := p.UID
