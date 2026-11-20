@@ -79,3 +79,5 @@ expected W1 (docs/work on the branch).
 - Charts "Trends" Do next pane (spec 4.1): not built, replaced by the Run insights tab (D8).
 - Wizard states running / paused / stopped / failed / done-after-reload not covered by tests (needs the real plan API: CIX21).
 - Playwright DOM layout run at 360/393/1300 px: the branch CI run is the gate.
+
+CODE DONE ba152fcd6119b2e0f32dfc1e2f5ea2f54aaddfc4
