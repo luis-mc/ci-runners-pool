@@ -17,9 +17,17 @@ import (
 type fakeReplace struct {
 	plan registry.ReplacePlan
 	err  error
+	// keepGot is the keep days CreatePlan was asked with.
+	keepGot *int
+	keepDef int
 }
 
-func (f fakeReplace) CreatePlan(context.Context, string, int, string) (registry.ReplacePlan, error) {
+func (f fakeReplace) KeepDaysDefault(context.Context) int { return f.keepDef }
+
+func (f fakeReplace) CreatePlan(_ context.Context, _ string, keep int, _ string) (registry.ReplacePlan, error) {
+	if f.keepGot != nil {
+		*f.keepGot = keep
+	}
 	return f.plan, f.err
 }
 func (f fakeReplace) Plan(context.Context, string) (registry.ReplacePlan, error) {

@@ -14,8 +14,8 @@ type AuditEntry struct {
 	Actor, Action, Subject, Detail string
 }
 
-// MemRepo is an in-memory Repository for tests and for a controller whose
-// SQLite adapter has not landed. Nothing survives a restart.
+// MemRepo is an in-memory Repository for tests and for a controller: with a path
+// (OpenFileRepo) it is saved to a file and survives a restart; without, nothing does.
 type MemRepo struct {
 	mu       sync.Mutex
 	machines map[string]Machine
@@ -30,6 +30,11 @@ type MemRepo struct {
 	Down bool
 	// Now stamps audit entries.
 	Now func() time.Time
+
+	// path, dirty and saved keep the file of OpenFileRepo (filerepo.go).
+	path  string
+	dirty bool
+	saved time.Time
 }
 
 var _ Repository = (*MemRepo)(nil)
@@ -56,7 +61,7 @@ func (r *MemRepo) lock() (func(), error) {
 
 // InsertMachine implements Repository.
 func (r *MemRepo) InsertMachine(_ context.Context, m Machine, s Settings, keyHash string) error {
-	u, err := r.lock()
+	u, err := r.lockW(true)
 	if err != nil {
 		return err
 	}
@@ -109,7 +114,7 @@ func (r *MemRepo) ListMachines(_ context.Context) ([]Machine, error) {
 
 // UpdateMachine implements Repository.
 func (r *MemRepo) UpdateMachine(_ context.Context, m Machine) error {
-	u, err := r.lock()
+	u, err := r.lockW(false)
 	if err != nil {
 		return err
 	}
@@ -146,7 +151,7 @@ func (r *MemRepo) MachineByKey(_ context.Context, keyHash string) (Machine, erro
 
 // RevokeKeys implements Repository.
 func (r *MemRepo) RevokeKeys(_ context.Context, machineID string) error {
-	u, err := r.lock()
+	u, err := r.lockW(true)
 	if err != nil {
 		return err
 	}
@@ -161,7 +166,7 @@ func (r *MemRepo) RevokeKeys(_ context.Context, machineID string) error {
 
 // MarkRemoved implements Repository.
 func (r *MemRepo) MarkRemoved(_ context.Context, machineID string, at time.Time) error {
-	u, err := r.lock()
+	u, err := r.lockW(true)
 	if err != nil {
 		return err
 	}
@@ -191,7 +196,7 @@ func (r *MemRepo) GetSettings(_ context.Context, id string) (Settings, error) {
 
 // PutSettings implements Repository.
 func (r *MemRepo) PutSettings(_ context.Context, id string, s Settings) error {
-	u, err := r.lock()
+	u, err := r.lockW(false)
 	if err != nil {
 		return err
 	}
@@ -205,7 +210,7 @@ func (r *MemRepo) PutSettings(_ context.Context, id string, s Settings) error {
 
 // InsertJoinCode implements Repository.
 func (r *MemRepo) InsertJoinCode(_ context.Context, c JoinCode) error {
-	u, err := r.lock()
+	u, err := r.lockW(true)
 	if err != nil {
 		return err
 	}
@@ -245,7 +250,7 @@ func (r *MemRepo) FindJoinCodeByHash(_ context.Context, hash string) (JoinCode, 
 
 // RevokeOpenJoinCodes implements Repository.
 func (r *MemRepo) RevokeOpenJoinCodes(_ context.Context, at time.Time) error {
-	u, err := r.lock()
+	u, err := r.lockW(true)
 	if err != nil {
 		return err
 	}
@@ -261,7 +266,7 @@ func (r *MemRepo) RevokeOpenJoinCodes(_ context.Context, at time.Time) error {
 
 // RevokeJoinCode implements Repository.
 func (r *MemRepo) RevokeJoinCode(_ context.Context, id string, at time.Time) (bool, error) {
-	u, err := r.lock()
+	u, err := r.lockW(true)
 	if err != nil {
 		return false, err
 	}
@@ -277,7 +282,7 @@ func (r *MemRepo) RevokeJoinCode(_ context.Context, id string, at time.Time) (bo
 
 // UseJoinCode implements Repository.
 func (r *MemRepo) UseJoinCode(_ context.Context, hash, machineID string, now time.Time) (bool, error) {
-	u, err := r.lock()
+	u, err := r.lockW(true)
 	if err != nil {
 		return false, err
 	}
@@ -349,7 +354,7 @@ func (r *MemRepo) DeleteLoadBefore(_ context.Context, t time.Time) error {
 
 // InsertChange implements Repository.
 func (r *MemRepo) InsertChange(_ context.Context, c Change) error {
-	u, err := r.lock()
+	u, err := r.lockW(false)
 	if err != nil {
 		return err
 	}
@@ -374,7 +379,7 @@ func (r *MemRepo) GetChange(_ context.Context, machineID, id string) (Change, er
 
 // UpdateChange implements Repository.
 func (r *MemRepo) UpdateChange(_ context.Context, c Change) error {
-	u, err := r.lock()
+	u, err := r.lockW(false)
 	if err != nil {
 		return err
 	}

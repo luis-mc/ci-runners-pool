@@ -58,6 +58,8 @@ export default defineConfig({
   // 11.3: a flaky spec is quarantined and fixed, never retried until green.
   // Retries stay 0 for the gating specs; do not raise this to make CI pass.
   retries: 0,
+  // CRSP201: 4 workers in CI (the runner has 4 cores); locally Playwright picks half the cores.
+  ...(process.env.CI ? { workers: 4 } : {}),
   forbidOnly: !!process.env.CI,
   use: { baseURL: `http://127.0.0.1:${port}` },
   webServer: {

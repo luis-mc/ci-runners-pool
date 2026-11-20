@@ -32,7 +32,6 @@ import { useLoad } from '../../api/hooks';
 import { Load } from '../common';
 import {
   decidedBy,
-  daysSince,
   imageName,
   lastPulled,
   recommendationTitle,
@@ -62,10 +61,7 @@ export function RegistryTab() {
   const { result, reload } = useRegistry();
   const navigate = useNavigate();
   const data = result.state === 'loading' ? undefined : result.data;
-  const byId = (id: string | undefined) => data?.images.find((i) => i.id === id);
-  const next = data
-    ? registryNext(data.overview.recommendations, (r) => recommendationTitle(r, byId))
-    : undefined;
+  const next = data ? registryNext(data.overview.recommendations) : undefined;
   return (
     <>
       <Load result={result} what="the registry" reload={reload}>
@@ -95,19 +91,14 @@ function RegistryBody({
   const now = useNow();
   const [kind, setKind] = useState<Summary['kind'] | ''>('');
   const shown = images.filter((i) => kind === '' || i.kind === kind);
-  const byId = (id: string | undefined) => images.find((i) => i.id === id);
-  const unusedOf = (i: Summary) =>
-    overview.recommendations.some((r) => r.rule === 'unused' && r.image_id === i.id)
-      ? daysSince(i.last_pull_at ?? i.pushed_at, now)
-      : undefined;
   const budget = (k: Summary['kind']) => overview.budgets.find((b) => b.kind === k);
   const week = overview.last_7_days;
   const recCols: Column<Recommendation>[] = [
     {
       id: 'what',
       header: 'Recommendation',
-      cell: (r) => <Cut>{recommendationTitle(r, byId)}</Cut>,
-      title: (r) => recommendationTitle(r, byId),
+      cell: (r) => <Cut>{recommendationTitle(r)}</Cut>,
+      title: (r) => recommendationTitle(r),
       kind: 'grow',
     },
     { id: 'saves', header: 'Frees', cell: (r) => formatSize(r.frees_bytes), kind: 'fit' },
@@ -153,7 +144,7 @@ function RegistryBody({
     {
       id: 'state',
       header: 'State',
-      cell: (i) => <Status {...stateOf(i, { unusedDays: unusedOf(i) })} />,
+      cell: (i) => <Status {...stateOf(i, { unusedDays: i.unused_days })} />,
       sort: (i) => i.state,
       kind: 'fit',
     },
@@ -240,7 +231,7 @@ function RegistryBody({
             action={{
               label: 'Open',
               to: (r) => recommendationTo(r),
-              name: (r) => recommendationTitle(r, byId),
+              name: (r) => recommendationTitle(r),
             }}
           />
         )}

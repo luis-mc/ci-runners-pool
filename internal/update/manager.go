@@ -20,6 +20,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"sync"
 	"time"
 )
@@ -69,6 +70,21 @@ type Status struct {
 	ReleaseURL          string
 	// Stage is the live stage file (TRAY4); nil when no update ran yet.
 	Stage *Stage
+	// Attempt is the update or restart that runs or ran last; nil when none did (CRSP205).
+	Attempt *Attempt
+	// ErrorAttempt is the id of the attempt Error belongs to ("earlier" for a failure that has no id).
+	ErrorAttempt string
+	// ServiceStarted is when this process started; ServerTime is the clock now.
+	ServiceStarted time.Time
+	ServerTime     time.Time
+}
+
+// Attempt is one update or restart from the yes to its end. Its id tells a page
+// which outcome is its own, so an older update's failure never shows on a restart.
+type Attempt struct {
+	ID        string
+	Kind      Kind
+	StartedAt time.Time
 }
 
 // Drainer is the machines side: it names the jobs on this machine and drains it.
@@ -160,6 +176,14 @@ type Manager struct {
 	cancelDL  context.CancelFunc
 	cancelled bool
 	startedBy string
+	// attempt is the update or restart that runs now (CRSP205): its id, kind and the time of the yes.
+	attempt        string
+	attemptKind    Kind
+	attemptStarted time.Time
+	// errAttempt is the attempt errText belongs to; empty for an error of no attempt of this process.
+	errAttempt string
+	// started is when this process started: a restart is over once it is later than the attempt's yes.
+	started time.Time
 }
 
 type pending struct {
@@ -215,7 +239,7 @@ func New(o Options) *Manager {
 	if o.AutoUpdate == nil {
 		o.AutoUpdate = func(context.Context) bool { return true }
 	}
-	m := &Manager{o: o, state: StateIdle}
+	m := &Manager{o: o, state: StateIdle, started: o.Now()}
 	if settled, res := recoverMSI(o.Dir, o.Current, o.Now()); settled && res.OK && o.AfterInstall != nil {
 		// The new build runs: the old tray was ended by the MSI, so start the tray again (CRSP147).
 		go o.AfterInstall(res.To)
@@ -225,7 +249,10 @@ func New(o Options) *Manager {
 		PruneVersions(o.Dir, r.To, r.From)
 	}
 	if r, ok := ReadResult(o.Dir); ok && !r.OK && r.To != o.Current {
-		m.state, m.errText = StateFailed, "The last update to "+r.To+" failed: "+r.Error
+		m.state, m.errText, m.errAttempt = StateFailed, "The last update to "+r.To+" failed: "+r.Error, r.Attempt
+		if m.errAttempt == "" {
+			m.errAttempt = "earlier" // a failure from before attempts had ids belongs to no attempt a page started
+		}
 	}
 	return m
 }
@@ -235,11 +262,18 @@ func (m *Manager) Status(ctx context.Context) Status {
 	m.mu.Lock()
 	st := Status{
 		Current: m.o.Current, Latest: m.latest.Version, State: m.state, CheckedAt: m.checked,
-		Error: m.errText, ReleaseURL: m.latest.URL,
+		Error: m.errText, ReleaseURL: m.latest.URL, ErrorAttempt: m.errAttempt, ServiceStarted: m.started, ServerTime: m.o.Now(),
+	}
+	if m.attempt != "" {
+		st.Attempt = &Attempt{ID: m.attempt, Kind: m.attemptKind, StartedAt: m.attemptStarted}
 	}
 	m.mu.Unlock()
 	if sg, ok := ReadStage(m.o.Dir); ok {
 		st.Stage = &sg
+		if st.Attempt == nil && sg.Attempt != "" {
+			// A new process after the restart: the stage file still names the attempt.
+			st.Attempt = &Attempt{ID: sg.Attempt, Kind: Kind(sg.AttemptKind), StartedAt: sg.AttemptStarted}
+		}
 	}
 	st.Available = Newer(st.Current, st.Latest)
 	st.AutoUpdate = m.o.AutoUpdate(ctx)
@@ -323,10 +357,16 @@ func (m *Manager) stage(s Stage) {
 	s.At = m.o.Now()
 	m.mu.Lock()
 	s.StartedBy = m.startedBy
+	s.Attempt, s.AttemptKind, s.AttemptStarted = m.attempt, string(m.attemptKind), m.attemptStarted
 	m.mu.Unlock()
-	if s.StartedBy == "" { // a new process after the restart: keep what the first stage said
+	if s.StartedBy == "" || s.Attempt == "" { // a new process after the restart: keep what the first stage said
 		if prev, ok := ReadStage(m.o.Dir); ok {
-			s.StartedBy = prev.StartedBy
+			if s.StartedBy == "" {
+				s.StartedBy = prev.StartedBy
+			}
+			if s.Attempt == "" {
+				s.Attempt, s.AttemptKind, s.AttemptStarted = prev.Attempt, prev.AttemptKind, prev.AttemptStarted
+			}
 		}
 	}
 	if err := WriteStage(m.o.Dir, s); err != nil {
@@ -358,6 +398,7 @@ func readFailures(dir string) Failures { f, _ := ReadFailures(dir); return f }
 func (m *Manager) setError(text string) {
 	m.mu.Lock()
 	m.errText = text
+	m.errAttempt = m.attempt
 	m.mu.Unlock()
 }
 
@@ -416,7 +457,8 @@ func (m *Manager) begin(ctx context.Context, kind Kind, actor string) (Status, e
 		return Status{}, err
 	}
 	m.lock = lock
-	m.errText = ""
+	m.errText, m.errAttempt = "", ""
+	m.attempt, m.attemptKind, m.attemptStarted = newAttemptID(m.o.Now()), kind, m.o.Now()
 	m.cancelled = false
 	m.startedBy = StartedByActor(actor)
 	if kind == KindUpdate {
@@ -563,7 +605,7 @@ func (m *Manager) giveUpDrain(actor string, limit time.Duration) {
 
 func (m *Manager) fail(err error, version string) {
 	m.mu.Lock()
-	m.state, m.errText, m.pending = StateFailed, err.Error(), nil
+	m.state, m.errText, m.errAttempt, m.pending = StateFailed, err.Error(), m.attempt, nil
 	lock := m.lock
 	m.lock = nil
 	m.mu.Unlock()
@@ -646,7 +688,7 @@ func (m *Manager) OnIdle(ctx context.Context, kind Kind) error {
 	}
 	plan := Plan{
 		Kind: string(kind), GOOS: m.o.GOOS, InstallKind: m.o.InstallKind, From: m.o.Current, To: p.version, File: p.file, Exe: m.o.Exe,
-		Service: m.o.Service, HealthURL: m.o.HealthURL, Dir: m.o.Dir,
+		Service: m.o.Service, HealthURL: m.o.HealthURL, Dir: m.o.Dir, Attempt: m.attemptID(),
 		HealthTimeout: 60 * time.Second,
 	}
 	if m.o.GOOS == "windows" {
@@ -780,4 +822,13 @@ func withProgressReader(ctx context.Context, r io.Reader, total int64) io.Reader
 		return r
 	}
 	return &progressReader{r: r, ctx: ctx, total: total}
+}
+
+// newAttemptID names an update or restart by the time of its yes.
+func newAttemptID(now time.Time) string { return "a" + strconv.FormatInt(now.UnixNano(), 36) }
+
+func (m *Manager) attemptID() string {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.attempt
 }

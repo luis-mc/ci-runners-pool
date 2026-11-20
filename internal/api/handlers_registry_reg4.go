@@ -48,6 +48,14 @@ func optStr(v string) *string {
 	return &v
 }
 
+func optRelation(v string) *gen.RegistryLineageEntryRelation {
+	if v == "" {
+		return nil
+	}
+	r := gen.RegistryLineageEntryRelation(v)
+	return &r
+}
+
 func toGenRecommendation(r registry.Recommendation) gen.RegistryRecommendation {
 	out := gen.RegistryRecommendation{Id: r.ID, Rule: gen.RegistryRule(r.Rule), Decider: gen.RegistryDecider(r.Decider),
 		FreesBytes: r.FreesBytes, CreatedAt: r.CreatedAt, ImageId: optStr(r.ImageID), OtherImageId: optStr(r.OtherID), DueAt: optTime(r.DueAt)}
@@ -73,6 +81,7 @@ func toGenRegistrySummary(i records.ImageSummary) gen.RegistryImageSummary {
 		t := true
 		out.UpdateFound = &t
 	}
+	out.UnusedDays = i.UnusedDays
 	return out
 }
 
@@ -98,7 +107,12 @@ func (s *server) GetRegistryOverview(ctx context.Context, _ gen.GetRegistryOverv
 		out.Budgets = append(out.Budgets, toGenRegistryBudget(b))
 	}
 	for _, r := range ov.Recommendations {
-		out.Recommendations = append(out.Recommendations, toGenRecommendation(r))
+		g := toGenRecommendation(r)
+		if img, ok := ov.RecommendedImages[r.ImageID]; ok {
+			sum := toGenRegistrySummary(img)
+			g.Image = &sum
+		}
+		out.Recommendations = append(out.Recommendations, g)
 	}
 	out.Images.Standard, out.Images.Custom = ov.Standard, ov.Custom
 	out.InFlight.Builds, out.InFlight.Pulls, out.InFlight.Pushes = ov.Builds, ov.Pulls, ov.Pushes
@@ -180,15 +194,21 @@ func (s *server) GetRegistryImage(ctx context.Context, req gen.GetRegistryImageR
 		Id: sum.Id, Kind: sum.Kind, Name: sum.Name, Key: sum.Key, Profile: sum.Profile, Arch: sum.Arch, State: sum.State,
 		ManifestDigest: sum.ManifestDigest, SourceRepository: sum.SourceRepository, Branch: sum.Branch, SizeBytes: sum.SizeBytes,
 		UniqueBytes: sum.UniqueBytes, Pulls7Days: sum.Pulls7Days, LastPullAt: sum.LastPullAt, KeepUntil: sum.KeepUntil,
-		ScanState: sum.ScanState, PushedAt: sum.PushedAt, UpdateFound: sum.UpdateFound,
+		ScanState: sum.ScanState, PushedAt: sum.PushedAt, UpdateFound: sum.UpdateFound, UnusedDays: sum.UnusedDays,
 		StackHash: optStr(d.StackHash), BaseName: optStr(d.BaseName), BaseDigest: optStr(d.BaseDigest), Commit: optStr(d.Commit),
 		PushedBy: optStr(d.PushedBy), PromotedAt: optTime(d.PromotedAt), Replaces: optStr(d.Replaces), ReplacedBy: optStr(d.ReplacedBy),
 		Lineage: []gen.RegistryLineageEntry{}, Layers: []gen.RegistryLayer{}, PullsByDay: []gen.RegistryPullDay{},
 		Machines: []gen.RegistryImageMachine{}, Pointers: []gen.RegistryPointer{},
 	}
+	inUse, shared := d.InUse, d.SharedBytes
+	out.InUse, out.SharedBytes = &inUse, &shared
+	if d.VariantGoneDays > 0 || d.State == registry.StateVariant {
+		days := d.VariantGoneDays
+		out.VariantGoneDays = &days
+	}
 	for _, l := range d.Lineage {
 		out.Lineage = append(out.Lineage, gen.RegistryLineageEntry{ImageId: l.ImageID, Key: l.Key.String(), State: gen.RegistryImageState(l.State),
-			Branch: optStr(l.Branch), PushedAt: l.PushedAt})
+			Branch: optStr(l.Branch), PushedAt: l.PushedAt, Relation: optRelation(l.Relation)})
 	}
 	for _, l := range d.Layers {
 		out.Layers = append(out.Layers, gen.RegistryLayer{Digest: l.Digest, SizeBytes: l.SizeBytes, MediaType: optStr(l.MediaType), SharedWith: l.SharedWith})

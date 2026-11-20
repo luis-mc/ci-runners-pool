@@ -99,12 +99,14 @@ func (l *Lock) Release() {
 // Result is what the helper reports after an install ended. The controller
 // reads it on start, so the console can say how the last update went.
 type Result struct {
-	OK    bool      `json:"ok"`
-	Kind  string    `json:"kind"`
-	From  string    `json:"from"`
-	To    string    `json:"to"`
-	Error string    `json:"error,omitempty"`
-	At    time.Time `json:"at"`
+	OK    bool   `json:"ok"`
+	Kind  string `json:"kind"`
+	From  string `json:"from"`
+	To    string `json:"to"`
+	Error string `json:"error,omitempty"`
+	// Attempt is the id of the update or restart that ended with this result (CRSP205).
+	Attempt string    `json:"attempt,omitempty"`
+	At      time.Time `json:"at"`
 }
 
 // WriteResult stores the result atomically.

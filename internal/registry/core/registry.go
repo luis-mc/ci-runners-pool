@@ -94,15 +94,8 @@ func New(ctx context.Context, o Options) (r *Registry, err error) {
 	if _, err := rand.Read(secret[:]); err != nil {
 		return nil, err
 	}
-	cfg := &configuration.Configuration{Version: "0.1"}
-	cfg.Storage = configuration.Storage{
-		fsdriver.Name: configuration.Parameters{"rootdirectory": o.Dir},
-		"delete":      configuration.Parameters{"enabled": true},
-	}
-	cfg.HTTP.Secret = hex.EncodeToString(secret[:])
-	cfg.Log.Level = "error"
+	cfg := newConfig(o.Dir, hex.EncodeToString(secret[:]))
 	logrus.SetLevel(logrus.ErrorLevel) // Distribution logs through logrus; its access lines are not wanted
-	cfg.Log.AccessLog.Disabled = true
 	defer func() {
 		if p := recover(); p != nil { // NewApp panics on a bad configuration
 			r, err = nil, fmt.Errorf("registry: %v", p)
@@ -112,6 +105,21 @@ func New(ctx context.Context, o Options) (r *Registry, err error) {
 	r = &Registry{app: app, driver: drv, ns: ns, tokens: o.Tokens, log: lg, events: make(chan registry.Event, eventBuffer), dir: o.Dir}
 	r.handler = privatePeersOnly(r.authorize(app))
 	return r, nil
+}
+
+// newConfig is the Distribution configuration of the core. It sets no
+// notification endpoint and no reporting (bugsnag, newrelic): the registry sends
+// no telemetry to any host (R5.81); events stay in process (Events).
+func newConfig(dir, secret string) *configuration.Configuration {
+	cfg := &configuration.Configuration{Version: "0.1"}
+	cfg.Storage = configuration.Storage{
+		fsdriver.Name: configuration.Parameters{"rootdirectory": dir},
+		"delete":      configuration.Parameters{"enabled": true},
+	}
+	cfg.HTTP.Secret = secret
+	cfg.Log.Level = "error"
+	cfg.Log.AccessLog.Disabled = true
+	return cfg
 }
 
 // Close stops the Distribution app.
