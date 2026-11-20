@@ -31,7 +31,9 @@ func (p *memPlans) Get(_ context.Context, id string) (Plan, error) {
 	}
 	return pl, nil
 }
-func (p *memPlans) Update(_ context.Context, pl Plan) error { return p.Insert(context.Background(), pl) }
+func (p *memPlans) Update(_ context.Context, pl Plan) error {
+	return p.Insert(context.Background(), pl)
+}
 
 type fakeFindings map[int64]insights.StoredFinding
 

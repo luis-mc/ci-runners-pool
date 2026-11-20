@@ -8,30 +8,26 @@ import (
 	"context"
 	"io"
 	"time"
+
+	"github.com/luis-mc/ci-runners-shared-pool/internal/insights/share"
 )
 
-// Priority orders background GitHub work inside the insights share (R6.1): a lower value goes first.
-type Priority int
+// Priority, its values and Budget live in internal/insights/share (a leaf, so reconcile does not import
+// this package); they are aliased here so the collector and its callers keep their names.
+type Priority = share.Priority
 
 // Priorities, in the order of R6.1.
 const (
-	PriorityReconcile Priority = iota
-	PrioritySteps
-	PriorityWorkflowFiles
-	PriorityArtifacts
-	PriorityLogs
-	PriorityCommitTrees
+	PriorityReconcile     = share.PriorityReconcile
+	PrioritySteps         = share.PrioritySteps
+	PriorityWorkflowFiles = share.PriorityWorkflowFiles
+	PriorityArtifacts     = share.PriorityArtifacts
+	PriorityLogs          = share.PriorityLogs
+	PriorityCommitTrees   = share.PriorityCommitTrees
 )
 
-// Budget hands out GitHub REST calls of one installation within the insights share: at most 25 percent of
-// the hourly limit, and never past the half-limit stop of github-integration R6.6 (R6.1).
-type Budget interface {
-	// Take reserves n calls at priority p. It returns ok false and the time the share frees up when the
-	// share is spent; the caller queues the work and the screens say how much waits (InsightBacklog).
-	Take(ctx context.Context, installationID int64, p Priority, n int) (ok bool, until time.Time)
-	// Backlog is the number of jobs whose collection waits for the share, and until when.
-	Backlog() (jobs int, until time.Time)
-}
+// Budget hands out GitHub REST calls of one installation within the insights share (R6.1).
+type Budget = share.Budget
 
 // GitHub is the REST surface the collector needs. Implemented in internal/github (rest_insights.go); every
 // call is a background call (github-integration R6.6).

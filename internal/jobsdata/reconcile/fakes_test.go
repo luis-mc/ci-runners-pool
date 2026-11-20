@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/luis-mc/ci-runners-shared-pool/internal/insights/collect"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/insights/share"
 )
 
 var t0 = time.Date(2026, 11, 20, 12, 0, 0, 0, time.UTC)
@@ -91,7 +91,7 @@ func (s *fakeStore) ApplySteps(_ context.Context, id int64, st []RemoteStep, _ t
 
 type fakeBudget struct{ left int }
 
-func (b *fakeBudget) Take(_ context.Context, _ int64, _ collect.Priority, n int) (bool, time.Time) {
+func (b *fakeBudget) Take(_ context.Context, _ int64, _ share.Priority, n int) (bool, time.Time) {
 	if b.left < n {
 		return false, t0.Add(time.Hour)
 	}

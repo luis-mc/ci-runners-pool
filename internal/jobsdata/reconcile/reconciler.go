@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/luis-mc/ci-runners-shared-pool/internal/insights/collect"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/insights/share"
 )
 
 // Pass settings (R5.41).
@@ -49,7 +49,7 @@ type Config struct {
 	Store    Store
 	Jobs     JobStore
 	Classify Classify
-	Budget   collect.Budget
+	Budget   share.Budget
 	// Installation gives the installation id of a repository; ok false skips its jobs.
 	Installation func(ctx context.Context, repositoryID int64) (id int64, ok bool)
 	Now          func() time.Time
@@ -97,7 +97,7 @@ func (r *reconciler) Pass(ctx context.Context, now time.Time) (int, error) {
 		if !ok || !valid {
 			continue
 		}
-		if ok, _ := r.cfg.Budget.Take(ctx, inst, collect.PriorityReconcile, 1); !ok {
+		if ok, _ := r.cfg.Budget.Take(ctx, inst, share.PriorityReconcile, 1); !ok {
 			break
 		}
 		if err := r.reconcileRun(ctx, now, inst, owner, repo, run); err != nil {
@@ -199,7 +199,7 @@ func (r *reconciler) readSteps(ctx context.Context, repositoryID, jobID int64, r
 	if !ok || !valid {
 		return nil
 	}
-	if ok, _ := r.cfg.Budget.Take(ctx, inst, collect.PrioritySteps, 1); !ok {
+	if ok, _ := r.cfg.Budget.Take(ctx, inst, share.PrioritySteps, 1); !ok {
 		return nil // over the share: the screens say it waits (R6.1)
 	}
 	j, err := r.cfg.GitHub.Job(ctx, inst, owner, repo, jobID)
