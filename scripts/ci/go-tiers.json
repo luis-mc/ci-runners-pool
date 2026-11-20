@@ -12,6 +12,7 @@
     "./internal/cli",
     "./internal/github",
     "./internal/hooks",
+    "./internal/insights/collect",
     "./internal/listenaddr",
     "./internal/machines",
     "./internal/notify",
