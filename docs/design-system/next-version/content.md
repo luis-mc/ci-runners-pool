@@ -544,6 +544,24 @@ The words of the setup step "Add the first machine" when a machine is already in
 | Add the first machine is done. | Done message when a machine is in the pool and it is not the controller's own. |
 | Add another machine | The one action. It opens the Add a machine wizard for other computers. |
 
+## Half-registered runner words
+
+The Remove button of two Doctor findings: a GitHub runner no machine runs, and a runner record GitHub does not list (doctor R5.50, runners R5.94). Remove here takes only that one registration or record away, and the card says so.
+
+| Word | Where and meaning |
+|---|---|
+| Remove | The one button of each finding and the action of its card. Admin only (busy word: Removing). |
+| Remove {runner} from GitHub? | Title of the card for a GitHub runner no machine runs. |
+| No machine runs this runner. Only this registration is removed from GitHub. | Intro of that card. |
+| The registration of runner {runner} on GitHub | The line the card lists for it. |
+| Remove the record of {runner}? | Title of the card for a record GitHub does not list. |
+| GitHub does not list this runner, so it cannot take jobs. Its record is removed from crsp. | Intro of that card. |
+| The record of runner {runner} in crsp, and its service and folder on the machine | The line the card lists for it. |
+| {runner} on GitHub belongs to no machine | Title of the first finding. |
+| {runner} is not registered on GitHub | Title of the second finding. |
+| {runner} cannot write its shared tool folders | Title of the finding that a runner user cannot write cargo-target, cargo-home, rustup-home, xwin or the tool cache (doctor R5.51, caches R5.57). Its fix is a command shown as text. |
+| {runner} can write its shared tool folders | The same finding when it is fine. |
+
 ## Runner state words
 
 The state word of a runner on the Runners screen (web-console R5.23, runners R5.79; UX-19). A word other than idle or busy shows its reason in a muted line under it.
@@ -557,6 +575,8 @@ The state word of a runner on the Runners screen (web-console R5.23, runners R5.
 | offline | GitHub lists the runner offline. Reason: "GitHub reports it offline". |
 | unknown | GitHub could not be read. Reason: "GitHub could not be read, so the state is not known". |
 | failed | The runner did not start. The reason line is the reason of the failure. |
+| offline, with "Waiting for GitHub to release the old session, until {time}" | After a hard restart GitHub still holds the runner's old session for a few minutes. A wait, never a failure (runners R5.95). The reason line ends with the time the wait is over. |
+| offline, with "GitHub still holds the old session of this runner after the wait window; look for a second listener or another machine that uses this runner name" | The wait is over and GitHub still refuses the session (runners R5.95). |
 | Remove | The action on the row of a failed runner (busy word: Removing). Asks first in the question card, which names the runner (UX-9, UX-62). |
 
 
@@ -712,6 +732,13 @@ The words of the Docker disk section on the machine page (caches R5.51 to R5.54,
 | The agent on this machine does not run as administrator, so it cannot make Docker's disk smaller. Install the agent again from an administrator window, or turn this off. | Problem message under the facts. |
 | Turn off | The action beside that message. Saves Off. |
 | Could not save. {why} | Problem message when a change was not saved. |
+| Make the disk smaller now | The button that starts the compact by hand (caches R5.58). Busy label: Making the disk smaller. Disabled with the reason when the agent has no administrator rights or the compact is running. |
+| Make Docker's disk smaller on {machine}? | Title of its question card. |
+| The machine is drained first. The disk is made smaller when the running jobs have ended. | Intro of the card. |
+| Can be reclaimed: {size} | First line of the card: the file size minus what Docker uses. |
+| New jobs wait in the queue; no job is stopped | Second line of the card. |
+| Docker restarts, and the machine takes jobs again when it is done | Third line of the card. |
+| Make smaller | The confirm button of the card. Busy label: Starting. |
 | {machine} is making Docker's disk smaller ({size} on disk, {size} used). New jobs wait in the queue and start again when it is done; no job is stopped. | Notice to the projects, before. |
 | {machine} made Docker's disk smaller: {size} to {size}. Jobs take the machine again. | Notice to the projects, after. |
 | {machine} could not make Docker's disk smaller: {why}. Jobs take the machine again. | Notice to the projects, on a failure. |

@@ -434,3 +434,44 @@ func TestCompactJobQueuedDuringTheCompactWaits(t *testing.T) {
 		t.Fatalf("something was cancelled:\n%s", r.audit())
 	}
 }
+
+// Caches R5.58: the owner's Compact now asks first and names what can be
+// reclaimed; with the yes it drains, compacts and resumes like the automatic one.
+func TestStartCompactNamesTheReclaimableSizeThenRuns(t *testing.T) {
+	r := newCompactRig(t)
+	ctx := context.Background()
+	err := r.svc.StartCompact(ctx, "owner", r.id, false)
+	var nc *machines.NeedsConfirmationError
+	if !errors.As(err, &nc) || !strings.Contains(strings.Join(nc.Names, "\n"), "Can be reclaimed: 165.0 GiB") {
+		t.Fatalf("err = %v", err)
+	}
+	if len(r.host.argv) != 0 {
+		t.Fatal("nothing runs without the yes")
+	}
+	if err := r.svc.StartCompact(ctx, "owner", r.id, true); err != nil {
+		t.Fatal(err)
+	}
+	r.svc.WaitCompact()
+	if len(r.host.argv) != 1 || r.host.argv[0][0] != "docker-compact" || r.host.states[0] != machines.StateDrained || r.state() != machines.StateActive {
+		t.Fatalf("host %v states %v final %s", r.host.argv, r.host.states, r.state())
+	}
+	if log := r.audit(); !strings.Contains(log, "machine.compact.done") {
+		t.Fatalf("audit:\n%s", log)
+	}
+}
+
+func TestStartCompactRefusals(t *testing.T) {
+	r := newCompactRig(t)
+	ctx := context.Background()
+	r.report(true, false)
+	if err := r.svc.StartCompact(ctx, "owner", r.id, true); !errors.Is(err, machines.ErrInvalid) {
+		t.Fatalf("no admin: %v", err)
+	}
+	r.report(false, true)
+	if err := r.svc.StartCompact(ctx, "owner", r.id, true); !errors.Is(err, machines.ErrInvalid) {
+		t.Fatalf("no disk file: %v", err)
+	}
+	if len(r.host.argv) != 0 {
+		t.Fatal("a refused compact ran")
+	}
+}

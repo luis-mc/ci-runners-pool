@@ -7949,6 +7949,12 @@ type RemoveMachineParams struct {
 	Confirm *Confirm `form:"confirm,omitempty" json:"confirm,omitempty"`
 }
 
+// StartDockerCompactParams defines parameters for StartDockerCompact.
+type StartDockerCompactParams struct {
+	// Confirm The yes to a question card that named what goes (UX-62).
+	Confirm *Confirm `form:"confirm,omitempty" json:"confirm,omitempty"`
+}
+
 // GetMachineLoadParams defines parameters for GetMachineLoad.
 type GetMachineLoadParams struct {
 	From *From `form:"from,omitempty" json:"from,omitempty"`
@@ -8486,6 +8492,9 @@ type ServerInterface interface {
 	// RunMachineCommand Run one command on a drained machine (host maintenance)
 	// (POST /api/v1/machines/{machineId}/command)
 	RunMachineCommand(w http.ResponseWriter, r *http.Request, machineId MachineId)
+	// StartDockerCompact Make Docker's disk file smaller now
+	// (POST /api/v1/machines/{machineId}/docker-compact)
+	StartDockerCompact(w http.ResponseWriter, r *http.Request, machineId MachineId, params StartDockerCompactParams)
 	// DrainMachine Stop new jobs on a machine; running jobs finish
 	// (POST /api/v1/machines/{machineId}/drain)
 	DrainMachine(w http.ResponseWriter, r *http.Request, machineId MachineId)
@@ -11699,6 +11708,48 @@ func (siw *ServerInterfaceWrapper) RunMachineCommand(w http.ResponseWriter, r *h
 	handler.ServeHTTP(w, r)
 }
 
+// StartDockerCompact operation middleware
+func (siw *ServerInterfaceWrapper) StartDockerCompact(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "machineId" -------------
+	var machineId MachineId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "machineId", r.PathValue("machineId"), &machineId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "machineId", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params StartDockerCompactParams
+
+	// ------------- Optional query parameter "confirm" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "confirm", r.URL.Query(), &params.Confirm, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "confirm"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "confirm", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.StartDockerCompact(w, r, machineId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // DrainMachine operation middleware
 func (siw *ServerInterfaceWrapper) DrainMachine(w http.ResponseWriter, r *http.Request) {
 
@@ -14612,6 +14663,7 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/machines/{machineId}/drain", wrapper.DrainMachine)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/machines/{machineId}/command", wrapper.RunMachineCommand)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/doctor/registration-fixes", wrapper.RemoveRegistration)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/machines/{machineId}/docker-compact", wrapper.StartDockerCompact)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/machines/{machineId}/runner-leftovers/remove", wrapper.RemoveRunnerLeftovers)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/machines/{machineId}/resume", wrapper.ResumeMachine)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/machines/{machineId}/pool-size-check", wrapper.CheckMachinePoolSize)
@@ -17936,6 +17988,48 @@ type RunMachineCommanddefaultJSONResponse struct {
 }
 
 func (response RunMachineCommanddefaultJSONResponse) VisitRunMachineCommandResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type StartDockerCompactRequestObject struct {
+	MachineId MachineId `json:"machineId"`
+	Params    StartDockerCompactParams
+}
+
+type StartDockerCompactResponseObject interface {
+	VisitStartDockerCompactResponse(w http.ResponseWriter) error
+}
+
+type StartDockerCompact202JSONResponse struct {
+	Started bool `json:"started"`
+}
+
+func (response StartDockerCompact202JSONResponse) VisitStartDockerCompactResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(202)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type StartDockerCompactdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response StartDockerCompactdefaultJSONResponse) VisitStartDockerCompactResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
@@ -22156,6 +22250,9 @@ type StrictServerInterface interface {
 	// RunMachineCommand Run one command on a drained machine (host maintenance)
 	// (POST /api/v1/machines/{machineId}/command)
 	RunMachineCommand(ctx context.Context, request RunMachineCommandRequestObject) (RunMachineCommandResponseObject, error)
+	// StartDockerCompact Make Docker's disk file smaller now
+	// (POST /api/v1/machines/{machineId}/docker-compact)
+	StartDockerCompact(ctx context.Context, request StartDockerCompactRequestObject) (StartDockerCompactResponseObject, error)
 	// DrainMachine Stop new jobs on a machine; running jobs finish
 	// (POST /api/v1/machines/{machineId}/drain)
 	DrainMachine(ctx context.Context, request DrainMachineRequestObject) (DrainMachineResponseObject, error)
@@ -24560,6 +24657,33 @@ func (sh *strictHandler) RunMachineCommand(w http.ResponseWriter, r *http.Reques
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(RunMachineCommandResponseObject); ok {
 		if err := validResponse.VisitRunMachineCommandResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// StartDockerCompact operation middleware
+func (sh *strictHandler) StartDockerCompact(w http.ResponseWriter, r *http.Request, machineId MachineId, params StartDockerCompactParams) {
+	var request StartDockerCompactRequestObject
+
+	request.MachineId = machineId
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.StartDockerCompact(ctx, request.(StartDockerCompactRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "StartDockerCompact")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(StartDockerCompactResponseObject); ok {
+		if err := validResponse.VisitStartDockerCompactResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

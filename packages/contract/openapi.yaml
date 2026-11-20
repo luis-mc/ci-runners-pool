@@ -1454,6 +1454,39 @@ paths:
                 $ref: '#/components/schemas/RemoveRegistrationResult'
         default:
           $ref: '#/components/responses/Error'
+  /api/v1/machines/{machineId}/docker-compact:
+    post:
+      operationId: startDockerCompact
+      tags: [machines]
+      summary: Make Docker's disk file smaller now
+      description: >-
+        caches R5.58. The owner starts the compact the policy would start later:
+        the machine is drained (new jobs wait, running jobs finish), Docker's disk
+        file is made smaller, and the machine takes jobs again. Without
+        `confirm=true` it answers 409 needs_confirmation naming the size that can
+        be reclaimed and what happens to jobs. With it the compact starts in the
+        background and answers 202; the machine's `docker_compact_status` shows
+        it running and then its result. Refused with 400 when the agent reports no
+        disk file or has no administrator rights, 409 when the machine is offline
+        or a compact or a change already holds it.
+      x-auth: admin
+      x-rate-limit: 10/minute/user
+      parameters:
+        - $ref: '#/components/parameters/MachineId'
+        - $ref: '#/components/parameters/Confirm'
+      responses:
+        '202':
+          description: The compact has started.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [started]
+                properties:
+                  started:
+                    type: boolean
+        default:
+          $ref: '#/components/responses/Error'
   /api/v1/machines/{machineId}/runner-leftovers/remove:
     post:
       operationId: removeRunnerLeftovers

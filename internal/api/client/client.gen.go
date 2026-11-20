@@ -7950,6 +7950,12 @@ type RemoveMachineParams struct {
 	Confirm *Confirm `form:"confirm,omitempty" json:"confirm,omitempty"`
 }
 
+// StartDockerCompactParams defines parameters for StartDockerCompact.
+type StartDockerCompactParams struct {
+	// Confirm The yes to a question card that named what goes (UX-62).
+	Confirm *Confirm `form:"confirm,omitempty" json:"confirm,omitempty"`
+}
+
 // GetMachineLoadParams defines parameters for GetMachineLoad.
 type GetMachineLoadParams struct {
 	From *From `form:"from,omitempty" json:"from,omitempty"`
@@ -9017,6 +9023,13 @@ type ClientInterface interface {
 	//
 	// Corresponds with POST /api/v1/machines/{machineId}/command (the `RunMachineCommand` operationId).
 	RunMachineCommand(ctx context.Context, machineId MachineId, body RunMachineCommandJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// StartDockerCompact Make Docker's disk file smaller now
+	//
+	// caches R5.58. The owner starts the compact the policy would start later: the machine is drained (new jobs wait, running jobs finish), Docker's disk file is made smaller, and the machine takes jobs again. Without `confirm=true` it answers 409 needs_confirmation naming the size that can be reclaimed and what happens to jobs. With it the compact starts in the background and answers 202; the machine's `docker_compact_status` shows it running and then its result. Refused with 400 when the agent reports no disk file or has no administrator rights, 409 when the machine is offline or a compact or a change already holds it.
+	//
+	// Corresponds with POST /api/v1/machines/{machineId}/docker-compact (the `StartDockerCompact` operationId).
+	StartDockerCompact(ctx context.Context, machineId MachineId, params *StartDockerCompactParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// DrainMachineWithBody Stop new jobs on a machine; running jobs finish
 	//
@@ -11692,6 +11705,23 @@ func (c *Client) RunMachineCommandWithBody(ctx context.Context, machineId Machin
 // Corresponds with POST /api/v1/machines/{machineId}/command (the `RunMachineCommand` operationId).
 func (c *Client) RunMachineCommand(ctx context.Context, machineId MachineId, body RunMachineCommandJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewRunMachineCommandRequest(c.Server, machineId, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// StartDockerCompact Make Docker's disk file smaller now
+//
+// caches R5.58. The owner starts the compact the policy would start later: the machine is drained (new jobs wait, running jobs finish), Docker's disk file is made smaller, and the machine takes jobs again. Without `confirm=true` it answers 409 needs_confirmation naming the size that can be reclaimed and what happens to jobs. With it the compact starts in the background and answers 202; the machine's `docker_compact_status` shows it running and then its result. Refused with 400 when the agent reports no disk file or has no administrator rights, 409 when the machine is offline or a compact or a change already holds it.
+//
+// Corresponds with POST /api/v1/machines/{machineId}/docker-compact (the `StartDockerCompact` operationId).
+func (c *Client) StartDockerCompact(ctx context.Context, machineId MachineId, params *StartDockerCompactParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewStartDockerCompactRequest(c.Server, machineId, params)
 	if err != nil {
 		return nil, err
 	}
@@ -18237,6 +18267,67 @@ func NewRunMachineCommandRequestWithBody(server string, machineId MachineId, con
 	return req, nil
 }
 
+// NewStartDockerCompactRequest constructs an http.Request for the StartDockerCompact method
+func NewStartDockerCompactRequest(server string, machineId MachineId, params *StartDockerCompactParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "machineId", machineId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/machines/%s/docker-compact", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.Confirm != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "confirm", *params.Confirm, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "boolean", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewDrainMachineRequest calls the generic DrainMachine builder with application/json body
 func NewDrainMachineRequest(server string, machineId MachineId, body DrainMachineJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
@@ -23466,6 +23557,15 @@ type ClientWithResponsesInterface interface {
 	// Corresponds with POST /api/v1/machines/{machineId}/command (the `RunMachineCommand` operationId).
 	RunMachineCommandWithResponse(ctx context.Context, machineId MachineId, body RunMachineCommandJSONRequestBody, reqEditors ...RequestEditorFn) (*RunMachineCommandResponse, error)
 
+	// StartDockerCompactWithResponse Make Docker's disk file smaller now
+	//
+	// caches R5.58. The owner starts the compact the policy would start later: the machine is drained (new jobs wait, running jobs finish), Docker's disk file is made smaller, and the machine takes jobs again. Without `confirm=true` it answers 409 needs_confirmation naming the size that can be reclaimed and what happens to jobs. With it the compact starts in the background and answers 202; the machine's `docker_compact_status` shows it running and then its result. Refused with 400 when the agent reports no disk file or has no administrator rights, 409 when the machine is offline or a compact or a change already holds it.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /api/v1/machines/{machineId}/docker-compact (the `StartDockerCompact` operationId).
+	StartDockerCompactWithResponse(ctx context.Context, machineId MachineId, params *StartDockerCompactParams, reqEditors ...RequestEditorFn) (*StartDockerCompactResponse, error)
+
 	// DrainMachineWithBodyWithResponse Stop new jobs on a machine; running jobs finish
 	//
 	// machines R5.30 to R5.33.
@@ -28376,6 +28476,58 @@ func (r RunMachineCommandResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r RunMachineCommandResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type StartDockerCompactResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON202 the response for an HTTP 202 `application/json` response
+	JSON202 *struct {
+		Started bool `json:"started"`
+	}
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON202 returns the response for an HTTP 202 `application/json` response
+func (r StartDockerCompactResponse) GetJSON202() *struct {
+	Started bool `json:"started"`
+} {
+	return r.JSON202
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r StartDockerCompactResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r StartDockerCompactResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r StartDockerCompactResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r StartDockerCompactResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r StartDockerCompactResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -34648,6 +34800,21 @@ func (c *ClientWithResponses) RunMachineCommandWithResponse(ctx context.Context,
 	return ParseRunMachineCommandResponse(rsp)
 }
 
+// StartDockerCompactWithResponse Make Docker's disk file smaller now
+//
+// caches R5.58. The owner starts the compact the policy would start later: the machine is drained (new jobs wait, running jobs finish), Docker's disk file is made smaller, and the machine takes jobs again. Without `confirm=true` it answers 409 needs_confirmation naming the size that can be reclaimed and what happens to jobs. With it the compact starts in the background and answers 202; the machine's `docker_compact_status` shows it running and then its result. Refused with 400 when the agent reports no disk file or has no administrator rights, 409 when the machine is offline or a compact or a change already holds it.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /api/v1/machines/{machineId}/docker-compact (the `StartDockerCompact` operationId).
+func (c *ClientWithResponses) StartDockerCompactWithResponse(ctx context.Context, machineId MachineId, params *StartDockerCompactParams, reqEditors ...RequestEditorFn) (*StartDockerCompactResponse, error) {
+	rsp, err := c.StartDockerCompact(ctx, machineId, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseStartDockerCompactResponse(rsp)
+}
+
 // DrainMachineWithBodyWithResponse Stop new jobs on a machine; running jobs finish
 //
 // machines R5.30 to R5.33.
@@ -39283,6 +39450,41 @@ func ParseRunMachineCommandResponse(rsp *http.Response) (*RunMachineCommandRespo
 			return nil, err
 		}
 		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseStartDockerCompactResponse parses an HTTP response from a StartDockerCompactWithResponse call
+func ParseStartDockerCompactResponse(rsp *http.Response) (*StartDockerCompactResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &StartDockerCompactResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 202:
+		var dest struct {
+			Started bool `json:"started"`
+		}
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON202 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
 		var dest Error

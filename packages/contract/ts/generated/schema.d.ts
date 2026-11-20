@@ -979,6 +979,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/machines/{machineId}/docker-compact": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Make Docker's disk file smaller now
+         * @description caches R5.58. The owner starts the compact the policy would start later: the machine is drained (new jobs wait, running jobs finish), Docker's disk file is made smaller, and the machine takes jobs again. Without `confirm=true` it answers 409 needs_confirmation naming the size that can be reclaimed and what happens to jobs. With it the compact starts in the background and answers 202; the machine's `docker_compact_status` shows it running and then its result. Refused with 400 when the agent reports no disk file or has no administrator rights, 409 when the machine is offline or a compact or a change already holds it.
+         */
+        post: operations["startDockerCompact"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/machines/{machineId}/runner-leftovers/remove": {
         parameters: {
             query?: never;
@@ -8036,6 +8056,34 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RemoveRegistrationResult"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    startDockerCompact: {
+        parameters: {
+            query?: {
+                /** @description The yes to a question card that named what goes (UX-62). */
+                confirm?: components["parameters"]["Confirm"];
+            };
+            header?: never;
+            path: {
+                machineId: components["parameters"]["MachineId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The compact has started. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        started: boolean;
+                    };
                 };
             };
             default: components["responses"]["Error"];

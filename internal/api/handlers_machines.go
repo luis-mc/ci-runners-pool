@@ -26,6 +26,7 @@ type MachinesService interface {
 	Redetect(ctx context.Context, actor, id string) error
 	RunHostCommand(ctx context.Context, actor, id string, argv []string, timeout time.Duration) (machines.HostOutcome, error)
 	RemoveRunnerLeftovers(ctx context.Context, actor, machineID string, refs []leftovers.Ref) ([]leftovers.Result, error)
+	StartCompact(ctx context.Context, actor, id string, confirm bool) error
 	ArmRecovery(ctx context.Context, actor, id string) error
 	LoadHistory(ctx context.Context, id string, from, to time.Time) ([]machines.LoadPoint, error)
 	GetChange(ctx context.Context, machineID, id string) (machines.Change, error)
@@ -765,4 +766,17 @@ type leftoverResultRow = struct {
 	Name    string                                        `json:"name"`
 	Outcome gen.RemoveRunnerLeftoversResultResultsOutcome `json:"outcome"`
 	Steps   []string                                      `json:"steps"`
+}
+
+// StartDockerCompact implements POST /api/v1/machines/{machineId}/docker-compact
+// (caches R5.58): the owner's Compact now.
+func (s *server) StartDockerCompact(ctx context.Context, r gen.StartDockerCompactRequestObject) (gen.StartDockerCompactResponseObject, error) {
+	if s.machinesOff() {
+		return machinesUnavailable[gen.StartDockerCompactdefaultJSONResponse](), nil
+	}
+	confirm := r.Params.Confirm != nil && *r.Params.Confirm
+	if err := s.opts.Machines.StartCompact(ctx, s.actor(ctx), r.MachineId, confirm); err != nil {
+		return fail[gen.StartDockerCompactdefaultJSONResponse](s, err), nil
+	}
+	return gen.StartDockerCompact202JSONResponse{Started: true}, nil
 }
