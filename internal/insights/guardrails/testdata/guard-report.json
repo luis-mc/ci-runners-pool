@@ -1,0 +1,14 @@
+{
+  "mode": "block",
+  "results": {
+    "G1": {"title": "per-test timeout", "state": "pass", "count": 0, "breaks": []},
+    "G2": {"title": "job timeout-minutes", "state": "break", "count": 2, "breaks": [
+      {"file": ".github/workflows/ci.yml", "line": 12, "message": "job unit has no timeout-minutes"},
+      {"file": ".github/workflows/ci.yml", "line": 40, "message": "job e2e: timeout-minutes is 45; the limit is 30"}]},
+    "G3": {"title": "no retries in CI", "state": "off", "reason": "flaky vendor test, tracked in T-12", "count": 0, "breaks": []},
+    "G4": {"title": "no sleeps in tests", "state": "break", "count": 1, "known_count": 14, "breaks": [{"file": "a_test.go", "line": 3, "message": "time.Sleep in a test"}]},
+    "G5": {"title": "at most 20 cases per test", "state": "pass", "count": 0, "breaks": []}
+  },
+  "known_count": 31,
+  "notes": ["G3 is turned off"]
+}
