@@ -24,4 +24,4 @@ Branch `CIX15-pool-sizing` from `CIX-integration` (6b2697f). Plan row 5 (plan id
 ## Left
 - Wiring and readers above. No web or API work (not my row).
 
-CODE DONE (sha in the final line of the last report update)
+CODE DONE 397d751
