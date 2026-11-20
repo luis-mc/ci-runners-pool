@@ -175,6 +175,143 @@ describe('Registry tab', () => {
   });
 });
 
+describe('what the server now says (REG14)', () => {
+  it('names the image of a recommendation from the recommendation, with no list to join', async () => {
+    const named = img({
+      id: 'img_b',
+      kind: 'custom',
+      profile: 'Node web',
+      key: 'c57a886d9402',
+    });
+    renderApp(
+      api([]).on(
+        'GET',
+        '/api/v1/registry/overview',
+        overview({
+          recommendations: [
+            {
+              id: 'r1',
+              rule: 'replace',
+              image_id: 'img_b',
+              image: named,
+              kind: 'custom',
+              frees_bytes: 2 * GB,
+              decider: 'owner',
+              created_at: '2026-11-18T09:00:00Z',
+            },
+          ],
+        }),
+      ),
+      '/pool/images?tab=registry',
+    );
+    expect(
+      (await screen.findAllByText(/Node web c57a88 is a newer version/)).length,
+    ).toBeGreaterThan(0);
+  });
+
+  it('writes the unused days the server counted', async () => {
+    renderApp(
+      api([img({ id: 'img_b', profile: 'Node web', unused_days: 70 })]),
+      '/pool/images?tab=registry',
+    );
+    expect(await screen.findByText('unused 70 days')).toBeTruthy();
+  });
+
+  it('shows in use, shared bytes and the relation of the lineage as the server says them', async () => {
+    renderApp(
+      api().on(
+        'GET',
+        '/api/v1/registry/images/:id',
+        detail(img(), {
+          in_use: true,
+          shared_bytes: 2.4 * GB,
+          lineage: [
+            {
+              image_id: 'img_o',
+              key: 'aaaaaaaaaaaa',
+              state: 'superseded',
+              pushed_at: '2026-11-01T09:00:00Z',
+              relation: 'replaces',
+            },
+          ],
+        }),
+      ),
+      '/pool/images/registry/img_a',
+    );
+    expect(
+      await screen.findByText(/A runner uses this image\. The registry refuses/),
+    ).toBeTruthy();
+    expect(screen.getByText('2.4 GB')).toBeTruthy();
+    expect(screen.getByText('It replaces')).toBeTruthy();
+  });
+
+  it('writes the variant days of the setting, and the pulls text of the server', async () => {
+    renderApp(
+      api().on(
+        'GET',
+        '/api/v1/registry/images/:id',
+        detail(img({ state: 'variant', branch: 'fix' }), {
+          variant_gone_days: 9,
+          pulls_text: 'Pulled 3 times in the last 14 days.',
+        }),
+      ),
+      '/pool/images/registry/img_a',
+    );
+    expect(await screen.findByText(/It is deleted 9 days after the branch/)).toBeTruthy();
+    expect(screen.getByText('Pulled 3 times in the last 14 days.')).toBeTruthy();
+  });
+});
+
+describe('Replace wizard steps (REG14)', () => {
+  it('words the steps the server lists, one line each, with the state it gives', async () => {
+    const plan = {
+      id: 'plan_1',
+      state: 'running',
+      new_image: img({ id: 'img_n', key: 'c57a886d9402', profile: 'Node web' }),
+      old_image: img({ id: 'img_o', key: OLD_BUILD, profile: 'Node web' }),
+      keep_days: 7,
+      keep_until: '2026-11-26T09:00:00Z',
+      repositories: ['octo/docs', 'octo/site'],
+      machines: ['build-1', 'build-2'],
+      steps_done: 1,
+      steps_total: 4,
+      steps: [
+        { kind: 'point', targets: ['octo/docs'], state: 'done' },
+        { kind: 'point', targets: ['octo/site'], state: 'running' },
+        { kind: 'warm', targets: ['build-1', 'build-2'], state: 'waiting' },
+        { kind: 'supersede', targets: [], state: 'waiting' },
+      ],
+      created_at: '2026-11-19T09:00:00Z',
+    };
+    renderApp(
+      api().on('GET', '/api/v1/registry/replace-plans/:id', plan),
+      '/pool/images/registry/img_n/replace?plan=plan_1',
+    );
+    expect(await screen.findByText('Point octo/docs at c57a88')).toBeTruthy();
+    expect(screen.getByText('Point octo/site at c57a88')).toBeTruthy();
+    expect(screen.getByText('Warm build-1 and build-2 with c57a88')).toBeTruthy();
+    expect(screen.getByText(/^Mark b7e204 superseded until /)).toBeTruthy();
+    expect(screen.getAllByText('done').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('running').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('waits')).toHaveLength(2);
+  });
+
+  it('asks for the plan without keep days when going back to a superseded image', async () => {
+    const bodies: unknown[] = [];
+    renderApp(
+      api()
+        .on('GET', '/api/v1/registry/images/:id', detail(img({ state: 'superseded' })))
+        .on('POST', '/api/v1/registry/replace-plans', (c) => {
+          bodies.push(c.body);
+          return apiError(409, 'conflict', 'Stop here.');
+        }),
+      '/pool/images/registry/img_a',
+    );
+    fireEvent.click(await screen.findByRole('button', { name: 'Go back to this one' }));
+    await waitFor(() => expect(bodies).toEqual([{ new_image_id: 'img_a' }]));
+  });
+});
+
 describe('Image page', () => {
   it('asks first, names what goes, and deletes after the yes (UX-62)', async () => {
     const calls: string[] = [];

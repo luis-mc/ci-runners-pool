@@ -186,6 +186,10 @@ Canonical JSON (`registry.CanonicalJSON`): one object, no whitespace, keys in by
 
 **R5.35** — `getRegistryImage`: lineage, layers with how many images share each, pulls per day for 14 days with a text form (UX-41), machines that hold it and whether a runner uses it, pointers, scan.
 
+**R5.33a (REG14)** — A recommendation carries `image`, the summary of the image it names, so a screen names it without a second call; an image summary carries `unused_days` while an open `unused` recommendation names the image (whole days since the last pull, since the push when never pulled).
+
+**R5.35a (REG14)** — `getRegistryImage` also says `in_use` (a runner uses the image now), `shared_bytes` (size minus the bytes only this image holds), `variant_gone_days` (variants only: the setting of the days after the branch is gone) and, on each lineage entry, `relation` (`replaces`, `replaced_by` or `same_profile`). `pulls_text` is always sent.
+
 **R5.36** — `listRegistryPulls` shows pulls in progress and waiting for the controller, with time left from the machine's measured pull speed (absent with no history, UX-29).
 
 ### REG5: registry UI (R5.37 to R5.40)
@@ -228,7 +232,9 @@ Canonical JSON (`registry.CanonicalJSON`): one object, no whitespace, keys in by
 
 **R5.53** — `compareRegistryImage`: both images, stack files that differ (path, before, after), base changed, shared bytes, bytes freed, repositories whose pointer would move.
 
-**R5.54** — `createRegistryReplacePlan` makes a draft; nothing changes until `start` (Review says "Nothing has changed yet.").
+**R5.54** — `createRegistryReplacePlan` makes a draft; nothing changes until `start` (Review says "Nothing has changed yet."). `keep_days` is optional: when absent the plan uses `keep_old_days` of the settings (REG14).
+
+**R5.54a (REG14)** — A plan lists its `steps` in order, each with `kind` (`point` for one repository, `warm` for the machines, `supersede` for the old image) and `state` (`waiting`, `running`, `done`, `failed`); the server owns the list and the states, and the Replacing and Done steps only word them. `keep_until` is also sent before the plan ends: the date the old image would be kept until if the plan ended now.
 
 **R5.55** — Start moves the pointer of each named repository, warms the machines that held the old image by asking them to pull the new one, marks the old image `superseded` with `keep_until` = now + keep days. Stop ends after the current step. A job that runs keeps its image; the next job takes the new one.
 
@@ -448,5 +454,7 @@ Built (REG6):
 Built (IMG1): internal/registry/builds/ (`progress.go` parser, `tail.go` redacted tail and failure class, `gate.go` one build at a time and the cores, `record.go` records and events, `api.go` the API view), internal/backend/container/buildstream.go (the streamed build), `Runner.RunStream` in internal/backend/sys, internal/store/imagebuilds.go, internal/api/handlers_registry_img1.go (replaces `stubs_registry_img1.go`), the `image.build` event (`events.ImageBuild`; `LiveEvent` of the contract gained `image.build` and `image_build`).
 
 Migration numbers reserved for the wave, so parallel tasks never collide: 00020 IMG2, 00021 IMG3, 00022 REG1, 00023 REG3, 00024 REG4, 00025 REG6, 00026 REG7, 00027 REG8, 00028 REG9, 00029 IMG1. A task that needs no new column uses none.
+
+Built (REG14): the registry API fields the screens used to work out themselves (R5.33a, R5.35a, R5.54, R5.54a): `internal/registry/records/read.go` (`extras`, `UnusedDays`, `RecommendedImages`, `InUse`, `SharedBytes`, `VariantGoneDays`, `LineageEntry.Relation`), `internal/api/handlers_registry_reg4.go`, `internal/api/handlers_registry_reg7.go` (`replaceSteps`), `replace.Service.KeepDaysDefault`, and the screens `RegistryTab.tsx`, `RegistryImagePage.tsx`, `RegistryReplacePage.tsx`, `RegistryBudgetsPage.tsx`. **Not yet:** the ready-made line of Add runners (`ReadyMadeLine`) still maps the machine arch to `amd64` or `arm64` and shows the first current image of that arch, not the image of the machine's profile; it needs the Add runners plan to carry the job image key of the machine.
 
 Built (REG9): internal/registry/mirror/ (`config.go`, `mirror.go`, `service.go`), internal/registry/mirror/engineconf/, internal/store/registry_mirror.go, internal/api/handlers_registry_reg9.go, internal/agent/engine_mirror.go, cmd/crsp/registry_mirror_wiring.go. No new migration: the columns of `registry_mirror_settings` in 00019 are enough (00028 stays unused).

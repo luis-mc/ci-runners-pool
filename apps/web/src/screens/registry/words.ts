@@ -8,7 +8,6 @@ export type Recommendation = Schemas['RegistryRecommendation'];
 
 /** Decimal, as `formatSize` writes sizes, so a budget and the size shown beside it agree. */
 export const GB = 1e9;
-export const DAY = 86_400_000;
 
 /** Lists show the first 6 of the 12 hex of the key (spec REG10). */
 export const shortKey = (key: string): string => key.slice(0, 6);
@@ -50,16 +49,9 @@ export function stateOf(
 export const lastPulled = (i: Pick<Summary, 'last_pull_at'>, now: number): string =>
   i.last_pull_at ? formatPast(i.last_pull_at, now) : 'never';
 
-/** Whole days since a date, for "unused {n} days". */
-export const daysSince = (iso: string | undefined, now: number): number | undefined =>
-  iso ? Math.max(0, Math.floor((now - Date.parse(iso)) / DAY)) : undefined;
-
-/** One line of a recommendation, in plain words (UX-73). */
-export function recommendationTitle(
-  r: Recommendation,
-  byId: (id: string | undefined) => Summary | undefined,
-): string {
-  const img = byId(r.image_id);
+/** One line of a recommendation, in plain words (UX-73). The server names the image in `r.image`. */
+export function recommendationTitle(r: Recommendation): string {
+  const img = r.image;
   const name = img ? `${imageName(img)} ${shortKey(img.key)}` : 'An image';
   switch (r.rule) {
     case 'replace':
@@ -104,11 +96,14 @@ const NEXT_LABEL: Record<Recommendation['rule'], string> = {
 /** The next step of the Registry tab: the first recommendation that waits for the owner (UX-4). */
 export function registryNext(
   recs: readonly Recommendation[],
-  title: (r: Recommendation) => string,
 ): { label: string; reason: string; to: string } | undefined {
   const first = recs.find((r) => r.decider === 'owner');
   return first
-    ? { label: NEXT_LABEL[first.rule], reason: title(first), to: recommendationTo(first) }
+    ? {
+        label: NEXT_LABEL[first.rule],
+        reason: recommendationTitle(first),
+        to: recommendationTo(first),
+      }
     : undefined;
 }
 
