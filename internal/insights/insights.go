@@ -16,7 +16,14 @@ package insights
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"time"
+)
+
+// ErrNotFound and ErrResolved are what Dismiss returns for an unknown and for a resolved finding.
+var (
+	ErrNotFound = errors.New("no such finding")
+	ErrResolved = errors.New("the finding is resolved")
 )
 
 // Kind is the kind of a finding (spec section 7, Kinds and minutes).
@@ -115,6 +122,22 @@ type StoredFinding struct {
 	FirstSeen  time.Time
 	LastSeen   time.Time
 	ResolvedAt time.Time // zero while open
+	// DismissedUntil is when a dismissed finding shows again (D17); zero when it was never dismissed or the
+	// time has passed.
+	DismissedUntil time.Time
+}
+
+// DismissFor is how long a dismissed finding stays hidden: 7 days, then it comes back if it is still true
+// (owner decision D17). The engine keeps refreshing a hidden finding and resolves it when its condition ends,
+// so "still true" needs nothing more.
+const DismissFor = 7 * 24 * time.Hour
+
+// Dismisser hides one open finding for DismissFor. It is separate from FindingStore on purpose: no store
+// method closes or deletes a finding; only a full successful pass resolves one (R5.8).
+type Dismisser interface {
+	// Dismiss hides the finding until now + DismissFor and returns that time. ErrNotFound when no such finding,
+	// ErrResolved when it is resolved already.
+	Dismiss(ctx context.Context, id int64, now time.Time) (until time.Time, err error)
 }
 
 // Window is the half-open time range [From, To) an analyser pass reads, in UTC.

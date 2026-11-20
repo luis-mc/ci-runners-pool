@@ -256,6 +256,7 @@ type InsightFinding struct {
 	FirstSeen        string
 	LastSeen         string
 	ResolvedAt       string
+	HiddenUntil      string
 }
 
 type InsightPlan struct {

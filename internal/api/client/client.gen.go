@@ -4658,6 +4658,9 @@ type InsightFinding struct {
 	// Area ci-run-insights section 7. The screen area a finding belongs to.
 	Area InsightArea `json:"area"`
 
+	// DismissedUntil Set while the finding is hidden (owner decision D17); it shows again at this time if it is still true.
+	DismissedUntil *time.Time `json:"dismissed_until,omitempty"`
+
 	// Evidence The numbers the finding page shows; its keys depend on the kind.
 	Evidence  map[string]interface{} `json:"evidence"`
 	FirstSeen time.Time              `json:"first_seen"`
@@ -8709,6 +8712,13 @@ type ClientInterface interface {
 	// Corresponds with GET /api/v1/insights/findings/{findingId} (the `GetInsightFinding` operationId).
 	GetInsightFinding(ctx context.Context, findingId FindingId, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// DismissInsightFinding Hide a finding for 7 days
+	//
+	// ci-run-insights R5.8 (owner decision D17). The finding leaves the Do next list and the counts for 7 days and comes back if it is still true. It is never deleted or closed by this call. 404 when there is no such finding, 409 when it is resolved.
+	//
+	// Corresponds with POST /api/v1/insights/findings/{findingId}/dismiss (the `DismissInsightFinding` operationId).
+	DismissInsightFinding(ctx context.Context, findingId FindingId, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// CreateInsightPlan Make the plan of a setup change (nothing changes yet)
 	//
 	// ci-run-insights R5.10 (CIX). The plan is the Review step's data. 409 conflict when the finding has no action or is resolved.
@@ -11005,6 +11015,23 @@ func (c *Client) ListInsightFindings(ctx context.Context, params *ListInsightFin
 // Corresponds with GET /api/v1/insights/findings/{findingId} (the `GetInsightFinding` operationId).
 func (c *Client) GetInsightFinding(ctx context.Context, findingId FindingId, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetInsightFindingRequest(c.Server, findingId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// DismissInsightFinding Hide a finding for 7 days
+//
+// ci-run-insights R5.8 (owner decision D17). The finding leaves the Do next list and the counts for 7 days and comes back if it is still true. It is never deleted or closed by this call. 404 when there is no such finding, 409 when it is resolved.
+//
+// Corresponds with POST /api/v1/insights/findings/{findingId}/dismiss (the `DismissInsightFinding` operationId).
+func (c *Client) DismissInsightFinding(ctx context.Context, findingId FindingId, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDismissInsightFindingRequest(c.Server, findingId)
 	if err != nil {
 		return nil, err
 	}
@@ -16469,6 +16496,40 @@ func NewGetInsightFindingRequest(server string, findingId FindingId) (*http.Requ
 	}
 
 	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewDismissInsightFindingRequest constructs an http.Request for the DismissInsightFinding method
+func NewDismissInsightFindingRequest(server string, findingId FindingId) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "findingId", findingId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "integer", Format: "int64"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/insights/findings/%s/dismiss", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -22990,6 +23051,15 @@ type ClientWithResponsesInterface interface {
 	// Corresponds with GET /api/v1/insights/findings/{findingId} (the `GetInsightFinding` operationId).
 	GetInsightFindingWithResponse(ctx context.Context, findingId FindingId, reqEditors ...RequestEditorFn) (*GetInsightFindingResponse, error)
 
+	// DismissInsightFindingWithResponse Hide a finding for 7 days
+	//
+	// ci-run-insights R5.8 (owner decision D17). The finding leaves the Do next list and the counts for 7 days and comes back if it is still true. It is never deleted or closed by this call. 404 when there is no such finding, 409 when it is resolved.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /api/v1/insights/findings/{findingId}/dismiss (the `DismissInsightFinding` operationId).
+	DismissInsightFindingWithResponse(ctx context.Context, findingId FindingId, reqEditors ...RequestEditorFn) (*DismissInsightFindingResponse, error)
+
 	// CreateInsightPlanWithResponse Make the plan of a setup change (nothing changes yet)
 	//
 	// ci-run-insights R5.10 (CIX). The plan is the Review step's data. 409 conflict when the finding has no action or is resolved.
@@ -26809,6 +26879,54 @@ func (r GetInsightFindingResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r GetInsightFindingResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type DismissInsightFindingResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *InsightFinding
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r DismissInsightFindingResponse) GetJSON200() *InsightFinding {
+	return r.JSON200
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r DismissInsightFindingResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r DismissInsightFindingResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r DismissInsightFindingResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r DismissInsightFindingResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r DismissInsightFindingResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -33890,6 +34008,21 @@ func (c *ClientWithResponses) GetInsightFindingWithResponse(ctx context.Context,
 	return ParseGetInsightFindingResponse(rsp)
 }
 
+// DismissInsightFindingWithResponse Hide a finding for 7 days
+//
+// ci-run-insights R5.8 (owner decision D17). The finding leaves the Do next list and the counts for 7 days and comes back if it is still true. It is never deleted or closed by this call. 404 when there is no such finding, 409 when it is resolved.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /api/v1/insights/findings/{findingId}/dismiss (the `DismissInsightFinding` operationId).
+func (c *ClientWithResponses) DismissInsightFindingWithResponse(ctx context.Context, findingId FindingId, reqEditors ...RequestEditorFn) (*DismissInsightFindingResponse, error) {
+	rsp, err := c.DismissInsightFinding(ctx, findingId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseDismissInsightFindingResponse(rsp)
+}
+
 // CreateInsightPlanWithResponse Make the plan of a setup change (nothing changes yet)
 //
 // ci-run-insights R5.10 (CIX). The plan is the Review step's data. 409 conflict when the finding has no action or is resolved.
@@ -38047,6 +38180,39 @@ func ParseGetInsightFindingResponse(rsp *http.Response) (*GetInsightFindingRespo
 	}
 
 	response := &GetInsightFindingResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest InsightFinding
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseDismissInsightFindingResponse parses an HTTP response from a DismissInsightFindingWithResponse call
+func ParseDismissInsightFindingResponse(rsp *http.Response) (*DismissInsightFindingResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &DismissInsightFindingResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}

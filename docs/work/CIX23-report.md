@@ -10,7 +10,7 @@ Branch `CIX23-insights-follow-ups`, base `origin/CRSP208-release-48`.
 | 2 Digest Monday 08:00 Europe/Lisbon, draft file, tray link | D18 | done in code (digest.Location, tray item Open weekly digest, trayBackend.Digest); digest writer start in startInsights still to wire in step 3 |
 | 3 Engine: re-analyse on job completed, pass meter, cost finding, update period | D18, D19 | done in code: Trigger, Period, ProcessMeter, KindCost; ingest OnJobCompleted; cmd/crsp bridge, digest start, newInsightsEngine |
 | 4 Settings: update period | D19 | Go, openapi and TS types done; Settings screen section todo |
-| 5 Dismiss, back after 7 days | D17 | todo |
+| 5 Dismiss, back after 7 days | D17 | Go done: migration 00031 `hidden_until`, `insights.Dismisser`, store, `POST /insights/findings/{id}/dismiss` (admin), tests; Finding page button todo |
 | 6 Spec, change note, content, tiers, docs_check | all | todo |
 
 ## Log

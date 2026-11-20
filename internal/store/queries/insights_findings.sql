@@ -1,6 +1,6 @@
 -- CI run insights findings, analyser runs, plans and digests (CIX8 contract, docs/features/ci-run-insights
 -- R5.7 to R5.11, R5.38). The engine (internal/insights) upserts open findings and resolves the ones a full,
--- successful window no longer reports. There is no dismiss query (R5.8).
+-- successful window no longer reports. A finding is dismissed for 7 days at most (D17, hidden_until).
 
 -- name: GetOpenInsightFinding :one
 SELECT * FROM insight_findings
@@ -25,7 +25,7 @@ SELECT * FROM insight_findings WHERE id = ?;
 
 -- name: ListOpenInsightFindings :many
 SELECT * FROM insight_findings
-WHERE resolved_at = ''
+WHERE resolved_at = '' AND hidden_until <= sqlc.arg(now)
   AND (sqlc.arg(repository_id) = 0 OR repository_id = sqlc.arg(repository_id))
   AND (sqlc.arg(area) = '' OR area = sqlc.arg(area))
   AND (sqlc.arg(guardrail) = '' OR guardrail = sqlc.arg(guardrail))
@@ -36,7 +36,7 @@ LIMIT sqlc.arg(lim) OFFSET sqlc.arg(off);
 
 -- name: CountOpenInsightFindings :one
 SELECT COUNT(*) AS findings, CAST(COALESCE(SUM(minutes_saved_week), 0) AS INTEGER) AS minutes
-FROM insight_findings WHERE resolved_at = '';
+FROM insight_findings WHERE resolved_at = '' AND hidden_until <= sqlc.arg(now);
 
 -- name: DeleteResolvedInsightFindingsBefore :execrows
 DELETE FROM insight_findings WHERE resolved_at != '' AND resolved_at < ?;
@@ -72,7 +72,11 @@ SELECT * FROM insight_digests ORDER BY week DESC LIMIT ?;
 -- name: DeleteInsightDigest :exec
 DELETE FROM insight_digests WHERE week = ?;
 
--- CIX11 additions (engine, Do next list, digest). Still no dismiss query (R5.8).
+-- CIX23 (D17): hide one open finding until a time; it shows again after that.
+-- name: DismissInsightFinding :execrows
+UPDATE insight_findings SET hidden_until = sqlc.arg(hidden_until) WHERE id = sqlc.arg(id) AND resolved_at = '';
+
+-- CIX11 additions (engine, Do next list, digest).
 
 -- name: ListResolvedInsightFindings :many
 SELECT * FROM insight_findings
@@ -85,7 +89,7 @@ LIMIT sqlc.arg(lim) OFFSET sqlc.arg(off);
 
 -- name: CountOpenInsightFindingsFiltered :one
 SELECT COUNT(*) FROM insight_findings
-WHERE resolved_at = ''
+WHERE resolved_at = '' AND hidden_until <= sqlc.arg(now)
   AND (sqlc.arg(repository_id) = 0 OR repository_id = sqlc.arg(repository_id))
   AND (sqlc.arg(area) = '' OR area = sqlc.arg(area))
   AND (sqlc.arg(guardrail) = '' OR guardrail = sqlc.arg(guardrail));

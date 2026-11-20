@@ -4274,6 +4274,27 @@ paths:
                 $ref: '#/components/schemas/InsightFinding'
         default:
           $ref: '#/components/responses/Error'
+  /api/v1/insights/findings/{findingId}/dismiss:
+    post:
+      operationId: dismissInsightFinding
+      x-cli: none
+      x-cli-reason: 'Later: the insights commands come in their own task (cli open question 7).'
+      tags: [insights]
+      summary: Hide a finding for 7 days
+      description: ci-run-insights R5.8 (owner decision D17). The finding leaves the Do next list and the counts for 7 days and comes back if it is still true. It is never deleted or closed by this call. 404 when there is no such finding, 409 when it is resolved.
+      x-auth: admin
+      x-rate-limit: 60/minute/user
+      parameters:
+        - $ref: '#/components/parameters/FindingId'
+      responses:
+        '200':
+          description: The finding, with when it shows again.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InsightFinding'
+        default:
+          $ref: '#/components/responses/Error'
   /api/v1/insights/findings/{findingId}/plans:
     post:
       operationId: createInsightPlan
@@ -10084,6 +10105,10 @@ components:
         first_seen: { type: string, format: date-time }
         last_seen: { type: string, format: date-time }
         resolved_at: { type: string, format: date-time }
+        dismissed_until:
+          type: string
+          format: date-time
+          description: Set while the finding is hidden (owner decision D17); it shows again at this time if it is still true.
     InsightFindingList:
       type: object
       required: [items, total]

@@ -49,7 +49,7 @@ func findingFromRow(r sqlcgen.InsightFinding) insights.StoredFinding {
 			Guardrail: insights.Guardrail(r.Guardrail), Action: insights.ActionKind(r.ActionKind),
 		},
 		ID: r.ID, FirstSeen: parseTime(r.FirstSeen), LastSeen: parseTime(r.LastSeen),
-		ResolvedAt: parseTimeOpt(r.ResolvedAt),
+		ResolvedAt: parseTimeOpt(r.ResolvedAt), DismissedUntil: parseTimeOpt(r.HiddenUntil),
 	}
 }
 
@@ -150,10 +150,10 @@ func (f *InsightFindings) List(ctx context.Context, fl insights.Filter) ([]insig
 		}
 	} else {
 		total, err = f.s.q.CountOpenInsightFindingsFiltered(ctx, sqlcgen.CountOpenInsightFindingsFilteredParams{
-			RepositoryID: fl.RepositoryID, Area: string(fl.Area), Guardrail: string(fl.Guardrail)})
+			RepositoryID: fl.RepositoryID, Area: string(fl.Area), Guardrail: string(fl.Guardrail), Now: fmtTime(time.Now())})
 		if err == nil {
 			rows, err = f.s.q.ListOpenInsightFindings(ctx, sqlcgen.ListOpenInsightFindingsParams{
-				RepositoryID: fl.RepositoryID, Area: string(fl.Area), Guardrail: string(fl.Guardrail), Lim: int64(limit), Off: int64(off)})
+				RepositoryID: fl.RepositoryID, Area: string(fl.Area), Guardrail: string(fl.Guardrail), Now: fmtTime(time.Now()), Lim: int64(limit), Off: int64(off)})
 		}
 	}
 	if err != nil {
@@ -186,7 +186,7 @@ func (f *InsightFindings) Get(ctx context.Context, id int64) (insights.StoredFin
 func (f *InsightFindings) Summary(ctx context.Context) (insights.Summary, error) {
 	ctx, cancel := withDeadline(ctx)
 	defer cancel()
-	c, err := f.s.q.CountOpenInsightFindings(ctx)
+	c, err := f.s.q.CountOpenInsightFindings(ctx, fmtTime(time.Now()))
 	if err != nil {
 		return insights.Summary{}, fmt.Errorf("insight summary: %w", err)
 	}
@@ -196,6 +196,32 @@ func (f *InsightFindings) Summary(ctx context.Context) (insights.Summary, error)
 		return insights.Summary{}, fmt.Errorf("insight summary jobs: %w", err)
 	}
 	return insights.Summary{Open: int(c.Findings), MinutesSavedWeek: int(c.Minutes), EnoughData: done >= minEnoughJobs}, nil
+}
+
+var _ insights.Dismisser = (*InsightFindings)(nil)
+
+// Dismiss hides one open finding until now + 7 days (D17). Sync keeps refreshing it, so it comes back after the
+// time if its condition still holds, and is resolved as usual if it does not.
+func (f *InsightFindings) Dismiss(ctx context.Context, id int64, now time.Time) (time.Time, error) {
+	ctx, cancel := withDeadline(ctx)
+	defer cancel()
+	until := now.UTC().Add(insights.DismissFor)
+	n, err := f.s.q.DismissInsightFinding(ctx, sqlcgen.DismissInsightFindingParams{HiddenUntil: fmtTime(until), ID: id})
+	if err != nil {
+		return time.Time{}, fmt.Errorf("dismiss insight finding %d: %w", id, err)
+	}
+	if n == 0 {
+		r, err := f.s.q.GetInsightFinding(ctx, id)
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			return time.Time{}, insights.ErrNotFound
+		case err != nil:
+			return time.Time{}, fmt.Errorf("dismiss insight finding %d: %w", id, err)
+		case r.ResolvedAt != "":
+			return time.Time{}, insights.ErrResolved
+		}
+	}
+	return until, nil
 }
 
 // Begin records the start of an analyser pass.
@@ -251,7 +277,7 @@ func (d *InsightDigest) Open(ctx context.Context) ([]insights.StoredFinding, err
 	ctx, cancel := withDeadline(ctx)
 	defer cancel()
 	rows, err := d.s.q.ListOpenInsightFindings(ctx, sqlcgen.ListOpenInsightFindingsParams{
-		RepositoryID: int64(0), Area: "", Guardrail: "", Lim: int64(-1), Off: int64(0)})
+		RepositoryID: int64(0), Area: "", Guardrail: "", Now: fmtTime(time.Now()), Lim: int64(-1), Off: int64(0)})
 	if err != nil {
 		return nil, fmt.Errorf("digest open findings: %w", err)
 	}
