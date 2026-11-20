@@ -49,20 +49,20 @@ export const HP_CSS = `
 @media (max-width:600px){.hp-anchor{position:static}.hp-anchor .ds-popover{position:fixed;inset-inline:0;inset-block-end:0;inline-size:auto;box-sizing:border-box;border-radius:var(--ds-radius-3) var(--ds-radius-3) 0 0;box-shadow:var(--ds-shadow-3)}.hp-cols{grid-template-columns:1fr}.hp-cols .hp-arrow{transform:rotate(90deg);block-size:2.4rem}}
 `;
 
-const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
-const header = (lead) =>
+export const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+export const header = (lead) =>
   `<header class="ds-page-header"><div class="ds-page-header__text"><h1 class="ds-h1">Help</h1><p class="ds-page-header__lead">${esc(lead)}</p></div></header>`;
-const pane = (title, body, { hint = '', level = 2, id = '' } = {}) =>
+export const pane = (title, body, { hint = '', level = 2, id = '' } = {}) =>
   `<section class="ds-pane" aria-label="${esc(title)}"${id ? ` id="${id}"` : ''}><h${level} class="ds-pane__title"><span class="ds-clamp" title="${esc(title)}">${esc(title)}</span></h${level}><div class="ds-pane__body">${hint ? `<p class="hp-note">${esc(hint)}</p>` : ''}${body}</div></section>`;
 const chips = (ids) => `<span class="hp-rel">${ids.map((i) => `<a class="ds-link" href="#t-${i}" data-term="${i}">${esc(nm(i))}</a>`).join(' · ')}</span>`;
-const tag = (s) => `<span class="ds-tag">${esc(s)}</span>`;
-const page = (lead, ...parts) => `<div class="ds-page" data-frame="wide" data-layout-group="true">${header(lead)}${parts.join('')}</div>`;
+export const tag = (s) => `<span class="ds-tag">${esc(s)}</span>`;
+export const page = (lead, ...parts) => `<div class="ds-page" data-frame="wide" data-layout-group="true">${header(lead)}${parts.join('')}</div>`;
 
 // ---------- mini pictures (inline SVG, tokens only) ----------
 const arrowDefs = ``;
 const arrowH = (x1, y, x2) => `<path class="a" d="M${x1} ${y}H${x2 - 8}"/><path class="ah" d="M${x2} ${y}l-9 -6v12z"/>`;
 const arrowV = (x, y1, y2) => `<path class="a" d="M${x} ${y1}V${y2 - 8}"/><path class="ah" d="M${x} ${y2}l-6 -9h12z"/>`;
-const svg = (vb, body, label, cls = '') => `<svg class="hp-svg ${cls}" viewBox="${vb}" role="img" aria-label="${esc(label)}">${body}</svg>`;
+export const svg = (vb, body, label, cls = '') => `<svg class="hp-svg ${cls}" viewBox="${vb}" role="img" aria-label="${esc(label)}">${body}</svg>`;
 
 /** The job path: Repository to Machine. Wide for desktop, tall for a phone. Boxes are links when `links` is set. */
 const CHAIN = [
