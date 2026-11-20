@@ -24,3 +24,5 @@ Branch `OPS52-pool-findings` (base RELEASE-48). Six items, each with a spec requ
 - `luismc-docs` scripts (`docs_fold.py`, `docs_check.py`) are not on this machine: change notes were written by hand in the same file format (`docs/features/<f>/changes/OPS52.md`), and `docs_check.py` was not run. The change-notes guard passes.
 - The sandbox had no gitleaks and a golangci-lint built with Go 1.25; I installed gitleaks v8.21.2 and golangci-lint v2.15.0 with Go 1.27.4 to run the hooks. No hook was skipped.
 - Merge note for RELEASE-48: `MachineDockerDisk.tsx` gets one line (`<CompactNow />`) and `content.md` a few rows in Docker disk words, near where OPS51 edits quiet hours.
+
+CODE DONE 8a28f0985a
