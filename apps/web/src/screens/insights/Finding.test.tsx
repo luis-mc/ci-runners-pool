@@ -15,13 +15,10 @@ describe('Finding page', () => {
     expect(screen.queryByRole('button', { name: /dismiss/i })).toBeNull();
   });
 
-  it('shows the snippet and a GitHub button, no primary, for a repository fix', async () => {
+  it('shows the snippet and no change primary for a repository fix', async () => {
     renderApp(jobsApi(), '/jobs/insights/finding/2');
     await screen.findByLabelText('Workflow snippet');
     expect(screen.getByRole('button', { name: 'Copy' })).toBeTruthy();
-    expect(
-      screen.getByRole('button', { name: 'Open the workflow on GitHub' }),
-    ).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Review the change' })).toBeNull();
   });
 

@@ -5,7 +5,6 @@ import {
   ActionBar,
   Breadcrumbs,
   CodeBlock,
-  ExternalButton,
   Facts,
   LinkButton,
   Page,
@@ -91,10 +90,6 @@ export function FindingPage() {
                   <LinkButton to={changePath(f)} kind="primary">
                     Review the change
                   </LinkButton>
-                ) : f.repository ? (
-                  <ExternalButton href={`https://github.com/${f.repository}`}>
-                    Open the workflow on GitHub
-                  </ExternalButton>
                 ) : (
                   <LinkButton to="/jobs/insights">Back to Do next</LinkButton>
                 )
