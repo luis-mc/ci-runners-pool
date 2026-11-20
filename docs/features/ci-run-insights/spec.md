@@ -390,12 +390,12 @@ Every row is planned; the paths are where each test will live (wave CIX).
 | R5.12 | internal/insights/waits/split_test.go TestCrspSplit, TestOtherRunnerNoHold, TestUnknownNotZero |
 | R5.13 | internal/insights/waits/split_test.go TestGroupByRepositoryKeyDay |
 | R5.14 | internal/insights/waits/hold_test.go TestHoldOverCapWithReason |
-| R5.15 | planned: internal/insights/capacity/demand_test.go TestUtilisationAndArrivals |
-| R5.16 | planned: internal/insights/capacity/queue_test.go TestAllenCunneenKnownValues, TestSaturatedGivesMinimumSlots |
-| R5.17 | planned: internal/insights/capacity/advice_test.go TestPoolSizeWithinHeadroom, TestNoRoomNoAction |
-| R5.18 | planned: internal/insights/capacity/advice_test.go TestRepoLimitRaiseAndCap |
+| R5.15 | internal/insights/capacity/demand_test.go TestUtilisationAndArrivals |
+| R5.16 | internal/insights/capacity/queue_test.go TestAllenCunneenKnownValues, TestSaturatedGivesMinimumSlots |
+| R5.17 | internal/insights/capacity/advice_test.go TestPoolSizeWithinHeadroom, TestNoRoomNoAction |
+| R5.18 | internal/insights/capacity/advice_test.go TestRepoLimitRaiseAndCap |
 | R5.19 | planned: internal/agent/jobsample/sampler_test.go TestCgroupAndProcessTree, TestUnknownWithReason |
-| R5.20 | planned: internal/insights/capacity/resources_test.go TestSummaryAtJobEnd |
+| R5.20 | internal/insights/capacity/resources_test.go TestSummaryAtJobEnd, internal/store/insights_resources_test.go TestResourcesStoreSummaryAtEnd |
 | R5.21 | internal/insights/timeline/timeline_test.go TestLanesIdleAndAfterMerge |
 | R5.22 | internal/insights/timeline/idle_test.go TestIdleNextToQueueFinding |
 | R5.23 | planned: internal/insights/runs/savings_test.go TestTopThreeSavings |
