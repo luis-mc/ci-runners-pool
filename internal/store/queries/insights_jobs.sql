@@ -17,3 +17,21 @@ WHERE state IN ('queued', 'running') AND updated_at < ? AND (checked_at = '' OR 
 GROUP BY repository_id, repository, run_id, run_attempt
 ORDER BY oldest_update
 LIMIT ?;
+
+-- name: ListCompletedRunStaleJobRuns :many
+-- Run attempts GitHub reported completed that still have queued or running job rows (R5.41).
+SELECT j.repository_id, j.repository, j.run_id, j.run_attempt, CAST(MIN(j.updated_at) AS TEXT) AS oldest_update
+FROM jobs j
+JOIN runs r ON r.repository_id = j.repository_id AND r.run_id = j.run_id AND r.run_attempt = j.run_attempt
+WHERE j.state IN ('queued', 'running') AND r.completed_at != '' AND (j.checked_at = '' OR j.checked_at < ?)
+GROUP BY j.repository_id, j.repository, j.run_id, j.run_attempt
+ORDER BY oldest_update
+LIMIT ?;
+
+-- name: ListOpenJobIDsOfRun :many
+SELECT id FROM jobs
+WHERE repository_id = ? AND run_id = ? AND run_attempt = ? AND state IN ('queued', 'running')
+ORDER BY id;
+
+-- name: CountJobSteps :one
+SELECT COUNT(*) FROM job_steps WHERE job_id = ?;

@@ -42,6 +42,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.closeRegistryRecommendationStmt, err = db.PrepareContext(ctx, closeRegistryRecommendation); err != nil {
 		return nil, fmt.Errorf("error preparing query CloseRegistryRecommendation: %w", err)
 	}
+	if q.countJobStepsStmt, err = db.PrepareContext(ctx, countJobSteps); err != nil {
+		return nil, fmt.Errorf("error preparing query CountJobSteps: %w", err)
+	}
 	if q.countJobsByStateStmt, err = db.PrepareContext(ctx, countJobsByState); err != nil {
 		return nil, fmt.Errorf("error preparing query CountJobsByState: %w", err)
 	}
@@ -504,6 +507,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.listCliTokensStmt, err = db.PrepareContext(ctx, listCliTokens); err != nil {
 		return nil, fmt.Errorf("error preparing query ListCliTokens: %w", err)
 	}
+	if q.listCompletedRunStaleJobRunsStmt, err = db.PrepareContext(ctx, listCompletedRunStaleJobRuns); err != nil {
+		return nil, fmt.Errorf("error preparing query ListCompletedRunStaleJobRuns: %w", err)
+	}
 	if q.listDailySummariesStmt, err = db.PrepareContext(ctx, listDailySummaries); err != nil {
 		return nil, fmt.Errorf("error preparing query ListDailySummaries: %w", err)
 	}
@@ -596,6 +602,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	}
 	if q.listOpenInsightFindingsStmt, err = db.PrepareContext(ctx, listOpenInsightFindings); err != nil {
 		return nil, fmt.Errorf("error preparing query ListOpenInsightFindings: %w", err)
+	}
+	if q.listOpenJobIDsOfRunStmt, err = db.PrepareContext(ctx, listOpenJobIDsOfRun); err != nil {
+		return nil, fmt.Errorf("error preparing query ListOpenJobIDsOfRun: %w", err)
 	}
 	if q.listOpenRegistryRecommendationsStmt, err = db.PrepareContext(ctx, listOpenRegistryRecommendations); err != nil {
 		return nil, fmt.Errorf("error preparing query ListOpenRegistryRecommendations: %w", err)
@@ -1065,6 +1074,11 @@ func (q *Queries) Close() error {
 	if q.closeRegistryRecommendationStmt != nil {
 		if cerr := q.closeRegistryRecommendationStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing closeRegistryRecommendationStmt: %w", cerr)
+		}
+	}
+	if q.countJobStepsStmt != nil {
+		if cerr := q.countJobStepsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing countJobStepsStmt: %w", cerr)
 		}
 	}
 	if q.countJobsByStateStmt != nil {
@@ -1837,6 +1851,11 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing listCliTokensStmt: %w", cerr)
 		}
 	}
+	if q.listCompletedRunStaleJobRunsStmt != nil {
+		if cerr := q.listCompletedRunStaleJobRunsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listCompletedRunStaleJobRunsStmt: %w", cerr)
+		}
+	}
 	if q.listDailySummariesStmt != nil {
 		if cerr := q.listDailySummariesStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing listDailySummariesStmt: %w", cerr)
@@ -1990,6 +2009,11 @@ func (q *Queries) Close() error {
 	if q.listOpenInsightFindingsStmt != nil {
 		if cerr := q.listOpenInsightFindingsStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing listOpenInsightFindingsStmt: %w", cerr)
+		}
+	}
+	if q.listOpenJobIDsOfRunStmt != nil {
+		if cerr := q.listOpenJobIDsOfRunStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listOpenJobIDsOfRunStmt: %w", cerr)
 		}
 	}
 	if q.listOpenRegistryRecommendationsStmt != nil {
@@ -2762,6 +2786,7 @@ type Queries struct {
 	claimRegistryScanStmt                       *sql.Stmt
 	clearRepositoryProfileStmt                  *sql.Stmt
 	closeRegistryRecommendationStmt             *sql.Stmt
+	countJobStepsStmt                           *sql.Stmt
 	countJobsByStateStmt                        *sql.Stmt
 	countLiveRegistryTokenLeasesNamingStmt      *sql.Stmt
 	countMachineSlotsStmt                       *sql.Stmt
@@ -2916,6 +2941,7 @@ type Queries struct {
 	listCIJobLogsOldestFirstStmt                *sql.Stmt
 	listCIReportFilesForRunStmt                 *sql.Stmt
 	listCliTokensStmt                           *sql.Stmt
+	listCompletedRunStaleJobRunsStmt            *sql.Stmt
 	listDailySummariesStmt                      *sql.Stmt
 	listDanglingRegistryLayersStmt              *sql.Stmt
 	listExpiredCIJobLogsStmt                    *sql.Stmt
@@ -2947,6 +2973,7 @@ type Queries struct {
 	listOldStagedRegistryImagesStmt             *sql.Stmt
 	listOpenGitHubJobsStmt                      *sql.Stmt
 	listOpenInsightFindingsStmt                 *sql.Stmt
+	listOpenJobIDsOfRunStmt                     *sql.Stmt
 	listOpenRegistryRecommendationsStmt         *sql.Stmt
 	listPoolRepositoriesStmt                    *sql.Stmt
 	listQueuedRegistryScansStmt                 *sql.Stmt
@@ -3104,6 +3131,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		claimRegistryScanStmt:                       q.claimRegistryScanStmt,
 		clearRepositoryProfileStmt:                  q.clearRepositoryProfileStmt,
 		closeRegistryRecommendationStmt:             q.closeRegistryRecommendationStmt,
+		countJobStepsStmt:                           q.countJobStepsStmt,
 		countJobsByStateStmt:                        q.countJobsByStateStmt,
 		countLiveRegistryTokenLeasesNamingStmt:      q.countLiveRegistryTokenLeasesNamingStmt,
 		countMachineSlotsStmt:                       q.countMachineSlotsStmt,
@@ -3258,6 +3286,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		listCIJobLogsOldestFirstStmt:                q.listCIJobLogsOldestFirstStmt,
 		listCIReportFilesForRunStmt:                 q.listCIReportFilesForRunStmt,
 		listCliTokensStmt:                           q.listCliTokensStmt,
+		listCompletedRunStaleJobRunsStmt:            q.listCompletedRunStaleJobRunsStmt,
 		listDailySummariesStmt:                      q.listDailySummariesStmt,
 		listDanglingRegistryLayersStmt:              q.listDanglingRegistryLayersStmt,
 		listExpiredCIJobLogsStmt:                    q.listExpiredCIJobLogsStmt,
@@ -3289,6 +3318,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		listOldStagedRegistryImagesStmt:             q.listOldStagedRegistryImagesStmt,
 		listOpenGitHubJobsStmt:                      q.listOpenGitHubJobsStmt,
 		listOpenInsightFindingsStmt:                 q.listOpenInsightFindingsStmt,
+		listOpenJobIDsOfRunStmt:                     q.listOpenJobIDsOfRunStmt,
 		listOpenRegistryRecommendationsStmt:         q.listOpenRegistryRecommendationsStmt,
 		listPoolRepositoriesStmt:                    q.listPoolRepositoriesStmt,
 		listQueuedRegistryScansStmt:                 q.listQueuedRegistryScansStmt,
