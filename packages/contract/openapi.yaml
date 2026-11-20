@@ -44,6 +44,8 @@ tags:
     description: Images and tool layers (runners R5.32 to R5.35, web-console R5.25)
   - name: caches
     description: Caches per machine (caches R5.8 to R5.14, web-console R5.25)
+  - name: registry
+    description: The pool's private image registry, its budgets, replace and mirror (registry R5.1 to R5.80)
   - name: notifications
     description: Notification channels (notifications R5.7 to R5.9)
   - name: update
@@ -3564,6 +3566,476 @@ paths:
         default:
           $ref: '#/components/responses/Error'
 
+  # ---------------------------------------------------------------- image registry (REG10 contract)
+  # docs/features/registry. GET /api/v1/registry and /api/v1/registry/logins and /ca-bundle are the
+  # older registry logins (RES4, RES5); the pool's own registry lives under the paths below.
+  /api/v1/registry/overview:
+    get:
+      operationId: getRegistryOverview
+      x-cli: none
+      x-cli-reason: 'Later: the registry commands come in their own task (cli open question 7).'
+      tags: [registry]
+      summary: Where the registry runs, budgets, the last 7 days and the recommendations
+      description: registry R5.33, R5.43 (REG4 reads, REG6 recommendations).
+      x-auth: user
+      x-rate-limit: 600/minute/user
+      responses:
+        '200':
+          description: The overview.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegistryOverview'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/registry/images:
+    get:
+      operationId: listRegistryImages
+      x-cli: none
+      x-cli-reason: 'Later: the registry commands come in their own task (cli open question 7).'
+      tags: [registry]
+      summary: Images in the registry, newest first
+      description: registry R5.34 (REG4). Deleted images are not listed.
+      x-auth: user
+      x-rate-limit: 600/minute/user
+      parameters:
+        - name: kind
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/RegistryImageKind'
+        - name: state
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/RegistryImageState'
+        - name: repository
+          in: query
+          required: false
+          description: owner/name; images it points to or that were built for it.
+          schema:
+            type: string
+        - name: arch
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/RegistryArch'
+        - name: profile
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The images.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegistryImageList'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/registry/images/{registryImageId}:
+    get:
+      operationId: getRegistryImage
+      x-cli: none
+      x-cli-reason: 'Later: the registry commands come in their own task (cli open question 7).'
+      tags: [registry]
+      summary: One image with lineage, layers, pulls by day, machines, pointers and scan
+      description: registry R5.35 (REG4; scan by REG8).
+      x-auth: user
+      x-rate-limit: 600/minute/user
+      parameters:
+        - $ref: '#/components/parameters/RegistryImageId'
+      responses:
+        '200':
+          description: The image.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegistryImage'
+        default:
+          $ref: '#/components/responses/Error'
+    delete:
+      operationId: deleteRegistryImage
+      x-cli: none
+      x-cli-reason: 'Later: the registry commands come in their own task (cli open question 7).'
+      tags: [registry]
+      summary: Delete one image's manifest
+      description: >-
+        registry R5.46 (REG6). Without `confirm=true` it answers 409
+        needs_confirmation naming the running jobs that use it, the repositories
+        that point to it and whether it is inside its rollback days; the question
+        card lists them. An image a running job uses is refused even with
+        confirm (409 conflict). Blobs wait for the cleanup.
+      x-auth: admin
+      x-rate-limit: 10/minute/user
+      parameters:
+        - $ref: '#/components/parameters/RegistryImageId'
+        - $ref: '#/components/parameters/Confirm'
+      responses:
+        '202':
+          description: The manifest is deleted; bytes are freed at the next cleanup.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegistryImage'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/registry/images/{registryImageId}/compare:
+    get:
+      operationId: compareRegistryImage
+      x-cli: none
+      x-cli-reason: 'Later: the registry commands come in their own task (cli open question 7).'
+      tags: [registry]
+      summary: The image against the one it would replace
+      description: registry R5.53 (REG7). 404 when the image updates nothing.
+      x-auth: user
+      x-rate-limit: 120/minute/user
+      parameters:
+        - $ref: '#/components/parameters/RegistryImageId'
+      responses:
+        '200':
+          description: The comparison.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegistryCompare'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/registry/budgets:
+    get:
+      operationId: getRegistryBudgets
+      x-cli: none
+      x-cli-reason: 'Later: the registry commands come in their own task (cli open question 7).'
+      tags: [registry]
+      summary: Budgets of standard and custom images with their use and the free disk
+      description: registry R5.41 (REG6).
+      x-auth: user
+      x-rate-limit: 120/minute/user
+      responses:
+        '200':
+          description: The budgets.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegistryBudgets'
+        default:
+          $ref: '#/components/responses/Error'
+    put:
+      operationId: putRegistryBudgets
+      x-cli: none
+      x-cli-reason: 'Later: the registry commands come in their own task (cli open question 7).'
+      tags: [registry]
+      summary: Set the two budgets
+      description: >-
+        registry R5.41 (REG6). 400 bad_request when the sum is above half the
+        free disk of the registry folder's volume; the detail names the most it may be.
+      x-auth: admin
+      x-rate-limit: 30/minute/user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegistryBudgetsInput'
+      responses:
+        '200':
+          description: The budgets now.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegistryBudgets'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/registry/settings:
+    get:
+      operationId: getRegistryStoreSettings
+      x-cli: none
+      x-cli-reason: 'Later: the registry commands come in their own task (cli open question 7).'
+      tags: [registry]
+      summary: Folder, days and cleanup time of the registry
+      description: registry R5.42 (REG6). Not the registry logins of getRegistrySettings.
+      x-auth: user
+      x-rate-limit: 120/minute/user
+      responses:
+        '200':
+          description: The settings.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegistryStoreSettings'
+        default:
+          $ref: '#/components/responses/Error'
+    put:
+      operationId: putRegistryStoreSettings
+      x-cli: none
+      x-cli-reason: 'Later: the registry commands come in their own task (cli open question 7).'
+      tags: [registry]
+      summary: Change the folder, the days or the cleanup time
+      description: >-
+        registry R5.42 (REG6). A new folder is used after the blobs are moved;
+        the answer says so. Which rules crsp may act on alone is fixed (owner
+        decision) and not part of the input.
+      x-auth: admin
+      x-rate-limit: 30/minute/user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegistryStoreSettingsInput'
+      responses:
+        '200':
+          description: The settings now.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegistryStoreSettings'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/registry/cleanup:
+    post:
+      operationId: startRegistryCleanup
+      x-cli: none
+      x-cli-reason: 'Later: the registry commands come in their own task (cli open question 7).'
+      tags: [registry]
+      summary: Clean up now (read-only window, then garbage collection)
+      description: registry R5.48 (REG6). 409 conflict when a cleanup runs.
+      x-auth: admin
+      x-rate-limit: 5/minute/user
+      responses:
+        '202':
+          description: The cleanup started.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegistryCleanup'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/registry/replace-plans:
+    post:
+      operationId: createRegistryReplacePlan
+      x-cli: none
+      x-cli-reason: 'Later: the registry commands come in their own task (cli open question 7).'
+      tags: [registry]
+      summary: Make a replace plan (nothing changes yet)
+      description: registry R5.54 (REG7). The plan is the Review step's data.
+      x-auth: admin
+      x-rate-limit: 30/minute/user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegistryReplacePlanInput'
+      responses:
+        '201':
+          description: The plan, in draft.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegistryReplacePlan'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/registry/replace-plans/{planId}:
+    get:
+      operationId: getRegistryReplacePlan
+      x-cli: none
+      x-cli-reason: 'Later: the registry commands come in their own task (cli open question 7).'
+      tags: [registry]
+      summary: One replace plan with its progress
+      description: registry R5.55 (REG7). The wizard reads this after a reload.
+      x-auth: user
+      x-rate-limit: 600/minute/user
+      parameters:
+        - $ref: '#/components/parameters/PlanId'
+      responses:
+        '200':
+          description: The plan.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegistryReplacePlan'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/registry/replace-plans/{planId}/start:
+    post:
+      operationId: startRegistryReplacePlan
+      x-cli: none
+      x-cli-reason: 'Later: the registry commands come in their own task (cli open question 7).'
+      tags: [registry]
+      summary: Replace (move the pointers, warm machines, keep the old image)
+      description: registry R5.55 (REG7). 409 conflict unless the plan is draft or stopped.
+      x-auth: admin
+      x-rate-limit: 10/minute/user
+      parameters:
+        - $ref: '#/components/parameters/PlanId'
+      responses:
+        '202':
+          description: Running.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegistryReplacePlan'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/registry/replace-plans/{planId}/stop:
+    post:
+      operationId: stopRegistryReplacePlan
+      x-cli: none
+      x-cli-reason: 'Later: the registry commands come in their own task (cli open question 7).'
+      tags: [registry]
+      summary: Stop a running replace after its current step
+      description: registry R5.55 (REG7). Pointers already moved stay moved; Rollback undoes them.
+      x-auth: admin
+      x-rate-limit: 10/minute/user
+      parameters:
+        - $ref: '#/components/parameters/PlanId'
+      responses:
+        '202':
+          description: Stopping.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegistryReplacePlan'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/registry/replace-plans/{planId}/rollback:
+    post:
+      operationId: rollbackRegistryReplacePlan
+      x-cli: none
+      x-cli-reason: 'Later: the registry commands come in their own task (cli open question 7).'
+      tags: [registry]
+      summary: Go back to the old image while it is kept
+      description: registry R5.56 (REG7). 409 conflict after keep_until.
+      x-auth: admin
+      x-rate-limit: 10/minute/user
+      parameters:
+        - $ref: '#/components/parameters/PlanId'
+      responses:
+        '202':
+          description: The pointers move back.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegistryReplacePlan'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/registry/mirror:
+    get:
+      operationId: getRegistryMirrorSettings
+      x-cli: none
+      x-cli-reason: 'Later: the registry commands come in their own task (cli open question 7).'
+      tags: [registry]
+      summary: The pull-through mirror of upstream bases
+      description: registry R5.63 to R5.67 (REG9).
+      x-auth: user
+      x-rate-limit: 120/minute/user
+      responses:
+        '200':
+          description: The mirror settings and use.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegistryMirrorSettings'
+        default:
+          $ref: '#/components/responses/Error'
+    put:
+      operationId: putRegistryMirrorSettings
+      x-cli: none
+      x-cli-reason: 'Later: the registry commands come in their own task (cli open question 7).'
+      tags: [registry]
+      summary: Turn the mirror on or off, its upstreams and budget
+      description: registry R5.63 to R5.67 (REG9).
+      x-auth: admin
+      x-rate-limit: 30/minute/user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegistryMirrorSettingsInput'
+      responses:
+        '200':
+          description: The mirror settings now.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegistryMirrorSettings'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/registry/builds:
+    get:
+      operationId: listImageBuilds
+      x-cli: none
+      x-cli-reason: 'Later: the registry commands come in their own task (cli open question 7).'
+      tags: [registry]
+      summary: Image builds, the running ones first, with their push state
+      description: registry R5.68 to R5.71 (IMG1; push state by REG2).
+      x-auth: user
+      x-rate-limit: 600/minute/user
+      parameters:
+        - name: machine_id
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The builds.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImageBuildList'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/registry/builds/{buildId}:
+    get:
+      operationId: getImageBuild
+      x-cli: none
+      x-cli-reason: 'Later: the registry commands come in their own task (cli open question 7).'
+      tags: [registry]
+      summary: One build with its steps and log tail
+      description: registry R5.69, R5.70 (IMG1).
+      x-auth: user
+      x-rate-limit: 600/minute/user
+      parameters:
+        - $ref: '#/components/parameters/BuildId'
+      responses:
+        '200':
+          description: The build.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImageBuild'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/registry/pulls:
+    get:
+      operationId: listRegistryPulls
+      x-cli: none
+      x-cli-reason: 'Later: the registry commands come in their own task (cli open question 7).'
+      tags: [registry]
+      summary: Pulls in progress and waiting for the controller
+      description: registry R5.36 (REG4 from REG2's reports). The Add runners pulling step reads it.
+      x-auth: user
+      x-rate-limit: 600/minute/user
+      parameters:
+        - name: machine_id
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The pulls.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegistryPullList'
+        default:
+          $ref: '#/components/responses/Error'
+
   # ---------------------------------------------------------------- notifications (CRSP32)
   /api/v1/notification-channels:
     get:
@@ -3920,6 +4392,19 @@ components:
         type: string
     ImageId:
       name: imageId
+      in: path
+      required: true
+      schema:
+        type: string
+    RegistryImageId:
+      name: registryImageId
+      in: path
+      required: true
+      description: An image id of the pool registry, img_<random>.
+      schema:
+        type: string
+    BuildId:
+      name: buildId
       in: path
       required: true
       schema:
@@ -7472,6 +7957,7 @@ components:
               plan.progress,
               change.progress,
               image.state,
+              image.build,
               cache.state,
               update.status,
             ]
@@ -7507,6 +7993,8 @@ components:
           $ref: '#/components/schemas/MachineChange'
         image:
           $ref: '#/components/schemas/Image'
+        image_build:
+          $ref: '#/components/schemas/ImageBuild'
         cache:
           $ref: '#/components/schemas/Cache'
         update:
@@ -8410,3 +8898,589 @@ components:
           format: date-time
 
     # ---------- updates (CRSP32)
+
+    # ---------- image registry (REG10 contract, docs/features/registry)
+    RegistryImageKind:
+      type: string
+      enum: [standard, custom]
+    RegistryImageState:
+      type: string
+      description: registry R5.29. staged and refused are shown only on the image page.
+      enum: [staged, refused, current, variant, superseded, deleted]
+    RegistryArch:
+      type: string
+      enum: [amd64, arm64]
+    RegistryScanState:
+      type: string
+      enum: [not_scanned, queued, scanning, done, failed]
+    RegistryDecider:
+      type: string
+      description: owner waits for a yes; crsp acts alone on due_at.
+      enum: [owner, crsp]
+    RegistryRule:
+      type: string
+      enum: [replace, superseded, variant, unused, over_budget, dangling, profile_removed]
+    RegistryOverview:
+      type: object
+      required: [where, budgets, last_7_days, recommendations, images, in_flight]
+      properties:
+        where:
+          $ref: '#/components/schemas/RegistryWhere'
+        budgets:
+          type: array
+          items: { $ref: '#/components/schemas/RegistryBudget' }
+        last_7_days:
+          $ref: '#/components/schemas/RegistryWeek'
+        recommendations:
+          type: array
+          description: Owner's-yes rules first, then crsp's by due date. None can be dismissed.
+          items: { $ref: '#/components/schemas/RegistryRecommendation' }
+        images:
+          type: object
+          required: [standard, custom]
+          properties:
+            standard: { type: integer }
+            custom: { type: integer }
+        in_flight:
+          type: object
+          required: [builds, pulls, pushes]
+          properties:
+            builds: { type: integer }
+            pulls: { type: integer }
+            pushes: { type: integer }
+        last_cleanup:
+          $ref: '#/components/schemas/RegistryCleanup'
+        next_cleanup_at:
+          type: string
+          format: date-time
+    RegistryWhere:
+      type: object
+      required: [host, folder, read_only, running]
+      properties:
+        host:
+          type: string
+          description: host:port on the controller's HTTPS listener (private LAN address only).
+        folder:
+          type: string
+        read_only:
+          type: boolean
+          description: True during the cleanup window; pulls keep working.
+        running:
+          type: boolean
+        why_not:
+          type: string
+          description: Why it is not running, in plain words.
+    RegistryWeek:
+      type: object
+      required: [pulls, builds_avoided, saved_seconds, bytes_pulled]
+      properties:
+        pulls: { type: integer }
+        builds_avoided: { type: integer }
+        saved_seconds: { type: number }
+        bytes_pulled: { type: integer, format: int64 }
+    RegistryBudget:
+      type: object
+      required: [kind, limit_bytes, used_bytes, shared_bytes, over]
+      properties:
+        kind:
+          $ref: '#/components/schemas/RegistryImageKind'
+        limit_bytes: { type: integer, format: int64 }
+        used_bytes: { type: integer, format: int64 }
+        shared_bytes:
+          type: integer
+          format: int64
+          description: Layers shared with the other kind, counted once against the oldest image's kind.
+        over: { type: boolean }
+    RegistryBudgets:
+      type: object
+      required: [standard, custom, free_disk_bytes, max_total_bytes]
+      properties:
+        standard:
+          $ref: '#/components/schemas/RegistryBudget'
+        custom:
+          $ref: '#/components/schemas/RegistryBudget'
+        free_disk_bytes: { type: integer, format: int64 }
+        max_total_bytes:
+          type: integer
+          format: int64
+          description: Half the free disk plus what the registry holds now; the two limits may not add up to more.
+    RegistryBudgetsInput:
+      type: object
+      required: [standard_bytes, custom_bytes]
+      properties:
+        standard_bytes: { type: integer, format: int64, minimum: 0 }
+        custom_bytes: { type: integer, format: int64, minimum: 0 }
+    RegistryRecommendation:
+      type: object
+      required: [id, rule, decider, frees_bytes, created_at]
+      properties:
+        id: { type: string }
+        rule:
+          $ref: '#/components/schemas/RegistryRule'
+        image_id: { type: string }
+        other_image_id:
+          type: string
+          description: For replace, the image the new one would replace.
+        kind:
+          $ref: '#/components/schemas/RegistryImageKind'
+        frees_bytes: { type: integer, format: int64 }
+        decider:
+          $ref: '#/components/schemas/RegistryDecider'
+        due_at:
+          type: string
+          format: date-time
+          description: When crsp acts alone, shown ahead. Absent when the owner decides.
+        created_at:
+          type: string
+          format: date-time
+    RegistryImageSummary:
+      type: object
+      required:
+        [
+          id,
+          kind,
+          name,
+          key,
+          profile,
+          arch,
+          state,
+          manifest_digest,
+          size_bytes,
+          unique_bytes,
+          pulls_7_days,
+          scan_state,
+          pushed_at,
+        ]
+      properties:
+        id: { type: string }
+        kind:
+          $ref: '#/components/schemas/RegistryImageKind'
+        name:
+          type: string
+          description: crsp/std/<profile> or crsp/custom/<owner>-<repo>/<profile>.
+        key:
+          type: string
+          description: The image key, 12 hex; lists show the first 6. It is also the tag.
+        profile: { type: string }
+        arch:
+          $ref: '#/components/schemas/RegistryArch'
+        state:
+          $ref: '#/components/schemas/RegistryImageState'
+        manifest_digest: { type: string }
+        source_repository: { type: string }
+        branch:
+          type: string
+          description: Empty for the default branch.
+        size_bytes: { type: integer, format: int64 }
+        unique_bytes: { type: integer, format: int64 }
+        pulls_7_days: { type: integer }
+        last_pull_at:
+          type: string
+          format: date-time
+        keep_until:
+          type: string
+          format: date-time
+        scan_state:
+          $ref: '#/components/schemas/RegistryScanState'
+        pushed_at:
+          type: string
+          format: date-time
+        update_found:
+          type: boolean
+          description: A newer image updates this one (an open replace recommendation).
+    RegistryImageList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/RegistryImageSummary' }
+    RegistryImage:
+      allOf:
+        - $ref: '#/components/schemas/RegistryImageSummary'
+        - type: object
+          required: [lineage, layers, pulls_by_day, machines, pointers]
+          properties:
+            stack_hash: { type: string }
+            base_name: { type: string }
+            base_digest: { type: string }
+            commit: { type: string }
+            pushed_by: { type: string, description: Machine id. }
+            promoted_at: { type: string, format: date-time }
+            replaces: { type: string }
+            replaced_by: { type: string }
+            lineage:
+              type: array
+              description: The images of the same repository, profile and arch, newest first.
+              items: { $ref: '#/components/schemas/RegistryLineageEntry' }
+            layers:
+              type: array
+              items: { $ref: '#/components/schemas/RegistryLayer' }
+            pulls_by_day:
+              type: array
+              description: 14 days, oldest first; every day present (0 when none).
+              items: { $ref: '#/components/schemas/RegistryPullDay' }
+            pulls_text:
+              type: string
+              description: The text form of the chart (UX-41).
+            saved_seconds: { type: number }
+            machines:
+              type: array
+              items: { $ref: '#/components/schemas/RegistryImageMachine' }
+            pointers:
+              type: array
+              items: { $ref: '#/components/schemas/RegistryPointer' }
+            scan:
+              $ref: '#/components/schemas/RegistryScan'
+            similar:
+              type: array
+              description: Images of the same profile and arch sharing over 60% of bytes. Information only; never offered for replace.
+              items:
+                type: object
+                required: [image_id, shared_percent]
+                properties:
+                  image_id: { type: string }
+                  shared_percent: { type: number }
+    RegistryLineageEntry:
+      type: object
+      required: [image_id, key, state, pushed_at]
+      properties:
+        image_id: { type: string }
+        key: { type: string }
+        state:
+          $ref: '#/components/schemas/RegistryImageState'
+        branch: { type: string }
+        pushed_at: { type: string, format: date-time }
+    RegistryLayer:
+      type: object
+      required: [digest, size_bytes, shared_with]
+      properties:
+        digest: { type: string }
+        size_bytes: { type: integer, format: int64 }
+        media_type: { type: string }
+        shared_with:
+          type: integer
+          description: How many other images hold this layer.
+    RegistryPullDay:
+      type: object
+      required: [day, pulls]
+      properties:
+        day: { type: string, format: date }
+        pulls: { type: integer }
+    RegistryImageMachine:
+      type: object
+      required: [machine_id, machine_name, holds]
+      properties:
+        machine_id: { type: string }
+        machine_name: { type: string }
+        holds:
+          type: boolean
+          description: The machine's engine has the image now (agent inventory).
+        last_used_at: { type: string, format: date-time }
+        in_use_by_runner:
+          type: boolean
+    RegistryPointer:
+      type: object
+      required: [repository, profile, arch, image_id, moved_at, moved_by]
+      properties:
+        repository: { type: string }
+        profile: { type: string }
+        arch:
+          $ref: '#/components/schemas/RegistryArch'
+        image_id: { type: string }
+        previous_image_id: { type: string }
+        moved_at: { type: string, format: date-time }
+        moved_by: { type: string }
+    RegistryScan:
+      type: object
+      required: [state]
+      properties:
+        state:
+          $ref: '#/components/schemas/RegistryScanState'
+        packages: { type: integer }
+        critical: { type: integer }
+        high: { type: integer }
+        medium: { type: integer }
+        low: { type: integer }
+        scanned_at: { type: string, format: date-time }
+        error: { type: string }
+    RegistryStackFileChange:
+      type: object
+      required: [path, change]
+      properties:
+        path: { type: string }
+        change:
+          type: string
+          enum: [added, removed, changed]
+        before_sha256: { type: string }
+        after_sha256: { type: string }
+    RegistryCompare:
+      type: object
+      required:
+        [
+          new,
+          old,
+          stack_files,
+          base_changed,
+          shared_bytes,
+          frees_bytes,
+          repositories,
+          keep_days_default,
+        ]
+      properties:
+        new:
+          $ref: '#/components/schemas/RegistryImageSummary'
+        old:
+          $ref: '#/components/schemas/RegistryImageSummary'
+        stack_files:
+          type: array
+          items: { $ref: '#/components/schemas/RegistryStackFileChange' }
+        base_changed: { type: boolean }
+        shared_bytes: { type: integer, format: int64 }
+        frees_bytes: { type: integer, format: int64 }
+        repositories:
+          type: array
+          description: Repositories whose pointer would move.
+          items: { type: string }
+        keep_days_default: { type: integer }
+    RegistryStoreSettings:
+      type: object
+      required:
+        [
+          folder,
+          unused_days,
+          keep_old_days,
+          variant_gone_days,
+          variant_unused_days,
+          cleanup_weekday,
+          cleanup_hour,
+          alone_rules,
+        ]
+      properties:
+        folder: { type: string }
+        folder_pending:
+          type: string
+          description: A new folder waiting for the blobs to move.
+        unused_days: { type: integer, minimum: 1, maximum: 3650 }
+        keep_old_days: { type: integer, minimum: 0, maximum: 365 }
+        variant_gone_days: { type: integer, minimum: 0, maximum: 365 }
+        variant_unused_days: { type: integer, minimum: 1, maximum: 365 }
+        cleanup_weekday:
+          type: integer
+          minimum: 0
+          maximum: 6
+          description: 0 is Sunday.
+        cleanup_hour: { type: integer, minimum: 0, maximum: 23 }
+        alone_rules:
+          type: array
+          readOnly: true
+          description: The rules crsp acts on without a yes (fixed by the owner).
+          items: { $ref: '#/components/schemas/RegistryRule' }
+    RegistryStoreSettingsInput:
+      type: object
+      required:
+        [
+          folder,
+          unused_days,
+          keep_old_days,
+          variant_gone_days,
+          variant_unused_days,
+          cleanup_weekday,
+          cleanup_hour,
+        ]
+      properties:
+        folder: { type: string }
+        unused_days: { type: integer, minimum: 1, maximum: 3650 }
+        keep_old_days: { type: integer, minimum: 0, maximum: 365 }
+        variant_gone_days: { type: integer, minimum: 0, maximum: 365 }
+        variant_unused_days: { type: integer, minimum: 1, maximum: 365 }
+        cleanup_weekday: { type: integer, minimum: 0, maximum: 6 }
+        cleanup_hour: { type: integer, minimum: 0, maximum: 23 }
+    RegistryCleanup:
+      type: object
+      required: [id, trigger, state, freed_bytes, started_at]
+      properties:
+        id: { type: integer, format: int64 }
+        trigger:
+          type: string
+          enum: [weekly, now]
+        state:
+          type: string
+          enum: [running, done, failed]
+        freed_bytes: { type: integer, format: int64 }
+        error: { type: string }
+        started_at: { type: string, format: date-time }
+        finished_at: { type: string, format: date-time }
+    RegistryReplacePlanState:
+      type: string
+      enum: [draft, running, stopped, failed, done, rolled_back]
+    RegistryReplacePlanInput:
+      type: object
+      required: [new_image_id, keep_days]
+      properties:
+        new_image_id: { type: string }
+        keep_days: { type: integer, minimum: 0, maximum: 365 }
+    RegistryReplacePlan:
+      type: object
+      required:
+        [
+          id,
+          state,
+          new_image,
+          old_image,
+          keep_days,
+          repositories,
+          machines,
+          steps_done,
+          steps_total,
+          created_at,
+        ]
+      properties:
+        id: { type: string }
+        state:
+          $ref: '#/components/schemas/RegistryReplacePlanState'
+        new_image:
+          $ref: '#/components/schemas/RegistryImageSummary'
+        old_image:
+          $ref: '#/components/schemas/RegistryImageSummary'
+        keep_days: { type: integer }
+        keep_until: { type: string, format: date-time }
+        repositories:
+          type: array
+          items: { type: string }
+        machines:
+          type: array
+          description: Machines that held the old image and are warmed with the new one.
+          items: { type: string }
+        frees_bytes: { type: integer, format: int64 }
+        steps_done: { type: integer }
+        steps_total: { type: integer }
+        step_text:
+          type: string
+          description: What runs now, in plain words.
+        error: { type: string }
+        can_rollback: { type: boolean }
+        created_by: { type: string }
+        created_at: { type: string, format: date-time }
+        started_at: { type: string, format: date-time }
+        finished_at: { type: string, format: date-time }
+    RegistryMirrorSettings:
+      type: object
+      required:
+        [enabled, upstreams, folder, budget_bytes, tag_recheck_minutes, used_bytes]
+      properties:
+        enabled: { type: boolean }
+        upstreams:
+          type: array
+          items: { type: string }
+        folder: { type: string }
+        budget_bytes: { type: integer, format: int64 }
+        tag_recheck_minutes: { type: integer, minimum: 1, maximum: 10080 }
+        used_bytes: { type: integer, format: int64 }
+        path:
+          type: string
+          description: Where engines reach the mirror on the controller's listener.
+    RegistryMirrorSettingsInput:
+      type: object
+      required: [enabled, upstreams, budget_bytes, tag_recheck_minutes]
+      properties:
+        enabled: { type: boolean }
+        upstreams:
+          type: array
+          items: { type: string }
+        folder: { type: string }
+        budget_bytes: { type: integer, format: int64, minimum: 0 }
+        tag_recheck_minutes: { type: integer, minimum: 1, maximum: 10080 }
+    ImageBuildState:
+      type: string
+      enum: [queued, building, done, failed, cancelled]
+    ImagePushState:
+      type: string
+      enum: [none, pushing, waiting_controller, pushed, promoted, refused, failed]
+    ImageBuild:
+      type: object
+      required: [id, machine_id, key, state, push_state, step, steps_total, queued_at]
+      properties:
+        id: { type: string }
+        machine_id: { type: string }
+        machine_name: { type: string }
+        profile: { type: string }
+        arch:
+          $ref: '#/components/schemas/RegistryArch'
+        key: { type: string }
+        reason:
+          type: string
+          enum:
+            [
+              first_runner,
+              layers_changed,
+              pin_updated,
+              base_updated,
+              asked,
+              stack_changed,
+              not_in_registry,
+            ]
+        state:
+          $ref: '#/components/schemas/ImageBuildState'
+        push_state:
+          $ref: '#/components/schemas/ImagePushState'
+        step: { type: integer }
+        steps_total: { type: integer }
+        step_name: { type: string }
+        typical_seconds:
+          type: number
+          description: From earlier builds; absent with no history (the bar is the unknown-total bar, UX-29).
+        seconds_left: { type: number }
+        size_bytes: { type: integer, format: int64 }
+        failure:
+          type: object
+          required: [step, class, why]
+          properties:
+            step: { type: string }
+            class:
+              type: string
+              enum: [network, checksum, disk, apt, timeout, other]
+            why: { type: string }
+        log_tail:
+          type: string
+          description: Redacted, capped. Only on getImageBuild.
+        queued_at: { type: string, format: date-time }
+        started_at: { type: string, format: date-time }
+        finished_at: { type: string, format: date-time }
+    ImageBuildList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/ImageBuild' }
+    RegistryPull:
+      type: object
+      required: [id, machine_id, key, source, state, bytes_done, bytes_total, started_at]
+      properties:
+        id: { type: string }
+        machine_id: { type: string }
+        machine_name: { type: string }
+        key: { type: string }
+        image_id: { type: string }
+        source:
+          type: string
+          enum: [local, pulled, built]
+        state:
+          type: string
+          enum: [pulling, waiting_controller, done, failed]
+        bytes_done: { type: integer, format: int64 }
+        bytes_total: { type: integer, format: int64 }
+        seconds_left:
+          type: number
+          description: From the machine's measured pull speed; absent with no history.
+        repository: { type: string }
+        error: { type: string }
+        started_at: { type: string, format: date-time }
+    RegistryPullList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/RegistryPull' }

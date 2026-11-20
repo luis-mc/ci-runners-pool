@@ -113,7 +113,8 @@ describe('Review step', () => {
     renderApp(a, '/settings/updates/review?kind=restart');
     const group = await screen.findByRole('group', { name: 'Restart the service' });
     expect(await within(group).findByText(/Nothing has changed yet/)).toBeTruthy();
-    fireEvent.click(within(group).getByRole('button', { name: 'Restart the service' }));
+    const bar = screen.getByRole('region', { name: 'Restart the service actions' });
+    fireEvent.click(within(bar).getByRole('button', { name: 'Restart the service' }));
     await waitFor(() => expect(a.count('POST', '/api/v1/service/restart')).toBe(1));
     expect(
       a.calls.find((c) => c.path === '/api/v1/service/restart')?.query.get('confirmed'),

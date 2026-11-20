@@ -27,6 +27,10 @@ import { PoolSizePage } from './screens/pool/PoolSizePage';
 import { PoolSummary } from './screens/pool/PoolSummary';
 import { NotFound } from './screens/Later';
 import { ImageDetail } from './screens/images/ImageDetail';
+import { RegistryBudgetsPage } from './screens/registry/RegistryBudgetsPage';
+import { RegistryImagePage } from './screens/registry/RegistryImagePage';
+import { RegistryMirrorPage } from './screens/registry/RegistryMirrorPage';
+import { RegistryReplacePage } from './screens/registry/RegistryReplacePage';
 import { ImagesAndCaches } from './screens/images/ImagesAndCaches';
 import { MachineDetail, MachinesList } from './screens/machines/Machines';
 import { AddMachinePage } from './screens/machines/AddMachine';
@@ -210,6 +214,19 @@ export function App({
                 ) : (
                   <Route path="pool/images/:imageId" element={<ImageDetail />} />
                 )}
+                <Route
+                  path="pool/images/registry/budgets"
+                  element={<RegistryBudgetsPage />}
+                />
+                <Route
+                  path="pool/images/registry/mirror"
+                  element={<RegistryMirrorPage />}
+                />
+                <Route path="pool/images/registry/:id" element={<RegistryImagePage />} />
+                <Route
+                  path="pool/images/registry/:id/replace"
+                  element={<RegistryReplacePage />}
+                />
                 {jobsRoutes}
                 {MOVED.map(([from, to]) => (
                   <Route key={from} path={from} element={<MovedTo to={to} />} />

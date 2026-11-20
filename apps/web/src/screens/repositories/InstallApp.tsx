@@ -8,7 +8,7 @@ import { useCommand } from '../../api/hooks';
 import { useSession } from '../../auth/session';
 
 export function InstallAppButton({
-  label = 'Install the App on a repository',
+  label = 'Add a repository',
   onReturn,
 }: {
   label?: string;

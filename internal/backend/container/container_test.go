@@ -11,6 +11,7 @@ import (
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backend"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backend/sys"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/backend/sys/sysfake"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/redact"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/runnercache"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/runners"
@@ -35,7 +36,7 @@ func newRig(t *testing.T, mod ...func(*Config)) *rig {
 		m(&cfg)
 	}
 	red := redact.New()
-	d := sys.Deps{Cmd: r.f.Runner(), Redact: red.Redact, Secret: func(s string) { r.learn = append(r.learn, s); red.Add(s) },
+	d := sys.Deps{Cmd: r.f.Runner(), FS: sysfake.NewFS(), Redact: red.Redact, Secret: func(s string) { r.learn = append(r.learn, s); red.Add(s) },
 		LogLine: func(step, msg string) { r.logs = append(r.logs, step+": "+msg) }}
 	r.b = New(d, r.f, cfg)
 	return r

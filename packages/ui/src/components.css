@@ -163,7 +163,7 @@ body {
   font-size: var(--ds-size-2);
   border-block-start: var(--ds-border-thin) solid var(--ds-color-border);
   box-sizing: border-box;
-  min-block-size: var(--ds-keyhints-height);
+  min-block-size: var(--ds-target-min);
   display: grid;
   align-content: center;
 }
@@ -200,7 +200,7 @@ body {
 }
 .ds-action-bar {
   position: sticky;
-  inset-block-end: var(--ds-keyhints-height);
+  inset-block-end: var(--ds-keyhints-height, 0px);
   z-index: var(--ds-z-sticky);
   display: flex;
   flex-wrap: wrap;
@@ -209,6 +209,9 @@ body {
   padding-block: var(--ds-space-3);
   background: var(--ds-color-page);
   border-block-start: var(--ds-border-thin) solid var(--ds-color-border);
+}
+.ds-main > .ds-bar-slot {
+  display: contents;
 }
 .ds-action-bar[data-sticky='false'] {
   position: static;
@@ -229,22 +232,22 @@ body {
 .ds-action-bar > :first-child {
   margin-inline-start: auto;
 }
-/* A screen with a bar fills the window, and the bar sits at its foot even when the page is short: every
-   ancestor of the bar up to the frame becomes a column that grows, and the bar takes the free space above it. */
+/* A screen with a bar fills the window, and the bar sits at its foot even when the page is short: the
+   main column is a column that grows, and the bar (drawn in its slot, a direct child of the column) takes the free
+   space above it. */
 .ds-frame:has(.ds-action-bar) {
   display: flex;
   flex-direction: column;
   min-block-size: 100dvh;
 }
-.ds-main:has(.ds-action-bar),
-.ds-main :has(.ds-action-bar) {
+.ds-main:has(.ds-action-bar) {
   display: flex;
   flex-direction: column;
   flex: 1 1 auto;
   min-inline-size: 0;
 }
-.ds-main :has(.ds-action-bar) > .ds-action-bar,
-.ds-main > .ds-action-bar {
+.ds-main > .ds-action-bar,
+.ds-main > .ds-bar-slot > .ds-action-bar {
   margin-block-start: auto;
 }
 @media (max-width: 599px) {
@@ -357,6 +360,11 @@ body {
   max-inline-size: var(--ds-frame-narrow);
   margin-inline: auto;
   padding: var(--ds-space-2) var(--ds-page-gutter) var(--ds-space-3);
+}
+/* Two pages one after the other in the frame (a section's tab row, then the screen under it) keep the page gap
+   between them, as the blocks inside one page do (LOOK36). */
+.ds-page + .ds-page {
+  margin-block-start: var(--ds-space-5);
 }
 .ds-h1 {
   margin: 0;
@@ -478,8 +486,13 @@ body {
   align-items: center;
   justify-content: center;
   gap: var(--ds-space-2);
+  flex: none;
   min-block-size: var(--ds-control-height);
+  /* A label is one line and whole (component 7, UX-72): the button is as wide as its label, never narrower,
+     and never narrower than the touch target (UX-16). */
+  inline-size: max-content;
   min-inline-size: var(--ds-target-min);
+  white-space: nowrap;
   padding-inline: var(--ds-space-4);
   font: inherit;
   font-weight: var(--ds-weight-semibold);
@@ -569,7 +582,7 @@ body {
 }
 .ds-message__body {
   flex: 1 1 12rem;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 .ds-message[data-dismissible] .ds-message__body {
   flex-basis: 8rem;
@@ -611,6 +624,8 @@ body {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--ds-card-min)), 1fr));
   gap: var(--ds-space-4);
+  /* A two-line card title reaches 30 px above its border: the row gap keeps it off the card above (UX-10, UX-51). */
+  row-gap: var(--ds-space-6);
 }
 .ds-pane {
   position: relative;
@@ -637,6 +652,15 @@ body {
   color: var(--ds-color-primary);
   background: var(--ds-color-page);
   overflow-wrap: anywhere;
+}
+/* A long title stops at two lines (UX-51): the cut-in marks and the count stay on the row beside the clamped name. A
+   two-line title reaches half its height below the border, so a card body leaves some room. */
+.ds-pane__title {
+  display: flex;
+  align-items: flex-start;
+}
+.ds-pane:has(> h3.ds-pane__title) > .ds-pane__body {
+  padding-block-start: var(--ds-space-2);
 }
 .ds-pane__title::before {
   content: '┤ ' / '';
@@ -837,7 +861,7 @@ body {
 }
 .ds-table th {
   white-space: nowrap;
-  vertical-align: bottom;
+  vertical-align: middle;
 }
 .ds-table th,
 .ds-table td {
@@ -846,9 +870,6 @@ body {
   vertical-align: middle;
   overflow-wrap: anywhere;
   border-block-end: var(--ds-border-thin) solid var(--ds-color-divider);
-}
-.ds-table th {
-  vertical-align: bottom;
 }
 .ds-table__sort {
   font: inherit;
@@ -1402,16 +1423,19 @@ legend > .ds-field__changed {
   flex-wrap: wrap;
   gap: var(--ds-space-2);
 }
-/* Tabs wrap onto as many rows as they need; a tab row never scrolls sideways (UX-68). */
+/* Tabs wrap onto as many rows as they need; a tab row never scrolls sideways (UX-68). The first label starts on the
+   frame edge, as a top menu item does (UX-69): a tab has no side padding, the gap between labels is --ds-space-5. */
 .ds-tabs {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--ds-space-2);
+  gap: 0 var(--ds-space-5);
   overflow: visible;
   border-block-end: var(--ds-border-thin) solid var(--ds-color-divider);
 }
 .ds-chip {
+  flex: none;
   min-block-size: var(--ds-target-min);
+  white-space: nowrap;
   padding-inline: var(--ds-space-4);
   font: inherit;
   color: var(--ds-color-text);
@@ -1419,6 +1443,8 @@ legend > .ds-field__changed {
   border: var(--ds-border-thin) solid var(--ds-color-border);
   border-radius: var(--ds-radius-round);
   cursor: pointer;
+  max-inline-size: 100%;
+  white-space: nowrap;
 }
 .ds-chip[aria-pressed='true'] {
   font-weight: var(--ds-weight-bold);
@@ -1427,9 +1453,12 @@ legend > .ds-field__changed {
 .ds-tab {
   flex: 0 1 auto;
   max-inline-size: 100%;
-  overflow-wrap: anywhere;
   min-block-size: var(--ds-target-min);
-  padding-inline: var(--ds-space-4);
+  /* A short label ("Done") keeps the touch target (UX-16). */
+  min-inline-size: var(--ds-target-min);
+  /* The label starts on the tab's start edge, which sits on the frame edge (UX-69). */
+  text-align: start;
+  padding-inline: 0;
   font: inherit;
   color: var(--ds-color-text);
   background: none;
@@ -2469,6 +2498,17 @@ button.ds-jobgraph__node:hover {
   text-underline-offset: 0.2em;
 }
 
+/* A name that may be long: it breaks anywhere and stops at two lines (UX-51); the title holds the whole name. */
+.ds-clamp {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  min-inline-size: 0;
+}
+
 /* A long text after a cell's content (a status word, then its reason) always has a space before it: the gap of the
    one-line table exists only from 600 px, so it is here for every table (UX-72). */
 .ds-table__value > * + [data-long] {
@@ -2486,6 +2526,7 @@ button.ds-jobgraph__node:hover {
 }
 .ds-table td.ds-table__action .ds-button {
   inline-size: 100%;
+  min-inline-size: max-content;
   white-space: nowrap;
   text-decoration: none;
 }
@@ -2514,6 +2555,10 @@ button.ds-jobgraph__node:hover {
     min-inline-size: var(--ds-cell-grow-min);
     inline-size: calc(var(--ds-grow, 1) * 10%);
   }
+  .ds-table[data-one-line] td .ds-cluster,
+  .ds-table[data-one-line] td .ds-button-wrap {
+    flex-wrap: nowrap;
+  }
   .ds-table[data-one-line] .ds-table__expanded td {
     white-space: normal;
   }
@@ -2530,6 +2575,17 @@ button.ds-jobgraph__node:hover {
   }
   .ds-table[data-one-line] .ds-table__value > * + [data-long] {
     margin-inline-start: 0;
+  }
+  /* A status word before a long reason stays whole: only the reason is cut (UX-72). */
+  .ds-table[data-one-line] .ds-table__value:has(> [data-long]) > .ds-table__text {
+    flex: none;
+  }
+  /* A grow cell with a status word, its reason and a Details button is wide enough for the word and the button, so the button never covers the next cell. */
+  .ds-table[data-one-line]
+    td[data-kind='grow']:has(> .ds-table__value > .ds-table__text .ds-status):has(
+      > .ds-table__value > .ds-button-wrap
+    ) {
+    min-inline-size: calc(var(--ds-cell-grow-min) * 2.5);
   }
   .ds-table[data-one-line] td[data-kind='grow'] .ds-table__value {
     inline-size: 0;

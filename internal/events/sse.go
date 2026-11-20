@@ -34,6 +34,8 @@ func field(t Type) string {
 		return "plan"
 	case ChangeProgress:
 		return "change"
+	case ImageBuild:
+		return "image_build"
 	}
 	return "data"
 }

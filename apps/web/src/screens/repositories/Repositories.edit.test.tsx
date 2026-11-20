@@ -46,10 +46,17 @@ const crumb = () =>
 const marks = () => document.querySelectorAll('[data-changed]').length;
 const button = (name: string) => screen.getByRole<HTMLButtonElement>('button', { name });
 
+/** The repository page draws its title while it loads (RES21 B18): wait for the data, not for the title. */
+async function repoHeading(name: string) {
+  const heading = await screen.findByRole('heading', { level: 1, name });
+  await waitFor(() => expect(screen.queryByText(/Loading the repository/)).toBeNull());
+  return heading;
+}
+
 describe('Repository form edit bar', () => {
   it('starts clean: no count, no marks, Save and Cancel off', async () => {
     renderRouted(api());
-    await screen.findByRole('heading', { level: 1, name: 'octo/app' });
+    await repoHeading('octo/app');
     expect(screen.queryByText(/Unsaved changes/)).toBeNull();
     expect(marks()).toBe(0);
     expect(button('Save').disabled).toBe(true);
