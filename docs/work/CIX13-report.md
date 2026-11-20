@@ -21,4 +21,12 @@ Branch `CIX13-job-page-faults` from `CIX-integration` (6b2697fc). Plan row 3 (pl
 
 ## Tests
 
-(see end of file)
+Local (`go test -race -count=2`): `internal/jobsdata/...` ok (~1 s each package); `internal/github` new tests (`TestRESTJob*`, `TestRESTRunJobsAllPages`, `TestParseRunnerFields`) ok, ~1 s; `internal/store` new `TestIntegration*` (insights_jobs_test.go) each <0.2 s. `go vet` and gofmt clean on touched packages; typecheck PASS (fast_guards). No sleeps, no retries, no table over 20 rows; test_guardrails reports no break in my files (existing breaks elsewhere: G5 in api, machines, notify tests; sleeps in others' tests).
+Not run locally: golangci-lint (installed binary built with Go 1.25, repo targets 1.27: environment fault) and gitleaks (not installed); the CI run is the gate for both. docs_check: only the expected W1 for docs/work.
+
+## Left
+
+- Web (JobPage "Runs on", steps source) is CIX19 / plan agent 12. API keeping other-origin jobs out of Queue and Running (D7) is CIX18 (plan agent 11): the data is `jobs.runner_origin`.
+- Wiring in `cmd/crsp` (CIX18), see gap 2.
+
+CODE DONE (sha below)

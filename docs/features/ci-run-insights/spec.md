@@ -414,9 +414,9 @@ Every row is planned; the paths are where each test will live (wave CIX).
 | R5.36 | planned: internal/insights/tests/duplicate_test.go TestSameIdTwoJobs |
 | R5.37 | planned: internal/insights/tests/assertions_test.go TestZeroOnlyWhenReported |
 | R5.38 | planned: internal/insights/digest/digest_test.go TestWeeklyFileTopThree |
-| R5.39 | planned: internal/jobsdata/reconcile/origin_test.go TestCrspOtherHosted; apps/web/src/screens/jobs/JobPage.test.tsx |
-| R5.40 | planned: internal/jobsdata/reconcile/steps_test.go TestStepsByRESTOnce |
-| R5.41 | planned: internal/jobsdata/reconcile/stale_test.go TestStaleQueuedBecomesDone, TestGoneBecomesLost |
+| R5.39 | internal/jobsdata/reconcile/origin_test.go TestCrspOtherHosted; internal/jobsdata/ingest/origin_test.go TestOnRunnerRecordsOrigin; internal/store/insights_jobs_test.go TestIntegrationSetRunnerOriginKeepsStored; internal/github/rest_insights_jobs_test.go TestRESTJobReadsRunnerAndSteps; planned: apps/web/src/screens/jobs/JobPage.test.tsx |
+| R5.40 | internal/jobsdata/reconcile/steps_test.go TestStepsByRESTOnce, TestWatchReadsAtMostEveryMinute; internal/jobsdata/ingest/origin_test.go TestOnStepsMarksSourceEvents; internal/store/insights_jobs_test.go TestIntegrationApplyKeepsEventSteps |
+| R5.41 | internal/jobsdata/reconcile/stale_test.go TestStaleQueuedBecomesDone, TestGoneBecomesLost; internal/store/insights_jobs_test.go TestIntegrationApplyDoneAndOrigin, TestIntegrationMarkLost, TestIntegrationCompletedRunListedWhenFresh |
 | R5.42 | planned: internal/api/handlers_insights_test.go TestRolesAndShapes |
 | R5.43 | planned: internal/doctor/checks/workflows_test.go TestWorkflowFindings |
 | R6.1 | planned: internal/insights/collect/budget_test.go TestQuarterShareAndOrder |
