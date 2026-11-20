@@ -20,7 +20,7 @@ type Digest struct {
 	WrittenAt time.Time
 }
 
-// Writer writes the digest of the week that ended before now, every Monday at 07:00 local time. It reads
+// Writer writes the digest of the week that ended before now, every Monday at 08:00 Europe/Lisbon time. It reads
 // the open findings, the findings opened and resolved in the week, guardrail changes per repository and the
 // week's wait, hold and run totals, then keeps the last 52 files (R6.2).
 type Writer interface {

@@ -49,6 +49,8 @@ type Status struct {
 	Policy    MachinePolicy
 	// RunnerProblems are the runner services of this machine that did not start.
 	RunnerProblems []RunnerProblem
+	// DigestPath is the newest weekly digest file ("" when none): the menu links to it.
+	DigestPath string
 }
 
 // Modes of a machine (machines R5.61) and the two pauses of the tray.
