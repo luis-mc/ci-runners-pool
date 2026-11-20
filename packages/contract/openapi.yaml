@@ -8308,6 +8308,19 @@ components:
           format: uri
         stage:
           $ref: '#/components/schemas/UpdateStage'
+        attempt:
+          $ref: '#/components/schemas/UpdateAttempt'
+        error_attempt:
+          type: string
+          description: The id of the attempt that `error` belongs to. Absent for a failure recorded before attempts had ids. A page shows an error only when this is the id of the attempt it started (CRSP205).
+        service_started_at:
+          type: string
+          format: date-time
+          description: When this service process started. A restart is over when it is later than the attempt's started_at (CRSP205).
+        server_time:
+          type: string
+          format: date-time
+          description: The service's clock now, so a page can say how long a restart took without its own clock.
       example:
         current_version: 1.4.0
         latest_version: 1.5.0
@@ -8315,6 +8328,19 @@ components:
         state: idle
         auto_update: true
         running_jobs: []
+    UpdateAttempt:
+      type: object
+      description: One update or restart, from the yes to its end. Its id tells a page which outcome is its own (CRSP205).
+      required: [id, kind, started_at]
+      properties:
+        id:
+          type: string
+        kind:
+          type: string
+          enum: [update, restart]
+        started_at:
+          type: string
+          format: date-time
     UpdateStage:
       type: object
       description: The live stage of the last or running update (TRAY4). It is kept in a file, so it survives the service restart.
@@ -9018,6 +9044,10 @@ components:
         rule:
           $ref: '#/components/schemas/RegistryRule'
         image_id: { type: string }
+        image:
+          description: The image `image_id` names, so a screen needs no second call to name it.
+          allOf:
+            - $ref: '#/components/schemas/RegistryImageSummary'
         other_image_id:
           type: string
           description: For replace, the image the new one would replace.
@@ -9088,6 +9118,9 @@ components:
         update_found:
           type: boolean
           description: A newer image updates this one (an open replace recommendation).
+        unused_days:
+          type: integer
+          description: Whole days since the last pull (the push when never pulled). Present only while an open `unused` recommendation names the image.
     RegistryImageList:
       type: object
       required: [items]
@@ -9109,6 +9142,16 @@ components:
             promoted_at: { type: string, format: date-time }
             replaces: { type: string }
             replaced_by: { type: string }
+            in_use:
+              type: boolean
+              description: A runner uses the image now (a machine of `machines` has `in_use_by_runner`).
+            shared_bytes:
+              type: integer
+              format: int64
+              description: Bytes of the layers other images hold too (`size_bytes` minus `unique_bytes`).
+            variant_gone_days:
+              type: integer
+              description: Variants only. Days after its branch is merged or deleted that the image is deleted.
             lineage:
               type: array
               description: The images of the same repository, profile and arch, newest first.
@@ -9122,7 +9165,7 @@ components:
               items: { $ref: '#/components/schemas/RegistryPullDay' }
             pulls_text:
               type: string
-              description: The text form of the chart (UX-41).
+              description: The text form of the chart (UX-41). Always sent.
             saved_seconds: { type: number }
             machines:
               type: array
@@ -9151,6 +9194,10 @@ components:
           $ref: '#/components/schemas/RegistryImageState'
         branch: { type: string }
         pushed_at: { type: string, format: date-time }
+        relation:
+          type: string
+          description: How the entry relates to the image asked for.
+          enum: [replaces, replaced_by, same_profile]
     RegistryLayer:
       type: object
       required: [digest, size_bytes, shared_with]
@@ -9316,10 +9363,14 @@ components:
       enum: [draft, running, stopped, failed, done, rolled_back]
     RegistryReplacePlanInput:
       type: object
-      required: [new_image_id, keep_days]
+      required: [new_image_id]
       properties:
         new_image_id: { type: string }
-        keep_days: { type: integer, minimum: 0, maximum: 365 }
+        keep_days:
+          type: integer
+          minimum: 0
+          maximum: 365
+          description: When absent, the days of the registry settings (`keep_old_days`) are used.
     RegistryReplacePlan:
       type: object
       required:
@@ -9344,10 +9395,17 @@ components:
         old_image:
           $ref: '#/components/schemas/RegistryImageSummary'
         keep_days: { type: integer }
-        keep_until: { type: string, format: date-time }
+        keep_until:
+          type: string
+          format: date-time
+          description: Until when the old image is kept. Before the plan ends it is the date it would be if the plan ended now.
         repositories:
           type: array
           items: { type: string }
+        steps:
+          type: array
+          description: What the plan does, in order, with the state of each. The server owns the list and the states.
+          items: { $ref: '#/components/schemas/RegistryReplaceStep' }
         machines:
           type: array
           description: Machines that held the old image and are warmed with the new one.
@@ -9364,6 +9422,21 @@ components:
         created_at: { type: string, format: date-time }
         started_at: { type: string, format: date-time }
         finished_at: { type: string, format: date-time }
+    RegistryReplaceStep:
+      type: object
+      required: [kind, targets, state]
+      properties:
+        kind:
+          type: string
+          description: point moves the pointer of one repository; warm asks the machines to pull the new image; supersede marks the old image superseded.
+          enum: [point, warm, supersede]
+        targets:
+          type: array
+          description: The repository of a point step, the machine names of the warm step, empty for supersede.
+          items: { type: string }
+        state:
+          type: string
+          enum: [waiting, running, done, failed]
     RegistryMirrorSettings:
       type: object
       required:

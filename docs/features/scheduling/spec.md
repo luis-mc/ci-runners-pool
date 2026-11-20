@@ -204,7 +204,7 @@ Source paths are in github.com/luis-mc/dev-standards, under `claude/plugins/deli
 
 **R5.38** — The controller writes one slot-log row for every slot taken, every slot freed and every ticket dropped. A row holds repository, run id, run attempt, job, shard, runner, queued at, slot at, released at, slot number, slot kind (none for a job slot), and outcome (`ran`, `stale-freed`, `no-ci-slot`, `error`, `ticket-dropped`, `completed-on-github`). M1. Built. Source: `machine_slots.py` `_log_entry`, `take_slot`, `free_slot`, `queue_list`.
 
-**R5.39** — The slot log keeps the last 5000 rows per machine. A slot-log write that fails never holds or fails a job. M1. Built. Source: `machine_slots.py` `write_log`, `LOG_MAX_LINES`.
+**R5.39** — The slot log keeps the last 5000 rows per machine; tests can set a lower keep size, production always keeps 5000. A slot-log write that fails never holds or fails a job. M1. Built. Source: `machine_slots.py` `write_log`, `LOG_MAX_LINES`.
 
 ### 5.7 Load measurement
 

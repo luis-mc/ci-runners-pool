@@ -106,9 +106,11 @@ interface Command {
 /** Pool status as a word, a glyph and a colour (UX-58). */
 function PoolStatus() {
   // The same list the Machines page reads (UX-19): one source of truth.
-  const { result } = useMachines();
+  const { result, reconnecting } = useMachines();
   const machines =
     result.state === 'loading' ? undefined : (result.data?.items ?? undefined);
+  // A restart is its own state, not "no machines" (CORE-3, UX-6, UX-29).
+  if (reconnecting) return <Status kind="waiting" word="reconnecting" />;
   if (!machines) return <Status kind="waiting" word="reading" />;
   if (machines.length === 0) return <Status kind="waiting" word="no machines" />;
   const online = machines.filter((m) => m.online && m.state === 'active').length;
@@ -361,7 +363,8 @@ export function AppShell({
   const banners: ReactNode[] = [];
   if (banner) banners.push(<div key="extra">{banner}</div>);
   const open = setup ? firstOpenStep(setup) : undefined;
-  if (open)
+  // No first-run banner while the service restarts: its machines are not back yet, they are not missing.
+  if (open && !machineList.reconnecting)
     banners.push(
       <Message
         key="first-run"

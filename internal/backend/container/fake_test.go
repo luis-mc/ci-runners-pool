@@ -221,6 +221,11 @@ func (f *fakeDocker) handle(cmd sys.Command) sys.Result {
 }
 
 func (f *fakeDocker) run(a []string) sys.Result {
+	for _, x := range a { // the engine refuses an empty image like this
+		if x == "" {
+			return fail1("docker: invalid reference format\nRun 'docker run --help' for more information")
+		}
+	}
 	c := &fakeC{args: a, running: true, files: map[string]string{}}
 	name := ""
 	for i, x := range a {

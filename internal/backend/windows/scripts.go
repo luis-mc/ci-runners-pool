@@ -29,12 +29,14 @@ if (-not (Get-LocalGroupMember -Group $env:CRSP_GROUP -Member $env:CRSP_ACCOUNT 
 if (-not (Get-LocalUser -Name $env:CRSP_ACCOUNT).Enabled) { throw "the account $($env:CRSP_ACCOUNT) is disabled" }
 `
 
-	// scriptAccountSID writes the SID of the account that was made, one line.
-	// Needs CRSP_ACCOUNT.
+	// scriptAccountSID writes the SID of the account that was made, one line
+	// with Write-Output (a [Console]::Out write is lost when the host's stdout
+	// is redirected). The agent reads the SID in Go first (sid_windows.go); this
+	// is the fallback. Needs CRSP_ACCOUNT.
 	scriptAccountSID = scriptHeader + `
 $sid = (Get-LocalUser -Name $env:CRSP_ACCOUNT).SID.Value
 if (-not $sid) { throw "no SID for the account $($env:CRSP_ACCOUNT)" }
-[Console]::Out.WriteLine($sid)
+Write-Output $sid
 `
 
 	// scriptRights sets the rights of the account through the LSA: log on as a

@@ -3,6 +3,7 @@ package scheduler_test
 import (
 	"context"
 	"errors"
+	"os"
 	"strings"
 	"sync"
 	"testing"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/scheduler"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/scheduler/slots"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/store"
 )
 
 // R5.12. Ported from test_machine.py Gate test_free_slot_and_quiet_machine_goes_at_once.
@@ -728,9 +730,10 @@ func TestSkewedAgentClockKeepsTicket(t *testing.T) {
 	}
 }
 
-// R5.38 and R5.39. Ported from test_machine.py SlotLog test_log_lines_and_trim. The log is read through
-// a second engine call path: a log row per take and per free.
-func TestLogRowsAndTrim(t *testing.T) {
+// logRowsAndTrim writes keep+10 gate rows and checks the log holds exactly keep
+// rows afterwards, the newest ones (the last row is the last release).
+func logRowsAndTrim(t *testing.T, keep int) {
+	t.Helper()
 	e := newEnv(t)
 	goes(t, e.gate(e.req("a", job("o/r", 1, "x"), 1, quiet)))
 	if _, err := e.eng.Release(context.Background(), m1, job("o/r", 1, "x"), nil); err != nil {
@@ -740,13 +743,41 @@ func TestLogRowsAndTrim(t *testing.T) {
 	if err != nil || n != 2 || events[0] != slots.EventTaken || events[1] != slots.EventFreed {
 		t.Fatalf("log %d %v %v", n, events, err)
 	}
-	// keep the newest 5000
-	for i := 0; i < slots.LogKeep+10; i++ {
+	// keep the newest `keep` rows
+	for i := 0; i < keep+10; i++ {
 		goes(t, e.gate(e.req("g", job("o/r", int64(10+i), "x"), 1, quiet)))
 		_, _ = e.eng.Release(context.Background(), m1, job("o/r", int64(10+i), "x"), nil)
 	}
-	n, _, _ = e.st.SlotLogForTests(context.Background(), m1)
-	if n != slots.LogKeep {
-		t.Fatalf("log rows %d, want %d", n, slots.LogKeep)
+	n, events, _ = e.st.SlotLogForTests(context.Background(), m1)
+	if n != keep {
+		t.Fatalf("log rows %d, want %d", n, keep)
 	}
+	if events[len(events)-1] != slots.EventFreed {
+		t.Fatalf("newest row is %q, want %q", events[len(events)-1], slots.EventFreed)
+	}
+}
+
+// R5.38 and R5.39. Ported from test_machine.py SlotLog test_log_lines_and_trim. The log is read through
+// a second engine call path: a log row per take and per free. The trim runs with a small keep size
+// (CRSP201); TestLogKeepDefault pins production's 5000 and TestLogRowsAndTrimFull runs it for real.
+func TestLogRowsAndTrim(t *testing.T) {
+	defer store.SetSlotLogKeepForTests(50)()
+	logRowsAndTrim(t, 50)
+}
+
+// TestLogKeepDefault: production keeps 5000 slot-log rows (R5.39).
+func TestLogKeepDefault(t *testing.T) {
+	if slots.LogKeep != 5000 || store.SlotLogKeep() != 5000 {
+		t.Fatalf("keep %d / %d, want 5000", slots.LogKeep, store.SlotLogKeep())
+	}
+}
+
+// TestLogRowsAndTrimFull is the full 5000-row case (about 160 s under -race). It runs only when
+// CRSP_LONG_TESTS=1: set it on a manual or nightly run, e.g. `CRSP_LONG_TESTS=1 go test -race
+// -run TestLogRowsAndTrimFull ./internal/scheduler/`.
+func TestLogRowsAndTrimFull(t *testing.T) {
+	if os.Getenv("CRSP_LONG_TESTS") != "1" {
+		t.Skip("long test: set CRSP_LONG_TESTS=1 to run the full 5000-row trim")
+	}
+	logRowsAndTrim(t, slots.LogKeep)
 }
