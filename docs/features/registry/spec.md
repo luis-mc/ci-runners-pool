@@ -92,7 +92,7 @@ The REG-5 screens of the RES20 review build are approved as shown (owner, 19 Nov
 
 Every group names the task that owns it. "Must" is binding.
 
-### REG1: registry core (R5.1 to R5.12) — built
+### REG1: registry core (R5.1 to R5.12, R5.81) — built
 
 **R5.1** — The controller embeds the Distribution v3 library and serves the OCI Distribution Spec v1.1 (push, pull, delete, referrers) under `/v2/` on its existing HTTPS listener, with filesystem storage in `<data_dir>/registry` (or the folder of R5.42).
 
@@ -117,6 +117,8 @@ Every group names the task that owns it. "Must" is binding.
 **R5.11** — Scopes: every machine may pull `crsp/std/*` and `crsp/custom/*`; a machine may push only to `crsp/incoming/<its own id>/*`. People get no token.
 
 **R5.12** — The agent installs the controller CA for the engine as a host step (`/etc/docker/certs.d/<host:port>/ca.crt`, `/etc/containers/certs.d/<host:port>/ca.crt` for Podman, the Docker Desktop setting on Windows) through the `regcreds` CA mechanism.
+
+**R5.81** — The registry sends no telemetry, metrics, logs or event notifications to any host; tracing from the Distribution library stays off. The core and the mirror configuration set no notification endpoint, no reporting and no health probe; crsp never imports Distribution's `tracing` or server `registry` package or an OpenTelemetry exporter, and never installs a tracer, meter or logger provider. The mirror's pulls from its upstream are its purpose and are not telemetry.
 
 **Built by REG1:** R5.1 to R5.12, in `internal/registry/core/` (mount, door, tokens, promotion, sink, disk gate), `internal/store/registry_core.go` over `queries/registry_core.sql` (migration 00022 is unused), `internal/regcreds/engineca.go` and `internal/backend/container/engineca.go` (the engine CA step), and `cmd/crsp/registry_wiring.go` (the controller hook).
 
@@ -367,6 +369,7 @@ Rows for R5.13 to R5.20 (agent ensure-image), R5.21 and R5.22 (key), R5.59 to R5
 | R5.8 | internal/registry/core/budget_guard_test.go |
 | R5.9 | `internal/backend/container/ensure_test.go` (built: TestEnsurePullDigestMismatchBuildsLocally) |
 | R5.10, R5.11 | internal/registry/core/token_test.go (10 min, scopes, other machine's staging refused) |
+| R5.81 | `internal/registry/core/notelemetry_test.go` (built: TestNoTelemetryInSource scans every non-test Go file for the forbidden imports and provider calls, TestScannerSeesTelemetry, TestCoreConfigSendsNothing, TestNoTelemetryAtRuntime with every OTEL exporter set to a local collector); `internal/registry/mirror/notelemetry_test.go` (built: TestMirrorConfigSendsNothing) |
 | R5.12 | internal/backend/container/cainstall_test.go |
 | R5.13 to R5.18 | `internal/backend/container/ensure_test.go` (built: local first, no registry, found and pulled by digest, digest mismatch, transfer failure, token refused, not found and pushed in the background, no staging name, wait for the controller, wait ends with the job, busy, unclear answer, push waits, push fails and is retried, push refused, progress text) |
 | R5.19, R5.20 | `internal/agentlink/registry_test.go` (built: stub answers, request ids, capability); `internal/agent/registry_test.go` (built: version 3 only on the ack, no session, round trip, link drop, MachineReport flag); `internal/machines/recovery_test.go` (built: TestHelloAckVersionFollowsRegistry) |
