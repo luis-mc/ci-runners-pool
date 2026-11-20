@@ -63,4 +63,6 @@ All 11 `.new` files merged and deleted (luismc-delivery 1.51.0).
 - YAML parse of all workflows: ok.
 - actionlint: not installed here (no pinned binary fetched); not run.
 - `test_guardrails.py --root .`: exit 0. G2 2 breaks (ci.yml, dev-standards.yml, not mine). G1/G4/G5 unchanged from step 2.
-- `fast_guards.py`: see final note below.
+- `fast_guards.py`: guards, change-notes, go tests pass. Exit 1 from environment only: `gitleaks` not installed (exit 127).
+
+CODE DONE 13f7df5 (code commit; the report commit follows it)
