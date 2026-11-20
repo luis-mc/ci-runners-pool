@@ -45,8 +45,12 @@ type Promoter struct {
 	Ledger   Ledger
 	Log      *slog.Logger
 	Now      func() time.Time
-	hooks    []registry.PromotedHook
-	mu       sync.Mutex
+	// Room is asked before a promotion copies anything: may the kind take the
+	// layers of this image (budget R5.41, R5.50)? A non-nil error refuses the
+	// promotion; it is wrapped with registry.ErrPromoteRefuse. Nil allows.
+	Room  func(ctx context.Context, kind registry.Kind, layers []registry.Layer) error
+	hooks []registry.PromotedHook
+	mu    sync.Mutex
 }
 
 var _ registry.Promoter = (*Promoter)(nil)
@@ -242,6 +246,18 @@ func (p *Promoter) promoteBlobs(ctx context.Context, s registry.Staged, img *reg
 		return "", err
 	}
 	img.SizeBytes = size
+	if p.Room != nil {
+		layers, err := p.Registry.Layers(ctx, s.Name, s.Manifest)
+		if err != nil {
+			return "", fmt.Errorf("list the layers of the staged image: %w", err)
+		}
+		if err := p.Room(ctx, img.Kind, layers); err != nil {
+			if errors.Is(err, registry.ErrOverBudget) {
+				return "", fmt.Errorf("%w: %w", registry.ErrPromoteRefuse, err)
+			}
+			return "", err
+		}
+	}
 	dstMS, err := dst.Manifests(ctx)
 	if err != nil {
 		return "", err

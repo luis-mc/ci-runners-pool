@@ -175,6 +175,17 @@ func (r *RegistryRetention) LiveLeases(ctx context.Context, now time.Time, name 
 	return int(n), nil
 }
 
+// LayerKnown says whether the layer accounting already counts the digest.
+func (r *RegistryRetention) LayerKnown(ctx context.Context, digest string) (bool, error) {
+	ctx, cancel := withDeadline(ctx)
+	defer cancel()
+	n, err := r.s.q.RegistryLayerKnown(ctx, digest)
+	if err != nil {
+		return false, fmt.Errorf("look up a layer: %w", err)
+	}
+	return n > 0, nil
+}
+
 // MarkDeleted marks an image deleted.
 func (r *RegistryRetention) MarkDeleted(ctx context.Context, id string, at time.Time, by string) error {
 	ctx, cancel := withDeadline(ctx)
