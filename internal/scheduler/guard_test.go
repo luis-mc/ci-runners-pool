@@ -70,9 +70,8 @@ func TestQueriesHaveDeadline(t *testing.T) {
 		t.Fatal("a cancelled context did not stop the gate")
 	}
 	// a context that already expired fails fast too
-	ctx, cancel = context.WithTimeout(context.Background(), time.Nanosecond)
+	ctx, cancel = context.WithDeadline(context.Background(), time.Now().Add(-time.Second))
 	defer cancel()
-	time.Sleep(time.Millisecond)
 	if _, err := e.eng.Status(ctx, m1); err == nil {
 		t.Fatal("an expired context did not stop the query")
 	}

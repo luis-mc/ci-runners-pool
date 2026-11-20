@@ -3,6 +3,7 @@ package machines_test
 import (
 	"context"
 	"reflect"
+	"runtime"
 	"testing"
 	"time"
 
@@ -152,7 +153,11 @@ func TestFactsSyncDoesNotRevertARename(t *testing.T) {
 		_, _, err := svc.UpdateSettings(ctx, "owner", id, machines.SettingsUpdate{Name: ptr("renamed")})
 		renamed <- err
 	}()
-	time.Sleep(100 * time.Millisecond)
+	// The rename queues behind the machine's lock, which the waiting sync holds; nothing
+	// reports that it has queued, so give it the scheduler (not a clock) before the sync goes on.
+	for i := 0; i < 200; i++ {
+		runtime.Gosched()
+	}
 	close(g.release)
 	if err := <-done; err != nil {
 		t.Fatal(err)

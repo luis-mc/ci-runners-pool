@@ -51,7 +51,7 @@ func TestLaneLockOneJobAtATime(t *testing.T) {
 func TestLaneWaitsForAFreeLane(t *testing.T) {
 	s := laneSet(t, "7", 1)
 	a, _ := s.Acquire("a")
-	go func() { time.Sleep(30 * time.Millisecond); _ = a.Release() }()
+	go func() { _ = a.Release() }() // the waiter polls until the lane is free
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	b, err := s.AcquireWait(ctx, "b", 5*time.Millisecond)
