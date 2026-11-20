@@ -475,10 +475,10 @@ func (s *Service) ImageDetail(ctx context.Context, id string) (ImageDetail, erro
 	d.Lineage = []LineageEntry{}
 	for _, l := range lin {
 		rel := "same_profile"
-		switch {
-		case l.ID == img.Replaces:
+		switch l.ID {
+		case img.Replaces:
 			rel = "replaces"
-		case l.ID == img.ReplacedBy:
+		case img.ReplacedBy:
 			rel = "replaced_by"
 		}
 		d.Lineage = append(d.Lineage, LineageEntry{ImageID: l.ID, Key: registry.Key(l.ImageTag), State: registry.State(l.State),
