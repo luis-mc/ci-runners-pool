@@ -386,24 +386,24 @@ Every row is planned; the paths are where each test will live (wave CIX).
 | R5.8 | internal/insights/engine_test.go TestResolvedWhenConditionEnds, TestFailedRunResolvesNothing, TestNoDismissRoute |
 | R5.9 | internal/insights/engine_test.go TestMinutesRoundedAndLabelled |
 | R5.10 | planned: internal/insights/actions/actions_test.go TestNothingChangesBeforeStart, TestStartWritesAuditPerChange; apps/web/src/screens/insights/ActionWizard.test.tsx |
-| R5.11 | internal/insights/rank_test.go TestRankByMinutesThenAge, TestRankZeroMinutesByGuardrail, internal/store/insights_test.go TestListRankFilterPage; planned: apps/web/src/screens/insights/DoNext.test.tsx |
-| R5.12 | planned: internal/insights/waits/split_test.go TestCrspSplit, TestOtherRunnerNoHold, TestUnknownNotZero |
-| R5.13 | planned: internal/insights/waits/split_test.go TestGroupByRepositoryKeyDay |
-| R5.14 | planned: internal/insights/waits/hold_test.go TestHoldOverCapWithReason |
+| R5.11 | internal/insights/rank_test.go TestRankByMinutesThenAge, TestRankZeroMinutesByGuardrail, internal/store/insights_test.go TestListRankFilterPage; apps/web/src/screens/insights/DoNext.test.tsx |
+| R5.12 | internal/insights/waits/split_test.go TestCrspSplit, TestOtherRunnerNoHold, TestUnknownNotZero |
+| R5.13 | internal/insights/waits/split_test.go TestGroupByRepositoryKeyDay |
+| R5.14 | internal/insights/waits/hold_test.go TestHoldOverCapWithReason |
 | R5.15 | planned: internal/insights/capacity/demand_test.go TestUtilisationAndArrivals |
 | R5.16 | planned: internal/insights/capacity/queue_test.go TestAllenCunneenKnownValues, TestSaturatedGivesMinimumSlots |
 | R5.17 | planned: internal/insights/capacity/advice_test.go TestPoolSizeWithinHeadroom, TestNoRoomNoAction |
 | R5.18 | planned: internal/insights/capacity/advice_test.go TestRepoLimitRaiseAndCap |
 | R5.19 | planned: internal/agent/jobsample/sampler_test.go TestCgroupAndProcessTree, TestUnknownWithReason |
 | R5.20 | planned: internal/insights/capacity/resources_test.go TestSummaryAtJobEnd |
-| R5.21 | planned: internal/insights/timeline/timeline_test.go TestLanesIdleAndAfterMerge |
-| R5.22 | planned: internal/insights/timeline/idle_test.go TestIdleNextToQueueFinding |
+| R5.21 | internal/insights/timeline/timeline_test.go TestLanesIdleAndAfterMerge |
+| R5.22 | internal/insights/timeline/idle_test.go TestIdleNextToQueueFinding |
 | R5.23 | planned: internal/insights/runs/savings_test.go TestTopThreeSavings |
 | R5.24 | planned: internal/insights/runs/superseded_test.go TestSupersededMinutes |
 | R5.25 | planned: internal/insights/runs/superseded_test.go TestTwoEventsOneHead |
 | R5.26 | planned: internal/insights/runs/superseded_test.go TestRetestedTree |
 | R5.27 | planned: internal/insights/runs/failfast_test.go TestMinutesAfterFirstFailure |
-| R5.28 | planned: internal/insights/waits/housekeeping_test.go TestShortJobsWaitingLong |
+| R5.28 | internal/insights/waits/housekeeping_test.go TestShortJobsWaitingLong |
 | R5.29 | internal/insights/workflows/checks_test.go TestEachCheck, TestStepOrderLintAfterTest, TestMatrixAxisGrowth; internal/store/insights_checks_test.go TestWorkflowChecksStoreRoundTrip |
 | R5.30 | internal/insights/workflows/checks_test.go TestAnalyserFindings; internal/doctor/checks/workflows_test.go TestWorkflowFindings; apps/web/src/screens/insights/RepositoryPanes.test.tsx |
 | R5.31 | internal/insights/guardrails/report_test.go TestParseGuardJSON |
