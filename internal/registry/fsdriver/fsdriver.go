@@ -61,6 +61,23 @@ func New(params map[string]any) (*Driver, error) {
 // Name implements storagedriver.StorageDriver.
 func (d *Driver) Name() string { return Name }
 
+// List returns the children of a path with slashes. The Distribution driver
+// joins with filepath.Join, so on Windows it answers with backslashes, and the
+// storage code that reads a child's name with path.Base then finds no tag, no
+// manifest and no referrer.
+func (d *Driver) List(ctx context.Context, subPath string) ([]string, error) {
+	keys, err := d.StorageDriver.List(ctx, subPath)
+	for i, k := range keys {
+		keys[i] = filepath.ToSlash(k)
+	}
+	return keys, err
+}
+
+// Walk walks through this driver's List, so the paths it gives f use slashes.
+func (d *Driver) Walk(ctx context.Context, path string, f storagedriver.WalkFn, options ...func(*storagedriver.WalkOptions)) error {
+	return storagedriver.WalkFallback(ctx, d, path, f, options...)
+}
+
 // PutContent writes through a temporary file, closes it, then renames it over
 // the target.
 func (d *Driver) PutContent(ctx context.Context, subPath string, contents []byte) error {
