@@ -1,0 +1,7 @@
+{"Action":"start","Package":"example.com/m/pkg"}
+{"Action":"run","Package":"example.com/m/pkg","Test":"TestA"}
+{"Action":"output","Package":"example.com/m/pkg","Test":"TestA","Output":"ok\n"}
+{"Action":"pass","Package":"example.com/m/pkg","Test":"TestA","Elapsed":0.02}
+{"Action":"fail","Package":"example.com/m/pkg","Test":"TestB/sub","Elapsed":1.5}
+{"Action":"skip","Package":"example.com/m/pkg","Test":"TestC","Elapsed":0}
+{"Action":"pass","Package":"example.com/m/pkg","Elapsed":1.6}

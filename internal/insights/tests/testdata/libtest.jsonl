@@ -1,0 +1,6 @@
+{"type":"suite","event":"started","test_count":3}
+{"type":"test","event":"started","name":"store::tests::opens"}
+{"type":"test","event":"ok","name":"store::tests::opens","exec_time":0.004}
+{"type":"test","event":"failed","name":"store::tests::closes","exec_time":0.2}
+{"type":"test","event":"ignored","name":"slow"}
+{"type":"suite","event":"failed","passed":1,"failed":1}

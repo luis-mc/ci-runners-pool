@@ -1,0 +1,1 @@
+{"numTotalTests":3,"testResults":[{"name":"/w/src/a.test.ts","assertionResults":[{"ancestorTitles":["Button"],"title":"renders","status":"passed","duration":12.5},{"ancestorTitles":["Button"],"title":"clicks","status":"failed","duration":3}]},{"name":"/w/src/b.test.ts","assertionResults":[{"ancestorTitles":[],"title":"todo","status":"pending","duration":0}]}]}
