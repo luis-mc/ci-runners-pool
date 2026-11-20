@@ -24,13 +24,12 @@ var ErrRedactor = errors.New("the redactor failed, nothing was stored")
 // Mask replaces a value the vault will not keep.
 const Mask = "***"
 
-const (
-	// maxChunk is the longest piece the redactor sees at once. A longer line (a one-line JSON report) is cut
-	// at a separator, so a secret is not split in two.
-	maxChunk = 1 << 20
-	// maxBlock bounds a multi-line private key block held for the redactor.
-	maxBlock = 64 << 10
-)
+// maxChunk is the longest piece the redactor sees at once. A longer line (a one-line JSON report) is cut at a
+// separator, so a secret is not split in two. A variable so a test can make it small.
+var maxChunk = 1 << 20
+
+// maxBlock bounds a multi-line private key block held for the redactor.
+const maxBlock = 64 << 10
 
 var (
 	// A GitHub log line starts with a timestamp: 2026-11-20T10:00:00.1234567Z.

@@ -377,11 +377,11 @@ Every row is planned; the paths are where each test will live (wave CIX).
 | Requirement | Test |
 |---|---|
 | R5.1 | planned: internal/insights/engine_test.go TestSeesOtherRunnersJobs |
-| R5.2 | planned: internal/insights/collect/logs_test.go TestLogRedactedAndEnvValuesDropped, TestTooLargeNotStored |
-| R5.3 | planned: internal/insights/collect/artifacts_test.go TestReportArtifactsByContentWithinCaps |
-| R5.4 | planned: internal/insights/collect/privacy_test.go TestNoSecretNoEnvNoEmailStored; internal/store/insights_test.go TestNoForbiddenColumns |
-| R5.5 | planned: internal/settings/settings_test.go TestInsightsRanges; apps/web/src/screens/settings/CiData.test.tsx |
-| R5.6 | planned: internal/insights/collect/retention_test.go TestDaysThenSizeCapOldestFirst |
+| R5.2 | internal/insights/collect/logs_test.go TestLogRedactedAndEnvValuesDropped, TestTooLargeNotStored, TestLogOnceAndKeepOff, TestRedactorFailureStoresNothing; internal/github/rest_insights_test.go TestJobLogAndArtifactFollowRedirectWithoutToken, TestLogErrors |
+| R5.3 | internal/insights/collect/artifacts_test.go TestReportArtifactsByContentWithinCaps, TestBrokenReportAndRunCap, TestClassifyByContent; internal/github/rest_insights_test.go TestRunArtifactsPagesAndCommitTree |
+| R5.4 | internal/insights/collect/privacy_test.go TestNoSecretNoEnvNoEmailStored, TestSecretOnTheChunkBoundary; planned: internal/store/insights_test.go TestNoForbiddenColumns |
+| R5.5 | internal/settings/settings_test.go TestInsightsRanges; planned: apps/web/src/screens/settings/CiData.test.tsx |
+| R5.6 | internal/insights/collect/retention_test.go TestDaysThenSizeCapOldestFirst, TestMissingFileDoesNotStopPrune |
 | R5.7 | planned: internal/store/insights_test.go TestFindingRoundTrip |
 | R5.8 | planned: internal/insights/engine_test.go TestResolvedWhenConditionEnds, TestFailedRunResolvesNothing, TestNoDismissRoute |
 | R5.9 | planned: internal/insights/engine_test.go TestMinutesRoundedAndLabelled |
@@ -419,11 +419,11 @@ Every row is planned; the paths are where each test will live (wave CIX).
 | R5.41 | planned: internal/jobsdata/reconcile/stale_test.go TestStaleQueuedBecomesDone, TestGoneBecomesLost |
 | R5.42 | planned: internal/api/handlers_insights_test.go TestRolesAndShapes |
 | R5.43 | planned: internal/doctor/checks/workflows_test.go TestWorkflowFindings |
-| R6.1 | planned: internal/insights/collect/budget_test.go TestQuarterShareAndOrder |
-| R6.2 | planned: internal/insights/collect/retention_test.go TestDefaultsFloorsCeilings |
+| R6.1 | internal/insights/collect/budget_test.go TestQuarterShareAndOrder, TestCollectorWaitsForTheShare; internal/github/rest_insights_test.go TestInsightsCallsAreBackground |
+| R6.2 | internal/insights/collect/retention_test.go TestDefaultsFloorsCeilings |
 | R6.3 | planned: internal/insights/engine_bench_test.go BenchmarkPass20kJobs |
 | R6.4 | planned: internal/agent/jobsample/sampler_bench_test.go BenchmarkSample |
-| R6.5 | planned: internal/insights/collect/privacy_test.go TestRedactionCoversCIData |
+| R6.5 | internal/insights/collect/privacy_test.go TestRedactionCoversCIData, TestNoNetworkImportInInsights |
 | R6.6 | planned: internal/insights/engine_test.go TestAnalysersNeverWriteSettings |
 | R6.7 | planned: internal/store/insights_bench_test.go BenchmarkFindingsPage |
 | R6.8 | planned: internal/insights/engine_test.go TestFailOpen |
@@ -464,5 +464,8 @@ Contract (CIX8):
 Source: internal/insights/insights.go
 Source: internal/store/migrations/00030_ci_insights.sql
 Source: internal/api/stubs_insights.go
+Source: internal/insights/collect/collector.go
+Source: internal/github/rest_insights.go
+Source: internal/store/insights_ci_data.go
 
-Planned: internal/github/rest_insights.go, internal/github/rest_insights_jobs.go, internal/doctor/checks/workflows.go, internal/agentlink/insights.go, cmd/crsp/insights_wiring.go, internal/store/insights*.go, internal/api/handlers_insights*.go, apps/web/src/screens/insights/.
+Planned: internal/github/rest_insights_jobs.go, internal/doctor/checks/workflows.go, internal/agentlink/insights.go, cmd/crsp/insights_wiring.go, internal/store/insights*.go, internal/api/handlers_insights*.go, apps/web/src/screens/insights/.

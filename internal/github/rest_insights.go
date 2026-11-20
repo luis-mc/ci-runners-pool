@@ -116,7 +116,7 @@ func (c *REST) download(ctx context.Context, installationID int64, path string) 
 	hr.Header.Set("X-GitHub-Api-Version", APIVersion)
 	hr.Header.Set("User-Agent", "crsp")
 	hr.Header.Set("Authorization", "Bearer "+tok)
-	res, err := c.cfg.HTTP.Do(hr)
+	res, err := c.noTokenOnRedirect().Do(hr)
 	if err != nil {
 		cancel()
 		if ctx.Err() != nil && ctx.Err() != context.DeadlineExceeded {
@@ -125,10 +125,10 @@ func (c *REST) download(ctx context.Context, installationID int64, path string) 
 		return nil, 0, fmt.Errorf("%w: %v", ErrUnavailable, scrubURLError(err))
 	}
 	c.noteBudget(installationID, res.Header)
-	switch {
-	case res.StatusCode == http.StatusOK:
+	switch res.StatusCode {
+	case http.StatusOK:
 		return &cancelBody{ReadCloser: res.Body, cancel: cancel}, res.ContentLength, nil
-	case res.StatusCode == http.StatusNotFound || res.StatusCode == http.StatusGone:
+	case http.StatusNotFound, http.StatusGone:
 		_ = res.Body.Close()
 		cancel()
 		return nil, 0, ErrGone
@@ -137,6 +137,25 @@ func (c *REST) download(ctx context.Context, installationID int64, path string) 
 	_ = res.Body.Close()
 	cancel()
 	return nil, 0, c.classify(res, data)
+}
+
+// noTokenOnRedirect is the HTTP client with a rule that the installation token never goes to the address a
+// log or an artifact is redirected to (a short-lived signed address of another host). Go drops the header
+// across hosts already; this drops it always, so the rule does not depend on the host name.
+func (c *REST) noTokenOnRedirect() *http.Client {
+	cl := *c.cfg.HTTP
+	prev := cl.CheckRedirect
+	cl.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+		req.Header.Del("Authorization")
+		if prev != nil {
+			return prev(req, via)
+		}
+		if len(via) >= 10 {
+			return errors.New("stopped after 10 redirects")
+		}
+		return nil
+	}
+	return &cl
 }
 
 // cancelBody ends the download deadline when the body is closed.

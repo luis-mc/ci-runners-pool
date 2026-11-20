@@ -29,11 +29,7 @@ type CIDataBytes struct {
 func (s *Store) SaveCIJobLog(ctx context.Context, l CIJobLog) error {
 	ctx, cancel := withDeadline(ctx)
 	defer cancel()
-	err := s.q.UpsertCIJobLog(ctx, sqlcgen.UpsertCIJobLogParams{
-		JobID: l.JobID, RepositoryID: l.RepositoryID, RunID: l.RunID, RunAttempt: l.RunAttempt, Path: l.Path,
-		Bytes: l.Bytes, RawBytes: l.RawBytes, Lines: l.Lines, Sha256: l.Sha256, State: l.State, Reason: l.Reason,
-		FetchedAt: l.FetchedAt, ExpiresAt: l.ExpiresAt,
-	})
+	err := s.q.UpsertCIJobLog(ctx, sqlcgen.UpsertCIJobLogParams(l))
 	if err != nil {
 		return fmt.Errorf("save the log row of job %d: %w", l.JobID, err)
 	}
