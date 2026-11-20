@@ -413,7 +413,26 @@ jobs:
           name: crsp-linux-amd64
           path: bin
       - run: chmod +x bin/crsp
-      - run: pnpm exec playwright install --with-deps chromium
+      # CRSP201: `playwright install --with-deps` took about 190 s per shard. The browser
+      # download is cached per runner OS and the exact @playwright/test version
+      # from pnpm-lock.yaml; the browser builds are fixed by that version. A hit
+      # installs only the system packages; a miss installs as before. Playwright's
+      # own installer fetches the browser, so DL-94 (ci_tool.py) does not apply.
+      - name: Playwright version
+        id: pw
+        run: echo "version=$(pnpm exec playwright --version | awk '{print $2}')" >> "$GITHUB_OUTPUT"
+      - name: Cache Playwright browsers
+        id: pw-cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.pw.outputs.version }}
+      - name: Install Playwright browser and system packages
+        if: steps.pw-cache.outputs.cache-hit != 'true'
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Install Playwright system packages (browser cached)
+        if: steps.pw-cache.outputs.cache-hit == 'true'
+        run: pnpm exec playwright install-deps chromium
 
       # Required. No retries, no continue-on-error (STACKSPEC 11.2, 11.3).
       - name: Playwright (gating specs)
