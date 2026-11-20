@@ -23,10 +23,17 @@ on:
   workflow_dispatch:
 
 concurrency:
-  # A newer push to a pull request cancels the superseded run. A run on main is
-  # never cancelled: a merged commit must not be left unverified.
-  group: ci-${{ github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  # CRSP201: a newer run of this workflow on the same ref cancels the superseded
+  # one, for every event: pull_request, and also the workflow_dispatch runs that
+  # scripts/delivery/agent_ci.py and manual re-runs start on integration and agent
+  # branches (7 of the last 100 runs were dispatches on non-main refs, 3 of them
+  # cancelled by hand or by timeout). A run on main is never cancelled: a merged
+  # commit must not be left unverified.
+  # The group carries the event so a pull_request run (ref refs/pull/N/merge) and
+  # a dispatch run (ref refs/heads/<branch>) never cancel each other, and on main
+  # a dispatch cannot replace a pending push run.
+  group: ci-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 permissions:
   contents: read
@@ -170,6 +177,15 @@ jobs:
         env:
           CGO_ENABLED: '1'
         run: bash scripts/ci/go-test.sh -race
+      # CRSP201: go-test.sh logs only failures and a summary; the JSON keeps every
+      # test's time. The name is stable, so artifact-prune keeps the newest of each.
+      - name: Upload Go test times
+        if: ${{ always() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: ci-go-test-times-linux
+          path: test-results/go-test.json
+          if-no-files-found: ignore
       - name: Web tests and guards
         run: pnpm exec vitest run
 
@@ -198,6 +214,13 @@ jobs:
       - name: Go tests
         shell: bash
         run: bash scripts/ci/go-test.sh
+      - name: Upload Go test times
+        if: ${{ always() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: ci-go-test-times-${{ toLower(runner.os) }}
+          path: test-results/go-test.json
+          if-no-files-found: ignore
       # doctor R5.42, runners R5.68: the unit tests fake the link, so this one
       # step makes a real symbolic link with Developer Mode on (Windows only).
       - name: Real symbolic link (Windows, Developer Mode on)
@@ -413,7 +436,26 @@ jobs:
           name: crsp-linux-amd64
           path: bin
       - run: chmod +x bin/crsp
-      - run: pnpm exec playwright install --with-deps chromium
+      # CRSP201: `playwright install --with-deps` took about 190 s per shard. The browser
+      # download is cached per runner OS and the exact @playwright/test version
+      # from pnpm-lock.yaml; the browser builds are fixed by that version. A hit
+      # installs only the system packages; a miss installs as before. Playwright's
+      # own installer fetches the browser, so DL-94 (ci_tool.py) does not apply.
+      - name: Playwright version
+        id: pw
+        run: echo "version=$(pnpm exec playwright --version | awk '{print $2}')" >> "$GITHUB_OUTPUT"
+      - name: Cache Playwright browsers
+        id: pw-cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.pw.outputs.version }}
+      - name: Install Playwright browser and system packages
+        if: steps.pw-cache.outputs.cache-hit != 'true'
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Install Playwright system packages (browser cached)
+        if: steps.pw-cache.outputs.cache-hit == 'true'
+        run: pnpm exec playwright install-deps chromium
 
       # Required. No retries, no continue-on-error (STACKSPEC 11.2, 11.3).
       - name: Playwright (gating specs)
