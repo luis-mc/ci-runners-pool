@@ -188,7 +188,7 @@ func (r *Recorder) OnJob(ctx context.Context, gj github.Job) error {
 	j := toJob(gj, repoID, path, state)
 	r.mu.Lock()
 	old, had := r.jobs.get(j.ID)
-	firstDone := state == jobsdata.Done && !(had && old.State == jobsdata.Done)
+	firstDone := state == jobsdata.Done && (!had || old.State != jobsdata.Done)
 	if had {
 		if rank(j.State) < rank(old.State) {
 			r.mu.Unlock()

@@ -93,3 +93,32 @@ func TestLatestDigest(t *testing.T) {
 		t.Fatalf("latest = %q", got)
 	}
 }
+
+type memFindings struct{ synced [][]insights.Kind }
+
+func (m *memFindings) Sync(_ context.Context, kinds []insights.Kind, _ []insights.Finding, _ time.Time) (insights.SyncResult, error) {
+	m.synced = append(m.synced, kinds)
+	return insights.SyncResult{}, nil
+}
+func (m *memFindings) List(context.Context, insights.Filter) ([]insights.StoredFinding, int, string, error) {
+	return nil, 0, "", nil
+}
+func (m *memFindings) Get(context.Context, int64) (insights.StoredFinding, error) {
+	return insights.StoredFinding{}, nil
+}
+func (m *memFindings) Summary(context.Context) (insights.Summary, error) {
+	return insights.Summary{}, nil
+}
+
+// D18, D19: the controller's engine measures each pass and syncs the cost warning next to the analysers.
+func TestNewInsightsEngineMeasuresEachPass(t *testing.T) {
+	fs := &memFindings{}
+	get := func(context.Context) (settings.Settings, error) { return settings.Defaults, nil }
+	eng := newInsightsEngine(nil, fs, nil, get, t.TempDir(), filepath.Join(t.TempDir(), "crsp.db"), slog.New(slog.NewTextHandler(io.Discard, nil)))
+	if err := eng.RunOnce(context.Background(), time.Now()); err != nil {
+		t.Fatal(err)
+	}
+	if len(fs.synced) != 1 || len(fs.synced[0]) != 1 || fs.synced[0][0] != insights.KindCost {
+		t.Fatalf("synced = %v, want one sync of the cost kind", fs.synced)
+	}
+}
