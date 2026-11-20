@@ -19,7 +19,7 @@ code:
   - apps/web/src/features/repositories/**
   - apps/web/src/features/users/**
 design_system: [components 4, components 9, components 15, components 18, components 19, rules UX-5, rules UX-6, rules UX-9, rules UX-22, rules UX-26, rules UX-28, rules UX-29, rules UX-30, rules UX-38, rules UX-58, rules UX-62]
-last_verified: 2026-11-14
+last_verified: 2026-11-20
 artifact:
 generator: luismc-docs 2.6.1
 ---

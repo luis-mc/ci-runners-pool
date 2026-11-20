@@ -9,7 +9,7 @@ owner: owner
 type: reference
 code: [cmd/crsp/**, internal/cli/**, internal/parity/**]
 design_system: [content action-vocabulary, content message-wording, content dates-times-numbers]
-last_verified: 2026-11-17
+last_verified: 2026-11-20
 artifact:
 generator: luismc-docs 2.6.1
 ---
