@@ -70,6 +70,38 @@ func (q *Queries) GetCIJobLog(ctx context.Context, jobID int64) (CiJobLog, error
 	return i, err
 }
 
+const getCIReportFile = `-- name: GetCIReportFile :one
+SELECT id, repository_id, run_id, run_attempt, artifact_id, artifact_name, member, format, path, bytes, state, reason, fetched_at, expires_at FROM ci_report_files WHERE repository_id = ? AND artifact_id = ? AND member = ?
+`
+
+type GetCIReportFileParams struct {
+	RepositoryID int64
+	ArtifactID   int64
+	Member       string
+}
+
+func (q *Queries) GetCIReportFile(ctx context.Context, arg GetCIReportFileParams) (CiReportFile, error) {
+	row := q.queryRow(ctx, q.getCIReportFileStmt, getCIReportFile, arg.RepositoryID, arg.ArtifactID, arg.Member)
+	var i CiReportFile
+	err := row.Scan(
+		&i.ID,
+		&i.RepositoryID,
+		&i.RunID,
+		&i.RunAttempt,
+		&i.ArtifactID,
+		&i.ArtifactName,
+		&i.Member,
+		&i.Format,
+		&i.Path,
+		&i.Bytes,
+		&i.State,
+		&i.Reason,
+		&i.FetchedAt,
+		&i.ExpiresAt,
+	)
+	return i, err
+}
+
 const insertCIReportFile = `-- name: InsertCIReportFile :one
 INSERT INTO ci_report_files (repository_id, run_id, run_attempt, artifact_id, artifact_name, member, format, path, bytes, state, reason, fetched_at, expires_at)
 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -173,6 +205,53 @@ type ListCIReportFilesForRunParams struct {
 
 func (q *Queries) ListCIReportFilesForRun(ctx context.Context, arg ListCIReportFilesForRunParams) ([]CiReportFile, error) {
 	rows, err := q.query(ctx, q.listCIReportFilesForRunStmt, listCIReportFilesForRun, arg.RepositoryID, arg.RunID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []CiReportFile
+	for rows.Next() {
+		var i CiReportFile
+		if err := rows.Scan(
+			&i.ID,
+			&i.RepositoryID,
+			&i.RunID,
+			&i.RunAttempt,
+			&i.ArtifactID,
+			&i.ArtifactName,
+			&i.Member,
+			&i.Format,
+			&i.Path,
+			&i.Bytes,
+			&i.State,
+			&i.Reason,
+			&i.FetchedAt,
+			&i.ExpiresAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listCIReportFilesOldestFirst = `-- name: ListCIReportFilesOldestFirst :many
+SELECT id, repository_id, run_id, run_attempt, artifact_id, artifact_name, member, format, path, bytes, state, reason, fetched_at, expires_at FROM ci_report_files WHERE repository_id = ? AND state IN ('stored', 'parsed') ORDER BY fetched_at ASC, id ASC LIMIT ?
+`
+
+type ListCIReportFilesOldestFirstParams struct {
+	RepositoryID int64
+	Limit        int64
+}
+
+func (q *Queries) ListCIReportFilesOldestFirst(ctx context.Context, arg ListCIReportFilesOldestFirstParams) ([]CiReportFile, error) {
+	rows, err := q.query(ctx, q.listCIReportFilesOldestFirstStmt, listCIReportFilesOldestFirst, arg.RepositoryID, arg.Limit)
 	if err != nil {
 		return nil, err
 	}

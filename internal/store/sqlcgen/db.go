@@ -204,6 +204,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.getCIJobLogStmt, err = db.PrepareContext(ctx, getCIJobLog); err != nil {
 		return nil, fmt.Errorf("error preparing query GetCIJobLog: %w", err)
 	}
+	if q.getCIReportFileStmt, err = db.PrepareContext(ctx, getCIReportFile); err != nil {
+		return nil, fmt.Errorf("error preparing query GetCIReportFile: %w", err)
+	}
 	if q.getDoctorRunStmt, err = db.PrepareContext(ctx, getDoctorRun); err != nil {
 		return nil, fmt.Errorf("error preparing query GetDoctorRun: %w", err)
 	}
@@ -500,6 +503,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	}
 	if q.listCIReportFilesForRunStmt, err = db.PrepareContext(ctx, listCIReportFilesForRun); err != nil {
 		return nil, fmt.Errorf("error preparing query ListCIReportFilesForRun: %w", err)
+	}
+	if q.listCIReportFilesOldestFirstStmt, err = db.PrepareContext(ctx, listCIReportFilesOldestFirst); err != nil {
+		return nil, fmt.Errorf("error preparing query ListCIReportFilesOldestFirst: %w", err)
 	}
 	if q.listCliTokensStmt, err = db.PrepareContext(ctx, listCliTokens); err != nil {
 		return nil, fmt.Errorf("error preparing query ListCliTokens: %w", err)
@@ -1337,6 +1343,11 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing getCIJobLogStmt: %w", cerr)
 		}
 	}
+	if q.getCIReportFileStmt != nil {
+		if cerr := q.getCIReportFileStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getCIReportFileStmt: %w", cerr)
+		}
+	}
 	if q.getDoctorRunStmt != nil {
 		if cerr := q.getDoctorRunStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing getDoctorRunStmt: %w", cerr)
@@ -1830,6 +1841,11 @@ func (q *Queries) Close() error {
 	if q.listCIReportFilesForRunStmt != nil {
 		if cerr := q.listCIReportFilesForRunStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing listCIReportFilesForRunStmt: %w", cerr)
+		}
+	}
+	if q.listCIReportFilesOldestFirstStmt != nil {
+		if cerr := q.listCIReportFilesOldestFirstStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listCIReportFilesOldestFirstStmt: %w", cerr)
 		}
 	}
 	if q.listCliTokensStmt != nil {
@@ -2816,6 +2832,7 @@ type Queries struct {
 	getActiveSessionStmt                        *sql.Stmt
 	getBackupStmt                               *sql.Stmt
 	getCIJobLogStmt                             *sql.Stmt
+	getCIReportFileStmt                         *sql.Stmt
 	getDoctorRunStmt                            *sql.Stmt
 	getGitHubAppStmt                            *sql.Stmt
 	getGitHubJobStmt                            *sql.Stmt
@@ -2915,6 +2932,7 @@ type Queries struct {
 	listBackupsStmt                             *sql.Stmt
 	listCIJobLogsOldestFirstStmt                *sql.Stmt
 	listCIReportFilesForRunStmt                 *sql.Stmt
+	listCIReportFilesOldestFirstStmt            *sql.Stmt
 	listCliTokensStmt                           *sql.Stmt
 	listDailySummariesStmt                      *sql.Stmt
 	listDanglingRegistryLayersStmt              *sql.Stmt
@@ -3158,6 +3176,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		getActiveSessionStmt:                        q.getActiveSessionStmt,
 		getBackupStmt:                               q.getBackupStmt,
 		getCIJobLogStmt:                             q.getCIJobLogStmt,
+		getCIReportFileStmt:                         q.getCIReportFileStmt,
 		getDoctorRunStmt:                            q.getDoctorRunStmt,
 		getGitHubAppStmt:                            q.getGitHubAppStmt,
 		getGitHubJobStmt:                            q.getGitHubJobStmt,
@@ -3257,6 +3276,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		listBackupsStmt:                             q.listBackupsStmt,
 		listCIJobLogsOldestFirstStmt:                q.listCIJobLogsOldestFirstStmt,
 		listCIReportFilesForRunStmt:                 q.listCIReportFilesForRunStmt,
+		listCIReportFilesOldestFirstStmt:            q.listCIReportFilesOldestFirstStmt,
 		listCliTokensStmt:                           q.listCliTokensStmt,
 		listDailySummariesStmt:                      q.listDailySummariesStmt,
 		listDanglingRegistryLayersStmt:              q.listDanglingRegistryLayersStmt,
