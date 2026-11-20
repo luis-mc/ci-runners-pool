@@ -170,6 +170,15 @@ jobs:
         env:
           CGO_ENABLED: '1'
         run: bash scripts/ci/go-test.sh -race
+      # CRSP201: go-test.sh logs only failures and a summary; the JSON keeps every
+      # test's time. The name is stable, so artifact-prune keeps the newest of each.
+      - name: Upload Go test times
+        if: ${{ always() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: ci-go-test-times-linux
+          path: test-results/go-test.json
+          if-no-files-found: ignore
       - name: Web tests and guards
         run: pnpm exec vitest run
 
@@ -198,6 +207,13 @@ jobs:
       - name: Go tests
         shell: bash
         run: bash scripts/ci/go-test.sh
+      - name: Upload Go test times
+        if: ${{ always() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: ci-go-test-times-${{ toLower(runner.os) }}
+          path: test-results/go-test.json
+          if-no-files-found: ignore
       # doctor R5.42, runners R5.68: the unit tests fake the link, so this one
       # step makes a real symbolic link with Developer Mode on (Windows only).
       - name: Real symbolic link (Windows, Developer Mode on)
