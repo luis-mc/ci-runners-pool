@@ -120,12 +120,15 @@ func recoverMSI(dir, current string, now time.Time) (bool, Result) {
 	}
 	done := func(r Result) (bool, Result) {
 		r.Kind, r.From, r.To, r.At = "update", rec.From, rec.To, now
+		prev, _ := ReadStage(dir) // the attempt that started this install (CRSP205)
+		r.Attempt = prev.Attempt
 		_ = WriteResult(dir, r)
-		if r.OK {
-			_ = WriteStage(dir, Stage{Name: StageDone, Percent: 100, Version: rec.To, At: now})
-		} else {
-			_ = WriteStage(dir, Stage{Name: StageFailed, Percent: -1, Version: rec.To, Error: r.Error, LogPath: rec.Log, FailedAt: StageInstalling, At: now})
+		st := Stage{Name: StageDone, Percent: 100, Version: rec.To, At: now}
+		if !r.OK {
+			st = Stage{Name: StageFailed, Percent: -1, Version: rec.To, Error: r.Error, LogPath: rec.Log, FailedAt: StageInstalling, At: now}
 		}
+		st.StartedBy, st.Attempt, st.AttemptKind, st.AttemptStarted = prev.StartedBy, prev.Attempt, prev.AttemptKind, prev.AttemptStarted
+		_ = WriteStage(dir, st)
 		_ = os.Remove(filepath.Join(dir, PendingMSIFile))
 		return true, r
 	}

@@ -2731,6 +2731,24 @@ func (e TrialSetMode) Valid() bool {
 	}
 }
 
+// Defines values for UpdateAttemptKind.
+const (
+	Restart UpdateAttemptKind = "restart"
+	Update  UpdateAttemptKind = "update"
+)
+
+// Valid indicates whether the value is a known member of the UpdateAttemptKind enum.
+func (e UpdateAttemptKind) Valid() bool {
+	switch e {
+	case Restart:
+		return true
+	case Update:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for UpdateStageFailedAt.
 const (
 	UpdateStageFailedAtDownloading    UpdateStageFailedAt = "downloading"
@@ -6267,6 +6285,16 @@ type TrialSide struct {
 	Succeeded  int `json:"succeeded"`
 }
 
+// UpdateAttempt One update or restart, from the yes to its end. Its id tells a page which outcome is its own (CRSP205).
+type UpdateAttempt struct {
+	Id        string            `json:"id"`
+	Kind      UpdateAttemptKind `json:"kind"`
+	StartedAt time.Time         `json:"started_at"`
+}
+
+// UpdateAttemptKind defines model for UpdateAttempt.Kind.
+type UpdateAttemptKind string
+
 // UpdateImageLayersRequest defines model for UpdateImageLayersRequest.
 type UpdateImageLayersRequest struct {
 	// EnabledLayers Ids of the layers that are on. Every other layer is off.
@@ -6310,13 +6338,18 @@ type UpdateStageName string
 
 // UpdateStatus operations R5.11 to R5.18, tray R5.18.
 type UpdateStatus struct {
-	AutoUpdate          bool       `json:"auto_update"`
-	CheckedAt           *time.Time `json:"checked_at,omitempty"`
-	CurrentVersion      string     `json:"current_version"`
-	DrainTimeoutMinutes *int       `json:"drain_timeout_minutes,omitempty"`
+	// Attempt One update or restart, from the yes to its end. Its id tells a page which outcome is its own (CRSP205).
+	Attempt             *UpdateAttempt `json:"attempt,omitempty"`
+	AutoUpdate          bool           `json:"auto_update"`
+	CheckedAt           *time.Time     `json:"checked_at,omitempty"`
+	CurrentVersion      string         `json:"current_version"`
+	DrainTimeoutMinutes *int           `json:"drain_timeout_minutes,omitempty"`
 
 	// Error Which check or step failed, in words.
 	Error *string `json:"error,omitempty"`
+
+	// ErrorAttempt The id of the attempt that `error` belongs to. Absent for a failure recorded before attempts had ids. A page shows an error only when this is the id of the attempt it started (CRSP205).
+	ErrorAttempt *string `json:"error_attempt,omitempty"`
 
 	// LatestVersion The newest stable release found; absent before the first look.
 	LatestVersion *string `json:"latest_version,omitempty"`
@@ -6324,6 +6357,12 @@ type UpdateStatus struct {
 
 	// RunningJobs Jobs running on this machine that the drain waits for.
 	RunningJobs []UpdateJob `json:"running_jobs"`
+
+	// ServerTime The service's clock now, so a page can say how long a restart took without its own clock.
+	ServerTime *time.Time `json:"server_time,omitempty"`
+
+	// ServiceStartedAt When this service process started. A restart is over when it is later than the attempt's started_at (CRSP205).
+	ServiceStartedAt *time.Time `json:"service_started_at,omitempty"`
 
 	// Stage The live stage of the last or running update (TRAY4). It is kept in a file, so it survives the service restart.
 	Stage *UpdateStage `json:"stage,omitempty"`
