@@ -67,9 +67,6 @@
     "internal/api/handlers_registry*.go": [
       "docs/features/registry/spec.md"
     ],
-    "internal/api/stubs_insights.go": [
-      "docs/features/ci-run-insights/spec.md"
-    ],
     "internal/api/stubs_registry_*.go": [
       "docs/features/registry/spec.md"
     ],
