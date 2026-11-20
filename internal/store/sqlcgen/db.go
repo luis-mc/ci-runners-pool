@@ -54,8 +54,14 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.countOpenInsightFindingsStmt, err = db.PrepareContext(ctx, countOpenInsightFindings); err != nil {
 		return nil, fmt.Errorf("error preparing query CountOpenInsightFindings: %w", err)
 	}
+	if q.countOpenInsightFindingsFilteredStmt, err = db.PrepareContext(ctx, countOpenInsightFindingsFiltered); err != nil {
+		return nil, fmt.Errorf("error preparing query CountOpenInsightFindingsFiltered: %w", err)
+	}
 	if q.countRepositoryRunningStmt, err = db.PrepareContext(ctx, countRepositoryRunning); err != nil {
 		return nil, fmt.Errorf("error preparing query CountRepositoryRunning: %w", err)
+	}
+	if q.countResolvedInsightFindingsFilteredStmt, err = db.PrepareContext(ctx, countResolvedInsightFindingsFiltered); err != nil {
+		return nil, fmt.Errorf("error preparing query CountResolvedInsightFindingsFiltered: %w", err)
 	}
 	if q.countUsersStmt, err = db.PrepareContext(ctx, countUsers); err != nil {
 		return nil, fmt.Errorf("error preparing query CountUsers: %w", err)
@@ -218,6 +224,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	}
 	if q.getImageProfileStmt, err = db.PrepareContext(ctx, getImageProfile); err != nil {
 		return nil, fmt.Errorf("error preparing query GetImageProfile: %w", err)
+	}
+	if q.getInsightDigestStmt, err = db.PrepareContext(ctx, getInsightDigest); err != nil {
+		return nil, fmt.Errorf("error preparing query GetInsightDigest: %w", err)
 	}
 	if q.getInsightFindingStmt, err = db.PrepareContext(ctx, getInsightFinding); err != nil {
 		return nil, fmt.Errorf("error preparing query GetInsightFinding: %w", err)
@@ -546,6 +555,12 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.listInsightDigestsStmt, err = db.PrepareContext(ctx, listInsightDigests); err != nil {
 		return nil, fmt.Errorf("error preparing query ListInsightDigests: %w", err)
 	}
+	if q.listInsightFindingsOpenedBetweenStmt, err = db.PrepareContext(ctx, listInsightFindingsOpenedBetween); err != nil {
+		return nil, fmt.Errorf("error preparing query ListInsightFindingsOpenedBetween: %w", err)
+	}
+	if q.listInsightFindingsResolvedBetweenStmt, err = db.PrepareContext(ctx, listInsightFindingsResolvedBetween); err != nil {
+		return nil, fmt.Errorf("error preparing query ListInsightFindingsResolvedBetween: %w", err)
+	}
 	if q.listInstallationsStmt, err = db.PrepareContext(ctx, listInstallations); err != nil {
 		return nil, fmt.Errorf("error preparing query ListInstallations: %w", err)
 	}
@@ -659,6 +674,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	}
 	if q.listRepositoryProfilesStmt, err = db.PrepareContext(ctx, listRepositoryProfiles); err != nil {
 		return nil, fmt.Errorf("error preparing query ListRepositoryProfiles: %w", err)
+	}
+	if q.listResolvedInsightFindingsStmt, err = db.PrepareContext(ctx, listResolvedInsightFindings); err != nil {
+		return nil, fmt.Errorf("error preparing query ListResolvedInsightFindings: %w", err)
 	}
 	if q.listRunAttemptsStmt, err = db.PrepareContext(ctx, listRunAttempts); err != nil {
 		return nil, fmt.Errorf("error preparing query ListRunAttempts: %w", err)
@@ -1087,9 +1105,19 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing countOpenInsightFindingsStmt: %w", cerr)
 		}
 	}
+	if q.countOpenInsightFindingsFilteredStmt != nil {
+		if cerr := q.countOpenInsightFindingsFilteredStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing countOpenInsightFindingsFilteredStmt: %w", cerr)
+		}
+	}
 	if q.countRepositoryRunningStmt != nil {
 		if cerr := q.countRepositoryRunningStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing countRepositoryRunningStmt: %w", cerr)
+		}
+	}
+	if q.countResolvedInsightFindingsFilteredStmt != nil {
+		if cerr := q.countResolvedInsightFindingsFilteredStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing countResolvedInsightFindingsFilteredStmt: %w", cerr)
 		}
 	}
 	if q.countUsersStmt != nil {
@@ -1360,6 +1388,11 @@ func (q *Queries) Close() error {
 	if q.getImageProfileStmt != nil {
 		if cerr := q.getImageProfileStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing getImageProfileStmt: %w", cerr)
+		}
+	}
+	if q.getInsightDigestStmt != nil {
+		if cerr := q.getInsightDigestStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getInsightDigestStmt: %w", cerr)
 		}
 	}
 	if q.getInsightFindingStmt != nil {
@@ -1907,6 +1940,16 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing listInsightDigestsStmt: %w", cerr)
 		}
 	}
+	if q.listInsightFindingsOpenedBetweenStmt != nil {
+		if cerr := q.listInsightFindingsOpenedBetweenStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listInsightFindingsOpenedBetweenStmt: %w", cerr)
+		}
+	}
+	if q.listInsightFindingsResolvedBetweenStmt != nil {
+		if cerr := q.listInsightFindingsResolvedBetweenStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listInsightFindingsResolvedBetweenStmt: %w", cerr)
+		}
+	}
 	if q.listInstallationsStmt != nil {
 		if cerr := q.listInstallationsStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing listInstallationsStmt: %w", cerr)
@@ -2095,6 +2138,11 @@ func (q *Queries) Close() error {
 	if q.listRepositoryProfilesStmt != nil {
 		if cerr := q.listRepositoryProfilesStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing listRepositoryProfilesStmt: %w", cerr)
+		}
+	}
+	if q.listResolvedInsightFindingsStmt != nil {
+		if cerr := q.listResolvedInsightFindingsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listResolvedInsightFindingsStmt: %w", cerr)
 		}
 	}
 	if q.listRunAttemptsStmt != nil {
@@ -2766,7 +2814,9 @@ type Queries struct {
 	countLiveRegistryTokenLeasesNamingStmt      *sql.Stmt
 	countMachineSlotsStmt                       *sql.Stmt
 	countOpenInsightFindingsStmt                *sql.Stmt
+	countOpenInsightFindingsFilteredStmt        *sql.Stmt
 	countRepositoryRunningStmt                  *sql.Stmt
+	countResolvedInsightFindingsFilteredStmt    *sql.Stmt
 	countUsersStmt                              *sql.Stmt
 	dailySummarisedDaysStmt                     *sql.Stmt
 	deleteAuditBeforeStmt                       *sql.Stmt
@@ -2821,6 +2871,7 @@ type Queries struct {
 	getGitHubJobStmt                            *sql.Stmt
 	getImageBuildStmt                           *sql.Stmt
 	getImageProfileStmt                         *sql.Stmt
+	getInsightDigestStmt                        *sql.Stmt
 	getInsightFindingStmt                       *sql.Stmt
 	getInsightPlanStmt                          *sql.Stmt
 	getJobHistoryStmt                           *sql.Stmt
@@ -2930,6 +2981,8 @@ type Queries struct {
 	listInFlightPullMachinesOfRegistryImageStmt *sql.Stmt
 	listInsightAnalyserRunsStmt                 *sql.Stmt
 	listInsightDigestsStmt                      *sql.Stmt
+	listInsightFindingsOpenedBetweenStmt        *sql.Stmt
+	listInsightFindingsResolvedBetweenStmt      *sql.Stmt
 	listInstallationsStmt                       *sql.Stmt
 	listJobAttemptsStmt                         *sql.Stmt
 	listJobHistoryStmt                          *sql.Stmt
@@ -2968,6 +3021,7 @@ type Queries struct {
 	listRegistryVariantsDueStmt                 *sql.Stmt
 	listRepositoriesStmt                        *sql.Stmt
 	listRepositoryProfilesStmt                  *sql.Stmt
+	listResolvedInsightFindingsStmt             *sql.Stmt
 	listRunAttemptsStmt                         *sql.Stmt
 	listRunFindingsStmt                         *sql.Stmt
 	listRunnersStmt                             *sql.Stmt
@@ -3108,7 +3162,9 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		countLiveRegistryTokenLeasesNamingStmt:      q.countLiveRegistryTokenLeasesNamingStmt,
 		countMachineSlotsStmt:                       q.countMachineSlotsStmt,
 		countOpenInsightFindingsStmt:                q.countOpenInsightFindingsStmt,
+		countOpenInsightFindingsFilteredStmt:        q.countOpenInsightFindingsFilteredStmt,
 		countRepositoryRunningStmt:                  q.countRepositoryRunningStmt,
+		countResolvedInsightFindingsFilteredStmt:    q.countResolvedInsightFindingsFilteredStmt,
 		countUsersStmt:                              q.countUsersStmt,
 		dailySummarisedDaysStmt:                     q.dailySummarisedDaysStmt,
 		deleteAuditBeforeStmt:                       q.deleteAuditBeforeStmt,
@@ -3163,6 +3219,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		getGitHubJobStmt:                            q.getGitHubJobStmt,
 		getImageBuildStmt:                           q.getImageBuildStmt,
 		getImageProfileStmt:                         q.getImageProfileStmt,
+		getInsightDigestStmt:                        q.getInsightDigestStmt,
 		getInsightFindingStmt:                       q.getInsightFindingStmt,
 		getInsightPlanStmt:                          q.getInsightPlanStmt,
 		getJobHistoryStmt:                           q.getJobHistoryStmt,
@@ -3272,6 +3329,8 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		listInFlightPullMachinesOfRegistryImageStmt: q.listInFlightPullMachinesOfRegistryImageStmt,
 		listInsightAnalyserRunsStmt:                 q.listInsightAnalyserRunsStmt,
 		listInsightDigestsStmt:                      q.listInsightDigestsStmt,
+		listInsightFindingsOpenedBetweenStmt:        q.listInsightFindingsOpenedBetweenStmt,
+		listInsightFindingsResolvedBetweenStmt:      q.listInsightFindingsResolvedBetweenStmt,
 		listInstallationsStmt:                       q.listInstallationsStmt,
 		listJobAttemptsStmt:                         q.listJobAttemptsStmt,
 		listJobHistoryStmt:                          q.listJobHistoryStmt,
@@ -3310,6 +3369,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		listRegistryVariantsDueStmt:                 q.listRegistryVariantsDueStmt,
 		listRepositoriesStmt:                        q.listRepositoriesStmt,
 		listRepositoryProfilesStmt:                  q.listRepositoryProfilesStmt,
+		listResolvedInsightFindingsStmt:             q.listResolvedInsightFindingsStmt,
 		listRunAttemptsStmt:                         q.listRunAttemptsStmt,
 		listRunFindingsStmt:                         q.listRunFindingsStmt,
 		listRunnersStmt:                             q.listRunnersStmt,

@@ -376,17 +376,17 @@ Every row is planned; the paths are where each test will live (wave CIX).
 
 | Requirement | Test |
 |---|---|
-| R5.1 | planned: internal/insights/engine_test.go TestSeesOtherRunnersJobs |
+| R5.1 | internal/insights/engine_test.go TestSeesOtherRunnersJobs |
 | R5.2 | planned: internal/insights/collect/logs_test.go TestLogRedactedAndEnvValuesDropped, TestTooLargeNotStored |
 | R5.3 | planned: internal/insights/collect/artifacts_test.go TestReportArtifactsByContentWithinCaps |
 | R5.4 | planned: internal/insights/collect/privacy_test.go TestNoSecretNoEnvNoEmailStored; internal/store/insights_test.go TestNoForbiddenColumns |
 | R5.5 | planned: internal/settings/settings_test.go TestInsightsRanges; apps/web/src/screens/settings/CiData.test.tsx |
 | R5.6 | planned: internal/insights/collect/retention_test.go TestDaysThenSizeCapOldestFirst |
-| R5.7 | planned: internal/store/insights_test.go TestFindingRoundTrip |
-| R5.8 | planned: internal/insights/engine_test.go TestResolvedWhenConditionEnds, TestFailedRunResolvesNothing, TestNoDismissRoute |
-| R5.9 | planned: internal/insights/engine_test.go TestMinutesRoundedAndLabelled |
+| R5.7 | internal/store/insights_test.go TestFindingRoundTrip |
+| R5.8 | internal/insights/engine_test.go TestResolvedWhenConditionEnds, TestFailedRunResolvesNothing, TestNoDismissRoute |
+| R5.9 | internal/insights/engine_test.go TestMinutesRoundedAndLabelled |
 | R5.10 | planned: internal/insights/actions/actions_test.go TestNothingChangesBeforeStart, TestStartWritesAuditPerChange; apps/web/src/screens/insights/ActionWizard.test.tsx |
-| R5.11 | planned: internal/insights/rank_test.go TestRankByMinutesThenAge; apps/web/src/screens/insights/DoNext.test.tsx |
+| R5.11 | internal/insights/rank_test.go TestRankByMinutesThenAge, TestRankZeroMinutesByGuardrail, internal/store/insights_test.go TestListRankFilterPage; planned: apps/web/src/screens/insights/DoNext.test.tsx |
 | R5.12 | planned: internal/insights/waits/split_test.go TestCrspSplit, TestOtherRunnerNoHold, TestUnknownNotZero |
 | R5.13 | planned: internal/insights/waits/split_test.go TestGroupByRepositoryKeyDay |
 | R5.14 | planned: internal/insights/waits/hold_test.go TestHoldOverCapWithReason |
@@ -413,7 +413,7 @@ Every row is planned; the paths are where each test will live (wave CIX).
 | R5.35 | planned: internal/insights/tests/flaky_test.go TestSameCommitDifferentResult |
 | R5.36 | planned: internal/insights/tests/duplicate_test.go TestSameIdTwoJobs |
 | R5.37 | planned: internal/insights/tests/assertions_test.go TestZeroOnlyWhenReported |
-| R5.38 | planned: internal/insights/digest/digest_test.go TestWeeklyFileTopThree |
+| R5.38 | internal/insights/digest/digest_test.go TestWeeklyFileTopThree, TestNextRunMonday0700, TestKeepsLast52 |
 | R5.39 | planned: internal/jobsdata/reconcile/origin_test.go TestCrspOtherHosted; apps/web/src/screens/jobs/JobPage.test.tsx |
 | R5.40 | planned: internal/jobsdata/reconcile/steps_test.go TestStepsByRESTOnce |
 | R5.41 | planned: internal/jobsdata/reconcile/stale_test.go TestStaleQueuedBecomesDone, TestGoneBecomesLost |
@@ -421,13 +421,13 @@ Every row is planned; the paths are where each test will live (wave CIX).
 | R5.43 | planned: internal/doctor/checks/workflows_test.go TestWorkflowFindings |
 | R6.1 | planned: internal/insights/collect/budget_test.go TestQuarterShareAndOrder |
 | R6.2 | planned: internal/insights/collect/retention_test.go TestDefaultsFloorsCeilings |
-| R6.3 | planned: internal/insights/engine_bench_test.go BenchmarkPass20kJobs |
+| R6.3 | internal/insights/engine_bench_test.go BenchmarkPass20kJobs, internal/insights/engine_test.go TestRunSchedule |
 | R6.4 | planned: internal/agent/jobsample/sampler_bench_test.go BenchmarkSample |
 | R6.5 | planned: internal/insights/collect/privacy_test.go TestRedactionCoversCIData |
-| R6.6 | planned: internal/insights/engine_test.go TestAnalysersNeverWriteSettings |
-| R6.7 | planned: internal/store/insights_bench_test.go BenchmarkFindingsPage |
-| R6.8 | planned: internal/insights/engine_test.go TestFailOpen |
-| R6.9 | planned: internal/store/insights_test.go TestStoredUTC |
+| R6.6 | internal/insights/engine_test.go TestAnalysersNeverWriteSettings |
+| R6.7 | internal/store/insights_bench_test.go BenchmarkFindingsPage |
+| R6.8 | internal/insights/engine_test.go TestFailOpen |
+| R6.9 | internal/store/insights_test.go TestStoredUTC |
 
 ## 10. Decisions
 

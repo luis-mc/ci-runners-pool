@@ -29,7 +29,9 @@ WHERE resolved_at = ''
   AND (sqlc.arg(repository_id) = 0 OR repository_id = sqlc.arg(repository_id))
   AND (sqlc.arg(area) = '' OR area = sqlc.arg(area))
   AND (sqlc.arg(guardrail) = '' OR guardrail = sqlc.arg(guardrail))
-ORDER BY minutes_saved_week DESC, first_seen ASC, id ASC
+ORDER BY minutes_saved_week DESC,
+         CASE WHEN minutes_saved_week = 0 THEN COALESCE(NULLIF(guardrail, ''), 'H') ELSE '' END ASC,
+         first_seen ASC, id ASC
 LIMIT sqlc.arg(lim) OFFSET sqlc.arg(off);
 
 -- name: CountOpenInsightFindings :one
@@ -69,3 +71,39 @@ SELECT * FROM insight_digests ORDER BY week DESC LIMIT ?;
 
 -- name: DeleteInsightDigest :exec
 DELETE FROM insight_digests WHERE week = ?;
+
+-- CIX11 additions (engine, Do next list, digest). Still no dismiss query (R5.8).
+
+-- name: ListResolvedInsightFindings :many
+SELECT * FROM insight_findings
+WHERE resolved_at != ''
+  AND (sqlc.arg(repository_id) = 0 OR repository_id = sqlc.arg(repository_id))
+  AND (sqlc.arg(area) = '' OR area = sqlc.arg(area))
+  AND (sqlc.arg(guardrail) = '' OR guardrail = sqlc.arg(guardrail))
+ORDER BY resolved_at DESC, id DESC
+LIMIT sqlc.arg(lim) OFFSET sqlc.arg(off);
+
+-- name: CountOpenInsightFindingsFiltered :one
+SELECT COUNT(*) FROM insight_findings
+WHERE resolved_at = ''
+  AND (sqlc.arg(repository_id) = 0 OR repository_id = sqlc.arg(repository_id))
+  AND (sqlc.arg(area) = '' OR area = sqlc.arg(area))
+  AND (sqlc.arg(guardrail) = '' OR guardrail = sqlc.arg(guardrail));
+
+-- name: CountResolvedInsightFindingsFiltered :one
+SELECT COUNT(*) FROM insight_findings
+WHERE resolved_at != ''
+  AND (sqlc.arg(repository_id) = 0 OR repository_id = sqlc.arg(repository_id))
+  AND (sqlc.arg(area) = '' OR area = sqlc.arg(area))
+  AND (sqlc.arg(guardrail) = '' OR guardrail = sqlc.arg(guardrail));
+
+-- name: ListInsightFindingsOpenedBetween :many
+SELECT * FROM insight_findings WHERE first_seen >= sqlc.arg(from_at) AND first_seen < sqlc.arg(to_at)
+ORDER BY minutes_saved_week DESC, first_seen ASC, id ASC;
+
+-- name: ListInsightFindingsResolvedBetween :many
+SELECT * FROM insight_findings WHERE resolved_at != '' AND resolved_at >= sqlc.arg(from_at) AND resolved_at < sqlc.arg(to_at)
+ORDER BY minutes_saved_week DESC, resolved_at ASC, id ASC;
+
+-- name: GetInsightDigest :one
+SELECT * FROM insight_digests WHERE week = ?;
