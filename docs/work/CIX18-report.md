@@ -26,3 +26,6 @@ Branch CIX18-workflow-checks (plan row 8, plan name CIX16). Requirements R5.29, 
 ## Left
 - Wiring: whoever builds `cmd/crsp/insights_wiring.go` (CIX21) calls `checks.SetWorkflowSource(store.WorkflowChecks())`, registers `workflows.Analyser{Repos, Store, Jobs}`, and feeds `Checker.Check` + `Save` from the file fetch at new head commits (the fetch is not in my row).
 - Pruning with `DeleteWorkflowChecksBefore` belongs to CIX10 retention.
+- Draft PR: https://github.com/luis-mc/ci-runners-shared-pool/pull/327 (opened with the GitHub MCP tool; gh not used)
+
+CODE DONE a90dfc2
