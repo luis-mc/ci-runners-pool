@@ -759,6 +759,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.refuseRegistryImageStmt, err = db.PrepareContext(ctx, refuseRegistryImage); err != nil {
 		return nil, fmt.Errorf("error preparing query RefuseRegistryImage: %w", err)
 	}
+	if q.registryLayerKnownStmt, err = db.PrepareContext(ctx, registryLayerKnown); err != nil {
+		return nil, fmt.Errorf("error preparing query RegistryLayerKnown: %w", err)
+	}
 	if q.renameMachineStmt, err = db.PrepareContext(ctx, renameMachine); err != nil {
 		return nil, fmt.Errorf("error preparing query RenameMachine: %w", err)
 	}
@@ -2259,6 +2262,11 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing refuseRegistryImageStmt: %w", cerr)
 		}
 	}
+	if q.registryLayerKnownStmt != nil {
+		if cerr := q.registryLayerKnownStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing registryLayerKnownStmt: %w", cerr)
+		}
+	}
 	if q.renameMachineStmt != nil {
 		if cerr := q.renameMachineStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing renameMachineStmt: %w", cerr)
@@ -2993,6 +3001,7 @@ type Queries struct {
 	queueRegistryScanStmt                       *sql.Stmt
 	recordSignInStmt                            *sql.Stmt
 	refuseRegistryImageStmt                     *sql.Stmt
+	registryLayerKnownStmt                      *sql.Stmt
 	renameMachineStmt                           *sql.Stmt
 	resolveInsightFindingsNotSeenStmt           *sql.Stmt
 	restoreRegistryImageStmt                    *sql.Stmt
@@ -3334,6 +3343,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		queueRegistryScanStmt:                       q.queueRegistryScanStmt,
 		recordSignInStmt:                            q.recordSignInStmt,
 		refuseRegistryImageStmt:                     q.refuseRegistryImageStmt,
+		registryLayerKnownStmt:                      q.registryLayerKnownStmt,
 		renameMachineStmt:                           q.renameMachineStmt,
 		resolveInsightFindingsNotSeenStmt:           q.resolveInsightFindingsNotSeenStmt,
 		restoreRegistryImageStmt:                    q.restoreRegistryImageStmt,

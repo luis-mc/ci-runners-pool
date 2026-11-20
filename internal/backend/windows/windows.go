@@ -47,6 +47,9 @@ type Config struct {
 	// Rights sets and reads the user rights of the runner account. Nil means
 	// the PowerShell implementation; tests pass a fake (runners R5.14).
 	Rights RightsGranter
+	// LookupSID reads the SID of a local account in this process, without
+	// PowerShell. Nil means the PowerShell script (tests, non-Windows).
+	LookupSID func(account string) (string, error)
 }
 
 // DefaultConfig is the production layout.
@@ -55,6 +58,7 @@ func DefaultConfig() Config {
 		Root:        `C:\ProgramData\crsp\runners`,
 		CrspBinary:  `C:\Program Files\crsp\crsp.exe`,
 		NewPassword: RandomPassword,
+		LookupSID:   nativeLookupSID,
 	}
 }
 
@@ -145,13 +149,31 @@ func (b *Backend) psOK(ctx context.Context, step, script string, env, secret map
 }
 
 // accountSID reads the SID of the account that was made, so icacls never has
-// to map a name.
+// to map a name. It asks Windows directly (LookupAccountName) when it can;
+// the PowerShell script is the fallback.
 func (b *Backend) accountSID(ctx context.Context, account string, env map[string]string) (string, error) {
+	if b.cfg.LookupSID != nil {
+		sid, err := b.cfg.LookupSID(account)
+		if err != nil || !strings.HasPrefix(sid, "S-1-") {
+			if err == nil {
+				err = fmt.Errorf("answer %q is not a SID", sid)
+			}
+			e := &FolderResetError{Detail: b.redact(fmt.Sprintf("read SID of %s: %v", account, err)), Err: err}
+			b.log("acl", e.Detail)
+			return "", e
+		}
+		return sid, nil
+	}
 	res, err := b.ps(ctx, scriptAccountSID, env, nil)
 	if err != nil {
 		return "", &FolderResetError{Detail: b.redact(fmt.Sprintf("read SID of %s: %v", account, err)), Err: err}
 	}
 	sid := strings.TrimSpace(res.Stdout)
+	if res.ExitCode == 0 && sid == "" {
+		e := &FolderResetError{Detail: fmt.Sprintf("read SID of %s: powershell exited 0 but printed nothing on stdout (stderr: %q); the script output did not reach the agent", account, b.redact(strings.TrimSpace(res.Stderr)))}
+		b.log("acl", e.Detail)
+		return "", e
+	}
 	if res.ExitCode != 0 || !strings.HasPrefix(sid, "S-1-") {
 		e := &FolderResetError{Detail: fmt.Sprintf("read SID of %s: powershell exited %d: %s", account, res.ExitCode, b.redact(plainError(res.Stderr, res.Stdout)))}
 		b.log("acl", e.Detail)

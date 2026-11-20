@@ -1136,3 +1136,22 @@ The words of the Registry tab under Images and caches: the registry of ready-mad
 | Replace wizard (live) | Go back to the old image; Pointers already moved stay moved.; The base image changed too, so the new image is built on a newer base. |
 | Add runners, Review | The registry has key {key}, {size}. A machine without a job image pulls it instead of building. |
 | Add runners, pulling | Waiting for the controller to send the job image to {machine}. The pull goes on when it answers.; The job image could not be pulled, so no runner was added. Nothing was changed on {machine}.; Build it here instead |
+
+## Registry job-log words (REG13)
+
+The lines the agent writes to the job log while it asks the controller for a job image, waits, pulls, builds and pushes (`internal/backend/container/ensure.go`, `images.go`). People read them in the job log, so they are user words. `{n}` is a number, `{reason}` is the cause in plain words. `internal/backend/container/words_test.go` builds each line from the code and fails when a line and its row differ, or a row has no line. A change of a word here changes the Go string in the same branch.
+
+| Where | Line |
+|---|---|
+| Waiting for the controller, under a minute | Waiting for the controller to say whether the image is in the registry (waited {n} s) |
+| Waiting for the controller, a minute or more | Waiting for the controller to say whether the image is in the registry (waited {n} min {n} s) |
+| The registry is busy, under a minute | The registry is busy; asking again in {n} s |
+| The registry is busy, a minute or more | The registry is busy; asking again in {n} min {n} s |
+| Pull starts, size not known | Pulling the job image from the registry |
+| Pull goes on | Pulling the job image from the registry, {n} of {n} GB |
+| Pull goes on, little time left | Pulling the job image from the registry, {n} of {n} GB, less than a minute left |
+| Pull goes on, more time left | Pulling the job image from the registry, {n} of {n} GB, about {n} min left |
+| Pull did not finish | The pull did not finish; trying again |
+| Pull failed | The pull from the registry failed ({reason}); building the image here instead |
+| Push failed | The image stays on this machine; it was not pushed: {reason} |
+| Push done | Pushed the image to the registry staging |

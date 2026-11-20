@@ -65,6 +65,8 @@ type registryCore struct {
 	AddPromotedHook func(registry.PromotedHook)
 	// MirrorGuard puts the token check in front of the pull-through mirror (R5.3).
 	MirrorGuard mirror.Guard
+	// budget is the gate REG6's budgets are wired into; nil in a test.
+	budget *budgetGate
 	// close stops the registry and its background work; nil in a test.
 	close func()
 }
@@ -124,12 +126,15 @@ func openCore(ctx context.Context, d registryCoreDeps) (*registryCore, error) {
 		return nil, fmt.Errorf("the token key: %w", err)
 	}
 	ledger := d.DB.RegistryCore()
-	issuer := &core.Issuer{Secret: key, Leases: ledger, Gate: &core.DiskGate{Folder: folder}}
+	budget := newBudgetGate(d.DB.RegistryRetention(), logger)
+	issuer := &core.Issuer{Secret: key, Leases: ledger, Gate: &core.DiskGate{
+		Folder: folder, OverBudget: budget.OverBudget, Refused: budget.Refused,
+	}}
 	reg, err := core.New(ctx, core.Options{Dir: folder, ListenAddr: d.ListenAddr, Tokens: issuer, Logger: d.Logger})
 	if err != nil {
 		return nil, err
 	}
-	promoter := &core.Promoter{Registry: reg, Ledger: ledger, Log: logger}
+	promoter := &core.Promoter{Registry: reg, Ledger: ledger, Log: logger, Room: budget.Room}
 	runCtx, stop := context.WithCancel(ctx)
 	go core.LogEvents(runCtx, reg.Events(), logger)
 	pruned := make(chan struct{})
@@ -151,7 +156,7 @@ func openCore(ctx context.Context, d registryCoreDeps) (*registryCore, error) {
 	logger.Info("image registry ready", "addr", d.Host)
 	return &registryCore{
 		Registry: reg, Tokens: issuer, Promoter: promoter, Layers: reg,
-		AddPromotedHook: promoter.OnPromoted, MirrorGuard: issuer.MirrorGuard,
+		AddPromotedHook: promoter.OnPromoted, MirrorGuard: issuer.MirrorGuard, budget: budget,
 		close: func() { stop(); <-pruned; _ = reg.Close() },
 	}, nil
 }
@@ -275,6 +280,9 @@ func wireRegistry(ctx context.Context, d controllerDeps, c *controller, gh *gith
 		Repo: db.RegistryRetention(), Registry: reg, Disk: registryDisk{}, Audit: api.RetentionAuditor(audits),
 		Profiles: profileExists{db.Profiles()}, Logger: logger, DataDir: d.Cfg.DataDir,
 	})
+	if core.budget != nil {
+		core.budget.set(ret)
+	}
 	repl := replace.New(replace.Config{
 		Images: images, Pointers: db.RegistryKeys(), Plans: db, Settings: db.RegistryRetention(),
 		Stacks: w.Stacks, Logger: logger,

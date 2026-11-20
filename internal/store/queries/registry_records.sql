@@ -150,3 +150,6 @@ SELECT charged_to, CAST(coalesce(sum(size_bytes), 0) AS INTEGER) AS bytes FROM r
 -- name: SetRegistryImageState :exec
 UPDATE registry_images SET state = ?, keep_until = ?, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
 WHERE id = ? AND state <> 'deleted';
+
+-- name: RegistryLayerKnown :one
+SELECT count(*) FROM registry_layers WHERE digest = ?;

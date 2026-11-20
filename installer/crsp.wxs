@@ -201,7 +201,7 @@
       Closes the tray BEFORE InstallValidate (operations R5.86). The tray runs
       crsp.exe from the program folder in the signed-in user's session, so
       InstallValidate used to wait on it (the "Validating install" stall).
-      The crsp service is stopped here too (waited at most 20 s), so no program is in use when InstallValidate looks. Each tray under the program folder is asked to quit like a window is
+      The crsp service is stopped here too (waited at most 20 s), and so is the crsp-agent service when it runs from the program folder (at most 20 s; the agent-was-running.flag in [DATAFOLDER] is written first, as StopServiceEarly does, so StartServices2 starts it again), and what is still running from the program folder is ended, so no program is in use when InstallValidate looks (OPS50). It runs through WixQuietExec, so no console window shows. Each tray under the program folder is asked to quit like a window is
       (taskkill without /f posts WM_CLOSE, and the tray quits on it), waited for
       up to 5 s, and ended when it did not leave. It works with every older
       version, because it does not call the installed crsp.exe. Runs as the
@@ -209,10 +209,19 @@
       reach the user's tray); the SYSTEM auto-update reaches it through the
       forced end. Errors are ignored: EndProgramProcesses is the second pass.
     -->
-    <SetProperty Id="CloseTrayExe" Value="[System64Folder]WindowsPowerShell\v1.0\powershell.exe" After="CostFinalize" Sequence="execute" />
+    <!--
+      WixQuietExec in an immediate action reads its command from the property
+      WixQuietExecCmdLine (a deferred one reads CustomActionData) and runs it with
+      no console window. The timeout is the whole of CloseTray: 5 s + 20 s + 20 s + the ends.
+    -->
+    <Property Id="WixQuietExecCmdTimeout" Value="90000" />
+    <SetProperty Id="WixQuietExecCmdLine"
+                 Value="&quot;[System64Folder]WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command &quot;$f = '[INSTALLFOLDER]'; $t = @(Get-CimInstance Win32_Process -Filter 'Name=''crsp.exe''' -ErrorAction SilentlyContinue | Where-Object [\{] $_.ExecutablePath -and $_.ExecutablePath.StartsWith($f, 'OrdinalIgnoreCase') -and $_.CommandLine -match ' tray' [\}]); $t | ForEach-Object [\{] taskkill /pid $_.ProcessId 2&gt;&amp;1 | Out-Null [\}]; $end = (Get-Date).AddSeconds(5); while ((Get-Date) -lt $end -and ($t | Where-Object [\{] Get-Process -Id $_.ProcessId -ErrorAction SilentlyContinue [\}])) [\{] Start-Sleep -Milliseconds 200 [\}]; $t | ForEach-Object [\{] Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue [\}]; $s = Get-Service -Name crsp -ErrorAction SilentlyContinue; if ($s -and $s.Status -ne 'Stopped') [\{] try [\{] $s.Stop(); $s.WaitForStatus('Stopped', '00:00:20') [\}] catch [\{] [\}] [\}]; $a = Get-CimInstance Win32_Service -Filter 'Name=''crsp-agent''' -ErrorAction SilentlyContinue; if ($a -and $a.State -ne 'Stopped' -and $a.PathName -like '*[INSTALLFOLDER]*') [\{] New-Item -ItemType Directory -Force -Path '[DATAFOLDER]' | Out-Null; Set-Content -Path '[DATAFOLDER]agent-was-running.flag' -Value 1; try [\{] $g = Get-Service -Name crsp-agent; $g.Stop(); $g.WaitForStatus('Stopped', '00:00:20') [\}] catch [\{] [\}]; Get-Process | Where-Object [\{] $_.Path -and $_.Path.StartsWith($f, 'OrdinalIgnoreCase') -and $_.Id -ne $PID [\}] | ForEach-Object [\{] try [\{] $_.Kill(); $_.WaitForExit(5000) | Out-Null [\}] catch [\{] [\}] [\}] [\}]; exit 0&quot;"
+                 Before="CloseTray"
+                 Sequence="execute" />
     <CustomAction Id="CloseTray"
-                  Property="CloseTrayExe"
-                  ExeCommand="-NoProfile -NonInteractive -ExecutionPolicy Bypass -Command &quot;$f = '[INSTALLFOLDER]'; $t = @(Get-CimInstance Win32_Process -Filter 'Name=''crsp.exe''' -ErrorAction SilentlyContinue | Where-Object [\{] $_.ExecutablePath -and $_.ExecutablePath.StartsWith($f, 'OrdinalIgnoreCase') -and $_.CommandLine -match ' tray' [\}]); $t | ForEach-Object [\{] taskkill /pid $_.ProcessId 2&gt;&amp;1 | Out-Null [\}]; $end = (Get-Date).AddSeconds(5); while ((Get-Date) -lt $end -and ($t | Where-Object [\{] Get-Process -Id $_.ProcessId -ErrorAction SilentlyContinue [\}])) [\{] Start-Sleep -Milliseconds 200 [\}]; $t | ForEach-Object [\{] Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue [\}]; $s = Get-Service -Name crsp -ErrorAction SilentlyContinue; if ($s -and $s.Status -ne 'Stopped') [\{] try [\{] $s.Stop(); $s.WaitForStatus('Stopped', '00:00:20') [\}] catch [\{] [\}] [\}]; exit 0&quot;"
+                  BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)"
+                  DllEntry="WixQuietExec"
                   Execute="immediate"
                   Impersonate="yes"
                   Return="ignore" />
@@ -244,11 +253,11 @@
     <!--
       A failed run rolls back: Windows Installer puts the old version back
       (service, files, rule, PATH), and this rollback action starts the old
-      service again, because rollback does not start what it re-registers.
+      service again (and the agent service when this run stopped it, by the flag), because rollback does not start what it re-registers.
       Scheduled before StopServiceEarly, so it runs after everything else is undone.
     -->
     <SetProperty Id="StartServicesRollback"
-                 Value="&quot;[System64Folder]sc.exe&quot; start crsp"
+                 Value="&quot;[System64Folder]WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command &quot;Start-Service -Name crsp -ErrorAction SilentlyContinue; if (Test-Path '[DATAFOLDER]agent-was-running.flag') [\{] Remove-Item '[DATAFOLDER]agent-was-running.flag' -Force; Start-Service -Name crsp-agent -ErrorAction SilentlyContinue [\}]&quot;"
                  Before="StartServicesRollback"
                  Sequence="execute" />
     <CustomAction Id="StartServicesRollback"

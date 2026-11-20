@@ -27,12 +27,13 @@ import { ApiError, errorText, unwrap, useClient, type Schemas } from '../../api/
 import { useCommand, useLoad } from '../../api/hooks';
 import { TIMING } from '../../timing';
 import { Load } from '../common';
-import { DAY, shortKey } from './words';
+import { shortKey } from './words';
 
 const STEPS = ['Compare', 'Review', 'Replacing', 'Done'] as const;
 type Plan = Schemas['RegistryReplacePlan'];
 type Compare = Schemas['RegistryCompare'];
 type FileChange = Schemas['RegistryStackFileChange'];
+type Step = NonNullable<Plan['steps']>[number];
 
 const sha = (s: string | undefined) => (s ? shortKey(s) : '–');
 
@@ -127,7 +128,6 @@ function ReplaceBody({
       : phaseOf(plan, fromStore && plan?.id === stored?.id);
   const current = stepOf(phase);
   const failed = phase === 'failed';
-  const done = phase === 'done' || phase === 'done-after-reload';
 
   // The server is the truth while it runs (UX-19): ask again until the plan ends.
   const planId = plan?.id;
@@ -215,11 +215,8 @@ function ReplaceBody({
   const nk = nu ? shortKey(nu.key) : '';
   const ok = old ? shortKey(old.key) : '';
   const repositories = plan?.repositories ?? compare?.repositories ?? [];
-  const machines = plan?.machines ?? [];
   const freed = plan?.frees_bytes ?? compare?.frees_bytes ?? 0;
-  const until = plan?.keep_until
-    ? formatDate(plan.keep_until)
-    : formatDate(Date.now() + keep * DAY);
+  const until = plan?.keep_until ? formatDate(plan.keep_until) : 'the days you chose end';
 
   const fileCols: Column<FileChange>[] = [
     { id: 'file', header: 'Stack file', cell: (f) => f.path, kind: 'fit' },
@@ -236,23 +233,24 @@ function ReplaceBody({
       kind: 'grow',
     },
   ];
-  const work = [
-    ...repositories.map((r) => `Point ${r} at ${nk}`),
-    `Warm ${machines.join(' and ') || 'the machines'} with ${nk}`,
-    `Mark ${ok} superseded until ${until}`,
-  ];
-  const units = plan?.steps_total ?? work.length;
+  // The server lists the steps and says where each stands; the page only words them.
+  const stepName = (s: Step) =>
+    s.kind === 'point'
+      ? `Point ${s.targets.join(', ')} at ${nk}`
+      : s.kind === 'warm'
+        ? `Warm ${s.targets.join(' and ') || 'the machines'} with ${nk}`
+        : `Mark ${ok} superseded until ${until}`;
+  const stepState = {
+    done: { kind: 'ok', word: 'done' },
+    running: { kind: 'running', word: 'running' },
+    failed: { kind: 'failed', word: 'failed' },
+    waiting: { kind: 'waiting', word: 'waits' },
+  } as const;
+  const units = plan?.steps_total ?? 0;
   const doneN = plan?.steps_done ?? 0;
-  const rows = work.map((name, n) => ({
-    name,
-    state:
-      failed && n === doneN
-        ? ({ kind: 'failed', word: 'failed' } as const)
-        : done || n < doneN
-          ? ({ kind: 'ok', word: 'done' } as const)
-          : n === doneN && phase === 'running'
-            ? ({ kind: 'running', word: 'running' } as const)
-            : ({ kind: 'waiting', word: 'waits' } as const),
+  const rows = (plan?.steps ?? []).map((s) => ({
+    name: stepName(s),
+    state: stepState[s.state],
   }));
   const workCols: Column<(typeof rows)[number]>[] = [
     { id: 'name', header: 'Step', cell: (r) => r.name, kind: 'grow' },

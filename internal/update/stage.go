@@ -38,8 +38,13 @@ type Stage struct {
 	// StartedBy says who started this update: auto (nobody clicked), tray (the update window
 	// of the tray) or console (the console page or the command line). The new tray reads it
 	// after the restart: a window started it, so the window says Done; nobody did, so one toast does.
-	StartedBy string    `json:"started_by,omitempty"`
-	At        time.Time `json:"at"`
+	StartedBy string `json:"started_by,omitempty"`
+	// Attempt is the id of the update or restart this stage belongs to, and AttemptKind and
+	// AttemptStarted say what it is and when the yes was given (CRSP205).
+	Attempt        string    `json:"attempt,omitempty"`
+	AttemptKind    string    `json:"attempt_kind,omitempty"`
+	AttemptStarted time.Time `json:"attempt_started,omitempty"`
+	At             time.Time `json:"at"`
 }
 
 // Who started an update (Stage.StartedBy).

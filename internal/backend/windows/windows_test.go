@@ -727,3 +727,32 @@ func TestNoSIDStopsBeforeICACLS(t *testing.T) {
 		}
 	}
 }
+
+func TestAccountSIDEmptyOutputNamesCause(t *testing.T) {
+	r := newRig(t)
+	r.cmd.Rules = []sysfake.Rule{{Match: "SID.Value", Result: sys.Result{}}}
+	_, err := r.b.accountSID(context.Background(), "crsp-box-1", map[string]string{"CRSP_ACCOUNT": "crsp-box-1"})
+	if err == nil || !strings.Contains(err.Error(), "exited 0 but printed nothing on stdout") {
+		t.Fatalf("err = %v", err)
+	}
+}
+
+func TestAccountSIDGoodAndNative(t *testing.T) {
+	r := newRig(t)
+	got, err := r.b.accountSID(context.Background(), "crsp-box-1", nil)
+	if err != nil || got != testSID {
+		t.Fatalf("ps path: %q %v", got, err)
+	}
+	if !strings.Contains(scriptAccountSID, "Write-Output $sid") || strings.Contains(scriptAccountSID, "[Console]::Out") {
+		t.Error("script must use Write-Output")
+	}
+	r.b.cfg.LookupSID = func(string) (string, error) { return testSID, nil }
+	n := len(r.cmd.Calls)
+	if got, err = r.b.accountSID(context.Background(), "crsp-box-1", nil); err != nil || got != testSID || len(r.cmd.Calls) != n {
+		t.Fatalf("native path: %q %v calls %d->%d", got, err, n, len(r.cmd.Calls))
+	}
+	r.b.cfg.LookupSID = func(string) (string, error) { return "", errors.New("none") }
+	if _, err = r.b.accountSID(context.Background(), "crsp-box-1", nil); err == nil {
+		t.Error("native error must fail")
+	}
+}

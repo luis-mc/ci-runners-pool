@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"modernc.org/sqlite"
@@ -308,7 +309,7 @@ func (t *schedTx) AppendLog(r slots.LogRow) error {
 	}
 	var cutoff int64
 	err = t.tx.QueryRowContext(t.ctx, `SELECT id FROM slot_log WHERE machine_id = ? ORDER BY id DESC LIMIT 1 OFFSET ?`,
-		r.MachineID, slots.LogKeep-1).Scan(&cutoff)
+		r.MachineID, slotLogKeep.Load()-1).Scan(&cutoff)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil
 	}
@@ -374,6 +375,23 @@ func (s *Store) SetRepoPolicyForTests(ctx context.Context, repoID int64, fullNam
 		ON CONFLICT (repository_id) DO UPDATE SET priority = excluded.priority, max_parallel_jobs = excluded.max_parallel_jobs`,
 		repoID, p.Priority, p.MaxParallel)
 	return err
+}
+
+// slotLogKeep is how many slot-log rows a machine keeps. Production keeps
+// slots.LogKeep (R5.39); a test lowers it so the trim is reached with a few
+// rows instead of thousands (CRSP201).
+var slotLogKeep atomic.Int64
+
+func init() { slotLogKeep.Store(slots.LogKeep) }
+
+// SlotLogKeep returns the slot-log keep size in force.
+func SlotLogKeep() int { return int(slotLogKeep.Load()) }
+
+// SetSlotLogKeepForTests sets the slot-log keep size and returns a function
+// that restores the previous one. For tests only; production never calls it.
+func SetSlotLogKeepForTests(n int) (restore func()) {
+	prev := slotLogKeep.Swap(int64(n))
+	return func() { slotLogKeep.Store(prev) }
 }
 
 // SlotLogForTests returns the row count and event order of a machine's slot log, for tests.

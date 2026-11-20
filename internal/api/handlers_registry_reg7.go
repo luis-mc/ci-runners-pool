@@ -19,6 +19,7 @@ type RegistryReplaceService interface {
 	registry.Replacer
 	Compare(ctx context.Context, newImageID string) (replace.Comparison, error)
 	View(ctx context.Context, imageID string) (replace.ImageView, error)
+	KeepDaysDefault(ctx context.Context) int
 }
 
 func (s *server) replaceSvc() (RegistryReplaceService, *opsFailure) {
@@ -89,6 +90,39 @@ func replaceStepText(p registry.ReplacePlan) string {
 	return ""
 }
 
+// replaceSteps lists what the plan does and the state of each step, from the counters the plan keeps: one step per
+// repository, one for the machines to warm, and the last one that marks the old image superseded. The counters count
+// the repositories and then the machines; the last step is outside them.
+func replaceSteps(p registry.ReplacePlan, machineNames []string) []gen.RegistryReplaceStep {
+	repos := len(p.Repositories)
+	warmEnd := repos + len(p.Machines)
+	ended := p.State == registry.PlanDone || p.State == registry.PlanRolledBack
+	// state of the step that covers counters start to end; last is the step outside the counters.
+	state := func(start, end int, last bool) gen.RegistryReplaceStepState {
+		if ended || (!last && p.StepsDone >= end) {
+			return gen.RegistryReplaceStepStateDone
+		}
+		if p.StepsDone < start || (!last && p.StepsDone >= end) || (last && p.StepsDone < warmEnd) {
+			return gen.RegistryReplaceStepStateWaiting
+		}
+		switch p.State {
+		case registry.PlanRunning:
+			return gen.RegistryReplaceStepStateRunning
+		case registry.PlanFailed:
+			return gen.RegistryReplaceStepStateFailed
+		}
+		return gen.RegistryReplaceStepStateWaiting
+	}
+	steps := make([]gen.RegistryReplaceStep, 0, repos+2)
+	for i, r := range p.Repositories {
+		steps = append(steps, gen.RegistryReplaceStep{Kind: gen.RegistryReplaceStepKindPoint, Targets: []string{r}, State: state(i, i+1, false)})
+	}
+	steps = append(steps,
+		gen.RegistryReplaceStep{Kind: gen.RegistryReplaceStepKindWarm, Targets: nonNilStrings(machineNames), State: state(repos, warmEnd, false)},
+		gen.RegistryReplaceStep{Kind: gen.RegistryReplaceStepKindSupersede, Targets: []string{}, State: state(warmEnd, warmEnd+1, true)})
+	return steps
+}
+
 func (s *server) genReplacePlan(ctx context.Context, svc RegistryReplaceService, p registry.ReplacePlan) (gen.RegistryReplacePlan, error) {
 	nv, err := svc.View(ctx, p.NewImageID)
 	if err != nil {
@@ -103,6 +137,13 @@ func (s *server) genReplacePlan(ctx context.Context, svc RegistryReplaceService,
 		KeepDays: p.KeepDays, KeepUntil: timePtr(p.KeepUntil), Repositories: nonNilStrings(p.Repositories), Machines: nonNilStrings(p.Machines),
 		StepsDone: p.StepsDone, StepsTotal: p.StepsTotal, StepText: strPtr(replaceStepText(p)), Error: strPtr(p.Error),
 		CreatedBy: strPtr(p.CreatedBy), CreatedAt: p.CreatedAt.UTC(), StartedAt: timePtr(p.StartedAt), FinishedAt: timePtr(p.FinishedAt),
+	}
+	steps := replaceSteps(p, p.Machines)
+	out.Steps = &steps
+	if p.KeepUntil.IsZero() && p.State != registry.PlanRolledBack {
+		// Not ended yet: the date the old image would be kept until if the plan ended now.
+		until := time.Now().UTC().Add(time.Duration(p.KeepDays) * 24 * time.Hour)
+		out.KeepUntil = &until
 	}
 	can := p.State == registry.PlanDone && time.Now().Before(p.KeepUntil)
 	out.CanRollback = &can
@@ -162,7 +203,11 @@ func (s *server) CreateRegistryReplacePlan(ctx context.Context, req gen.CreateRe
 	if req.Body == nil || strings.TrimSpace(req.Body.NewImageId) == "" {
 		return fail(envelope(http.StatusBadRequest, CodeBadRequest, "the request is not valid"))
 	}
-	p, err := svc.CreatePlan(ctx, req.Body.NewImageId, req.Body.KeepDays, replaceActor(ctx))
+	keep := svc.KeepDaysDefault(ctx)
+	if req.Body.KeepDays != nil {
+		keep = *req.Body.KeepDays
+	}
+	p, err := svc.CreatePlan(ctx, req.Body.NewImageId, keep, replaceActor(ctx))
 	if err != nil {
 		return fail(s.replaceFail(err))
 	}
