@@ -398,11 +398,11 @@ Every row is planned; the paths are where each test will live (wave CIX).
 | R5.20 | internal/insights/capacity/resources_test.go TestSummaryAtJobEnd, internal/store/insights_resources_test.go TestResourcesStoreSummaryAtEnd |
 | R5.21 | internal/insights/timeline/timeline_test.go TestLanesIdleAndAfterMerge |
 | R5.22 | internal/insights/timeline/idle_test.go TestIdleNextToQueueFinding |
-| R5.23 | planned: internal/insights/runs/savings_test.go TestTopThreeSavings |
-| R5.24 | planned: internal/insights/runs/superseded_test.go TestSupersededMinutes |
-| R5.25 | planned: internal/insights/runs/superseded_test.go TestTwoEventsOneHead |
-| R5.26 | planned: internal/insights/runs/superseded_test.go TestRetestedTree |
-| R5.27 | planned: internal/insights/runs/failfast_test.go TestMinutesAfterFirstFailure |
+| R5.23 | internal/insights/runs/savings_test.go TestTopThreeSavings |
+| R5.24 | internal/insights/runs/superseded_test.go TestSupersededMinutes |
+| R5.25 | internal/insights/runs/superseded_test.go TestTwoEventsOneHead |
+| R5.26 | internal/insights/runs/superseded_test.go TestRetestedTree |
+| R5.27 | internal/insights/runs/failfast_test.go TestMinutesAfterFirstFailure |
 | R5.28 | internal/insights/waits/housekeeping_test.go TestShortJobsWaitingLong |
 | R5.29 | internal/insights/workflows/checks_test.go TestEachCheck, TestStepOrderLintAfterTest, TestMatrixAxisGrowth; internal/store/insights_checks_test.go TestWorkflowChecksStoreRoundTrip |
 | R5.30 | internal/insights/workflows/checks_test.go TestAnalyserFindings; internal/doctor/checks/workflows_test.go TestWorkflowFindings; apps/web/src/screens/insights/RepositoryPanes.test.tsx |
