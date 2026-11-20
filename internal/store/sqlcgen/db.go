@@ -546,6 +546,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.listGuardrailReportsSinceStmt, err = db.PrepareContext(ctx, listGuardrailReportsSince); err != nil {
 		return nil, fmt.Errorf("error preparing query ListGuardrailReportsSince: %w", err)
 	}
+	if q.listGuardrailStatusRowsStmt, err = db.PrepareContext(ctx, listGuardrailStatusRows); err != nil {
+		return nil, fmt.Errorf("error preparing query ListGuardrailStatusRows: %w", err)
+	}
 	if q.listImageBuildsStmt, err = db.PrepareContext(ctx, listImageBuilds); err != nil {
 		return nil, fmt.Errorf("error preparing query ListImageBuilds: %w", err)
 	}
@@ -1940,6 +1943,11 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing listGuardrailReportsSinceStmt: %w", cerr)
 		}
 	}
+	if q.listGuardrailStatusRowsStmt != nil {
+		if cerr := q.listGuardrailStatusRowsStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listGuardrailStatusRowsStmt: %w", cerr)
+		}
+	}
 	if q.listImageBuildsStmt != nil {
 		if cerr := q.listImageBuildsStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing listImageBuildsStmt: %w", cerr)
@@ -3018,6 +3026,7 @@ type Queries struct {
 	listExpiredSlotsStmt                        *sql.Stmt
 	listExpiredTicketsStmt                      *sql.Stmt
 	listGuardrailReportsSinceStmt               *sql.Stmt
+	listGuardrailStatusRowsStmt                 *sql.Stmt
 	listImageBuildsStmt                         *sql.Stmt
 	listImageBuildsInFlightStmt                 *sql.Stmt
 	listImageBuildsOfMachineStmt                *sql.Stmt
@@ -3371,6 +3380,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		listExpiredSlotsStmt:                        q.listExpiredSlotsStmt,
 		listExpiredTicketsStmt:                      q.listExpiredTicketsStmt,
 		listGuardrailReportsSinceStmt:               q.listGuardrailReportsSinceStmt,
+		listGuardrailStatusRowsStmt:                 q.listGuardrailStatusRowsStmt,
 		listImageBuildsStmt:                         q.listImageBuildsStmt,
 		listImageBuildsInFlightStmt:                 q.listImageBuildsInFlightStmt,
 		listImageBuildsOfMachineStmt:                q.listImageBuildsOfMachineStmt,

@@ -34,3 +34,11 @@ SELECT * FROM guardrail_reports WHERE repository_id = ? AND reported_at >= ? ORD
 
 -- name: DeleteGuardrailReportsBefore :execrows
 DELETE FROM guardrail_reports WHERE reported_at < ?;
+
+-- name: ListGuardrailStatusRows :many
+-- Guardrail rows of one repository (repository_id > 0) or of all (0) since a time, with the repository name (R5.32).
+SELECT g.repository_id, r.full_name, g.run_id, g.head_sha, g.guardrail, g.source, g.state, g.count, g.known_count,
+       g.reason, g.breaks, g.reported_at
+FROM guardrail_reports g JOIN repositories r ON r.id = g.repository_id
+WHERE (sqlc.arg(repository_id) = 0 OR g.repository_id = sqlc.arg(repository_id)) AND g.reported_at >= sqlc.arg(since)
+ORDER BY g.repository_id, g.guardrail, g.reported_at;
