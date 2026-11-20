@@ -80,6 +80,50 @@ describe('the shell (R5.3)', () => {
     expect(await screen.findByText('no machines')).toBeTruthy();
   });
 
+  it('says reconnecting, never no machines or the first-run banner, while the service restarts (CRSP205)', async () => {
+    let phase: 'up' | 'down' | 'back-empty' | 'back' = 'up';
+    const api = signedIn()
+      .on('GET', '/api/v1/machines', () => {
+        if (phase === 'down')
+          return apiError(503, 'unavailable', 'The service is restarting.');
+        if (phase === 'back-empty') return { items: [] };
+        return { items: [machine()] };
+      })
+      .on('GET', '/api/v1/setup', () => ({
+        has_app: true,
+        has_owner: true,
+        setup_link_redeemed: true,
+        steps: {
+          connect_github: 'done',
+          first_machine: phase === 'back-empty' ? 'todo' : 'done',
+          first_repository: 'done',
+        },
+      }));
+    renderApp(api, '/');
+    expect(await screen.findByText('1 of 1 machine online')).toBeTruthy();
+
+    // The service goes away: the header waits, it does not claim an empty pool.
+    phase = 'down';
+    act(() => void window.dispatchEvent(new Event('focus')));
+    expect(await screen.findByText('reconnecting')).toBeTruthy();
+    expect(screen.queryByText('no machines')).toBeNull();
+
+    // The controller listens again, its machine list not loaded yet: still reconnecting.
+    phase = 'back-empty';
+    act(() => void window.dispatchEvent(new Event('focus')));
+    await waitFor(() => expect(api.count('GET', '/api/v1/machines')).toBeGreaterThan(2));
+    await waitFor(() => expect(api.count('GET', '/api/v1/setup')).toBeGreaterThan(2));
+    expect(screen.getByText('reconnecting')).toBeTruthy();
+    expect(screen.queryByText('no machines')).toBeNull();
+    expect(screen.queryByText(/First run is not finished\./)).toBeNull();
+
+    // The machine joins again.
+    phase = 'back';
+    act(() => void window.dispatchEvent(new Event('focus')));
+    expect(await screen.findByText('1 of 1 machine online')).toBeTruthy();
+    expect(screen.queryByText('reconnecting')).toBeNull();
+  });
+
   it('hides the first-run banner when all three steps are done', async () => {
     renderApp(signedIn(), '/');
     await screen.findByRole('heading', { name: 'Overview' });
