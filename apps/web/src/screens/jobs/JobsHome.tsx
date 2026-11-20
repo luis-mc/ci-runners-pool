@@ -55,9 +55,11 @@ import {
   jobStatus,
   ranSeconds,
   secondsOrNone,
-  startsWords,
+  startRange,
+  waitShort,
   waitWords,
   waitedSeconds,
+  workflowFile,
   type Job,
 } from './words';
 
@@ -183,7 +185,7 @@ function BranchCell({ j }: { j: Job }) {
 function JobCell({ j }: { j: Job }) {
   return (
     <Cut tail={j.run_attempt > 1 ? `, attempt ${j.run_attempt}` : ''}>
-      {`${j.workflow ?? 'workflow'} / `}
+      {`${workflowFile(j.workflow ?? 'workflow')} / `}
       <TextLink to={`/jobs/${j.id}`}>{j.job_name}</TextLink>
     </Cut>
   );
@@ -209,7 +211,8 @@ export function jobColumns(kind: Kind, now: number): Column<Job>[] {
     id: 'job',
     header: 'Workflow and job',
     cell: (j) => <JobCell j={j} />,
-    title: (j) => `${j.workflow ?? 'workflow'} / ${j.job_name}`,
+    title: (j) =>
+      `${j.workflow ?? 'workflow'} / ${j.job_name}${j.run_attempt > 1 ? `, attempt ${j.run_attempt}` : ''}`,
     sort: (j) => j.job_name,
     kind: 'grow',
     grow: 2,
@@ -267,7 +270,8 @@ export function jobColumns(kind: Kind, now: number): Column<Job>[] {
       {
         id: 'starts',
         header: 'Starts',
-        cell: (j) => startsWords(j.queue_eta, j.queue_position),
+        // The place in line is the Order column; the cell says only when, as the run list does (UX-72, CRSP210).
+        cell: (j) => (j.queue_eta ? startRange(j.queue_eta) : 'not known'),
         sort: (j) => j.queue_eta?.p50 ?? 0,
         secondary: true,
       },
@@ -276,7 +280,7 @@ export function jobColumns(kind: Kind, now: number): Column<Job>[] {
         header: 'Why it waits',
         cell: () => null,
         kind: 'grow',
-        long: (j) => ({ full: waitWords(j) }),
+        long: (j) => ({ full: waitWords(j), short: waitShort(j) }),
         secondary: true,
       },
       status,

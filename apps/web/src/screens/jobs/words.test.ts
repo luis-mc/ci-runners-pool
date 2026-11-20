@@ -9,6 +9,8 @@ import {
   insideRange,
   jobStatus,
   median,
+  waitShort,
+  workflowFile,
   oneNumber,
   ordinal,
   startsWords,
@@ -105,5 +107,18 @@ describe('words of the Jobs section', () => {
       ]),
     ).toBe(0.5);
     expect(insideRange([])).toBe(0);
+  });
+});
+
+describe('one-line row values (CRSP210)', () => {
+  it('shows the workflow file name of a path, and the path of no folder whole', () => {
+    expect(workflowFile('.github/workflows/ci.yml')).toBe('ci.yml');
+    expect(workflowFile('ci.yml')).toBe('ci.yml');
+    expect(workflowFile('')).toBe('');
+  });
+  it('gives a short wait reason from the reason, and none for a bare server line', () => {
+    expect(waitShort({ wait_reason: 'free_slot' })).toBe('waits for a slot');
+    expect(waitShort({ wait_text: 'waits on build-1' })).toBe(undefined);
+    expect(waitShort({})).toBe('waits to be placed');
   });
 });

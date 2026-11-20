@@ -912,13 +912,11 @@ body {
 .ds-table__pick {
   inline-size: var(--ds-target-min);
 }
-/* Long free text in a cell: one line with an ellipsis; its button opens the full text in a full-width row (LOOK19). */
+/* Long free text in a cell: its short form (a few words, never cut by CSS); its button opens the full text in a full-width row (LOOK19). */
 .ds-table__clip {
   display: block;
   max-inline-size: 40ch;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
   color: var(--ds-color-text-muted);
 }
 .ds-table tr[data-list-row]:focus .ds-table__clip,
@@ -951,7 +949,7 @@ body {
   }
   .ds-table td {
     display: grid;
-    grid-template-columns: minmax(5rem, 35%) minmax(0, 1fr);
+    grid-template-columns: minmax(5rem, 30%) minmax(0, 1fr);
     gap: var(--ds-space-3);
     align-items: center;
     border: 0;
@@ -1966,7 +1964,7 @@ legend > .ds-field__changed {
   }
   .ds-viz-table td {
     display: grid;
-    grid-template-columns: minmax(5rem, 35%) minmax(0, 1fr);
+    grid-template-columns: minmax(5rem, 30%) minmax(0, 1fr);
     gap: var(--ds-space-3);
   }
   .ds-viz-table td::before {
@@ -2519,6 +2517,8 @@ button.ds-jobgraph__node:hover {
 .ds-table th.ds-table__action,
 .ds-table td.ds-table__action {
   inline-size: var(--ds-row-action-width);
+  min-inline-size: var(--ds-row-action-width);
+  max-inline-size: var(--ds-row-action-width);
   white-space: nowrap;
 }
 .ds-table td.ds-table__action .ds-button-wrap {
@@ -2530,10 +2530,12 @@ button.ds-jobgraph__node:hover {
   white-space: nowrap;
   text-decoration: none;
 }
-/* One line a row (UX-72): wide screens only. A fit column is as wide as its widest value and never cut; a grow
-   column shares the width that is left by its weight (--ds-grow, default 1, D102), with a minimum from
-   --ds-cell-grow-min, and is cut with an ellipsis. Every
-   row of the table has the height of a button plus padding. */
+/* One line a row (UX-72): wide screens only. A table never cuts a value with CSS (CRSP210): no overflow:hidden, no
+   text-overflow. A fit column is as wide as its widest value and stays on one line; a grow column shares the width
+   that is left by its weight (--ds-grow, default 1, D102), with a minimum from --ds-cell-grow-min, and its text wraps
+   at a word or, for a long path or id, anywhere. A page gives a value designed to fit one line (a file name, a
+   short reason) so a row is one line; a value that still does not fit wraps and its row grows, so a cell never
+   covers the next cell or the action column. Every row is at least the height of a button plus padding. */
 @media (min-width: 600px) {
   .ds-table[data-one-line] {
     table-layout: auto;
@@ -2552,8 +2554,13 @@ button.ds-jobgraph__node:hover {
   }
   .ds-table[data-one-line] th[data-kind='grow'],
   .ds-table[data-one-line] td[data-kind='grow'] {
-    min-inline-size: var(--ds-cell-grow-min);
-    inline-size: calc(var(--ds-grow, 1) * 10%);
+    /* The weight sets the narrowest the column gets (D102); the width left is shared by what the values need. */
+    min-inline-size: calc(var(--ds-cell-grow-min) * (0.75 + 0.25 * var(--ds-grow, 1)));
+    inline-size: auto;
+  }
+  .ds-table[data-one-line] td[data-kind='grow'] {
+    white-space: normal;
+    overflow-wrap: anywhere;
   }
   .ds-table[data-one-line] td .ds-cluster,
   .ds-table[data-one-line] td .ds-button-wrap {
@@ -2576,35 +2583,31 @@ button.ds-jobgraph__node:hover {
   .ds-table[data-one-line] .ds-table__value > * + [data-long] {
     margin-inline-start: 0;
   }
-  /* A status word before a long reason stays whole: only the reason is cut (UX-72). */
+  /* A status word before a long reason stays whole: only the reason wraps (UX-72). */
   .ds-table[data-one-line] .ds-table__value:has(> [data-long]) > .ds-table__text {
     flex: none;
   }
-  /* A grow cell with a status word, its reason and a Details button is wide enough for the word and the button, so the button never covers the next cell. */
+  /* A grow cell with a status word, its reason and a Details button is wide enough for the word and the button. */
   .ds-table[data-one-line]
     td[data-kind='grow']:has(> .ds-table__value > .ds-table__text .ds-status):has(
       > .ds-table__value > .ds-button-wrap
     ) {
     min-inline-size: calc(var(--ds-cell-grow-min) * 2.5);
   }
-  .ds-table[data-one-line] td[data-kind='grow'] .ds-table__value {
-    inline-size: 0;
-    min-inline-size: 100%;
-  }
   .ds-table[data-one-line] .ds-table__text,
   .ds-table[data-one-line] .ds-table__clip {
     display: block;
     min-inline-size: 0;
-    white-space: nowrap;
   }
   .ds-table[data-one-line] td[data-kind='fit'] .ds-table__text {
     flex: none;
     min-inline-size: max-content;
+    white-space: nowrap;
   }
   .ds-table[data-one-line] td[data-kind='grow'] .ds-table__text,
   .ds-table[data-one-line] .ds-table__clip {
-    overflow: hidden;
-    text-overflow: ellipsis;
+    white-space: normal;
+    overflow-wrap: anywhere;
   }
   .ds-table[data-one-line] .ds-table__clip {
     flex: 1 1 auto;
@@ -2618,23 +2621,22 @@ button.ds-jobgraph__node:hover {
     align-items: center;
     min-inline-size: 0;
   }
-  /* A link in a cut cell is part of its one line and is cut with it; it keeps the target height (UX-16). */
+  /* A link in a grow cell is part of its text and wraps with it; it keeps the target height (UX-16). */
   .ds-table[data-one-line] .ds-table__text .ds-link,
   .ds-table[data-one-line] .ds-cut__head .ds-link {
     display: inline-block;
     vertical-align: middle;
     min-inline-size: 0;
     max-inline-size: 100%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    overflow-wrap: anywhere;
+    white-space: normal;
     line-height: var(--ds-target-min);
   }
   .ds-table[data-one-line] .ds-cut__head {
     flex: 0 1 auto;
     min-inline-size: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    overflow-wrap: anywhere;
+    white-space: normal;
   }
   .ds-table[data-one-line] .ds-cut__tail {
     flex: none;
