@@ -21,8 +21,5 @@
     "./internal/settings",
     "./packaging/hooks"
   ],
-  "slow": [
-    "./internal/scheduler",
-    "./internal/store"
-  ]
+  "slow": ["./internal/scheduler", "./internal/store"]
 }

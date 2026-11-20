@@ -13,7 +13,9 @@ if (!['unit', 'integration', 'slow'].includes(tier)) {
   console.error('usage: go-tiers.mjs unit|integration|slow < go-list-output');
   process.exit(2);
 }
-const tiers = JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'go-tiers.json'), 'utf8'));
+const tiers = JSON.parse(
+  readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'go-tiers.json'), 'utf8'),
+);
 const listed = new Map();
 for (const name of ['integration', 'slow']) {
   for (const p of tiers[name] ?? []) {
@@ -37,7 +39,9 @@ const rel = (p) => (p === mod ? '.' : `./${p.slice(mod.length + 1)}`);
 const rels = all.map(rel);
 for (const p of listed.keys()) {
   if (!rels.includes(p)) {
-    console.error(`go-tiers: ${p} is in go-tiers.json but is not a package of this module`);
+    console.error(
+      `go-tiers: ${p} is in go-tiers.json but is not a package of this module`,
+    );
     process.exit(2);
   }
 }

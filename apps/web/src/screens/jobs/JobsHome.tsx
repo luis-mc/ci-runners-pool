@@ -335,7 +335,9 @@ export const runsElsewhere = (j: Job): boolean => j.runner_origin === 'other';
 
 /** The runner of a job run elsewhere, with its group and labels, in words. */
 export function elsewhereWords(j: Job): string {
-  const labels = j.runner_labels?.length ? `labels ${j.runner_labels.join(', ')}` : undefined;
+  const labels = j.runner_labels?.length
+    ? `labels ${j.runner_labels.join(', ')}`
+    : undefined;
   const group = j.runner_group ? `group ${j.runner_group}` : undefined;
   const detail = [group, labels].filter(Boolean).join('; ');
   return `${j.runner_name ?? 'another runner'}${detail ? ` (${detail})` : ''}`;

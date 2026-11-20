@@ -58,7 +58,13 @@ export default defineConfig({
   // PLAYWRIGHT_JSON_OUTPUT_NAME names the file, so two runs in one job do not overwrite each other.
   reporter: [
     ['line'],
-    ['json', { outputFile: process.env.PLAYWRIGHT_JSON_OUTPUT_NAME ?? 'test-results/playwright-times.json' }],
+    [
+      'json',
+      {
+        outputFile:
+          process.env.PLAYWRIGHT_JSON_OUTPUT_NAME ?? 'test-results/playwright-times.json',
+      },
+    ],
   ],
   outputDir: 'test-results/artifacts',
   // 11.3: a flaky spec is quarantined and fixed, never retried until green.
