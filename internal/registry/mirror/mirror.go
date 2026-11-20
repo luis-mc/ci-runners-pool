@@ -14,10 +14,10 @@ import (
 
 	"github.com/distribution/distribution/v3/configuration"
 	"github.com/distribution/distribution/v3/registry/handlers"
-	// The storage driver the proxy instances keep their content in.
-	_ "github.com/distribution/distribution/v3/registry/storage/driver/filesystem"
 
+	// The storage driver the proxy instances keep their content in.
 	"github.com/luis-mc/ci-runners-shared-pool/internal/registry"
+	_ "github.com/luis-mc/ci-runners-shared-pool/internal/registry/fsdriver"
 )
 
 // Guard wraps the mirror's handler with the registry token check (R5.3, R5.67).

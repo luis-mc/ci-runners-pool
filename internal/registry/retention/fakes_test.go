@@ -253,7 +253,7 @@ func newEnv(t *testing.T) *env {
 	t.Helper()
 	e := &env{repo: newRepo(), reg: &fakeRegistry{}, aud: &fakeAudit{}, now: t0}
 	e.svc = New(Options{Repo: e.repo, Registry: e.reg, Disk: fakeDisk{free: 1_000_000_000_000}, Audit: e.aud,
-		DataDir: "/data", Now: func() time.Time { return e.now }})
+		DataDir: absPath("/data"), Now: func() time.Time { return e.now }})
 	return e
 }
 

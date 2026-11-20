@@ -22,8 +22,8 @@ import (
 	"github.com/distribution/distribution/v3/registry/handlers"
 	"github.com/distribution/distribution/v3/registry/storage"
 	storagedriver "github.com/distribution/distribution/v3/registry/storage/driver"
-	"github.com/distribution/distribution/v3/registry/storage/driver/filesystem"
 	"github.com/distribution/reference"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/registry/fsdriver"
 	"github.com/opencontainers/go-digest"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/sirupsen/logrus"
@@ -82,7 +82,7 @@ func New(ctx context.Context, o Options) (r *Registry, err error) {
 	if lg == nil {
 		lg = slog.New(slog.NewTextHandler(io.Discard, nil))
 	}
-	drv, err := filesystem.FromParameters(map[string]any{"rootdirectory": o.Dir})
+	drv, err := fsdriver.New(map[string]any{"rootdirectory": o.Dir})
 	if err != nil {
 		return nil, fmt.Errorf("registry storage: %w", err)
 	}
@@ -96,8 +96,8 @@ func New(ctx context.Context, o Options) (r *Registry, err error) {
 	}
 	cfg := &configuration.Configuration{Version: "0.1"}
 	cfg.Storage = configuration.Storage{
-		"filesystem": configuration.Parameters{"rootdirectory": o.Dir},
-		"delete":     configuration.Parameters{"enabled": true},
+		fsdriver.Name: configuration.Parameters{"rootdirectory": o.Dir},
+		"delete":      configuration.Parameters{"enabled": true},
 	}
 	cfg.HTTP.Secret = hex.EncodeToString(secret[:])
 	cfg.Log.Level = "error"

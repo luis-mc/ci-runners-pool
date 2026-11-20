@@ -18,6 +18,7 @@ import (
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/addresses"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/registry"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/registry/fsdriver"
 )
 
 // PathPrefix is where the mirror lives on the controller's listener. The main
@@ -115,8 +116,8 @@ func ProxyConfig(s registry.MirrorSettings, dataDir, upstream string) (*configur
 	cfg := &configuration.Configuration{
 		Version: "0.1",
 		Storage: configuration.Storage{
-			"filesystem": configuration.Parameters{"rootdirectory": UpstreamDir(Folder(s, dataDir), h)},
-			"cache":      configuration.Parameters{"blobdescriptor": "inmemory"},
+			fsdriver.Name: configuration.Parameters{"rootdirectory": UpstreamDir(Folder(s, dataDir), h)},
+			"cache":       configuration.Parameters{"blobdescriptor": "inmemory"},
 		},
 		Proxy: configuration.Proxy{RemoteURL: RemoteURL(h), TTL: &ttl},
 	}

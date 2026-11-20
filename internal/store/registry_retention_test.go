@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"errors"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -54,12 +55,13 @@ func TestRegistryRetentionOnSQLite(t *testing.T) {
 	defer func() { _ = s.Close() }()
 	now := time.Date(2026, 11, 19, 12, 0, 0, 0, time.UTC)
 	reg, aud := &sqlRegistry{}, &sqlAudit{}
-	svc := retention.New(retention.Options{Repo: s.RegistryRetention(), Registry: reg, Disk: sqlDisk{}, Audit: aud, DataDir: "/data", Now: func() time.Time { return now }})
+	data, _ := filepath.Abs("/data") // a full path on Windows too
+	svc := retention.New(retention.Options{Repo: s.RegistryRetention(), Registry: reg, Disk: sqlDisk{}, Audit: aud, DataDir: data, Now: func() time.Time { return now }})
 
 	// Defaults (R5.41, R5.42).
 	st, err := svc.Settings(ctx)
 	if err != nil || st.StandardBudget != 40_000_000_000 || st.CustomBudget != 30_000_000_000 || st.UnusedDays != 30 ||
-		st.KeepOldDays != 7 || st.Folder != "/data/registry" || st.CleanupHour != 3 || st.CleanupWeekday != time.Sunday {
+		st.KeepOldDays != 7 || st.Folder != filepath.Join(data, "registry") || st.CleanupHour != 3 || st.CleanupWeekday != time.Sunday {
 		t.Fatalf("%+v %v", st, err)
 	}
 

@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/registry"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/registry/fsdriver"
 )
 
 func settings(ups ...string) registry.MirrorSettings {
@@ -37,7 +38,7 @@ func TestProxyConfigPerUpstream(t *testing.T) {
 	if hubDir != filepath.Join(d, "registry-mirror", "docker.io") || ghDir == hubDir {
 		t.Fatalf("folders %v %v", hubDir, ghDir)
 	}
-	if hub.Storage.Type() != "filesystem" || hub.Proxy.TTL == nil || *hub.Proxy.TTL < 7*24*time.Hour {
+	if hub.Storage.Type() != fsdriver.Name || hub.Proxy.TTL == nil || *hub.Proxy.TTL < 7*24*time.Hour {
 		t.Fatalf("storage %v ttl %v", hub.Storage.Type(), hub.Proxy.TTL)
 	}
 }

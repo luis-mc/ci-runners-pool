@@ -3,6 +3,7 @@ package retention
 import (
 	"context"
 	"errors"
+	"path/filepath"
 	"testing"
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/registry"
@@ -69,7 +70,7 @@ func TestPutSettings(t *testing.T) {
 	ctx := context.Background()
 	st, err := e.svc.Settings(ctx)
 	must(t, err)
-	if st.Folder != "/data/registry" || st.UnusedDays != 30 || st.KeepOldDays != 7 || st.CleanupHour != 3 {
+	if st.Folder != filepath.Join(absPath("/data"), "registry") || st.UnusedDays != 30 || st.KeepOldDays != 7 || st.CleanupHour != 3 {
 		t.Fatalf("%+v", st)
 	}
 	in := st
@@ -97,15 +98,24 @@ func TestPutSettings(t *testing.T) {
 		}
 	}
 	// A new folder waits until the blobs move.
-	e.svc.o.ActiveFolder = func() string { return "/data/registry" }
+	e.svc.o.ActiveFolder = func() string { return filepath.Join(absPath("/data"), "registry") }
 	nf := got
-	nf.Folder = "/mnt/big/registry"
+	nf.Folder = absPath("/mnt/big/registry")
 	got, err = e.svc.PutSettings(ctx, nf, "luis")
 	must(t, err)
-	if p := e.svc.PendingFolder(got); p != "/mnt/big/registry" {
+	if p := e.svc.PendingFolder(got); p != absPath("/mnt/big/registry") {
 		t.Fatalf("pending %q", p)
 	}
 	if !e.aud.has(ActionSettings) {
 		t.Fatal("settings change not audited")
 	}
+}
+
+// absPath makes a slash path a full path on this system (C:\data on Windows).
+func absPath(p string) string {
+	a, err := filepath.Abs(p)
+	if err != nil {
+		panic(err)
+	}
+	return a
 }
