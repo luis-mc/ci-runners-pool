@@ -7,13 +7,20 @@ import * as mock from './mock';
 type Hook<T> = { result: Loaded<T>; reload: () => void };
 type S = Schemas;
 
-export const useFindings = (repositoryId: number | undefined): Hook<S['InsightFindingList']> =>
-  useLoad(() => Promise.resolve(mock.mockFindings({ repository_id: repositoryId })), [repositoryId]);
+export const useFindings = (
+  repositoryId: number | undefined,
+): Hook<S['InsightFindingList']> =>
+  useLoad(
+    () => Promise.resolve(mock.mockFindings({ repository_id: repositoryId })),
+    [repositoryId],
+  );
 
 export const useFinding = (id: number): Hook<S['InsightFinding']> =>
   useLoad(() => {
     const f = mock.MOCK_FINDINGS.find((x) => x.id === id);
-    return f ? Promise.resolve(f) : Promise.reject(new Error('This finding is not there any more.'));
+    return f
+      ? Promise.resolve(f)
+      : Promise.reject(new Error('This finding is not there any more.'));
   }, [id]);
 
 export const useInsightSummary = (): Hook<S['InsightSummary']> =>
@@ -58,6 +65,10 @@ export const startPlan = (plan: S['InsightPlan']): Promise<S['InsightPlan']> =>
   Promise.resolve({
     ...plan,
     state: 'done',
-    results: plan.changes.map((c) => ({ target: c.target, field: c.field, state: 'done' as const })),
+    results: plan.changes.map((c) => ({
+      target: c.target,
+      field: c.field,
+      state: 'done' as const,
+    })),
     finished_at: new Date().toISOString(),
   });

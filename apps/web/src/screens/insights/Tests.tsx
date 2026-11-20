@@ -1,6 +1,14 @@
 // Run insights, Tests (ideas 7, 8): Slowest, Flaky, Duplicated and No assertions, one table each. A test name is
 // shown as text (UX-3).
-import { Empty, Section, Segmented, Stack, Table, formatShortDateTime, type Column } from '@crsp/ui';
+import {
+  Empty,
+  Section,
+  Segmented,
+  Stack,
+  Table,
+  formatShortDateTime,
+  type Column,
+} from '@crsp/ui';
 import { useState } from 'react';
 import { Load } from '../common';
 import { useTests } from './api';
@@ -16,14 +24,40 @@ const VIEWS = [
 ] as const;
 type View = (typeof VIEWS)[number]['value'];
 
-const sec = (ms: number | undefined): string => (ms === undefined ? 'not known' : `${(ms / 1000).toFixed(1)} s`);
+const sec = (ms: number | undefined): string =>
+  ms === undefined ? 'not known' : `${(ms / 1000).toFixed(1)} s`;
 
 const columns: Column<Test>[] = [
-  { id: 'name', header: 'Test', cell: (t) => t.name, sort: (t) => t.name, kind: 'grow', grow: 3 },
-  { id: 'project', header: 'Project', cell: (t) => t.repository, sort: (t) => t.repository, kind: 'grow' },
-  { id: 'job', header: 'Job', cell: (t) => (t.job_idents ?? []).join(', ') || 'not known', secondary: true, kind: 'grow' },
+  {
+    id: 'name',
+    header: 'Test',
+    cell: (t) => t.name,
+    sort: (t) => t.name,
+    kind: 'grow',
+    grow: 3,
+  },
+  {
+    id: 'project',
+    header: 'Project',
+    cell: (t) => t.repository,
+    sort: (t) => t.repository,
+    kind: 'grow',
+  },
+  {
+    id: 'job',
+    header: 'Job',
+    cell: (t) => (t.job_idents ?? []).join(', ') || 'not known',
+    secondary: true,
+    kind: 'grow',
+  },
   { id: 'runs', header: 'Runs', cell: (t) => String(t.runs), sort: (t) => t.runs },
-  { id: 'p50', header: 'Middle time', cell: (t) => sec(t.p50_ms), sort: (t) => t.p50_ms ?? 0, secondary: true },
+  {
+    id: 'p50',
+    header: 'Middle time',
+    cell: (t) => sec(t.p50_ms),
+    sort: (t) => t.p50_ms ?? 0,
+    secondary: true,
+  },
   {
     id: 'p95',
     header: 'Slow-end time',
@@ -34,8 +68,19 @@ const columns: Column<Test>[] = [
     sort: (t) => t.p95_ms ?? 0,
     kind: 'grow',
   },
-  { id: 'fail', header: 'Failures', cell: (t) => String(t.failures ?? 0), sort: (t) => t.failures ?? 0, secondary: true },
-  { id: 'seen', header: 'Last seen', cell: (t) => (t.last_seen ? formatShortDateTime(t.last_seen) : 'not known'), secondary: true },
+  {
+    id: 'fail',
+    header: 'Failures',
+    cell: (t) => String(t.failures ?? 0),
+    sort: (t) => t.failures ?? 0,
+    secondary: true,
+  },
+  {
+    id: 'seen',
+    header: 'Last seen',
+    cell: (t) => (t.last_seen ? formatShortDateTime(t.last_seen) : 'not known'),
+    secondary: true,
+  },
 ];
 
 export function Tests() {
@@ -53,17 +98,25 @@ export function Tests() {
       />
       <Load result={result} what="the tests" reload={reload}>
         {(page) => {
-          const rows = page.items.filter((t) => !repository || t.repository === repository);
+          const rows = page.items.filter(
+            (t) => !repository || t.repository === repository,
+          );
           return (
-            <Section title={VIEWS.find((v) => v.value === view)?.label ?? 'Tests'} count={rows.length}>
+            <Section
+              title={VIEWS.find((v) => v.value === view)?.label ?? 'Tests'}
+              count={rows.length}
+            >
               {!page.reports_found ? (
-                <Empty
-                  title="No test reports found. crsp reads JUnit, Playwright, vitest, go test, nextest and TRX reports your CI uploads."
-                />
+                <Empty title="No test reports found. crsp reads JUnit, Playwright, vitest, go test, nextest and TRX reports your CI uploads." />
               ) : rows.length === 0 ? (
                 <Empty title="No test matches this view." />
               ) : (
-                <Table caption="Tests" columns={columns} rows={rows} rowKey={(t) => t.test_id} />
+                <Table
+                  caption="Tests"
+                  columns={columns}
+                  rows={rows}
+                  rowKey={(t) => t.test_id}
+                />
               )}
             </Section>
           );

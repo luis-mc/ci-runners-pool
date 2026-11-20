@@ -10,7 +10,10 @@ afterEach(cleanup);
 
 describe('insight panes', () => {
   it('Job page names the runner, the steps source and the check', async () => {
-    const detail = jobDetail({ steps_source: 'rest', checked_at: new Date().toISOString() });
+    const detail = jobDetail({
+      steps_source: 'rest',
+      checked_at: new Date().toISOString(),
+    });
     renderApp(jobsApi({ detail }), '/jobs/1');
     expect(await screen.findByText(/crsp runner runner-1 on build-1/)).toBeTruthy();
     expect(screen.getByText(/Steps read from GitHub\./)).toBeTruthy();
@@ -21,11 +24,18 @@ describe('insight panes', () => {
 
   it('says it in words for every origin', () => {
     const base = { runner_name: 'x', labels: ['ubuntu-latest'] };
-    expect(runsOnWords({ ...base, runner_origin: 'hosted' })).toBe('GitHub-hosted runner (ubuntu-latest)');
-    expect(runsOnWords(base)).toBe('not known yet');
-    expect(runsOnWords({ ...base, runner_origin: 'other', runner_group: 'g', runner_labels: ['a', 'b'] })).toBe(
-      'Another runner: x (group g; labels a, b)',
+    expect(runsOnWords({ ...base, runner_origin: 'hosted' })).toBe(
+      'GitHub-hosted runner (ubuntu-latest)',
     );
+    expect(runsOnWords(base)).toBe('not known yet');
+    expect(
+      runsOnWords({
+        ...base,
+        runner_origin: 'other',
+        runner_group: 'g',
+        runner_labels: ['a', 'b'],
+      }),
+    ).toBe('Another runner: x (group g; labels a, b)');
   });
 
   it('Run page shows the savings', async () => {

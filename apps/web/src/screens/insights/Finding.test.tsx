@@ -19,7 +19,9 @@ describe('Finding page', () => {
     renderApp(jobsApi(), '/jobs/insights/finding/2');
     await screen.findByLabelText('Workflow snippet');
     expect(screen.getByRole('button', { name: 'Copy' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Open the workflow on GitHub' })).toBeTruthy();
+    expect(
+      screen.getByRole('button', { name: 'Open the workflow on GitHub' }),
+    ).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Review the change' })).toBeNull();
   });
 

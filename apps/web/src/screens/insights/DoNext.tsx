@@ -1,12 +1,30 @@
 // Run insights, Do next (spec 4.1, design system UX-25, UX-72): what to do, ranked by minutes saved a week. The
 // latest weekly digest sits folded under the table (component 47).
-import { Disclosure, Empty, Message, Section, Stack, Table, Text, formatShortDateTime, type Column } from '@crsp/ui';
+import {
+  Disclosure,
+  Empty,
+  Message,
+  Section,
+  Stack,
+  Table,
+  Text,
+  formatShortDateTime,
+  type Column,
+} from '@crsp/ui';
 import { Load } from '../common';
 import { useDigests, useFindings, useInsightSummary } from './api';
 import { useRepositoryFilter } from './InsightsLayout';
-import { AREA_WORDS, BACKLOG_WORDS, minutesWords, projectOf, ranked, type Finding } from './words';
+import {
+  AREA_WORDS,
+  BACKLOG_WORDS,
+  minutesWords,
+  projectOf,
+  ranked,
+  type Finding,
+} from './words';
 
-export const findingPath = (f: Pick<Finding, 'id'>): string => `/jobs/insights/finding/${f.id}`;
+export const findingPath = (f: Pick<Finding, 'id'>): string =>
+  `/jobs/insights/finding/${f.id}`;
 
 export const doNextColumns: Column<Finding>[] = [
   {
@@ -17,8 +35,21 @@ export const doNextColumns: Column<Finding>[] = [
     kind: 'grow',
     grow: 3,
   },
-  { id: 'project', header: 'Project', cell: (f) => projectOf(f), sort: (f) => projectOf(f), kind: 'grow', grow: 1 },
-  { id: 'area', header: 'Area', cell: (f) => AREA_WORDS[f.area], sort: (f) => f.area, secondary: true },
+  {
+    id: 'project',
+    header: 'Project',
+    cell: (f) => projectOf(f),
+    sort: (f) => projectOf(f),
+    kind: 'grow',
+    grow: 1,
+  },
+  {
+    id: 'area',
+    header: 'Area',
+    cell: (f) => AREA_WORDS[f.area],
+    sort: (f) => f.area,
+    secondary: true,
+  },
   {
     id: 'minutes',
     header: 'Saves',
@@ -42,10 +73,13 @@ export function DoNext() {
   return (
     <Load result={findings.result} what="the things to do next" reload={findings.reload}>
       {(page) => {
-        const items = ranked(page.items.filter((f) => !repository || f.repository === repository));
+        const items = ranked(
+          page.items.filter((f) => !repository || f.repository === repository),
+        );
         const enough =
           summary.result.state !== 'ready' || summary.result.data.enough_data !== false;
-        const digest = digests.result.state === 'ready' ? digests.result.data.items[0] : undefined;
+        const digest =
+          digests.result.state === 'ready' ? digests.result.data.items[0] : undefined;
         return (
           <Stack>
             {page.not_read_yet ? (
@@ -53,7 +87,11 @@ export function DoNext() {
                 {BACKLOG_WORDS(page.not_read_yet.jobs, page.not_read_yet.until)}
               </Message>
             ) : null}
-            <Section title="Do next" count={items.length} hint="About how many minutes a week each change saves. An estimate.">
+            <Section
+              title="Do next"
+              count={items.length}
+              hint="About how many minutes a week each change saves. An estimate."
+            >
               {items.length === 0 ? (
                 <Empty
                   title={

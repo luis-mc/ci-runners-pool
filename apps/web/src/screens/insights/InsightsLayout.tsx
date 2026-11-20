@@ -1,7 +1,13 @@
 // Jobs, Run insights (owner decision D8): one tab of Jobs before Charts. A segment row (component 12) holds Do next,
 // Waits, Timeline, Tests and Guardrails; a filter by repository is kept across the segments (UX-31).
 import { Chips, Segmented, Stack } from '@crsp/ui';
-import { Outlet, useLocation, useNavigate, useOutletContext, useSearchParams } from 'react-router-dom';
+import {
+  Outlet,
+  useLocation,
+  useNavigate,
+  useOutletContext,
+  useSearchParams,
+} from 'react-router-dom';
 import { useFindings } from './api';
 
 export const SEGMENTS = [
@@ -26,7 +32,11 @@ export function InsightsLayout() {
   const { result } = useFindings(undefined);
   const names =
     result.state === 'ready'
-      ? [...new Set(result.data.items.flatMap((f) => (f.repository ? [f.repository] : [])))]
+      ? [
+          ...new Set(
+            result.data.items.flatMap((f) => (f.repository ? [f.repository] : [])),
+          ),
+        ]
       : [];
   return (
     <Stack>

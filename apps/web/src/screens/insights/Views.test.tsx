@@ -10,7 +10,9 @@ describe('the insight views', () => {
   it('Waits: names the range and lists repositories and jobs', async () => {
     renderApp(jobsApi(), '/jobs/insights/waits');
     await screen.findByRole('region', { name: 'By repository' });
-    expect(screen.getByRole('button', { name: '7 days' }).getAttribute('aria-pressed')).toBe('true');
+    expect(
+      screen.getByRole('button', { name: '7 days' }).getAttribute('aria-pressed'),
+    ).toBe('true');
     expect(screen.getByRole('region', { name: 'By job' })).toBeTruthy();
     expect(screen.getByRole('heading', { level: 1, name: 'Jobs' })).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: '30 days' }));

@@ -1,6 +1,16 @@
 // The insight panes of the Job page and the Run page (spec 4.5, 4.6): where a job ran, where its steps came from,
 // when crsp last re-read it, its CPU and memory, and the savings of a run.
-import { Empty, Facts, Message, Section, Stack, Text, TrendChart, formatAgo, formatNumber } from '@crsp/ui';
+import {
+  Empty,
+  Facts,
+  Message,
+  Section,
+  Stack,
+  Text,
+  TrendChart,
+  formatAgo,
+  formatNumber,
+} from '@crsp/ui';
 import { Load } from '../common';
 import { useJobResources, useRunSavings } from './api';
 import type { Schemas } from '../../api/api';
@@ -8,7 +18,17 @@ import type { Schemas } from '../../api/api';
 type Job = Schemas['Job'];
 
 /** Who ran the job, in words (R5.39). */
-export function runsOnWords(j: Pick<Job, 'runner_origin' | 'runner' | 'runner_name' | 'runner_group' | 'runner_labels' | 'labels'>): string {
+export function runsOnWords(
+  j: Pick<
+    Job,
+    | 'runner_origin'
+    | 'runner'
+    | 'runner_name'
+    | 'runner_group'
+    | 'runner_labels'
+    | 'labels'
+  >,
+): string {
   if (j.runner_origin === 'crsp' || (!j.runner_origin && j.runner))
     return `crsp runner ${j.runner?.name ?? j.runner_name ?? 'not known'} on ${j.runner?.machine_name ?? 'its machine'}`;
   if (j.runner_origin === 'other') {
@@ -20,7 +40,8 @@ export function runsOnWords(j: Pick<Job, 'runner_origin' | 'runner' | 'runner_na
       .join('; ');
     return `Another runner: ${j.runner_name ?? 'not named'}${detail ? ` (${detail})` : ''}`;
   }
-  if (j.runner_origin === 'hosted') return `GitHub-hosted runner (${j.runner_labels?.[0] ?? j.labels[0] ?? 'label not known'})`;
+  if (j.runner_origin === 'hosted')
+    return `GitHub-hosted runner (${j.runner_labels?.[0] ?? j.labels[0] ?? 'label not known'})`;
   return 'not known yet';
 }
 
@@ -59,15 +80,29 @@ export function ResourcesPane({ jobId }: { jobId: number }) {
       {(r) => (
         <Section title="CPU and memory">
           {r.samples.length === 0 ? (
-            <Empty title={r.unknown_reason ?? 'No CPU and memory were measured for this job.'} />
+            <Empty
+              title={r.unknown_reason ?? 'No CPU and memory were measured for this job.'}
+            />
           ) : (
             <Stack>
               <Facts
                 items={[
-                  { name: 'CPU, peak', value: `${formatNumber(r.cpu_peak_cores ?? 0, 1)} cores` },
-                  { name: 'CPU, slow end (p95)', value: `${formatNumber(r.cpu_p95_cores ?? 0, 1)} cores` },
-                  { name: 'Memory, peak', value: `${formatNumber(gb(r.memory_peak_bytes ?? 0), 1)} GB` },
-                  { name: 'Memory, slow end (p95)', value: `${formatNumber(gb(r.memory_p95_bytes ?? 0), 1)} GB` },
+                  {
+                    name: 'CPU, peak',
+                    value: `${formatNumber(r.cpu_peak_cores ?? 0, 1)} cores`,
+                  },
+                  {
+                    name: 'CPU, slow end (p95)',
+                    value: `${formatNumber(r.cpu_p95_cores ?? 0, 1)} cores`,
+                  },
+                  {
+                    name: 'Memory, peak',
+                    value: `${formatNumber(gb(r.memory_peak_bytes ?? 0), 1)} GB`,
+                  },
+                  {
+                    name: 'Memory, slow end (p95)',
+                    value: `${formatNumber(gb(r.memory_p95_bytes ?? 0), 1)} GB`,
+                  },
                 ]}
               />
               <TrendChart
@@ -78,7 +113,10 @@ export function ResourcesPane({ jobId }: { jobId: number }) {
                   {
                     id: 'cpu',
                     label: 'CPU cores',
-                    points: r.samples.map((s) => ({ x: Date.parse(s.at), y: s.cpu_cores })),
+                    points: r.samples.map((s) => ({
+                      x: Date.parse(s.at),
+                      y: s.cpu_cores,
+                    })),
                   },
                 ]}
               />
@@ -90,7 +128,10 @@ export function ResourcesPane({ jobId }: { jobId: number }) {
                   {
                     id: 'mem',
                     label: 'Memory in GB',
-                    points: r.samples.map((s) => ({ x: Date.parse(s.at), y: gb(s.memory_bytes) })),
+                    points: r.samples.map((s) => ({
+                      x: Date.parse(s.at),
+                      y: gb(s.memory_bytes),
+                    })),
                   },
                 ]}
               />

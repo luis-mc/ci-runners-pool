@@ -12,8 +12,14 @@ describe('Action wizard', () => {
     renderApp(jobsApi(), '/jobs/insights/finding/1/change');
     await screen.findByText(/Raise the job slots of linux-box/);
     expect(screen.getByText(/Nothing has changed yet/)).toBeTruthy();
-    const steps = screen.getAllByRole('listitem').filter((l) => l.className.includes('ds-steps__item'));
-    expect(steps.map((s) => s.textContent?.replace(/^\S+\s/, ''))).toEqual(['Review', 'Changing', 'Done']);
+    const steps = screen
+      .getAllByRole('listitem')
+      .filter((l) => l.className.includes('ds-steps__item'));
+    expect(steps.map((s) => s.textContent?.replace(/^\S+\s/, ''))).toEqual([
+      'Review',
+      'Changing',
+      'Done',
+    ]);
     fireEvent.click(screen.getByRole('button', { name: 'Make the change' }));
     expect(await screen.findByText(/1 of 1 changes were made/)).toBeTruthy();
   });

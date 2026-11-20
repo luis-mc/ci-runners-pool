@@ -1,6 +1,14 @@
 // Run insights, Guardrails (idea 6): one row per project, one column per guardrail G1 to G7, the source, a
 // sparkline of the known-list count and Open to the project's Repository page (UX-58).
-import { Empty, Section, Sparkline, Stack, Table, formatShortDateTime, type Column } from '@crsp/ui';
+import {
+  Empty,
+  Section,
+  Sparkline,
+  Stack,
+  Table,
+  formatShortDateTime,
+  type Column,
+} from '@crsp/ui';
 import { Load } from '../common';
 import { useGuardrails } from './api';
 import { useRepositoryFilter } from './InsightsLayout';
@@ -11,7 +19,14 @@ type Row = Schemas['GuardrailStatus'];
 const ALL = ['G1', 'G2', 'G3', 'G4', 'G5', 'G6', 'G7'] as const;
 
 export const guardrailColumns: Column<Row>[] = [
-  { id: 'repo', header: 'Project', cell: (r) => r.repository, sort: (r) => r.repository, kind: 'grow', grow: 2 },
+  {
+    id: 'repo',
+    header: 'Project',
+    cell: (r) => r.repository,
+    sort: (r) => r.repository,
+    kind: 'grow',
+    grow: 2,
+  },
   ...ALL.map<Column<Row>>((g) => ({
     id: g,
     header: g,
@@ -60,7 +75,11 @@ export function Guardrails() {
         const rows = page.items.filter((r) => !repository || r.repository === repository);
         return (
           <Stack>
-            <Section title="Guardrails" count={rows.length} hint="G1 to G7 of the test guardrails, per project.">
+            <Section
+              title="Guardrails"
+              count={rows.length}
+              hint="G1 to G7 of the test guardrails, per project."
+            >
               {rows.length === 0 ? (
                 <Empty title="No project reports its guardrails yet." />
               ) : (

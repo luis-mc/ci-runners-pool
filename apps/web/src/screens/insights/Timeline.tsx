@@ -1,7 +1,15 @@
 // Run insights, Timeline (idea 3, 16): one lane per runner, crsp runners and other runners by name. Each lane is a
 // table of its segments in time order (the text equivalent of the bars, UX-17, UX-41); idle time, "idle while a job
 // waited" and "after-merge work" are named in words. The range is 1 to 24 hours.
-import { Empty, Section, Segmented, Stack, Table, formatShortDateTime, type Column } from '@crsp/ui';
+import {
+  Empty,
+  Section,
+  Segmented,
+  Stack,
+  Table,
+  formatShortDateTime,
+  type Column,
+} from '@crsp/ui';
 import { useState } from 'react';
 import { Load } from '../common';
 import { useTimeline } from './api';
@@ -22,7 +30,10 @@ const ORIGIN_WORDS: Record<Schemas['TimelineLane']['origin'], string> = {
   hosted: 'GitHub-hosted runner',
 };
 
-const MARKER_WORDS: Record<NonNullable<Segment['markers']>[number], (s: Segment) => string> = {
+const MARKER_WORDS: Record<
+  NonNullable<Segment['markers']>[number],
+  (s: Segment) => string
+> = {
   idle_while_waiting: (s) =>
     `idle while ${s.waiting_job_ids?.length ? `${s.waiting_job_ids.length} job(s)` : 'a job'} waited`,
   after_merge_work: () => 'after-merge work',
@@ -32,12 +43,18 @@ const minutes = (s: Segment): string =>
   `${Math.max(1, Math.round((Date.parse(s.end) - Date.parse(s.start)) / 60_000))} min`;
 
 const columns: Column<Segment>[] = [
-  { id: 'start', header: 'From', cell: (s) => formatShortDateTime(s.start), sort: (s) => s.start },
+  {
+    id: 'start',
+    header: 'From',
+    cell: (s) => formatShortDateTime(s.start),
+    sort: (s) => s.start,
+  },
   { id: 'length', header: 'Length', cell: (s) => minutes(s) },
   {
     id: 'what',
     header: 'What',
-    cell: (s) => (s.kind === 'idle' ? 'Idle' : `${s.repository ?? ''} ${s.job_ident ?? ''}`.trim()),
+    cell: (s) =>
+      s.kind === 'idle' ? 'Idle' : `${s.repository ?? ''} ${s.job_ident ?? ''}`.trim(),
     kind: 'grow',
     grow: 2,
   },

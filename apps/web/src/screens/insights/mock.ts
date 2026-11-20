@@ -54,6 +54,22 @@ export const MOCK_FINDINGS: S['InsightFinding'][] = [
     first_seen: ago(2 * DAY),
     last_seen: ago(3_600_000),
   },
+  {
+    id: 4,
+    kind: 'repo.slots',
+    scope: 'repo',
+    repository_id: 7,
+    repository: 'octo/app',
+    subject: 'max_parallel_jobs',
+    area: 'pool',
+    title: 'octo/app waited for its parallel limit while slots were free',
+    fix: 'Raise the parallel jobs limit of octo/app from 2 to 3.',
+    evidence: { limit: 2, free_slots_median: 2 },
+    minutes_saved_week: 30,
+    action_kind: 'repo_parallel_limit',
+    first_seen: ago(4 * DAY),
+    last_seen: ago(3_600_000),
+  },
 ];
 
 export function mockFindings(opts: {
@@ -76,27 +92,38 @@ export const mockDigests = (): S['InsightDigestList'] => ({
     {
       week: '2026-W46',
       written_at: ago(2 * DAY),
-      text: 'Three things to do next, about 247 min a week.\nThe biggest: add 1 job slot to linux-box.',
+      text: 'Four things to do next, about 277 min a week.\nThe biggest: add 1 job slot to linux-box.',
     },
   ],
 });
 
 export function mockPlan(findingId: number): S['InsightPlan'] {
+  const repo = findingId === 4;
   return {
     id: `plan-${findingId}`,
     finding_id: findingId,
-    action_kind: 'machine_slots',
+    action_kind: repo ? 'repo_parallel_limit' : 'machine_slots',
     state: 'draft',
-    changes: [
-      {
-        target: 'm1',
-        target_name: 'linux-box',
-        field: 'job_slots',
-        from: 4,
-        to: 5,
-        words: 'Raise the job slots of linux-box from 4 to 5.',
-      },
-    ],
+    changes: repo
+      ? [
+          {
+            target: 'octo/app',
+            field: 'max_parallel_jobs',
+            from: 2,
+            to: 3,
+            words: 'Raise the parallel jobs limit of octo/app from 2 to 3.',
+          },
+        ]
+      : [
+          {
+            target: 'm1',
+            target_name: 'linux-box',
+            field: 'job_slots',
+            from: 4,
+            to: 5,
+            words: 'Raise the job slots of linux-box from 4 to 5.',
+          },
+        ],
     results: [],
     estimate: 'p95 wait from about 9 to about 3 min',
     created_at: new Date().toISOString(),
@@ -193,8 +220,18 @@ export const mockSizing = (days: number): S['PoolSizing'] => ({
       p50_wait_seconds: 240,
       p95_wait_seconds: 540,
       estimates: [
-        { extra_slots: 1, p95_wait_seconds: 180, mean_wait_seconds: 60, utilisation: 0.73 },
-        { extra_slots: 2, p95_wait_seconds: 90, mean_wait_seconds: 30, utilisation: 0.61 },
+        {
+          extra_slots: 1,
+          p95_wait_seconds: 180,
+          mean_wait_seconds: 60,
+          utilisation: 0.73,
+        },
+        {
+          extra_slots: 2,
+          p95_wait_seconds: 90,
+          mean_wait_seconds: 30,
+          utilisation: 0.61,
+        },
       ],
       p95_wait_by_day: [
         { day: new Date(Date.now() - 2 * DAY).toISOString().slice(0, 10), value: 480 },
@@ -228,7 +265,12 @@ export const mockGuardrails = (): S['GuardrailStatusList'] => ({
       repository: 'octo/api',
       guardrails: (['G1', 'G2', 'G3', 'G4', 'G5', 'G6', 'G7'] as const).map((g, i) => ({
         guardrail: g,
-        state: i === 0 ? ('break' as const) : i === 6 ? ('unknown' as const) : ('pass' as const),
+        state:
+          i === 0
+            ? ('break' as const)
+            : i === 6
+              ? ('unknown' as const)
+              : ('pass' as const),
         ...(i === 0 ? { count: 3 } : {}),
         source: 'guard_report' as const,
         reported_at: ago(DAY),

@@ -2,7 +2,19 @@
 // silent change. Review lists each change in numbers and words and says "Nothing has changed yet."; a change that
 // lowers slots names the jobs it waits for (UX-62); Done says what really changed. The step, the lock, Stop and the
 // busy state come from the shared wizard; this page passes data only (UX-13).
-import { BulletList, Breadcrumbs, Message, Page, PageHeader, Stack, Table, Text, Wizard, type Column, type WizardPhase } from '@crsp/ui';
+import {
+  BulletList,
+  Breadcrumbs,
+  Message,
+  Page,
+  PageHeader,
+  Stack,
+  Table,
+  Text,
+  Wizard,
+  type Column,
+  type WizardPhase,
+} from '@crsp/ui';
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { errorText, type Schemas } from '../../api/api';
@@ -18,7 +30,14 @@ const changeColumns: Column<Change>[] = [
   { id: 'field', header: 'Setting', cell: (c) => c.field.replaceAll('_', ' ') },
   { id: 'from', header: 'Now', cell: (c) => String(c.from) },
   { id: 'to', header: 'After', cell: (c) => String(c.to) },
-  { id: 'words', header: 'In words', cell: (c) => c.words, kind: 'grow', grow: 2, secondary: true },
+  {
+    id: 'words',
+    header: 'In words',
+    cell: (c) => c.words,
+    kind: 'grow',
+    grow: 2,
+    secondary: true,
+  },
 ];
 
 export function ActionWizard() {
@@ -82,13 +101,20 @@ export function ActionWizard() {
               phase={phase}
               reading="Reading the plan"
               review={phase === 'ready-to-review'}
-              primary={{ label: 'Make the change', busyLabel: 'Changing', onPress: () => void start() }}
+              primary={{
+                label: 'Make the change',
+                busyLabel: 'Changing',
+                onPress: () => void start(),
+              }}
               progress={{ text: 'Making the change' }}
               onBack={() => void navigate(`/jobs/insights/finding/${f.id}`)}
               backLabel="Not now"
               onTryAgain={() => void navigate(0)}
               onStartAgain={() => void navigate('/jobs/insights')}
-              donePrimary={{ label: 'Back to Do next', onPress: () => void navigate('/jobs/insights') }}
+              donePrimary={{
+                label: 'Back to Do next',
+                onPress: () => void navigate('/jobs/insights'),
+              }}
               failedAt={phase === 'failed' ? 1 : undefined}
             >
               <Stack>
@@ -113,7 +139,9 @@ export function ActionWizard() {
                   <Text>{`Done. ${plan.results.filter((r) => r.state === 'done').length} of ${plan.changes.length} changes were made.`}</Text>
                 ) : null}
                 {phase === 'failed' ? (
-                  <Message tone="problem" dismissible={false}>{problem ?? 'The change failed.'}</Message>
+                  <Message tone="problem" dismissible={false}>
+                    {problem ?? 'The change failed.'}
+                  </Message>
                 ) : null}
               </Stack>
             </Wizard>

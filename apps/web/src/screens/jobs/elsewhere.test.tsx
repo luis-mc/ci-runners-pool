@@ -34,7 +34,9 @@ describe('Run elsewhere', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Run elsewhere' }));
     await screen.findByText('theirs');
     expect(screen.queryByText('mine')).toBeNull();
-    expect(screen.getByText(/old-pool-3 \(group legacy; labels self-hosted, old\)/)).toBeTruthy();
+    expect(
+      screen.getByText(/old-pool-3 \(group legacy; labels self-hosted, old\)/),
+    ).toBeTruthy();
   });
 
   it('says so when nothing runs elsewhere', async () => {

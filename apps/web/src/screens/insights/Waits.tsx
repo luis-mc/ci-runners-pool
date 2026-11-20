@@ -1,6 +1,14 @@
 // Run insights, Waits (idea 11): wait, hold and run per day as a trend chart with its table, and a table per
 // repository and per job key. Range 7, 14 or 30 days, named (UX-33, UX-17, UX-41, UX-29).
-import { Section, Segmented, Stack, Table, Text, TrendChart, type Column } from '@crsp/ui';
+import {
+  Section,
+  Segmented,
+  Stack,
+  Table,
+  Text,
+  TrendChart,
+  type Column,
+} from '@crsp/ui';
 import { useState } from 'react';
 import { Load } from '../common';
 import { useWaits } from './api';
@@ -11,14 +19,50 @@ import type { Schemas } from '../../api/api';
 type Row = Schemas['WaitSplitRow'];
 
 const columns = (first: string): Column<Row>[] => [
-  { id: 'key', header: first, cell: (r) => r.key, sort: (r) => r.key, kind: 'grow', grow: 2 },
+  {
+    id: 'key',
+    header: first,
+    cell: (r) => r.key,
+    sort: (r) => r.key,
+    kind: 'grow',
+    grow: 2,
+  },
   { id: 'jobs', header: 'Jobs', cell: (r) => String(r.jobs), sort: (r) => r.jobs },
-  { id: 'wait50', header: 'Wait, middle', cell: (r) => secondsWords(r.wait.p50_seconds), secondary: true },
-  { id: 'wait95', header: 'Wait, slow end', cell: (r) => secondsWords(r.wait.p95_seconds) },
-  { id: 'hold50', header: 'Hold, middle', cell: (r) => secondsWords(r.hold.p50_seconds), secondary: true },
-  { id: 'hold95', header: 'Hold, slow end', cell: (r) => secondsWords(r.hold.p95_seconds), secondary: true },
-  { id: 'run50', header: 'Run, middle', cell: (r) => secondsWords(r.run.p50_seconds), secondary: true },
-  { id: 'run95', header: 'Run, slow end', cell: (r) => secondsWords(r.run.p95_seconds), secondary: true },
+  {
+    id: 'wait50',
+    header: 'Wait, middle',
+    cell: (r) => secondsWords(r.wait.p50_seconds),
+    secondary: true,
+  },
+  {
+    id: 'wait95',
+    header: 'Wait, slow end',
+    cell: (r) => secondsWords(r.wait.p95_seconds),
+  },
+  {
+    id: 'hold50',
+    header: 'Hold, middle',
+    cell: (r) => secondsWords(r.hold.p50_seconds),
+    secondary: true,
+  },
+  {
+    id: 'hold95',
+    header: 'Hold, slow end',
+    cell: (r) => secondsWords(r.hold.p95_seconds),
+    secondary: true,
+  },
+  {
+    id: 'run50',
+    header: 'Run, middle',
+    cell: (r) => secondsWords(r.run.p50_seconds),
+    secondary: true,
+  },
+  {
+    id: 'run95',
+    header: 'Run, slow end',
+    cell: (r) => secondsWords(r.run.p95_seconds),
+    secondary: true,
+  },
   {
     id: 'over',
     header: 'Holds over the cap',
@@ -39,7 +83,8 @@ export function Waits() {
   const perDay = useWaits(n, 'day');
   const perRepo = useWaits(n, 'repository');
   const perJob = useWaits(n, 'job_key');
-  const only = (rows: Row[]) => rows.filter((r) => !repository || r.key.startsWith(repository));
+  const only = (rows: Row[]) =>
+    rows.filter((r) => !repository || r.key.startsWith(repository));
   return (
     <Stack>
       <Segmented
@@ -56,7 +101,11 @@ export function Waits() {
             id,
             label,
             kind: 'column' as const,
-            points: d.rows.map((r) => ({ x: at(r.key), y: pick(r), note: `${r.jobs} jobs` })),
+            points: d.rows.map((r) => ({
+              x: at(r.key),
+              y: pick(r),
+              note: `${r.jobs} jobs`,
+            })),
           });
           return (
             <Section
@@ -77,7 +126,11 @@ export function Waits() {
           );
         }}
       </Load>
-      <Load result={perRepo.result} what="the waits by repository" reload={perRepo.reload}>
+      <Load
+        result={perRepo.result}
+        what="the waits by repository"
+        reload={perRepo.reload}
+      >
         {(p) => {
           const rows = only(p.rows);
           return (
@@ -85,7 +138,12 @@ export function Waits() {
               {rows.length === 0 ? (
                 <Text>No finished jobs in this range.</Text>
               ) : (
-                <Table caption="Waits by repository" columns={columns('Repository')} rows={rows} rowKey={(r) => r.key} />
+                <Table
+                  caption="Waits by repository"
+                  columns={columns('Repository')}
+                  rows={rows}
+                  rowKey={(r) => r.key}
+                />
               )}
             </Section>
           );
@@ -99,7 +157,12 @@ export function Waits() {
               {rows.length === 0 ? (
                 <Text>No finished jobs in this range.</Text>
               ) : (
-                <Table caption="Waits by job" columns={columns('Job')} rows={rows} rowKey={(r) => r.key} />
+                <Table
+                  caption="Waits by job"
+                  columns={columns('Job')}
+                  rows={rows}
+                  rowKey={(r) => r.key}
+                />
               )}
             </Section>
           );

@@ -1211,3 +1211,9 @@ Run insights is a tab of Jobs, placed before Charts. Estimates always say *estim
 | Job page, pane | CPU and memory; CPU, peak; CPU, slow end (p95); Memory, peak; Memory, slow end (p95) |
 | Run page, pane | Savings |
 | Run page, notes | This run was superseded; This commit ran twice; This code was tested again; This run went on after its first failure |
+| Size and backends, section | Demand; columns Labels, Slots, Busy, Jobs an hour, Wait, middle, Wait, slow end |
+| Size and backends, estimate | {labels}: with {n} more slot(s) the p95 wait would be about {x} (now {y}). An estimate from the last 7 days. |
+| Size and backends, queue grows | The queue grows: at least {n} more slots are needed. |
+| Repository page, panes | CI checks, Guardrails, Job slots |
+| Repository page, CI checks | ✓ pass, ✕ fix, – skipped; columns Status, Check, Job, Line, Fix; "Checked {time}." |
+| Repository page, Job slots | No advice: the limit of this repository did not hold jobs back while slots were free. |

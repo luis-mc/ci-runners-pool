@@ -38,7 +38,8 @@ const evidenceColumns: Column<Evidence>[] = [
   { id: 'value', header: 'Value', cell: (e) => e.value, kind: 'grow', grow: 2 },
 ];
 
-export const changePath = (f: Pick<Finding, 'id'>): string => `/jobs/insights/finding/${f.id}/change`;
+export const changePath = (f: Pick<Finding, 'id'>): string =>
+  `/jobs/insights/finding/${f.id}/change`;
 
 export function FindingPage() {
   const { id } = useParams();
@@ -59,7 +60,9 @@ export function FindingPage() {
             <Stack>
               <Section title="The fix">
                 <Text>{f.fix}</Text>
-                {f.snippet ? <CodeBlock text={f.snippet} label="Workflow snippet" /> : null}
+                {f.snippet ? (
+                  <CodeBlock text={f.snippet} label="Workflow snippet" />
+                ) : null}
               </Section>
               <Section title="Evidence">
                 <Table
@@ -72,7 +75,10 @@ export function FindingPage() {
               <Section title="Estimate">
                 <Facts
                   items={[
-                    { name: 'Saves', value: `${minutesWords(f.minutes_saved_week)} (estimate)` },
+                    {
+                      name: 'Saves',
+                      value: `${minutesWords(f.minutes_saved_week)} (estimate)`,
+                    },
                     { name: 'First seen', value: formatShortDateTime(f.first_seen) },
                     { name: 'Last seen', value: formatShortDateTime(f.last_seen) },
                   ]}
