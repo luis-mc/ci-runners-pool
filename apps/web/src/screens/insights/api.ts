@@ -72,3 +72,16 @@ export const startPlan = (plan: S['InsightPlan']): Promise<S['InsightPlan']> =>
     })),
     finished_at: new Date().toISOString(),
   });
+
+/**
+ * Hides a finding for 7 days (owner decision D17); it comes back if it is still true. Mocked like the reads until
+ * CIX21 joins: the join swaps the body for `POST /api/v1/insights/findings/{id}/dismiss` (admin).
+ */
+export const dismissFinding = (findingId: number): Promise<S['InsightFinding']> => {
+  const f = mock.MOCK_FINDINGS.find((x) => x.id === findingId);
+  if (!f) return Promise.reject(new Error('This finding is not there any more.'));
+  return Promise.resolve({
+    ...f,
+    dismissed_until: new Date(Date.now() + 7 * 24 * 3600 * 1000).toISOString(),
+  });
+};

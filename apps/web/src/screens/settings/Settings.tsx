@@ -43,6 +43,7 @@ import { TabForm, useTabPart } from './TabForm';
 import { SECTIONS, settingsPath } from './sections';
 import { AccessForCiSettings } from './AccessForCi';
 import { AuditLogSettings, ConfigExportSettings } from './AuditLog';
+import { InsightsUpdateSettings } from './InsightsUpdate';
 import { BudgetsSettings } from './Budgets';
 import { NotificationsSettings } from './Notifications';
 import { PublicRepositoriesSettings } from './PublicRepositoriesSettings';
@@ -155,6 +156,9 @@ export function DataTab() {
     <TabForm>
       <At id="retention">
         <RetentionSettings />
+      </At>
+      <At id="insights-update">
+        <InsightsUpdateSettings />
       </At>
       <At id="backups">
         <BackupsSettings />

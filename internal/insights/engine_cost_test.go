@@ -75,7 +75,7 @@ func expectPass(t *testing.T, passes <-chan struct{}, want bool, what string) {
 		if !want {
 			t.Fatalf("%s: a pass ran", what)
 		}
-	case <-time.After(300 * time.Millisecond):
+	case <-time.After(100 * time.Millisecond):
 		if want {
 			t.Fatalf("%s: no pass", what)
 		}
