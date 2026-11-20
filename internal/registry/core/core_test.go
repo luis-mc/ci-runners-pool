@@ -1122,3 +1122,30 @@ func TestDiskGate(t *testing.T) {
 		t.Fatalf("free = %d %v", free, err)
 	}
 }
+
+// R5.41, R5.50: a promotion the budget has no room for is refused, nothing is tagged, and the layers reach the check.
+func TestPromoteRefusedOverBudget(t *testing.T) {
+	h := newHarness(t)
+	staging := registry.IncomingName("m1", registry.StdName("base"))
+	im := h.pushImage(h.token("m1", push(staging)...), staging, "", testInput("base"), nil)
+	var asked registry.Kind
+	var seen int
+	h.prom.Room = func(_ context.Context, kind registry.Kind, layers []registry.Layer) error {
+		asked, seen = kind, len(layers)
+		return errors.Join(registry.ErrOverBudget, errors.New("full"))
+	}
+	img := h.wantRefused(h.staged("m1", registry.StdName("base"), "", im), "full")
+	if asked != registry.KindStandard || seen == 0 {
+		t.Fatalf("room asked for %q with %d layers", asked, seen)
+	}
+	if _, err := h.prom.Promote(context.Background(), h.staged("m1", registry.StdName("base"), "", im)); !errors.Is(err, registry.ErrOverBudget) {
+		t.Fatalf("err = %v, want ErrOverBudget inside the refusal", err)
+	}
+	if h.ledger.refused[img.ID] == "" {
+		t.Fatal("the refusal was not recorded")
+	}
+	h.prom.Room = func(context.Context, registry.Kind, []registry.Layer) error { return nil }
+	if _, err := h.prom.Promote(context.Background(), h.staged("m1", registry.StdName("base"), "", im)); err != nil {
+		t.Fatalf("with room the promotion failed: %v", err)
+	}
+}

@@ -71,3 +71,112 @@ func TestMSIUsesTheGeneratedInstallerArt(t *testing.T) {
 		}
 	}
 }
+
+var (
+	reCustomAction = regexp.MustCompile(`<CustomAction\b[^>]*>`)
+	reSetProperty  = regexp.MustCompile(`<SetProperty\b[^>]*>`)
+	reCustom       = regexp.MustCompile(`<Custom\b[^>]*>`)
+)
+
+func attr(tag, name string) string {
+	m := regexp.MustCompile(`\b` + name + `="([^"]*)"`).FindStringSubmatch(tag)
+	if m == nil {
+		return ""
+	}
+	return m[1]
+}
+
+// OPS50: no action may open a console window. Every command line that runs powershell.exe or
+// cmd.exe goes through WixQuietExec (or WixQuietExec64); an action with ExeCommand never runs a shell.
+func TestEveryShellActionRunsQuiet(t *testing.T) {
+	s := wxs(t)
+	quiet := map[string]bool{}
+	for _, tag := range reCustomAction.FindAllString(s, -1) {
+		id, dll, exe := attr(tag, "Id"), attr(tag, "DllEntry"), attr(tag, "ExeCommand")
+		if dll == "WixQuietExec" || dll == "WixQuietExec64" {
+			quiet[id] = true
+		}
+		if exe != "" || attr(tag, "FileRef") != "" {
+			if strings.Contains(strings.ToLower(exe), "powershell") || strings.Contains(strings.ToLower(exe), "cmd") {
+				t.Errorf("%s runs a shell through ExeCommand: a console window shows", id)
+			}
+		}
+	}
+	shells := 0
+	for _, tag := range reSetProperty.FindAllString(s, -1) {
+		id, val := attr(tag, "Id"), strings.ToLower(attr(tag, "Value"))
+		if !strings.Contains(val, "powershell.exe") && !strings.Contains(val, `cmd.exe`) {
+			continue
+		}
+		shells++
+		if id != "WixQuietExecCmdLine" && id != "WixQuietExec64CmdLine" && !quiet[id] {
+			t.Errorf("%s runs powershell.exe or cmd.exe but is not a WixQuietExec action", id)
+		}
+		if strings.HasPrefix(id, "WixQuietExec") && !quiet[attr(tag, "Before")] {
+			t.Errorf("the immediate command line is set before %q, which is not a WixQuietExec action", attr(tag, "Before"))
+		}
+	}
+	if shells == 0 {
+		t.Fatal("no shell action found: the check reads nothing")
+	}
+	for _, tag := range reCustomAction.FindAllString(s, -1) {
+		if attr(tag, "Property") != "" && attr(tag, "ExeCommand") != "" {
+			for _, p := range reSetProperty.FindAllString(s, -1) {
+				if attr(p, "Id") == attr(tag, "Property") && regexp.MustCompile(`(?i)powershell|cmd\.exe`).MatchString(attr(p, "Value")) {
+					t.Errorf("%s starts a shell through a property", attr(tag, "Id"))
+				}
+			}
+		}
+	}
+}
+
+// OPS50: InstallValidate looks for files in use, so the step before it stops the agent service
+// too (when it runs from the program folder), waits at most 20 s, and writes the same flag
+// StopServiceEarly writes; StartServices2 and the rollback action read it to start the agent again.
+func TestStepBeforeInstallValidateStopsTheAgentAndSetsTheFlag(t *testing.T) {
+	s := wxs(t)
+	var early string
+	for _, tag := range reCustom.FindAllString(s, -1) {
+		if attr(tag, "Before") == "InstallValidate" {
+			early = attr(tag, "Action")
+		}
+	}
+	if early == "" {
+		t.Fatal("no action is sequenced Before=InstallValidate")
+	}
+	cmd := ""
+	for _, tag := range reSetProperty.FindAllString(s, -1) {
+		if attr(tag, "Id") == "WixQuietExecCmdLine" && attr(tag, "Before") == early {
+			cmd = attr(tag, "Value")
+		}
+	}
+	if cmd == "" {
+		t.Fatalf("%s has no WixQuietExecCmdLine", early)
+	}
+	for _, want := range []string{
+		"crsp-agent", "[INSTALLFOLDER]", "[DATAFOLDER]agent-was-running.flag", ".Stop()",
+		"WaitForStatus('Stopped', '00:00:20')", "Name crsp ", "taskkill", "exit 0",
+	} {
+		if !strings.Contains(cmd, want) {
+			t.Errorf("%s: the command lacks %q", early, want)
+		}
+	}
+	if strings.Index(cmd, "agent-was-running.flag") > strings.Index(cmd, "$g.Stop()") {
+		t.Error("the flag must be written before the agent is stopped")
+	}
+	for _, id := range []string{"StartServices2", "StartServicesRollback"} {
+		found := false
+		for _, tag := range reSetProperty.FindAllString(s, -1) {
+			if attr(tag, "Id") == id {
+				found = true
+				v := attr(tag, "Value")
+				if !strings.Contains(v, "[DATAFOLDER]agent-was-running.flag") || !strings.Contains(v, "Start-Service -Name crsp-agent") {
+					t.Errorf("%s does not start the agent from the flag", id)
+				}
+			}
+		}
+		if !found {
+			t.Errorf("%s has no command", id)
+		}
+	}
+}

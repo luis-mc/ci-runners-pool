@@ -712,6 +712,17 @@ func (q *Queries) MachinePullSpeed(ctx context.Context, machineID string) (Machi
 	return i, err
 }
 
+const registryLayerKnown = `-- name: RegistryLayerKnown :one
+SELECT count(*) FROM registry_layers WHERE digest = ?
+`
+
+func (q *Queries) RegistryLayerKnown(ctx context.Context, digest string) (int64, error) {
+	row := q.queryRow(ctx, q.registryLayerKnownStmt, registryLayerKnown, digest)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const setRegistryImageLastPull = `-- name: SetRegistryImageLastPull :exec
 UPDATE registry_images SET last_pull_at = ? WHERE id = ? AND last_pull_at < ?
 `

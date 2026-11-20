@@ -19,7 +19,7 @@ import { useState } from 'react';
 import { unwrap, useClient, type Schemas } from '../../api/api';
 import { useCommand, useLoad } from '../../api/hooks';
 import { Load } from '../common';
-import { BudgetCard, useRegistry } from './RegistryTab';
+import { BudgetCard } from './RegistryTab';
 import { GB } from './words';
 
 export function RegistryBudgetsPage() {
@@ -31,8 +31,12 @@ export function RegistryBudgetsPage() {
     ]);
     return { budgets, settings };
   }, []);
-  const counts = useRegistry().result;
-  const overview = counts.state === 'ready' ? counts.data.overview : undefined;
+  // The counts and the cleanup dates are in the overview; the list of images is not needed here.
+  const counts = useLoad(
+    () => unwrap(client.GET('/api/v1/registry/overview')),
+    [],
+  ).result;
+  const overview = counts.state === 'ready' ? counts.data : undefined;
   return (
     <Page>
       <Breadcrumbs

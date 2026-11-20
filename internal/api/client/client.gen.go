@@ -1727,6 +1727,27 @@ func (e RegistryImageState) Valid() bool {
 	}
 }
 
+// Defines values for RegistryLineageEntryRelation.
+const (
+	ReplacedBy  RegistryLineageEntryRelation = "replaced_by"
+	Replaces    RegistryLineageEntryRelation = "replaces"
+	SameProfile RegistryLineageEntryRelation = "same_profile"
+)
+
+// Valid indicates whether the value is a known member of the RegistryLineageEntryRelation enum.
+func (e RegistryLineageEntryRelation) Valid() bool {
+	switch e {
+	case ReplacedBy:
+		return true
+	case Replaces:
+		return true
+	case SameProfile:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for RegistryLoginKind.
 const (
 	RegistryLoginKindContainer  RegistryLoginKind = "container"
@@ -1838,6 +1859,51 @@ func (e RegistryReplacePlanState) Valid() bool {
 	case RegistryReplacePlanStateRunning:
 		return true
 	case RegistryReplacePlanStateStopped:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RegistryReplaceStepKind.
+const (
+	RegistryReplaceStepKindPoint     RegistryReplaceStepKind = "point"
+	RegistryReplaceStepKindSupersede RegistryReplaceStepKind = "supersede"
+	RegistryReplaceStepKindWarm      RegistryReplaceStepKind = "warm"
+)
+
+// Valid indicates whether the value is a known member of the RegistryReplaceStepKind enum.
+func (e RegistryReplaceStepKind) Valid() bool {
+	switch e {
+	case RegistryReplaceStepKindPoint:
+		return true
+	case RegistryReplaceStepKindSupersede:
+		return true
+	case RegistryReplaceStepKindWarm:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RegistryReplaceStepState.
+const (
+	RegistryReplaceStepStateDone    RegistryReplaceStepState = "done"
+	RegistryReplaceStepStateFailed  RegistryReplaceStepState = "failed"
+	RegistryReplaceStepStateRunning RegistryReplaceStepState = "running"
+	RegistryReplaceStepStateWaiting RegistryReplaceStepState = "waiting"
+)
+
+// Valid indicates whether the value is a known member of the RegistryReplaceStepState enum.
+func (e RegistryReplaceStepState) Valid() bool {
+	switch e {
+	case RegistryReplaceStepStateDone:
+		return true
+	case RegistryReplaceStepStateFailed:
+		return true
+	case RegistryReplaceStepStateRunning:
+		return true
+	case RegistryReplaceStepStateWaiting:
 		return true
 	default:
 		return false
@@ -2278,16 +2344,16 @@ func (e RunnerLeftoverKind) Valid() bool {
 
 // Defines values for RunnerRefCache.
 const (
-	Cold RunnerRefCache = "cold"
-	Warm RunnerRefCache = "warm"
+	RunnerRefCacheCold RunnerRefCache = "cold"
+	RunnerRefCacheWarm RunnerRefCache = "warm"
 )
 
 // Valid indicates whether the value is a known member of the RunnerRefCache enum.
 func (e RunnerRefCache) Valid() bool {
 	switch e {
-	case Cold:
+	case RunnerRefCacheCold:
 		return true
-	case Warm:
+	case RunnerRefCacheWarm:
 		return true
 	default:
 		return false
@@ -2660,6 +2726,24 @@ func (e TrialSetMode) Valid() bool {
 	case TrialSetModeOff:
 		return true
 	case TrialSetModeShadow:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for UpdateAttemptKind.
+const (
+	Restart UpdateAttemptKind = "restart"
+	Update  UpdateAttemptKind = "update"
+)
+
+// Valid indicates whether the value is a known member of the UpdateAttemptKind enum.
+func (e UpdateAttemptKind) Valid() bool {
+	switch e {
+	case Restart:
+		return true
+	case Update:
 		return true
 	default:
 		return false
@@ -5006,9 +5090,12 @@ type RegistryImage struct {
 	BaseName   *string      `json:"base_name,omitempty"`
 
 	// Branch Empty for the default branch.
-	Branch    *string    `json:"branch,omitempty"`
-	Commit    *string    `json:"commit,omitempty"`
-	Id        string     `json:"id"`
+	Branch *string `json:"branch,omitempty"`
+	Commit *string `json:"commit,omitempty"`
+	Id     string  `json:"id"`
+
+	// InUse A runner uses the image now (a machine of `machines` has `in_use_by_runner`).
+	InUse     *bool      `json:"in_use,omitempty"`
 	KeepUntil *time.Time `json:"keep_until,omitempty"`
 
 	// Key The image key, 12 hex; lists show the first 6. It is also the tag.
@@ -5032,7 +5119,7 @@ type RegistryImage struct {
 	// PullsByDay 14 days, oldest first; every day present (0 when none).
 	PullsByDay []RegistryPullDay `json:"pulls_by_day"`
 
-	// PullsText The text form of the chart (UX-41).
+	// PullsText The text form of the chart (UX-41). Always sent.
 	PullsText *string   `json:"pulls_text,omitempty"`
 	PushedAt  time.Time `json:"pushed_at"`
 
@@ -5043,6 +5130,9 @@ type RegistryImage struct {
 	SavedSeconds *float32          `json:"saved_seconds,omitempty"`
 	Scan         *RegistryScan     `json:"scan,omitempty"`
 	ScanState    RegistryScanState `json:"scan_state"`
+
+	// SharedBytes Bytes of the layers other images hold too (`size_bytes` minus `unique_bytes`).
+	SharedBytes *int64 `json:"shared_bytes,omitempty"`
 
 	// Similar Images of the same profile and arch sharing over 60% of bytes. Information only; never offered for replace.
 	Similar *[]struct {
@@ -5057,8 +5147,14 @@ type RegistryImage struct {
 	State       RegistryImageState `json:"state"`
 	UniqueBytes int64              `json:"unique_bytes"`
 
+	// UnusedDays Whole days since the last pull (the push when never pulled). Present only while an open `unused` recommendation names the image.
+	UnusedDays *int `json:"unused_days,omitempty"`
+
 	// UpdateFound A newer image updates this one (an open replace recommendation).
 	UpdateFound *bool `json:"update_found,omitempty"`
+
+	// VariantGoneDays Variants only. Days after its branch is merged or deleted that the image is deleted.
+	VariantGoneDays *int `json:"variant_gone_days,omitempty"`
 }
 
 // RegistryImageKind defines model for RegistryImageKind.
@@ -5110,6 +5206,9 @@ type RegistryImageSummary struct {
 	State       RegistryImageState `json:"state"`
 	UniqueBytes int64              `json:"unique_bytes"`
 
+	// UnusedDays Whole days since the last pull (the push when never pulled). Present only while an open `unused` recommendation names the image.
+	UnusedDays *int `json:"unused_days,omitempty"`
+
 	// UpdateFound A newer image updates this one (an open replace recommendation).
 	UpdateFound *bool `json:"update_found,omitempty"`
 }
@@ -5131,9 +5230,15 @@ type RegistryLineageEntry struct {
 	Key      string    `json:"key"`
 	PushedAt time.Time `json:"pushed_at"`
 
+	// Relation How the entry relates to the image asked for.
+	Relation *RegistryLineageEntryRelation `json:"relation,omitempty"`
+
 	// State registry R5.29. staged and refused are shown only on the image page.
 	State RegistryImageState `json:"state"`
 }
+
+// RegistryLineageEntryRelation How the entry relates to the image asked for.
+type RegistryLineageEntryRelation string
 
 // RegistryLogin defines model for RegistryLogin.
 type RegistryLogin struct {
@@ -5256,11 +5361,14 @@ type RegistryRecommendation struct {
 	Decider RegistryDecider `json:"decider"`
 
 	// DueAt When crsp acts alone, shown ahead. Absent when the owner decides.
-	DueAt      *time.Time         `json:"due_at,omitempty"`
-	FreesBytes int64              `json:"frees_bytes"`
-	Id         string             `json:"id"`
-	ImageId    *string            `json:"image_id,omitempty"`
-	Kind       *RegistryImageKind `json:"kind,omitempty"`
+	DueAt      *time.Time `json:"due_at,omitempty"`
+	FreesBytes int64      `json:"frees_bytes"`
+	Id         string     `json:"id"`
+
+	// Image The image `image_id` names, so a screen needs no second call to name it.
+	Image   *RegistryImageSummary `json:"image,omitempty"`
+	ImageId *string               `json:"image_id,omitempty"`
+	Kind    *RegistryImageKind    `json:"kind,omitempty"`
 
 	// OtherImageId For replace, the image the new one would replace.
 	OtherImageId *string      `json:"other_image_id,omitempty"`
@@ -5277,7 +5385,9 @@ type RegistryReplacePlan struct {
 	FreesBytes  *int64     `json:"frees_bytes,omitempty"`
 	Id          string     `json:"id"`
 	KeepDays    int        `json:"keep_days"`
-	KeepUntil   *time.Time `json:"keep_until,omitempty"`
+
+	// KeepUntil Until when the old image is kept. Before the plan ends it is the date it would be if the plan ended now.
+	KeepUntil *time.Time `json:"keep_until,omitempty"`
 
 	// Machines Machines that held the old image and are warmed with the new one.
 	Machines     []string                 `json:"machines"`
@@ -5288,19 +5398,39 @@ type RegistryReplacePlan struct {
 	State        RegistryReplacePlanState `json:"state"`
 
 	// StepText What runs now, in plain words.
-	StepText   *string `json:"step_text,omitempty"`
-	StepsDone  int     `json:"steps_done"`
-	StepsTotal int     `json:"steps_total"`
+	StepText *string `json:"step_text,omitempty"`
+
+	// Steps What the plan does, in order, with the state of each. The server owns the list and the states.
+	Steps      *[]RegistryReplaceStep `json:"steps,omitempty"`
+	StepsDone  int                    `json:"steps_done"`
+	StepsTotal int                    `json:"steps_total"`
 }
 
 // RegistryReplacePlanInput defines model for RegistryReplacePlanInput.
 type RegistryReplacePlanInput struct {
-	KeepDays   int    `json:"keep_days"`
+	// KeepDays When absent, the days of the registry settings (`keep_old_days`) are used.
+	KeepDays   *int   `json:"keep_days,omitempty"`
 	NewImageId string `json:"new_image_id"`
 }
 
 // RegistryReplacePlanState defines model for RegistryReplacePlanState.
 type RegistryReplacePlanState string
+
+// RegistryReplaceStep defines model for RegistryReplaceStep.
+type RegistryReplaceStep struct {
+	// Kind point moves the pointer of one repository; warm asks the machines to pull the new image; supersede marks the old image superseded.
+	Kind  RegistryReplaceStepKind  `json:"kind"`
+	State RegistryReplaceStepState `json:"state"`
+
+	// Targets The repository of a point step, the machine names of the warm step, empty for supersede.
+	Targets []string `json:"targets"`
+}
+
+// RegistryReplaceStepKind point moves the pointer of one repository; warm asks the machines to pull the new image; supersede marks the old image superseded.
+type RegistryReplaceStepKind string
+
+// RegistryReplaceStepState defines model for RegistryReplaceStep.State.
+type RegistryReplaceStepState string
 
 // RegistryRule defines model for RegistryRule.
 type RegistryRule string
@@ -6156,6 +6286,16 @@ type TrialSide struct {
 	Succeeded  int `json:"succeeded"`
 }
 
+// UpdateAttempt One update or restart, from the yes to its end. Its id tells a page which outcome is its own (CRSP205).
+type UpdateAttempt struct {
+	Id        string            `json:"id"`
+	Kind      UpdateAttemptKind `json:"kind"`
+	StartedAt time.Time         `json:"started_at"`
+}
+
+// UpdateAttemptKind defines model for UpdateAttempt.Kind.
+type UpdateAttemptKind string
+
 // UpdateImageLayersRequest defines model for UpdateImageLayersRequest.
 type UpdateImageLayersRequest struct {
 	// EnabledLayers Ids of the layers that are on. Every other layer is off.
@@ -6199,13 +6339,18 @@ type UpdateStageName string
 
 // UpdateStatus operations R5.11 to R5.18, tray R5.18.
 type UpdateStatus struct {
-	AutoUpdate          bool       `json:"auto_update"`
-	CheckedAt           *time.Time `json:"checked_at,omitempty"`
-	CurrentVersion      string     `json:"current_version"`
-	DrainTimeoutMinutes *int       `json:"drain_timeout_minutes,omitempty"`
+	// Attempt One update or restart, from the yes to its end. Its id tells a page which outcome is its own (CRSP205).
+	Attempt             *UpdateAttempt `json:"attempt,omitempty"`
+	AutoUpdate          bool           `json:"auto_update"`
+	CheckedAt           *time.Time     `json:"checked_at,omitempty"`
+	CurrentVersion      string         `json:"current_version"`
+	DrainTimeoutMinutes *int           `json:"drain_timeout_minutes,omitempty"`
 
 	// Error Which check or step failed, in words.
 	Error *string `json:"error,omitempty"`
+
+	// ErrorAttempt The id of the attempt that `error` belongs to. Absent for a failure recorded before attempts had ids. A page shows an error only when this is the id of the attempt it started (CRSP205).
+	ErrorAttempt *string `json:"error_attempt,omitempty"`
 
 	// LatestVersion The newest stable release found; absent before the first look.
 	LatestVersion *string `json:"latest_version,omitempty"`
@@ -6213,6 +6358,12 @@ type UpdateStatus struct {
 
 	// RunningJobs Jobs running on this machine that the drain waits for.
 	RunningJobs []UpdateJob `json:"running_jobs"`
+
+	// ServerTime The service's clock now, so a page can say how long a restart took without its own clock.
+	ServerTime *time.Time `json:"server_time,omitempty"`
+
+	// ServiceStartedAt When this service process started. A restart is over when it is later than the attempt's started_at (CRSP205).
+	ServiceStartedAt *time.Time `json:"service_started_at,omitempty"`
 
 	// Stage The live stage of the last or running update (TRAY4). It is kept in a file, so it survives the service restart.
 	Stage *UpdateStage `json:"stage,omitempty"`

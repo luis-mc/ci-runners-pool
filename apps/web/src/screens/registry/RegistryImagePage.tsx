@@ -74,7 +74,7 @@ function ImageBody({ image }: { image: Image }) {
   const now = useNow();
   const navigate = useNavigate();
   const client = useClient();
-  const inUse = image.machines.some((m) => m.in_use_by_runner);
+  const inUse = image.in_use === true;
   const word = stateOf(image, { inUse });
   const path = { params: { path: { registryImageId: image.id } } };
   const backToList = () => void navigate('/pool/images?tab=registry');
@@ -108,16 +108,16 @@ function ImageBody({ image }: { image: Image }) {
   const goBack = useCommand(async () => {
     const plan = await unwrap(
       client.POST('/api/v1/registry/replace-plans', {
-        body: { new_image_id: image.id, keep_days: 7 },
+        body: { new_image_id: image.id },
       }),
     );
     void navigate(`/pool/images/registry/${image.id}/replace?plan=${plan.id}`);
   });
   const lineage = image.lineage.filter((l) => l.image_id !== image.id);
   const relation = (l: Lineage) =>
-    l.image_id === image.replaces
+    l.relation === 'replaces'
       ? 'It replaces'
-      : l.image_id === image.replaced_by
+      : l.relation === 'replaced_by'
         ? 'Replaced by'
         : 'Same profile';
   const lineageCols: Column<Lineage>[] = [
@@ -192,17 +192,11 @@ function ImageBody({ image }: { image: Image }) {
     { id: 'm', header: 'Moved', cell: (p) => formatDate(p.moved_at), kind: 'fit' },
   ];
   const week = image.pulls_by_day;
-  const total = week.reduce((a, b) => a + b.pulls, 0);
-  const peak = week.reduce(
-    (a, b) => (b.pulls > a.pulls ? b : a),
-    week[0] ?? { day: '', pulls: 0 },
-  );
   const scan = image.scan;
   const scanned = scan !== undefined && scan.state === 'done';
   const keepUntil = image.keep_until
     ? formatDate(image.keep_until)
     : 'the rollback days end';
-  const sharedBytes = Math.max(0, image.size_bytes - image.unique_bytes);
   return (
     <Stack gap="section">
       <PageHeader
@@ -227,7 +221,7 @@ function ImageBody({ image }: { image: Image }) {
           ) : null}
           {image.state === 'variant' ? (
             <Message tone="note">
-              {`Made for the branch ${image.branch ?? ''}, whose stack files differ from main. It is deleted 7 days after the branch is merged or deleted.`}
+              {`Made for the branch ${image.branch ?? ''}, whose stack files differ from main.${image.variant_gone_days !== undefined ? ` It is deleted ${image.variant_gone_days} days after the branch is merged or deleted.` : ''}`}
             </Message>
           ) : null}
           {image.state === 'staged' ? (
@@ -245,7 +239,7 @@ function ImageBody({ image }: { image: Image }) {
             items={[
               { name: 'Size', value: formatSize(image.size_bytes) },
               { name: 'Only this image holds', value: formatSize(image.unique_bytes) },
-              { name: 'Shared layers', value: formatSize(sharedBytes) },
+              { name: 'Shared layers', value: formatSize(image.shared_bytes ?? 0) },
               ...(image.source_repository
                 ? [{ name: 'Repositories', value: image.source_repository }]
                 : []),
@@ -338,12 +332,7 @@ function ImageBody({ image }: { image: Image }) {
               },
             ]}
           />
-          <Text tone="muted">
-            {image.pulls_text ??
-              (total === 0
-                ? 'No pulls in the last 14 days.'
-                : `${formatCount(total, 'pull')} in 14 days, most on ${formatDate(peak.day)} (${peak.pulls}).`)}
-          </Text>
+          {image.pulls_text ? <Text tone="muted">{image.pulls_text}</Text> : null}
         </Stack>
       </Section>
       <Section title="Machines that hold it" count={image.machines.length}>

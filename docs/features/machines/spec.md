@@ -297,6 +297,8 @@ The controller serves the packages of the release it was built from at `GET /api
 
 **R5.66** (M1, CRSP136) — **The Docker disk compact policy is a machine setting.** Each machine's settings carry the policy of caches R5.52: `docker_compact` (`auto`, `on` or `off`; `auto` is the default and means on for a Windows machine with a Docker Desktop disk file), `docker_compact_threshold_gib` (1 to 100000, default 30), `docker_compact_idle_minutes` (1 to 1440, default 30), `docker_compact_quiet_start` and `docker_compact_quiet_end` (`HH:MM`, default `01:00` and `06:00`). The API refuses anything else with 400. A change is saved at once and needs no drain, and the audit entry `machine.settings` names the change. The agent's machine report carries the Docker disk (`DockerDiskReport`: present, files, file bytes, used bytes, administrator right, time zone offset) and the machine shows it as `docker_compact_status` (enabled, the reason of the last look, file, used and reclaimable bytes, the last time and result, running). The Machine page has a Docker disk section with these settings, built from shared parts only (design-system content.md, Docker disk words), and `crsp machine settings NAME` shows and sets them from the CLI (cli R5.61).
 
+**R5.67** (M1, built CRSP205) — **The pool survives a controller restart.** The controller keeps its machines, their key hashes, settings, join codes and open changes in `machines.json` in the data folder, written at once when access changes and at most every 2 seconds for a routine change, and again when the controller stops. A restart therefore keeps every key: the controller's own agent and every other agent connect again with the key they hold, and none is told "this machine was removed from the pool" (that message is only for a machine that was removed). Every machine reads as offline until its session opens. A pool file that cannot be read stops the controller at start; it is never replaced by an empty pool. Only hashes are stored (R6.2).
+
 ## 6. Non-functional requirements
 
 **R6.1** (M1) — The agent link uses TLS 1.3 only. A connection without a valid pinned certificate and a valid machine key is refused.
@@ -460,6 +462,7 @@ Every test below is planned and NOT YET IMPLEMENTED. Paths are where the tests w
 | R6.9 | internal/machines/scale_test.go | planned |
 | R6.10 | e2e/tests/machines.spec.ts | planned |
 | R5.66 | internal/machines/compact_test.go TestSettingsValidateCompact; internal/api/machines_policy_test.go TestMachineDockerCompactSettingsAndStatus; internal/cli/cmd_machine_settings_test.go; apps/web/src/screens/machines/MachineDockerDisk.test.tsx | built (CRSP136) |
+| R5.67 | internal/machines/filerepo_test.go TestFileRepoKeepsMachinesAndKeysAcrossARestart, TestFileRepoRefusesADamagedFile | built (CRSP205) |
 
 ## 10. Decisions
 

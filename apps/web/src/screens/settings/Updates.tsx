@@ -225,6 +225,17 @@ export function UpdatesSettings() {
 
 type Kind = 'update' | 'restart';
 
+/** How long a restart took, in words: "40 seconds", "1 minute 24 seconds". */
+export function took(ms: number): string {
+  const total = Math.max(1, Math.round(ms / 1000));
+  const min = Math.floor(total / 60);
+  const sec = total % 60;
+  const secs = `${sec} ${sec === 1 ? 'second' : 'seconds'}`;
+  if (min === 0) return secs;
+  const mins = `${min} ${min === 1 ? 'minute' : 'minutes'}`;
+  return sec === 0 ? mins : `${mins} ${secs}`;
+}
+
 /** The Review step of an update or a restart: reads, Review, the work (drain, install), Done. */
 export function UpdateWizard({ compact = false }: { compact?: boolean } = {}) {
   const client = useClient();
@@ -233,6 +244,32 @@ export function UpdateWizard({ compact = false }: { compact?: boolean } = {}) {
   // Set once the yes is given, so a reload can tell a stored run from a fresh page.
   const startedTo = useRef(params.get('to')).current;
   const wasStarted = useRef(params.get('started') === '1').current;
+  // The attempt this page started (CRSP205): only its outcome counts. An older update's failure never shows here.
+  const attemptId = useRef(params.get('attempt') ?? undefined);
+  const startedHere = useRef(false);
+  const tookMs = useRef<number | undefined>(undefined);
+  const startedAt = useRef<string | undefined>(undefined);
+  const mine = (u: UpdateStatus) =>
+    u.state === 'failed' &&
+    (attemptId.current
+      ? u.error_attempt === attemptId.current
+      : startedHere.current && u.error_attempt !== 'earlier');
+  // A restart is over when the service runs as a new process, started after the yes of this attempt.
+  const came = (u: UpdateStatus) =>
+    !!u.attempt &&
+    u.attempt.id === attemptId.current &&
+    !!u.service_started_at &&
+    Date.parse(u.service_started_at) > Date.parse(u.attempt.started_at);
+  const measure = (u: UpdateStatus) => {
+    if (!u.attempt) return;
+    const doneAt = u.stage?.name === 'done' ? Date.parse(u.stage.at) : NaN;
+    const end =
+      doneAt >= Date.parse(u.attempt.started_at)
+        ? doneAt
+        : Date.parse(u.server_time ?? '');
+    const took = end - Date.parse(u.attempt.started_at);
+    tookMs.current = Number.isFinite(took) && took >= 0 ? took : undefined;
+  };
   const navigate = useNavigate();
 
   const [phase, setPhase] = useState<WizardPhase>('loading');
@@ -263,9 +300,17 @@ export function UpdateWizard({ compact = false }: { compact?: boolean } = {}) {
       void follow(u.latest_version ?? u.stage?.version);
     } else if (live) {
       setPhase(afterReload ? 'paused' : 'running');
-    } else if (u.state === 'failed') {
+    } else if (u.state === 'failed' && (compact || mine(u))) {
       setProblem(u.error ?? 'The service did not say why.');
       setPhase('failed');
+    } else if (wasStarted && kind === 'restart') {
+      if (came(u)) {
+        measure(u);
+        setPhase(afterReload ? 'done-after-reload' : 'done');
+      } else {
+        // The restart of this page has not happened yet, or the page was reloaded while it runs: follow it.
+        setPhase('paused');
+      }
     } else if (wasStarted) {
       if (kind === 'update' && startedTo && u.current_version !== startedTo) {
         setProblem(`The service still runs ${u.current_version}, not ${startedTo}.`);
@@ -297,7 +342,7 @@ export function UpdateWizard({ compact = false }: { compact?: boolean } = {}) {
     if (polling.current) return;
     polling.current = true;
     setPhase('running');
-    let lost = false;
+    let since: number | undefined; // when the service went away or began to restart
     while (mounted.current) {
       await new Promise((r) => setTimeout(r, TIMING.planPollMs));
       if (!mounted.current) break;
@@ -305,7 +350,7 @@ export function UpdateWizard({ compact = false }: { compact?: boolean } = {}) {
         const u = await unwrap(client.GET('/api/v1/update'));
         setStatus(u);
         if (
-          u.state === 'failed' ||
+          (compact ? u.state === 'failed' : mine(u)) ||
           (compact && u.stage?.name === 'failed' && !stageLive(u))
         ) {
           setProblem(u.error ?? u.stage?.error ?? 'The service did not say why.');
@@ -315,18 +360,33 @@ export function UpdateWizard({ compact = false }: { compact?: boolean } = {}) {
         const finished =
           !IN_PROGRESS.includes(u.state) &&
           !(compact && stageLive(u)) &&
-          (kind === 'update' ? u.current_version === target : lost || u.state === 'idle');
+          (kind === 'update' ? u.current_version === target : came(u));
         if (finished) {
+          if (kind === 'restart') measure(u);
           setLostService(false);
           setPhase('done');
           break;
         }
-        lost = false;
+        if (kind === 'restart' && (u.state === 'restarting' || u.state === 'installing'))
+          since ??= Date.now();
         setLostService(false);
       } catch {
         // The service stops to install and comes back: keep following.
-        lost = true;
         setLostService(true);
+        since ??= Date.now();
+      }
+      if (
+        kind === 'restart' &&
+        since !== undefined &&
+        Date.now() - since > TIMING.restartLimitMs
+      ) {
+        const at = formatDateTime(startedAt.current ?? new Date().toISOString());
+        setProblem(
+          `The restart you started at ${at} did not finish: the service did not come back within ${Math.round(TIMING.restartLimitMs / 60000)} minutes.`,
+        );
+        setLostService(false);
+        setPhase('failed');
+        break;
       }
     }
     polling.current = false;
@@ -345,8 +405,12 @@ export function UpdateWizard({ compact = false }: { compact?: boolean } = {}) {
             }),
       );
       setStatus(u);
+      startedHere.current = true;
+      attemptId.current = u.attempt?.id;
+      startedAt.current = u.attempt?.started_at;
       const next = new URLSearchParams(params);
       next.set('started', '1');
+      if (u.attempt?.id) next.set('attempt', u.attempt.id);
       if (kind === 'update' && u.latest_version) next.set('to', u.latest_version);
       setParams(next, { replace: true });
       void follow(u.latest_version);
@@ -357,6 +421,8 @@ export function UpdateWizard({ compact = false }: { compact?: boolean } = {}) {
   };
 
   const startAgain = () => {
+    attemptId.current = undefined;
+    startedHere.current = false;
     setParams(new URLSearchParams({ kind }), { replace: true });
     setProblem(undefined);
     setPhase('loading');
@@ -497,6 +563,9 @@ export function UpdateWizard({ compact = false }: { compact?: boolean } = {}) {
         <Facts
           items={[
             { name: 'Version', value: status?.current_version ?? '' },
+            ...(kind === 'restart' && tookMs.current !== undefined
+              ? [{ name: 'Took', value: took(tookMs.current) }]
+              : []),
             { name: 'Jobs stopped', value: '0' },
           ]}
         />
