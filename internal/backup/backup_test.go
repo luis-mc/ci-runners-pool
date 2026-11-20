@@ -484,12 +484,18 @@ func TestScheduledRunWritesBackup(t *testing.T) {
 	e.opts.gap = time.Hour
 	e.rebuild()
 	go e.svc.Run(ctx)
-	deadline := time.Now().Add(6 * time.Second)
-	for time.Now().Before(deadline) {
+	tick := time.NewTicker(20 * time.Millisecond)
+	defer tick.Stop()
+	ctx, stop := context.WithTimeout(ctx, 6*time.Second)
+	defer stop()
+	for {
 		if l, _ := e.db.ListBackups(ctx); len(l) == 1 && l[0].State == StateGood {
 			return
 		}
-		time.Sleep(100 * time.Millisecond)
+		select {
+		case <-tick.C:
+		case <-ctx.Done():
+			t.Fatal("the scheduled backup did not run")
+		}
 	}
-	t.Fatal("the scheduled backup did not run")
 }
