@@ -26,3 +26,6 @@ Branch CIX14-waits-timeline from CIX-integration 6b2697f.
 Nothing for my requirements; store-side readers for the gaps above.
 
 CODE DONE (sha in final message)
+
+Draft PR: #323. Code head: d071d09
+CODE DONE d071d0962ad58480d10db7dab788ad6fbd81df96
