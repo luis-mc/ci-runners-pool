@@ -7,7 +7,7 @@ status: proposed
 version: 0.1.0
 owner: owner
 type: reference
-code: ["internal/insights/**", "internal/jobsdata/reconcile/**", "internal/agent/jobsample/**", "internal/github/rest_insights.go", "internal/store/insights*.go", "internal/store/queries/insights_*.sql", "internal/store/migrations/00030_ci_insights.sql", "internal/api/handlers_insights*.go", "internal/api/stubs_insights.go", "apps/web/src/screens/insights/**"]
+code: ["internal/insights/**", "internal/jobsdata/reconcile/**", "internal/agent/jobsample/**", "internal/github/rest_insights*.go", "internal/doctor/checks/workflows*.go", "internal/agentlink/insights*.go", "internal/agent/jobsample*.go", "cmd/crsp/insights*wiring.go", "internal/store/insights*.go", "internal/store/queries/insights_*.sql", "internal/store/migrations/00030_ci_insights.sql", "internal/api/handlers_insights*.go", "internal/api/stubs_insights.go", "apps/web/src/screens/insights/**"]
 design_system: [UX-4, UX-6, UX-11, UX-14, UX-17, UX-18, UX-19, UX-25, UX-28, UX-29, UX-30, UX-33, UX-38, UX-41, UX-49, UX-52, UX-53, UX-54, UX-58, UX-62, UX-71, UX-72]
 last_verified: 2026-11-20
 artifact:
@@ -322,7 +322,8 @@ Whichever of a time or a size limit is reached first applies; the oldest goes fi
 | `internal/insights/actions` | Plans for setup changes: review, start, audit | R5.10 |
 | `internal/agent/jobsample` | Agent-side CPU and memory sampling per job | 9 |
 | `internal/jobsdata/reconcile` | Runner origin, steps by REST, stale state reconcile | 17 |
-| `internal/github/rest_insights.go` | The REST calls above (job, run jobs, logs, artifacts, commit) | 17, D4 |
+| `internal/github/rest_insights.go` | REST calls of the collector: logs, artifacts, commit trees | D4, 14 |
+| `internal/github/rest_insights_jobs.go` | REST calls of reconcile: one job, the jobs of a run attempt | 17 |
 
 ### Kinds and minutes
 
@@ -464,4 +465,4 @@ Source: internal/insights/insights.go
 Source: internal/store/migrations/00030_ci_insights.sql
 Source: internal/api/stubs_insights.go
 
-Planned: internal/github/rest_insights.go, internal/store/insights*.go, internal/api/handlers_insights*.go, apps/web/src/screens/insights/.
+Planned: internal/github/rest_insights.go, internal/github/rest_insights_jobs.go, internal/doctor/checks/workflows.go, internal/agentlink/insights.go, cmd/crsp/insights_wiring.go, internal/store/insights*.go, internal/api/handlers_insights*.go, apps/web/src/screens/insights/.
