@@ -18,3 +18,7 @@ SELECT * FROM test_results WHERE repository_id = ? AND run_id = ? ORDER BY job_i
 
 -- name: DeleteTestResultsBefore :execrows
 DELETE FROM test_results WHERE finished_at < ?;
+
+-- name: DeleteTestResultsForJobLog :exec
+-- Rows read from a job log have report_id 0; they are replaced per job attempt, never all at once.
+DELETE FROM test_results WHERE report_id = 0 AND repository_id = ? AND run_id = ? AND run_attempt = ? AND job_id = ? AND format = ?;

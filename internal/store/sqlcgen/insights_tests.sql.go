@@ -21,6 +21,30 @@ func (q *Queries) DeleteTestResultsBefore(ctx context.Context, finishedAt string
 	return result.RowsAffected()
 }
 
+const deleteTestResultsForJobLog = `-- name: DeleteTestResultsForJobLog :exec
+DELETE FROM test_results WHERE report_id = 0 AND repository_id = ? AND run_id = ? AND run_attempt = ? AND job_id = ? AND format = ?
+`
+
+type DeleteTestResultsForJobLogParams struct {
+	RepositoryID int64
+	RunID        int64
+	RunAttempt   int64
+	JobID        int64
+	Format       string
+}
+
+// Rows read from a job log have report_id 0; they are replaced per job attempt, never all at once.
+func (q *Queries) DeleteTestResultsForJobLog(ctx context.Context, arg DeleteTestResultsForJobLogParams) error {
+	_, err := q.exec(ctx, q.deleteTestResultsForJobLogStmt, deleteTestResultsForJobLog,
+		arg.RepositoryID,
+		arg.RunID,
+		arg.RunAttempt,
+		arg.JobID,
+		arg.Format,
+	)
+	return err
+}
+
 const deleteTestResultsForReport = `-- name: DeleteTestResultsForReport :exec
 DELETE FROM test_results WHERE report_id = ?
 `

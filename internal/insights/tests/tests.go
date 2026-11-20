@@ -23,6 +23,10 @@ const (
 	GoTest     Format = "gotest"
 	Libtest    Format = "libtest"
 	TRX        Format = "trx"
+	// CIRunTimes and CITimings are the dev-standards timing artifacts: `ci-run-times` (one case per CI job)
+	// and `ci-timings.json` (one case per test file, `{"seconds": {"path": 12.3}}` or `{"path": 12.3}`).
+	CIRunTimes Format = "ci-run-times"
+	CITimings  Format = "ci-timings"
 )
 
 // Result is how one test case ended.
