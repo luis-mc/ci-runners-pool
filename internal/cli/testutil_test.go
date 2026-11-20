@@ -188,6 +188,42 @@ func (f *fixture) run(args ...string) (int, string, string) {
 	return code, out.String(), errOut.String()
 }
 
+// cancelOnWrite is a stdout that cancels the fixture's context the moment the
+// output holds marker: "Ctrl-C after the CLI printed this". The test waits on
+// what the CLI did, not on the clock.
+type cancelOnWrite struct {
+	mu     sync.Mutex
+	buf    bytes.Buffer
+	marker string
+	cancel context.CancelFunc
+}
+
+func (w *cancelOnWrite) Write(p []byte) (int, error) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	n, err := w.buf.Write(p)
+	if strings.Contains(w.buf.String(), w.marker) {
+		w.cancel()
+	}
+	return n, err
+}
+
+func (w *cancelOnWrite) String() string {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	return w.buf.String()
+}
+
+// runUntilPrinted runs the CLI and presses Ctrl-C once stdout holds marker.
+func (f *fixture) runUntilPrinted(marker string, args ...string) (int, string, string) {
+	var errOut bytes.Buffer
+	out := &cancelOnWrite{marker: marker, cancel: f.cancel}
+	env := f.env(&bytes.Buffer{}, &errOut)
+	env.Stdout = out
+	code := Run(env, args)
+	return code, out.String(), errOut.String()
+}
+
 type flagT = flag.Flag
 
 func newFlagSetForTest() *flag.FlagSet {

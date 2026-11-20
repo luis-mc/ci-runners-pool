@@ -6,7 +6,6 @@ import (
 	"strings"
 	"sync/atomic"
 	"testing"
-	"time"
 )
 
 // maintainFixture is a fake controller with one active machine and a drain that
@@ -151,9 +150,9 @@ func TestMaintainReleasesWhenCancelledWhileDraining(t *testing.T) {
 // command may still run on the machine.
 func TestMaintainReleasesWhenCancelledWhileRunning(t *testing.T) {
 	var f *fixture
-	f = maintainFixture(t, func(w http.ResponseWriter, _ *http.Request) {
-		f.cancel() // Ctrl-C
-		time.Sleep(100 * time.Millisecond)
+	f = maintainFixture(t, func(w http.ResponseWriter, r *http.Request) {
+		f.cancel()           // Ctrl-C
+		<-r.Context().Done() // the CLI drops the request; the answer below goes nowhere
 		writeJSON(w, 200, map[string]any{"ok": true, "exit_code": 0, "output": ""})
 	})
 	code, _, errOut := f.run("machine", "maintain", "build-01", "--yes", "--", "compact")

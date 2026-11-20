@@ -153,24 +153,25 @@ func TestThirdJobWaitsAndSaysWhy(t *testing.T) {
 	lim := &Limiter{FW: fw}
 	var said []string
 	var smu sync.Mutex
-	b := &Booter{Limiter: lim, Poll: time.Hour, Say: func(j, r string) { smu.Lock(); said = append(said, j+": "+r); smu.Unlock() }}
+	heard := make(chan struct{}, 1)
+	b := &Booter{Limiter: lim, Poll: time.Hour, Say: func(j, r string) {
+		smu.Lock()
+		said = append(said, j+": "+r)
+		smu.Unlock()
+		select {
+		case heard <- struct{}{}:
+		default:
+		}
+	}}
 	ctx := context.Background()
 	v1, _ := b.Boot(ctx, vmclone.BootSpec{JobID: "a"})
 	_, _ = b.Boot(ctx, vmclone.BootSpec{JobID: "b"})
 	done := make(chan error, 1)
 	go func() { _, err := b.Boot(ctx, vmclone.BootSpec{JobID: "c"}); done <- err }()
-	deadline := time.Now().Add(5 * time.Second)
-	for {
-		smu.Lock()
-		n := len(said)
-		smu.Unlock()
-		if n > 0 {
-			break
-		}
-		if time.Now().After(deadline) {
-			t.Fatal("job c never said why it waits")
-		}
-		time.Sleep(time.Millisecond)
+	select {
+	case <-heard:
+	case <-time.After(5 * time.Second):
+		t.Fatal("job c never said why it waits")
 	}
 	select {
 	case err := <-done:

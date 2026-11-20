@@ -107,11 +107,8 @@ func silentAgent(t *testing.T) (path string, accepted *atomic.Int32) {
 	done := make(chan struct{})
 	t.Cleanup(func() { close(done); _ = ln.Close() })
 	go func() {
-		for {
-			c, err := ln.Accept()
-			if err != nil {
-				return
-			}
+		// Ends when the cleanup closes the listener.
+		for c, err := ln.Accept(); err == nil; c, err = ln.Accept() {
 			accepted.Add(1)
 			go func() { <-done; _ = c.Close() }()
 		}

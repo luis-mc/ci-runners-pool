@@ -39,7 +39,8 @@ func (c *ctl) Start(t *testing.T) {
 	// for at most one second.
 	retry := time.NewTicker(20 * time.Millisecond)
 	defer retry.Stop()
-	giveUp := time.After(time.Second)
+	ctx, stop := context.WithTimeout(t.Context(), time.Second)
+	defer stop()
 	for {
 		if ln, err = (&net.ListenConfig{}).Listen(t.Context(), "tcp", c.Addr); err == nil {
 			break
@@ -47,7 +48,7 @@ func (c *ctl) Start(t *testing.T) {
 		select {
 		case <-retry.C:
 			continue
-		case <-giveUp:
+		case <-ctx.Done():
 		}
 		break
 	}

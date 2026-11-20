@@ -120,11 +120,14 @@ func TestAppHealthNoAppNoCall(t *testing.T) {
 
 func waitFor(t *testing.T, ok func() bool) {
 	t.Helper()
-	for i := 0; i < 500; i++ {
-		if ok() {
-			return
+	tick := time.NewTicker(10 * time.Millisecond)
+	defer tick.Stop()
+	giveUp := time.After(5 * time.Second)
+	for !ok() {
+		select {
+		case <-tick.C:
+		case <-giveUp:
+			t.Fatal("timed out")
 		}
-		time.Sleep(10 * time.Millisecond)
 	}
-	t.Fatal("timed out")
 }
