@@ -91,10 +91,13 @@ func New(d sys.Deps, cfg Config) *Backend {
 	return b
 }
 
-// RandomPassword makes a 32-character random password. It is made inside the
-// process that registers the service and is never kept (runners R5.15).
+// RandomPassword makes a 32-character random password of letters and digits
+// only. A symbol can break `sc.exe`, a quoting layer or the service logon
+// ("Credential ... is invalid", runners R5.94), and 32 characters of 57 give
+// about 187 bits, so nothing is lost. It is made inside the process that
+// registers the service and is never kept (runners R5.15).
 func RandomPassword() string {
-	const set = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!#%+-=?@"
+	const set = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789"
 	for {
 		b := make([]byte, 32)
 		for i := range b {
@@ -104,10 +107,10 @@ func RandomPassword() string {
 			}
 			b[i] = set[n.Int64()]
 		}
-		// Windows password rules want three of four classes; take all four so
-		// a local policy never refuses the account.
+		// Windows password rules want three of five classes; upper, lower and
+		// digit are three, so a local policy never refuses the account.
 		if s := string(b); strings.ContainsAny(s, "ABCDEFGHJKLMNPQRSTUVWXYZ") && strings.ContainsAny(s, "abcdefghijkmnopqrstuvwxyz") &&
-			strings.ContainsAny(s, "23456789") && strings.ContainsAny(s, "!#%+-=?@") {
+			strings.ContainsAny(s, "23456789") {
 			return s
 		}
 	}

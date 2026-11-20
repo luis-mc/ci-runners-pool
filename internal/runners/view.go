@@ -4,10 +4,23 @@ import (
 	"context"
 	"fmt"
 	"sort"
+	"time"
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backend"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/github"
 )
+
+// SessionWaitReason is the words shown on a runner while GitHub holds its old
+// session. It is a wait, never an error (runners R5.95).
+const SessionWaitReason = "Waiting for GitHub to release the old session"
+
+// SessionWaitText is SessionWaitReason with the end of the wait window.
+func SessionWaitText(until time.Time) string {
+	if until.IsZero() {
+		return SessionWaitReason
+	}
+	return SessionWaitReason + ", until " + until.UTC().Format("15:04:05Z")
+}
 
 // Facts is what GitHub and the machine's agent say about one runner right now.
 // A fact that could not be read is not Known; it never counts as "fine".
@@ -44,6 +57,12 @@ func Truth(r Record, f Facts) (State, string) {
 		}
 	}
 	switch {
+	case f.Service != nil && f.Service.SessionRefused && !f.Service.SessionWaitUntil.IsZero():
+		// A wait, never an error: GitHub still holds the old session after a
+		// restart and drops it on its own (runners R5.95).
+		return Offline, SessionWaitText(f.Service.SessionWaitUntil)
+	case f.Service != nil && f.Service.SessionRefused:
+		return Offline, "GitHub still holds the old session of this runner after the wait window; look for a second listener or another machine that uses this runner name"
 	case !f.GitHubKnown:
 		return Unknown, "GitHub could not be read, so the state is not known"
 	case f.GitHub == nil:

@@ -733,7 +733,7 @@ func TestRunnerListenerStaleSession(t *testing.T) {
 	if f, _ := sev(mk("inside", 90*time.Second, nil)); f.Severity != doctor.OK || f.Fix.Text != "" {
 		t.Fatalf("inside the window: %+v", f)
 	}
-	f, _ := sev(mk("past", 4*time.Minute, nil))
+	f, _ := sev(mk("past", 7*time.Minute, nil))
 	if f.Severity != doctor.Warn || f.Fix.Text == "" {
 		t.Fatalf("past the window: %+v", f)
 	}

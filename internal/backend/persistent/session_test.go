@@ -74,3 +74,44 @@ func TestUnknownRestartIsNeverInWindow(t *testing.T) {
 		t.Fatal("zero restart in window")
 	}
 }
+
+func TestBackoffDoublesToAMinute(t *testing.T) {
+	want := []time.Duration{5 * time.Second, 10 * time.Second, 20 * time.Second, 40 * time.Second, time.Minute, time.Minute}
+	for i, w := range want {
+		if got := Backoff(i); got != w {
+			t.Errorf("Backoff(%d) = %v, want %v", i, got, w)
+		}
+	}
+}
+
+func TestRefusalWaitsWithTheReasonAndBackoffAndResets(t *testing.T) {
+	now := time.Date(2026, 11, 15, 10, 0, 30, 0, time.UTC)
+	var logs []string
+	g := guard(&now, &logs, nil)
+	if _, err := g.Observe(refusal); err != nil {
+		t.Fatal(err)
+	}
+	if len(logs) != 1 || !strings.Contains(logs[0], WaitReason) {
+		t.Fatalf("logs = %q", logs)
+	}
+	if a, b := g.NextWait(), g.NextWait(); a != 5*time.Second || b != 10*time.Second {
+		t.Fatalf("waits %v %v", a, b)
+	}
+	if _, err := g.Observe("Runner reconnected.\n"); err != nil {
+		t.Fatal(err)
+	}
+	if a := g.NextWait(); a != 5*time.Second {
+		t.Fatalf("wait after a clear look = %v", a)
+	}
+}
+
+func TestFourMinutesOfRefusalIsStillAWaitByDefault(t *testing.T) {
+	// 20 Nov: a hard Docker restart; GitHub dropped the old sessions after ~4 minutes.
+	now := time.Date(2026, 11, 15, 10, 4, 0, 0, time.UTC)
+	var logs []string
+	g := guard(&now, &logs, nil)
+	g.Window = 0
+	if st, err := g.Observe(refusal); st != SessionExpired || err != nil {
+		t.Fatalf("got %v %v", st, err)
+	}
+}

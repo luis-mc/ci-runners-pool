@@ -17,7 +17,7 @@ import (
 const keySessionWait = "session_wait_minutes"
 
 // DefaultSessionWaitMinutes is the default window.
-const DefaultSessionWaitMinutes = 3
+const DefaultSessionWaitMinutes = 6
 
 // SessionWaitRange is the allowed window in minutes.
 var SessionWaitRange = Range{1, 30}

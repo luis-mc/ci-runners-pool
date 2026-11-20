@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backend"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backend/persistent"
@@ -59,6 +60,7 @@ func (b *Backend) parseFind(out string) ([]backend.Found, error) {
 			Running:     strings.EqualFold(r.State, "Running"),
 			Name:        r.Name[strings.LastIndex(r.Name, ".")+1:],
 		}
+		f.SessionRefused, f.SessionWaitUntil = persistent.SessionWait(f.Folder, time.Now(), 0)
 		meta, err := persistent.ReadMeta(b.d.FS, Join(f.Folder, persistent.MetaFile))
 		switch {
 		case err != nil:
