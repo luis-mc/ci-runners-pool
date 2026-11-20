@@ -25,6 +25,7 @@ import { useLoad } from '../../api/hooks';
 import { useMachines } from '../../api/machines';
 import { waitWords } from '../jobs/words';
 import { Load } from '../common';
+import { OverviewInsights } from '../insights/OverviewLine';
 import { HowCrspWorks } from './HowCrspWorks';
 
 type Machine = Schemas['Machine'];
@@ -184,6 +185,7 @@ export function Overview() {
       <PageHeader title="Overview" lead="The pool at a glance." />
       <AppGoneBanner />
       <HowCrspWorks />
+      <OverviewInsights />
       {!o && firstPaint !== 'failed' ? (
         <Section title="The pool">
           <Loading what="Loading the overview" />

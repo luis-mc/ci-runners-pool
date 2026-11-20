@@ -4,6 +4,7 @@
 import {
   ActionBar,
   Button,
+  Chips,
   Cut,
   ListToolbar,
   Empty,
@@ -72,6 +73,7 @@ export const JOBS_TABS = [
   { id: 'runner', label: 'By runner', to: '/jobs/runner' },
   { id: 'runner-type', label: 'By runner type', to: '/jobs/runner-type' },
   { id: 'job-type', label: 'By job type', to: '/jobs/job-type' },
+  { id: 'insights', label: 'Run insights', to: '/jobs/insights' },
   { id: 'charts', label: 'Charts', to: '/jobs/charts' },
 ] as const;
 
@@ -328,6 +330,26 @@ export function jobColumns(kind: Kind, now: number): Column<Job>[] {
   ];
 }
 
+/** Jobs another runner runs (the old pool, for one) are not crsp's to run: they have their own filter (owner decision D7). */
+export const runsElsewhere = (j: Job): boolean => j.runner_origin === 'other';
+
+/** The runner of a job run elsewhere, with its group and labels, in words. */
+export function elsewhereWords(j: Job): string {
+  const labels = j.runner_labels?.length ? `labels ${j.runner_labels.join(', ')}` : undefined;
+  const group = j.runner_group ? `group ${j.runner_group}` : undefined;
+  const detail = [group, labels].filter(Boolean).join('; ');
+  return `${j.runner_name ?? 'another runner'}${detail ? ` (${detail})` : ''}`;
+}
+
+const elsewhereColumn: Column<Job> = {
+  id: 'elsewhere',
+  header: 'Runner and labels',
+  cell: (j) => elsewhereWords(j),
+  sort: (j) => j.runner_name ?? '',
+  kind: 'grow',
+  grow: 2,
+};
+
 type View = 'runs' | 'jobs';
 
 /** Which list the reader sees: runs by default; a filter only jobs have (runner, machine, type) opens the jobs. */
@@ -406,8 +428,13 @@ const DAY_MS = 86_400_000;
 function JobsListTab({ kind }: { kind: Kind }) {
   const f = useFilters();
   const client = useClient();
-  const { view, set } = useView();
+  const { view: chosen, set } = useView();
   const [params, setParams] = useSearchParams();
+  // Run elsewhere lists jobs: the API has no runner_origin filter, so this one filters in the browser.
+  const elsewhere = kind !== 'done' && params.get('elsewhere') === '1';
+  const view: View = elsewhere ? 'jobs' : chosen;
+  const mine = (items: Job[]): Job[] =>
+    kind === 'done' ? items : items.filter((j) => runsElsewhere(j) === elsewhere);
   const days = RANGES.some((r) => r.value === params.get('days'))
     ? (params.get('days') as string)
     : String(KEPT_DAYS);
@@ -536,7 +563,11 @@ function JobsListTab({ kind }: { kind: Kind }) {
           {empty ? (
             <Empty
               title={
-                f.note ? `No ${unit.slice(0, -1)} matches this filter.` : EMPTY[kind]
+                elsewhere
+                  ? 'No job runs on another runner.'
+                  : f.note
+                    ? `No ${unit.slice(0, -1)} matches this filter.`
+                    : EMPTY[kind]
               }
             />
           ) : rows ? (
@@ -558,6 +589,7 @@ function JobsListTab({ kind }: { kind: Kind }) {
           ) : (
             <JobTable
               kind={kind}
+              elsewhere={elsewhere}
               items={items ?? []}
               now={live}
               onOpen={(j) => void navigate(`/jobs/${j.id}`)}
@@ -592,14 +624,17 @@ function JobsListTab({ kind }: { kind: Kind }) {
           what={`the ${TITLES[kind].toLowerCase()} list`}
           reload={jobs.reload}
         >
-          {(page) => list(page, undefined, page.items, page.total ?? page.items.length)}
+          {(page) => {
+            const items = mine(page.items);
+            return list(page, undefined, items, items.length);
+          }}
         </Load>
       );
     if (kind === 'queue')
       return (
         <Load result={queuedJobs.result} what="the queue" reload={queuedJobs.reload}>
           {(page) => {
-            const rows = fromQueuedJobs(page.items);
+            const rows = fromQueuedJobs(mine(page.items));
             return list(page, rows, undefined, rows.length);
           }}
         </Load>
@@ -640,6 +675,19 @@ function JobsListTab({ kind }: { kind: Kind }) {
           filters={
             <>
               <ViewSwitch view={view} onChange={set} />
+              {kind !== 'done' ? (
+                <Chips
+                  label="Runner"
+                  options={[{ value: '1', label: 'Run elsewhere' }]}
+                  value={elsewhere ? '1' : ''}
+                  onChange={(v) => {
+                    const next = new URLSearchParams(params);
+                    if (v) next.set('elsewhere', '1');
+                    else next.delete('elsewhere');
+                    setParams(next, { replace: true });
+                  }}
+                />
+              ) : null}
               {kind === 'done' ? (
                 <Segmented
                   label="Range"
@@ -679,13 +727,23 @@ function JobsListTab({ kind }: { kind: Kind }) {
   );
 }
 
+/** Run elsewhere names the runner and its labels where a crsp list names the runner and machine. */
+function withElsewhere(cols: Column<Job>[], on: boolean): Column<Job>[] {
+  if (!on) return cols;
+  if (cols.some((c) => c.id === 'where'))
+    return cols.map((c) => (c.id === 'where' ? elsewhereColumn : c));
+  return cols.flatMap((c) => (c.id === 'branch' ? [c, elsewhereColumn] : [c]));
+}
+
 function JobTable({
   kind,
+  elsewhere,
   items,
   now,
   onOpen,
 }: {
   kind: Kind;
+  elsewhere: boolean;
   items: Job[];
   now: number;
   onOpen: (j: Job) => void;
@@ -693,7 +751,7 @@ function JobTable({
   return (
     <Table
       caption={`${TITLES[kind]} jobs`}
-      columns={jobColumns(kind, now)}
+      columns={withElsewhere(jobColumns(kind, now), elsewhere)}
       rows={items}
       rowKey={(j) => String(j.id)}
       expandLabel="Details"

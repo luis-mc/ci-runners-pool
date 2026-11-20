@@ -30,6 +30,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Load } from '../common';
 import type { Schemas } from '../../api/api';
 import { useJobDetail, useRun } from './api';
+import { ResourcesPane, StepsSource, runsOnFact } from '../insights/JobInsights';
 import { graphSource } from './runBasis';
 import { edgesOf, graphNodes, stepRows } from './runViews';
 import {
@@ -240,8 +241,10 @@ function JobBody({ j }: { j: JobDetail }) {
             }
           />
         )}
+        <StepsSource j={j} />
       </Section>
       <Section title="Runner">
+        <Facts items={[runsOnFact(j)]} />
         {runner ? (
           <Facts
             items={[
@@ -264,10 +267,11 @@ function JobBody({ j }: { j: JobDetail }) {
               { name: 'Labels', value: j.labels.join(', ') || 'none' },
             ]}
           />
-        ) : (
+        ) : j.runner_origin ? null : (
           <Empty title="No runner yet. The pool places the job when a slot is free." />
         )}
       </Section>
+      {runner && j.state !== 'queued' ? <ResourcesPane jobId={j.id} /> : null}
       <Section title="Times">
         <Facts
           items={[
