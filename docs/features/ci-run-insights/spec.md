@@ -394,7 +394,7 @@ Every row is planned; the paths are where each test will live (wave CIX).
 | R5.16 | planned: internal/insights/capacity/queue_test.go TestAllenCunneenKnownValues, TestSaturatedGivesMinimumSlots |
 | R5.17 | planned: internal/insights/capacity/advice_test.go TestPoolSizeWithinHeadroom, TestNoRoomNoAction |
 | R5.18 | planned: internal/insights/capacity/advice_test.go TestRepoLimitRaiseAndCap |
-| R5.19 | planned: internal/agent/jobsample/sampler_test.go TestCgroupAndProcessTree, TestUnknownWithReason |
+| R5.19 | internal/agent/jobsample/sampler_test.go TestCgroupAndProcessTree, TestUnknownWithReason; internal/agent/jobsample_link_test.go TestJobSampleSenderV3SendsNothing; internal/machines/job_samples_test.go TestJobSamplesReachHook |
 | R5.20 | planned: internal/insights/capacity/resources_test.go TestSummaryAtJobEnd |
 | R5.21 | planned: internal/insights/timeline/timeline_test.go TestLanesIdleAndAfterMerge |
 | R5.22 | planned: internal/insights/timeline/idle_test.go TestIdleNextToQueueFinding |
@@ -422,7 +422,7 @@ Every row is planned; the paths are where each test will live (wave CIX).
 | R6.1 | planned: internal/insights/collect/budget_test.go TestQuarterShareAndOrder |
 | R6.2 | planned: internal/insights/collect/retention_test.go TestDefaultsFloorsCeilings |
 | R6.3 | planned: internal/insights/engine_bench_test.go BenchmarkPass20kJobs |
-| R6.4 | planned: internal/agent/jobsample/sampler_bench_test.go BenchmarkSample |
+| R6.4 | internal/agent/jobsample/sampler_bench_test.go BenchmarkSample |
 | R6.5 | planned: internal/insights/collect/privacy_test.go TestRedactionCoversCIData |
 | R6.6 | planned: internal/insights/engine_test.go TestAnalysersNeverWriteSettings |
 | R6.7 | planned: internal/store/insights_bench_test.go BenchmarkFindingsPage |
