@@ -37,6 +37,9 @@ type Hooks struct {
 	// REG4 wire it). HelloAck then carries protocol version 3, and an agent
 	// asks only on that (registry R5.19); without it the agent builds as before.
 	Registry bool
+	// OnJobSamples takes the JobResourceSamples batches of agents (ci-run-insights R5.19). When set, and the
+	// registry is on, HelloAck carries protocol version 4 and agents start sending them.
+	OnJobSamples func(ctx context.Context, machineID string, m *agentv1.JobResourceSamples)
 }
 
 // RecoveryPath is the frozen recovery call (internal/recovery.Path).
@@ -171,6 +174,9 @@ func (l *Link) Session(ctx context.Context, stream *connect.BidiStream[agentv1.S
 	ackVersion := agentv1.ProtocolVersion_PROTOCOL_VERSION_1
 	if svc.hooks.Registry {
 		ackVersion = agentv1.ProtocolVersion_PROTOCOL_VERSION_3
+		if svc.hooks.OnJobSamples != nil {
+			ackVersion = agentv1.ProtocolVersion_PROTOCOL_VERSION_4
+		}
 	}
 	ack := &agentv1.SessionResponse{Message: &agentv1.SessionResponse_HelloAck{HelloAck: &agentv1.HelloAck{
 		ProtocolVersion: ackVersion, ControllerVersion: ver,
@@ -279,6 +285,10 @@ func (s *Service) dispatch(ctx context.Context, id, agentVersion string, req *ag
 		s.mu.Unlock()
 		if s.hooks.OnMessage != nil {
 			s.hooks.OnMessage(ctx, id, req, reply)
+		}
+	case *agentv1.SessionRequest_JobResourceSamples:
+		if s.hooks.OnJobSamples != nil {
+			s.hooks.OnJobSamples(ctx, id, msg.JobResourceSamples)
 		}
 	case *agentv1.SessionRequest_CommandResult:
 		if !msg.CommandResult.GetOk() {
