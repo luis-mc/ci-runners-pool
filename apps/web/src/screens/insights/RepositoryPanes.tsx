@@ -39,7 +39,7 @@ const checkColumns: Column<Check>[] = [
   },
   {
     id: 'check',
-    header: 'Check',
+    header: 'Rule',
     cell: (c) => c.check_id.replace('workflow.', '').replaceAll('_', ' '),
     kind: 'grow',
   },
