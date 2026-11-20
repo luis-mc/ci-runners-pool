@@ -9,6 +9,105 @@ import (
 	"context"
 )
 
+const countJobSteps = `-- name: CountJobSteps :one
+SELECT COUNT(*) FROM job_steps WHERE job_id = ?
+`
+
+func (q *Queries) CountJobSteps(ctx context.Context, jobID int64) (int64, error) {
+	row := q.queryRow(ctx, q.countJobStepsStmt, countJobSteps, jobID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const listCompletedRunStaleJobRuns = `-- name: ListCompletedRunStaleJobRuns :many
+SELECT j.repository_id, j.repository, j.run_id, j.run_attempt, CAST(MIN(j.updated_at) AS TEXT) AS oldest_update
+FROM jobs j
+JOIN runs r ON r.repository_id = j.repository_id AND r.run_id = j.run_id AND r.run_attempt = j.run_attempt
+WHERE j.state IN ('queued', 'running') AND r.completed_at != '' AND (j.checked_at = '' OR j.checked_at < ?)
+GROUP BY j.repository_id, j.repository, j.run_id, j.run_attempt
+ORDER BY oldest_update
+LIMIT ?
+`
+
+type ListCompletedRunStaleJobRunsParams struct {
+	CheckedAt string
+	Limit     int64
+}
+
+type ListCompletedRunStaleJobRunsRow struct {
+	RepositoryID int64
+	Repository   string
+	RunID        int64
+	RunAttempt   int64
+	OldestUpdate string
+}
+
+// Run attempts GitHub reported completed that still have queued or running job rows (R5.41).
+func (q *Queries) ListCompletedRunStaleJobRuns(ctx context.Context, arg ListCompletedRunStaleJobRunsParams) ([]ListCompletedRunStaleJobRunsRow, error) {
+	rows, err := q.query(ctx, q.listCompletedRunStaleJobRunsStmt, listCompletedRunStaleJobRuns, arg.CheckedAt, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListCompletedRunStaleJobRunsRow
+	for rows.Next() {
+		var i ListCompletedRunStaleJobRunsRow
+		if err := rows.Scan(
+			&i.RepositoryID,
+			&i.Repository,
+			&i.RunID,
+			&i.RunAttempt,
+			&i.OldestUpdate,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listOpenJobIDsOfRun = `-- name: ListOpenJobIDsOfRun :many
+SELECT id FROM jobs
+WHERE repository_id = ? AND run_id = ? AND run_attempt = ? AND state IN ('queued', 'running')
+ORDER BY id
+`
+
+type ListOpenJobIDsOfRunParams struct {
+	RepositoryID int64
+	RunID        int64
+	RunAttempt   int64
+}
+
+func (q *Queries) ListOpenJobIDsOfRun(ctx context.Context, arg ListOpenJobIDsOfRunParams) ([]int64, error) {
+	rows, err := q.query(ctx, q.listOpenJobIDsOfRunStmt, listOpenJobIDsOfRun, arg.RepositoryID, arg.RunID, arg.RunAttempt)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []int64
+	for rows.Next() {
+		var id int64
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listStaleJobRuns = `-- name: ListStaleJobRuns :many
 SELECT repository_id, repository, run_id, run_attempt, CAST(MIN(updated_at) AS TEXT) AS oldest_update
 FROM jobs

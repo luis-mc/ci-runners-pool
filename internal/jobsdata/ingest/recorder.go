@@ -10,6 +10,7 @@ import (
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/github"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/jobsdata"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/jobsdata/reconcile"
 )
 
 // Forecaster makes the forecast of a job that just started, from the history
@@ -33,6 +34,9 @@ type Config struct {
 	Forecast Forecaster
 	// Graphs reads workflow files; nil fetches no graph.
 	Graphs GraphSource
+	// Origins and Classify record who ran a job and where its steps came from (R5.39, R5.40); nil skips both.
+	Origins  OriginSink
+	Classify reconcile.Classify
 	// Repos gives the id of a repository crsp serves; false skips its jobs.
 	Repos func(ctx context.Context, fullName string) (int64, bool)
 	Now   func() time.Time
@@ -350,7 +354,13 @@ func (r *Recorder) OnSteps(ctx context.Context, jobID int64, steps []github.JobS
 		}
 		out = append(out, st)
 	}
-	return r.cfg.Writer.ReplaceSteps(ctx, jobID, out)
+	if err := r.cfg.Writer.ReplaceSteps(ctx, jobID, out); err != nil {
+		return err
+	}
+	if r.cfg.Origins != nil {
+		return r.cfg.Origins.SetStepsSource(ctx, jobID, "events")
+	}
+	return nil
 }
 
 // known says whether the job was recorded, in this process or before it.
