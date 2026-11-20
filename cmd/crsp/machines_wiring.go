@@ -121,10 +121,13 @@ func startMachines(ctx context.Context, cfg config.Config, logger *slog.Logger, 
 		winPackages = controllerPackages{sums: pkgSource, console: consoleURL}
 	}
 
-	// The SQLite adapter of machines.Repository belongs to internal/store; until it
-	// lands the repository is in memory, so machines and keys last until restart.
+	// The pool is saved to a file in the data folder, so a restart keeps every machine and key (CRSP205).
+	repo, err := machines.OpenFileRepo(filepath.Join(cfg.DataDir, machines.MachinesFile))
+	if err != nil {
+		return nil, err
+	}
 	svc := machines.New(machines.Options{
-		Repo: machines.NewMemRepo(), ControllerAddress: public, AgentPort: port, Fingerprint: ca.Fingerprint(),
+		Repo: repo, ControllerAddress: public, AgentPort: port, Fingerprint: ca.Fingerprint(),
 		OnIdle: idle.call, PoolDefaults: pool, SSH: machines.NewSSHRunner(), MinProtocol: minAgentProtocol,
 		Packages: pkgSource, ConsoleURL: consoleURL, WindowsPackages: winPackages,
 	})
@@ -203,6 +206,7 @@ func startMachines(ctx context.Context, cfg config.Config, logger *slog.Logger, 
 		cancel()
 		_ = link.Close()
 		<-done
+		repo.Flush()
 	}}, nil
 }
 

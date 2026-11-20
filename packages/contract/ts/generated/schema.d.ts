@@ -5074,6 +5074,27 @@ export interface components {
             /** Format: uri */
             release_url?: string;
             stage?: components["schemas"]["UpdateStage"];
+            attempt?: components["schemas"]["UpdateAttempt"];
+            /** @description The id of the attempt that `error` belongs to. Absent for a failure recorded before attempts had ids. A page shows an error only when this is the id of the attempt it started (CRSP205). */
+            error_attempt?: string;
+            /**
+             * Format: date-time
+             * @description When this service process started. A restart is over when it is later than the attempt's started_at (CRSP205).
+             */
+            service_started_at?: string;
+            /**
+             * Format: date-time
+             * @description The service's clock now, so a page can say how long a restart took without its own clock.
+             */
+            server_time?: string;
+        };
+        /** @description One update or restart, from the yes to its end. Its id tells a page which outcome is its own (CRSP205). */
+        UpdateAttempt: {
+            id: string;
+            /** @enum {string} */
+            kind: "update" | "restart";
+            /** Format: date-time */
+            started_at: string;
         };
         /** @description The live stage of the last or running update (TRAY4). It is kept in a file, so it survives the service restart. */
         UpdateStage: {

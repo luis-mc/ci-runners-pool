@@ -46,6 +46,21 @@ func toGenUpdate(st update.Status) gen.UpdateStatus {
 		d := st.DrainTimeoutMinutes
 		out.DrainTimeoutMinutes = &d
 	}
+	if !st.ServiceStarted.IsZero() {
+		t := st.ServiceStarted
+		out.ServiceStartedAt = &t
+	}
+	if !st.ServerTime.IsZero() {
+		t := st.ServerTime
+		out.ServerTime = &t
+	}
+	if st.ErrorAttempt != "" {
+		e := st.ErrorAttempt
+		out.ErrorAttempt = &e
+	}
+	if a := st.Attempt; a != nil {
+		out.Attempt = &gen.UpdateAttempt{Id: a.ID, Kind: gen.UpdateAttemptKind(a.Kind), StartedAt: a.StartedAt}
+	}
 	if sg := st.Stage; sg != nil {
 		g := gen.UpdateStage{Name: gen.UpdateStageName(sg.Name), At: sg.At}
 		if sg.Percent >= 0 && (sg.Name == update.StageDownloading || sg.Name == update.StageInstalling) {

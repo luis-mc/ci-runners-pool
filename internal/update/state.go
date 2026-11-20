@@ -104,7 +104,9 @@ type Result struct {
 	From  string    `json:"from"`
 	To    string    `json:"to"`
 	Error string    `json:"error,omitempty"`
-	At    time.Time `json:"at"`
+	// Attempt is the id of the update or restart that ended with this result (CRSP205).
+	Attempt string    `json:"attempt,omitempty"`
+	At      time.Time `json:"at"`
 }
 
 // WriteResult stores the result atomically.
