@@ -2,7 +2,6 @@
 // Open run goes straight to the Run page (OPS43), as Open job goes to the Job page.
 import {
   CappedList,
-  Cut,
   ShortText,
   Status,
   TextLink,
@@ -18,7 +17,7 @@ import {
   startRange,
   taskIdOf,
 } from './words';
-import { waitWords } from './words';
+import { waitShort, waitWords, workflowFile } from './words';
 
 export type RunKind = 'queue' | 'running' | 'done';
 
@@ -55,19 +54,23 @@ export function runColumns(kind: RunKind, _now: number): Column<RunRow>[] {
     kind: 'grow',
     grow: 2,
   };
+  // The file name only: the full path is the hover text and the title of the Run page (UX-72, CRSP210).
   const workflow: Column<RunRow> = {
     id: 'workflow',
     header: 'Workflow',
-    cell: (r) => (
-      <Cut tail={` #${r.id}${r.attempt > 1 ? `, attempt ${r.attempt}` : ''}`}>
-        <TextLink to={runPath(r)}>{r.workflow}</TextLink>
-      </Cut>
-    ),
+    cell: (r) => <TextLink to={runPath(r)}>{workflowFile(r.workflow)}</TextLink>,
     kind: 'grow',
     grow: 2,
-    title: (r) =>
-      `${r.workflow} #${r.id}${r.attempt > 1 ? `, attempt ${r.attempt}` : ''}`,
+    title: (r) => r.workflow,
     sort: (r) => r.workflow,
+  };
+  // The run number in its own column, whole, so it never sits outside its cell (CRSP210).
+  const runNumber: Column<RunRow> = {
+    id: 'run',
+    header: 'Run',
+    cell: (r) => `#${r.id}${r.attempt > 1 ? `, attempt ${r.attempt}` : ''}`,
+    sort: (r) => r.id,
+    kind: 'fit',
   };
   const branch: Column<RunRow> = {
     id: 'branch',
@@ -123,6 +126,7 @@ export function runColumns(kind: RunKind, _now: number): Column<RunRow>[] {
       },
       repo,
       workflow,
+      runNumber,
       branch,
       commit,
       event,
@@ -142,7 +146,7 @@ export function runColumns(kind: RunKind, _now: number): Column<RunRow>[] {
         kind: 'grow',
         long: (r) => {
           const n = r.queued[0];
-          return n ? { full: waitWords(n) } : null;
+          return n ? { full: waitWords(n), short: waitShort(n) } : null;
         },
         secondary: true,
       },
@@ -151,6 +155,7 @@ export function runColumns(kind: RunKind, _now: number): Column<RunRow>[] {
     return [
       repo,
       workflow,
+      runNumber,
       branch,
       commit,
       event,
@@ -181,6 +186,7 @@ export function runColumns(kind: RunKind, _now: number): Column<RunRow>[] {
     },
     repo,
     workflow,
+    runNumber,
     branch,
     commit,
     event,

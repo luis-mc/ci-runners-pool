@@ -8,7 +8,10 @@
  *  4. stacked buttons (one under another) share one width;
  *  5. where a rule asks for it, the primary action is in view without scrolling;
  *  6. fields in one visual row share one width class, one box width and one top edge (CORE-7, UX-23);
- *  7. a check box or radio is drawn on the left edge of the field column of its group (CORE-7).
+ *  7. a check box or radio is drawn on the left edge of the field column of its group (CORE-7);
+ *  8. no clipped text (CRSP210): no element whose text is wider than its box while it hides the rest (`overflow` hidden
+ *     or clip, or `text-overflow: ellipsis`), and no table cell whose box overlaps another cell of its row (the action
+ *     cell included) or whose content runs out of the cell into the next one.
  *
  * Use `expectDomLayout(page, 'library page', { known: KNOWN_LAYOUT_BREACHES, primary: '...' })` in a spec.
  * A screen that breaks a rule today is in `layout.known.json` (loaded as `KNOWN_LAYOUT_BREACHES`) with the task that fixes it. It is a RATCHET:
@@ -34,7 +37,8 @@ export type LayoutRule =
   | 'button-width'
   | 'primary-in-view'
   | 'field-row'
-  | 'check-edge';
+  | 'check-edge'
+  | 'clipped-text';
 
 /** One known breach: the screen, the width it happens at ('*' for every width), the rule and the task that removes it. */
 export interface KnownLayoutBreach {
@@ -202,6 +206,43 @@ export function domLayoutSource(
           if (!c || k.hasAttribute('data-card') || k.hasAttribute('data-structured')) continue;
           const x = drawnLeft(c);
           if (Math.abs(x - column) > 1) add('check-edge', 'a check box or radio starts ' + Math.round(x - column) + ' px from the field column in ' + name(box));
+        }
+      }
+    }
+
+    // 8. no clipped text: a box that hides text wider than itself, and table cells that overlap or spill (CRSP210)
+    const hidden = (e) => e.closest('.ds-visually-hidden, svg, thead, [aria-hidden="true"]');
+    const hides = (st) => st.overflowX === 'hidden' || st.overflowX === 'clip' || st.textOverflow === 'ellipsis';
+    const clipSeen = new Set();
+    for (const e of Array.from(document.querySelectorAll('body *')).filter(visible)) {
+      if (hidden(e) || e.clientWidth <= 2) continue;
+      const st = getComputedStyle(e);
+      if (!hides(st) || e.scrollWidth <= e.clientWidth + 1) continue;
+      const text = (e.textContent || '').trim().replace(/\\s+/g, ' ').slice(0, 40);
+      if (!text || clipSeen.has(text)) continue;
+      clipSeen.add(text);
+      add('clipped-text', name(e) + ' hides text: "' + text + '" is ' + e.scrollWidth + ' px wide in ' + e.clientWidth + ' px');
+    }
+    for (const row of Array.from(document.querySelectorAll('table tr')).filter(visible)) {
+      const cells = Array.from(row.children).filter((c) => (c.tagName === 'TD' || c.tagName === 'TH') && visible(c));
+      const rects = cells.map((c) => c.getBoundingClientRect());
+      const label = (c) => (c.dataset.label || (c.className && String(c.className).split(/\\s+/)[0]) || c.tagName.toLowerCase());
+      for (let i = 0; i < cells.length; i++) {
+        for (let j = i + 1; j < cells.length; j++) {
+          const a = rects[i];
+          const b = rects[j];
+          if (Math.min(a.right, b.right) - Math.max(a.left, b.left) > 1 && Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > 1)
+            add('clipped-text', 'the cell ' + label(cells[i]) + ' overlaps the cell ' + label(cells[j]) + ' in a row of ' + name(row.closest('table')));
+        }
+        const c = cells[i];
+        const r = rects[i];
+        for (const d of Array.from(c.querySelectorAll('*')).filter(visible)) {
+          if (hidden(d) || ['absolute', 'fixed'].includes(getComputedStyle(d).position)) continue;
+          const dr = d.getBoundingClientRect();
+          if (dr.right > r.right + 1 || dr.left < r.left - 1) {
+            add('clipped-text', 'the content of the cell ' + label(c) + ' runs out of it (' + name(d) + ' ends ' + Math.round(dr.right - r.right) + ' px past the cell) in ' + name(row.closest('table')));
+            break;
+          }
         }
       }
     }

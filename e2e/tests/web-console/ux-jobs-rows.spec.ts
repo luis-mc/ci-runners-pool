@@ -86,24 +86,8 @@ const CARD_SOURCE = `(() => [...document.querySelectorAll('table.ds-table')]
     return [...seen];
   }))()`;
 
-/** Runs in the page: where a Repository or Workflow column is narrower than the Branch column of its table (D102). */
-const WEIGHT_SOURCE = `(() => {
-  const out = [];
-  document.querySelectorAll('table.ds-table').forEach((t, n) => {
-    if (!t.getClientRects().length || t.closest('.ds-table__expanded')) return;
-    const width = (text) => {
-      const th = [...t.querySelectorAll('thead th')].find((h) => (h.textContent || '').trim() === text);
-      return th ? th.getBoundingClientRect().width : 0;
-    };
-    const branch = width('Branch');
-    if (!branch) return;
-    for (const head of ['Repository', 'Workflow', 'Workflow and job']) {
-      const w = width(head);
-      if (w && w < branch - 1) out.push('table #' + n + ': ' + head + ' (' + Math.round(w) + ' px) is narrower than Branch (' + Math.round(branch) + ' px)');
-    }
-  });
-  return out;
-})()`;
+// D102 (Repository and Workflow not narrower than Branch) is replaced by CRSP210: no table cuts a value, so a long
+// repository or workflow is never hard-cut; `ux-table-cells.spec.ts` guards it with the `clipped-text` rule.
 
 for (const s of SCREENS) {
   test(`rows of ${s.name} are one line with one set of words`, async ({ page }) => {
@@ -117,15 +101,6 @@ for (const s of SCREENS) {
     await openRoute(page, { url: s.url, signedOut: false }, { width: 1220 });
     expect(await page.evaluate<string[]>(ROW_SOURCE([...rowActionWords()]))).toEqual([]);
   });
-
-  for (const width of [1300, 1220]) {
-    test(`Repository and Workflow of ${s.name} at ${width} px are not narrower than Branch`, async ({
-      page,
-    }) => {
-      await openRoute(page, { url: s.url, signedOut: false }, { width });
-      expect(await page.evaluate<string[]>(WEIGHT_SOURCE)).toEqual([]);
-    });
-  }
 
   test(`cards of ${s.name} at 393 px have the action in the same place`, async ({
     page,

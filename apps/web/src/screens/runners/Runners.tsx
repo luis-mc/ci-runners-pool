@@ -219,7 +219,7 @@ export function RunnersList() {
       header: 'Isolation',
       cell: (r) => isolationText(r),
       grow: 1,
-      // One line, cut when narrow; the system, the backend and the kind are in the hover text and on the runner's page (UX-72).
+      // The whole words of UX-61, wrapped at a word, never cut; the system, the backend and the kind are in the hover text and on the runner's page (UX-72).
       title: (r) =>
         [
           isolationText(r),

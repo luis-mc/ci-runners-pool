@@ -38,7 +38,8 @@ describe('Queue', () => {
     expect(within(table).getByText('Commit')).toBeTruthy();
     expect(within(table).getByText('Event')).toBeTruthy();
     expect(within(table).getByText('in about 4 to 7 min')).toBeTruthy();
-    expect(within(table).getByText('waits for a free slot on build-1')).toBeTruthy();
+    expect(within(table).getByText('waits for a slot')).toBeTruthy();
+    expect(within(table).getByRole('button', { name: 'Why' })).toBeTruthy();
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
   });
 
@@ -52,9 +53,7 @@ describe('Queue', () => {
     renderApp(jobsApi({ jobs: [queued(1, 1), queued(2, 2)] }), '/jobs?view=jobs');
     const table = await screen.findByRole('table', { name: 'Queue jobs' });
     expect(within(table).getAllByRole('button', { name: /^Open job: / })).toHaveLength(2);
-    expect(
-      within(table).getAllByText('starts in about 4 to 7 min, 1st in line'),
-    ).toHaveLength(1);
+    expect(within(table).getAllByText('in about 4 to 7 min')).toHaveLength(2);
     expect(within(table).queryByText('Waited')).toBeNull(); // RES18: Waited is on the Job page
   });
 

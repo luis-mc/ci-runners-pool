@@ -13,6 +13,7 @@ import { Button } from './Button';
 import { RowAction, RowPressAction } from './RowAction';
 import { useKeyHints } from './KeyHints';
 import { Pane } from './Pane';
+import { ShortText } from './ShortText';
 
 export interface Column<T> {
   id: string;
@@ -64,6 +65,8 @@ function weightStyle<T>(c: Column<T>, oneLine: boolean): CSSProperties | undefin
 }
 
 const MIDDLE_TAIL = 6;
+/** The longest a branch is shown whole in a one-line table; a longer one is shortened in the middle (component 56). */
+const MIDDLE_MAX = 20;
 
 /** The two parts of a text cut in the middle: the start that may be cut, and the end that stays. */
 export function splitMiddle(text: string, tail = MIDDLE_TAIL): [string, string] {
@@ -85,20 +88,8 @@ export function Cut({
   tail?: string | undefined;
   middle?: string | undefined;
 }) {
-  if (middle !== undefined) {
-    const [head, end] = splitMiddle(middle);
-    return (
-      <span className="ds-cut" title={middle}>
-        <span className="ds-cut__head" aria-hidden="true">
-          {head}
-        </span>
-        <span className="ds-cut__tail" aria-hidden="true">
-          {end}
-        </span>
-        <span className="ds-visually-hidden">{middle}</span>
-      </span>
-    );
-  }
+  // A branch is shortened in the text itself (component 56), never cut by the style: the full name is the hover text.
+  if (middle !== undefined) return <ShortText text={middle} max={MIDDLE_MAX} />;
   return (
     <span className="ds-cut">
       <span className="ds-cut__head">{children}</span>
@@ -340,7 +331,11 @@ export function Table<T>({
                       <span className="ds-table__value">
                         {oneLine ? (
                           <span className="ds-table__text" title={cellTitle(c, row)}>
-                            {c.middle ? <Cut middle={c.middle(row)} /> : c.cell(row)}
+                            {c.middle ? (
+                              <ShortText text={c.middle(row)} max={MIDDLE_MAX} />
+                            ) : (
+                              c.cell(row)
+                            )}
                           </span>
                         ) : (
                           c.cell(row)
