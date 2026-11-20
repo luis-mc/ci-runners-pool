@@ -488,8 +488,10 @@ body {
   gap: var(--ds-space-2);
   flex: none;
   min-block-size: var(--ds-control-height);
-  /* A label is one line and whole (component 7, UX-72): the button is as wide as its label, never narrower. */
-  min-inline-size: max-content;
+  /* A label is one line and whole (component 7, UX-72): the button is as wide as its label, never narrower,
+     and never narrower than the touch target (UX-16). */
+  inline-size: max-content;
+  min-inline-size: var(--ds-target-min);
   white-space: nowrap;
   padding-inline: var(--ds-space-4);
   font: inherit;
@@ -1452,6 +1454,10 @@ legend > .ds-field__changed {
   flex: 0 1 auto;
   max-inline-size: 100%;
   min-block-size: var(--ds-target-min);
+  /* A short label ("Done") keeps the touch target (UX-16). */
+  min-inline-size: var(--ds-target-min);
+  /* The label starts on the tab's start edge, which sits on the frame edge (UX-69). */
+  text-align: start;
   padding-inline: 0;
   font: inherit;
   color: var(--ds-color-text);

@@ -151,10 +151,7 @@ func TestRunRepeats(t *testing.T) {
 	}
 	// The first run is over once the second starts.
 	await(2)
-	// A file that turns old after the first run is deleted by a later run. Run
-	// number three starts after the file exists only if it is the one that
-	// follows the run that was started when the file was made, so wait for two
-	// more starts: the second of them begins after a whole run saw the file.
+	// A file that turns old after the first run is deleted by a later run.
 	logs := filepath.Join(dir, LogsDir)
 	if err := os.MkdirAll(logs, 0o755); err != nil {
 		t.Fatal(err)
@@ -167,7 +164,17 @@ func TestRunRepeats(t *testing.T) {
 	if err := os.Chtimes(old, past, past); err != nil {
 		t.Fatal(err)
 	}
-	await(3)
+	// Starts that were queued before the file was old do not count: empty the
+	// queue, then wait for two runs that both began after it. The second begins
+	// after a whole run saw the file.
+	for drained := false; !drained; {
+		select {
+		case <-started:
+		default:
+			drained = true
+		}
+	}
+	await(2)
 	if _, err := os.Stat(old); !os.IsNotExist(err) {
 		t.Fatalf("retention did not delete the old file: %v", err)
 	}
