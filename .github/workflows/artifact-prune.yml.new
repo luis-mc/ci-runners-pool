@@ -1,0 +1,54 @@
+name: Artifact prune
+
+# Implements STACKSPEC §13.1 "Build artifacts": the platform keeps only the
+# newest build artifact of each name. Installers, bundles and test reports that
+# a workflow uploads are billed for storage, so older ones are deleted by one
+# sweep a day (DL379). It does not run after every workflow: a run per workflow
+# took the one self-hosted slot many times a day, and one prune waited hours.
+# A project whose storage fills sooner starts it by hand (workflow_dispatch).
+#
+# Every workflow that uploads an artifact (actions/upload-artifact) is covered:
+# the sweep reads the artifacts of the whole repository. The line below is a
+# note of the ones the project knows, kept in `.delivery/config.json`:
+#   {"artifact_prune": {"workflows": ["CI", "Package", "Installers"]}}
+# After a plugin update run scripts/delivery/artifact_prune.py --sync-workflow.
+# workflows: ["CI", "Package"]
+#
+# Installer artifacts (CIR10 W5): when a workflow publishes them, add to the run line
+# `--hold windows-installer --hold-workflow package-windows.yml`, so a failed publish keeps its installer.
+#
+# Artifact names must be stable per kind (`windows-installer`, never
+# `windows-installer-1.4.2-run-812`), or the pruning cannot group them. A build
+# that must outlive the next one is a release asset, not an artifact.
+on:
+  schedule:
+    - cron: '23 3 * * *'
+  workflow_dispatch:
+
+# Two prunes never overlap; a second one waits instead of cancelling the first,
+# so a deletion is never cut off half way.
+concurrency:
+  group: artifact-prune
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  prune:
+    name: prune build artifacts
+    runs-on: ${{ fromJSON(vars.CI_RUNS_ON || '"ubuntu-latest"') }}
+    env:
+      DELIVERY_SHARD: prune
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Delete all but the newest artifact of each name
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 scripts/delivery/artifact_prune.py
+      - name: Check the workflow list
+        run: python3 scripts/delivery/artifact_prune.py --check-workflow || echo "::warning::artifact-prune.yml lists other workflows than artifact_prune.workflows; run scripts/delivery/artifact_prune.py --sync-workflow"
