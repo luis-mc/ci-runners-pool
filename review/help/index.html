@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LOOK42 Help section proposals</title>
+<style>
+:root{--bg:#f4f7f2;--fg:#14231a;--mut:#4d6455;--card:#fff;--line:#b9c9bd;--acc:#0e6b32;--warn:#8a5a00;color-scheme:light dark}
+@media (prefers-color-scheme:dark){:root{--bg:#0b140e;--fg:#d6f5dd;--mut:#8fb59a;--card:#101d14;--line:#2c4a35;--acc:#4dff8a;--warn:#ffc65c}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.5 ui-monospace,Consolas,monospace}
+main{max-width:1200px;margin:0 auto;padding:16px}
+h1{font-size:1.6rem}h2{margin-top:2.2rem;border-bottom:2px solid var(--acc);padding-bottom:.2rem}h3{margin:0 0 .3rem}
+.mut{color:var(--mut)}
+table{border-collapse:collapse;width:100%;background:var(--card)}
+th,td{border:1px solid var(--line);padding:.4rem .6rem;text-align:left;vertical-align:top}
+.wrap{overflow-x:auto}
+.rec{border:3px solid var(--acc);background:var(--card);padding:.8rem 1rem;margin:1rem 0}
+.prop{background:var(--card);border:1px solid var(--line);padding:1rem;margin:1.2rem 0}
+.shots{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,1fr);gap:12px;align-items:start}
+.shots img{width:100%;height:auto;border:1px solid var(--line);display:block}
+.shots figcaption{font-size:.85rem;color:var(--mut)}
+figure{margin:0}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.dark{max-width:700px}
+@media (max-width:700px){.shots,.cols{grid-template-columns:1fr}.shots figure:last-child{max-width:240px}}
+code{background:var(--bg);padding:0 .25rem}
+.warn{color:var(--warn)}
+</style>
+</head>
+<body>
+<main>
+<h1>LOOK42: Help section proposals for the web console</h1>
+<p class="mut">Review only. Nothing is built, no pull request. Screens are the real <code>apps/web</code> build (real shell, real <code>ds-*</code> classes, API answered from fixtures), light theme Phosphor, full page at 1300 px and 393 px. The Help menu item and the page body are injected for the picture only. A scoped sheet (<code>.hp-*</code>, tokens only) draws the new visual parts. The key-hint bar and the "live updates paused" note are hidden in the shots (they are fixtures artefacts).</p>
+
+<div class="rec">
+<b>Recommendation: A + D, in that order.</b>
+A is a Help page whose first thing is one picture ("how a job gets run": repository, run, job, queue, slot, runner, machine), each box a link to its one-line definition, then a short term table. D adds a "?" popover next to the hard words (Slot, Load budget, Queue, Runner type) that reuses the same one-line definitions and the same mini pictures. Reason: the owner wants quick understanding with little reading. One picture gives the whole chain at a glance; the table is one line per term; the popover meets the user where the word appears. Both read one term list, so words stay in one place (UX-1, content.md). A later tab "Your pool" (E) can reuse the diagram parts. Effort M.
+</div>
+
+<h2>Comparison</h2>
+<div class="wrap"><table>
+<thead><tr><th>Proposal</th><th>How fast you understand it</th><th>Text amount</th><th>Phone fit</th><th>Effort</th><th>New shared parts</th></tr></thead>
+<tbody>
+<tr><td>A. Picture first</td><td>Fast: the whole chain in 5 seconds</td><td>Low (one line per term)</td><td>Good: a tall diagram replaces the wide one</td><td>M</td><td>Job-path diagram, Term table row, Definition pane</td></tr>
+<tr><td>B. Glossary first</td><td>Medium: you must find the term</td><td>Medium (21 cards)</td><td>Good: one column</td><td>S</td><td>Term card (a Pane today), related links</td></tr>
+<tr><td>C. Step by step</td><td>Fast for "what happens"; slow to look up one term</td><td>Low</td><td>Good: one column</td><td>M</td><td>Story panel, 6 illustrations</td></tr>
+<tr><td>D. ? next to every term</td><td>Fastest at the moment of doubt</td><td>Very low per use</td><td>Good as bottom sheet (UX-43)</td><td>M to L (touches every screen)</td><td>Help term button + popover content, uses Popover</td></tr>
+<tr><td>E. Your pool right now</td><td>Fast and personal; needs a set-up pool</td><td>Low</td><td>Good: stacks</td><td>L</td><td>Pool diagram with callouts, live data</td></tr>
+<tr><td>F. Questions and answers</td><td>Fast for the question you have</td><td>Low (2 lines each)</td><td>Good: one column</td><td>S</td><td>Question card (a Pane + picture)</td></tr>
+</tbody></table></div>
+
+<h2>Proposals</h2>
+
+<section class="prop"><h3>A. Picture first</h3>
+<p>One diagram "how a job gets run": 7 numbered boxes in two groups (on GitHub, in your pool). A box is a link; the pane below shows its one-line definition, an example, a mini picture and related terms. A short term table follows. On a phone the diagram turns tall.</p>
+<div class="shots"><figure><img src="shots/A-1300.png" alt="Proposal A at 1300 px"><figcaption>1300 px</figcaption></figure><figure><img src="shots/A-393.png" alt="Proposal A at 393 px"><figcaption>393 px</figcaption></figure></div>
+<figure class="dark"><img src="shots/A-1300-dark.png" alt="Proposal A, dark"><figcaption>A in the dark theme (Phosphor dark), 1300 px</figcaption></figure>
+<div class="cols"><div><b>Pros</b><ul><li>Shows relations, not only words (UX-41).</li><li>Little text; the table is one line a term.</li><li>Same definitions feed D and B.</li></ul></div>
+<div><b>Cons</b><ul><li>Two diagram drawings (wide, tall).</li><li>A 7-box chain hides branches (several machines, several repositories); E shows those.</li></ul></div></div>
+<p><b>Rules:</b> follows CORE-1, 2, 3, 4, 7; UX-3, 10, 15, 16, 25 (table for 3 facts), 41 (picture with text equivalent: the table), 49. Would add: a component "Job path" and a words section "Help words" in content.md; boxes need aria labels (done) and 44 px targets on the phone.</p></section>
+
+<section class="prop"><h3>B. Glossary first</h3>
+<p>A search bar and group chips over a grid of equal term cards: one line, an example, "Related" links.</p>
+<div class="shots"><figure><img src="shots/B-1300.png" alt="Proposal B at 1300 px"><figcaption>1300 px</figcaption></figure><figure><img src="shots/B-393.png" alt="Proposal B at 393 px"><figcaption>393 px</figcaption></figure></div>
+<div class="cols"><div><b>Pros</b><ul><li>Easy to build: Panes in a card grid.</li><li>Every term has the same shape.</li></ul></div>
+<div><b>Cons</b><ul><li>No picture of the whole; you must know the word.</li><li>Cards look alike, so it is a wall of boxes.</li></ul></div></div>
+<p><b>Rules:</b> UX-31 (search bar first, then chips), UX-10, UX-51 (one card shape), CORE-7. Would add: none; it reads like the Repositories list.</p></section>
+
+<section class="prop"><h3>C. Step by step</h3>
+<p>Six panels like a comic strip, one idea each, one small picture each, one sentence each. Ends with a link to "Why jobs wait".</p>
+<div class="shots"><figure><img src="shots/C-1300.png" alt="Proposal C at 1300 px"><figcaption>1300 px</figcaption></figure><figure><img src="shots/C-393.png" alt="Proposal C at 393 px"><figcaption>393 px</figcaption></figure></div>
+<div class="cols"><div><b>Pros</b><ul><li>Tells the story in order; easy for a first visit.</li><li>Almost no jargon in the sentences.</li></ul></div>
+<div><b>Cons</b><ul><li>6 cards leave an uneven last row at 1300 px (CORE-7 asks for a full row).</li><li>Not a place to look up one term.</li><li>Six pictures to draw and keep in step with the product.</li></ul></div></div>
+<p><b>Rules:</b> CORE-6 asks for a wizard only for a guided flow that changes something; this only reads, so a plain grid is used (list as an owner question). UX-41. Would need: 6 or 3 columns so rows are full.</p></section>
+
+<section class="prop"><h3>D. A ? next to every term</h3>
+<p>A "?" button beside Slots, Load budget, Queue and Runner type in the console opens a short popover: one line, an example, a mini picture, a link to Help. The Help page lists every ? (term, where you see it, one line). Shot shows the popover open; on a phone it is a bottom sheet.</p>
+<div class="shots"><figure><img src="shots/D-1300.png" alt="Proposal D at 1300 px"><figcaption>1300 px</figcaption></figure><figure><img src="shots/D-393.png" alt="Proposal D at 393 px"><figcaption>393 px (full-page capture places the sheet at the first screen bottom)</figcaption></figure></div>
+<div class="cols"><div><b>Pros</b><ul><li>Help appears where the doubt appears.</li><li>Tiny text per use.</li></ul></div>
+<div><b>Cons</b><ul><li>Touches many screens; each needs the button.</li><li>A "?" is easy to miss; Help page needed anyway.</li><li>Popover cannot hold a long answer.</li></ul></div></div>
+<p><b>Rules:</b> UX-43 (anchored popover for a view-only overlay; bottom sheet on a phone), UX-44 (title, close, one primary: the popover needs a close button and a title), UX-46 (Escape closes), UX-47, UX-50 (not only on hover: it is a button), UX-16 (44 px). Would add: a "Help term" part and a Help words section.</p></section>
+
+<section class="prop"><h3>E. Your pool right now</h3>
+<p>The owner's own data drawn as a diagram: repositories use the pool; each machine shows its runners, slots (filled = busy) and load bars against the budget. Numbers 1 to 6 name each part; a legend explains them.</p>
+<div class="shots"><figure><img src="shots/E-1300.png" alt="Proposal E at 1300 px"><figcaption>1300 px</figcaption></figure><figure><img src="shots/E-393.png" alt="Proposal E at 393 px"><figcaption>393 px</figcaption></figure></div>
+<div class="cols"><div><b>Pros</b><ul><li>Most concrete: "this is my build-1".</li><li>Uses real shared parts (Pane, level bars).</li></ul></div>
+<div><b>Cons</b><ul><li>Empty for a new pool (needs a first-run variant).</li><li>Overlaps the Overview and Shared Pool pages (UX-52: one place per command, and no duplicate views).</li><li>Does not explain waiting.</li></ul></div></div>
+<p><b>Rules:</b> UX-19 (one source of truth, live), UX-10, UX-41, UX-6 (needs an empty state). Would add: callout badge, slot row.</p></section>
+
+<section class="prop"><h3>F. Questions and answers</h3>
+<p>Six cards titled by the question, an answer of at most two lines, one picture each.</p>
+<div class="shots"><figure><img src="shots/F-1300.png" alt="Proposal F at 1300 px"><figcaption>1300 px</figcaption></figure><figure><img src="shots/F-393.png" alt="Proposal F at 393 px"><figcaption>393 px</figcaption></figure></div>
+<div class="cols"><div><b>Pros</b><ul><li>Matches how people ask.</li><li>Very short; easy to extend.</li></ul></div>
+<div><b>Cons</b><ul><li>Does not show how terms connect.</li><li>Question titles wrap on narrow cards; answers lean on other words.</li></ul></div></div>
+<p><b>Rules:</b> UX-10, UX-51, CORE-3. Would add: none. Good as a section under A.</p></section>
+
+<h2>Terms and how they relate</h2>
+<p class="mut">The content every proposal uses. Words are those of <code>docs/design-system/v2/content.md</code>. One chain: <b>GitHub account → Repository → Workflow → Run → Job (labels) → Queue (one per machine) → Slot → Runner → Machine</b>, all inside one <b>Shared Pool</b>.</p>
+<div class="wrap"><table>
+<thead><tr><th>Term</th><th>One line</th><th>Example</th><th>Related to</th></tr></thead><tbody>
+<tr><td>GitHub account or organisation</td><td>Owns repositories. You sign in with it.</td><td>octo, acme</td><td>Repository</td></tr>
+<tr><td>Repository</td><td>A GitHub project. It uses the pool once you choose it (Use pool).</td><td>octo/app</td><td>Workflow, Shared Pool, Parallel limit</td></tr>
+<tr><td>Workflow</td><td>A file in the repository that says what to run.</td><td>ci.yml</td><td>Run, Labels</td></tr>
+<tr><td>Run</td><td>One start of a workflow, for example a push.</td><td>Run #8133</td><td>Workflow, Job</td></tr>
+<tr><td>Job</td><td>One part of a run. It asks for a runner by label.</td><td>e2e, lint</td><td>Run, Labels, Queue</td></tr>
+<tr><td>Labels (runs-on)</td><td>Words on a job and on a runner. They must match. crsp keeps the repository variables <code>RUNS_ON_LINUX</code>, <code>RUNS_ON_WINDOWS</code>, <code>RUNS_ON_MACOS</code>.</td><td>self-hosted, linux, x64</td><td>Job, Runner</td></tr>
+<tr><td>Shared Pool ("shared")</td><td>One pool of machines. Every repository you choose shares it.</td><td>3 repositories, 2 machines</td><td>Repository, Machine</td></tr>
+<tr><td>Machine</td><td>A computer you add. It holds runners and does the work.</td><td>build-1, win-box</td><td>Runner, Slot, Load budget</td></tr>
+<tr><td>Runner</td><td>A GitHub self-hosted runner crsp keeps on a machine.</td><td>crsp-linux-1</td><td>Machine, Runner type, Slot</td></tr>
+<tr><td>Runner type</td><td>Persistent keeps its tools and caches. Ephemeral is a fresh container for every job. Also by OS (Linux, Windows, macOS).</td><td>persistent, ephemeral</td><td>Runner, Images and caches</td></tr>
+<tr><td>Slot</td><td>Room for one job at a time on a machine. A machine has a fixed number.</td><td>Slots 2 of 4</td><td>Machine, Load budget, Queue</td></tr>
+<tr><td>Load budget</td><td>How busy a machine may get: by default 85% memory and 60% CPU in total. Over it, a new job waits.</td><td>Memory 62% of 85%</td><td>Slot, Queue</td></tr>
+<tr><td>Queue</td><td>One per machine. A job waits for first place, a free slot and load under budget. Order: priority, then fair share between repositories.</td><td>2 queued jobs</td><td>Slot, Why jobs wait, Parallel limit</td></tr>
+<tr><td>Why jobs wait</td><td>The first blocker, in words: No machine has this OS and these labels; Over the load budget; No free slot: n ahead; The repository is at its parallel limit; The machine is not taking jobs.</td><td>No free slot: 2 ahead in the queue.</td><td>Queue, Parallel limit, Load budget</td></tr>
+<tr><td>Parallel limit</td><td>Most jobs one repository may run at once in the pool.</td><td>2 at a time</td><td>Repository, Queue</td></tr>
+<tr><td>Not taking jobs</td><td>Paused, On battery or Quiet hours: no new job, running jobs finish.</td><td>Paused</td><td>Machine, Why jobs wait</td></tr>
+<tr><td>Images and caches</td><td>Images are what a container runner starts from. Caches keep downloads so jobs start faster.</td><td>Ubuntu 24.04 image</td><td>Runner type</td></tr>
+<tr><td>Doctor</td><td>Reads the whole pool and lists problems, each with one fix. It only reads.</td><td>No machine is up for Windows</td><td>Machine, Runner</td></tr>
+<tr><td>Tray app</td><td>A small icon on the PC: open the console, pause, update.</td><td>Pause for 1 hour</td><td>Not taking jobs</td></tr>
+<tr><td>Run elsewhere</td><td>A job that a runner outside the pool runs. (Hosted fallback is the nearest documented case: jobs go to GitHub-hosted runners when no crsp machine is up.)</td><td>a GitHub-hosted runner</td><td>Job, Shared Pool</td></tr>
+<tr><td>Run insights, Charts</td><td>Wait and run time of finished jobs. Charts is a Jobs tab: Run time and wait per day, Jobs per day, Forecast against actual, Busiest hours.</td><td>Median wait</td><td>Jobs</td></tr>
+</tbody></table></div>
+
+<h2>Where the docs disagree or say nothing</h2>
+<ul>
+<li><b>Glossary is empty.</b> <code>docs/overview/glossary.md</code> is a template row only. The term map above is built from <code>content.md</code> and the specs.</li>
+<li><b>"Run elsewhere" and "Run insights" are not in the docs or the app.</b> They appear in the task wording only. The branch <code>CIX21-insights-api</code> exists but holds just an agent report. My lines for both are drafts.</li>
+<li><b>Three names for the runner kind:</b> "Kind" (Add runners), "Runner type" (Jobs: By runner type, UX-61: <code>persistent, state kept between jobs</code> / <code>ephemeral, fresh for every job</code>) and "isolation" (UX-61: microVM, VM, container, persistent; runners spec). The owner's "runner type (Linux/Windows/container image)" is a fourth reading.</li>
+<li><b>Quiet hours mean different things.</b> product.md: a machine can be pool-only at night. scheduling R5.56 (not built, M3): own slot count and budget by day. scheduling R5.68 and content.md Machine policy: no new job in quiet hours. content.md Docker disk: Quiet hours start/end (01:00 to 06:00) are the window for making Docker's disk smaller.</li>
+<li><b>Slots versus pool size.</b> product.md and scheduling talk of a slot count; content.md Pool size sets memory and CPUs ("Recommended: half of the free room"); scheduling also has light and heavy slots that content.md does not name.</li>
+<li><b>Load budget default.</b> Docs say 85% memory, 60% CPU. The e2e fixture uses 80/80. I did not check the controller code, so Help must read the value from the machine, not repeat 85/60 as fixed text.</li>
+<li><b>Design system version.</b> product.md says v1 is binding; the highest folder is v2 (used here).</li>
+<li><b>Screens.</b> product.md lists nine screens; the console has six menu items (Overview, Shared Pool, Repositories, Jobs, Doctor, Settings). Doctor spec calls the Doctor "screen 8".</li>
+<li><b>Held-job reasons.</b> scheduling says "machine paused" and "on battery" join later; content.md already has words for them.</li>
+<li><b>Public repositories:</b> product.md says forks never run unless turned on; content.md adds the Runner kind default (Ephemeral only for public). Not in the term map; Help may need a line.</li>
+</ul>
+
+<h2>Could not render or check</h2>
+<ul>
+<li>The Help menu item and page are injected; there is no route in the app yet, so deep links and the real focus order are not tested.</li>
+<li>The "?" popover in D is drawn open by setting <code>aria-expanded</code>; the real <code>Popover</code> part was not wired. On the phone shot the bottom sheet is placed by the full-page capture at the bottom of the first screen.</li>
+<li>Clicking a diagram box in A is wired in the markup (<code>data-term</code>) but the shots are static; the definition shown is Slot.</li>
+<li>In the 393 px shots the real shell header shows the status line partly under the Commands button ("2 of 2 machines onli"). This is in the unchanged shell with these fixtures; I did not look into it. Worth a look separately.</li>
+<li>Only the Phosphor theme was shown (light for all, dark for A). The other five themes were not checked.</li>
+<li>No test kit was run (no-app-CSS scan, DOM layout at 360/393/1300, wizard behaviour): nothing in the app changed.</li>
+</ul>
+
+<h2>Questions for the owner</h2>
+<ol>
+<li>Go with A + D? Or is E ("my pool") the better first picture?</li>
+<li>Where does Help live: a 7th menu item, or under Settings, or a button in the top bar next to Commands?</li>
+<li>What exactly do "Run elsewhere" and "Run insights" mean, and where do users see them? Is "Run elsewhere" the hosted fallback, or a runner outside the pool?</li>
+<li>One word for the runner kind: Kind, Runner type or Isolation? Is "runner type" Linux/Windows or persistent/ephemeral?</li>
+<li>Quiet hours: which meaning is right (no new jobs, pool-only at night, own budget by day, Docker disk window)?</li>
+<li>Show the load budget as the fixed 85%/60% or the machine's own value?</li>
+<li>Should Help show example numbers or only the user's real data (E)?</li>
+<li>Should a new pool see the picture on the Overview first-run strip (replacing "How crsp works")?</li>
+<li>Does the Help page need a wizard (CORE-6) for the step-by-step version, or is a plain grid fine for read-only content?</li>
+<li>Languages: English only?</li>
+<li>Do you want the tray app and Doctor explained here, or in their own screens?</li>
+</ol>
+</main>
+</body>
+</html>
