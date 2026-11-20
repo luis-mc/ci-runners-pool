@@ -406,13 +406,13 @@ Every row is planned; the paths are where each test will live (wave CIX).
 | R5.28 | planned: internal/insights/waits/housekeeping_test.go TestShortJobsWaitingLong |
 | R5.29 | planned: internal/insights/workflows/checks_test.go TestEachCheck |
 | R5.30 | planned: internal/doctor/checks/workflows_test.go TestWorkflowFindings; apps/web/src/screens/insights/RepositoryPanes.test.tsx |
-| R5.31 | planned: internal/insights/guardrails/report_test.go TestParseGuardJSON |
-| R5.32 | planned: internal/insights/guardrails/status_test.go TestOwnChecksAndSources |
-| R5.33 | planned: internal/insights/tests/parsers_test.go TestEachFormatFromFixture |
-| R5.34 | planned: internal/insights/tests/times_test.go TestOverG1Limit |
-| R5.35 | planned: internal/insights/tests/flaky_test.go TestSameCommitDifferentResult |
-| R5.36 | planned: internal/insights/tests/duplicate_test.go TestSameIdTwoJobs |
-| R5.37 | planned: internal/insights/tests/assertions_test.go TestZeroOnlyWhenReported |
+| R5.31 | internal/insights/guardrails/report_test.go TestParseGuardJSON |
+| R5.32 | internal/insights/guardrails/status_test.go TestOwnChecksAndSources |
+| R5.33 | internal/insights/tests/parsers_test.go TestEachFormatFromFixture |
+| R5.34 | internal/insights/tests/times_test.go TestOverG1Limit |
+| R5.35 | internal/insights/tests/flaky_test.go TestSameCommitDifferentResult |
+| R5.36 | internal/insights/tests/duplicate_test.go TestSameIdTwoJobs |
+| R5.37 | internal/insights/tests/assertions_test.go TestZeroOnlyWhenReported |
 | R5.38 | planned: internal/insights/digest/digest_test.go TestWeeklyFileTopThree |
 | R5.39 | planned: internal/jobsdata/reconcile/origin_test.go TestCrspOtherHosted; apps/web/src/screens/jobs/JobPage.test.tsx |
 | R5.40 | planned: internal/jobsdata/reconcile/steps_test.go TestStepsByRESTOnce |
