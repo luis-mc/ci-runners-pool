@@ -93,7 +93,7 @@ func New(d sys.Deps, cfg Config) *Backend {
 
 // RandomPassword makes a 32-character random password of letters and digits
 // only. A symbol can break `sc.exe`, a quoting layer or the service logon
-// ("Credential ... is invalid", runners R5.94), and 32 characters of 57 give
+// ("Credential ... is invalid", runners R5.96), and 32 characters of 57 give
 // about 187 bits, so nothing is lost. It is made inside the process that
 // registers the service and is never kept (runners R5.15).
 func RandomPassword() string {

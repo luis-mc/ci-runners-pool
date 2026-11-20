@@ -152,7 +152,7 @@ func TestFailureBeforeWorkCleansNothing(t *testing.T) {
 }
 
 // TestRandomPasswordLettersAndDigitsOnly: a symbol in the password broke the
-// service logon on one machine ("Credential ... is invalid", runners R5.94), so
+// service logon on one machine ("Credential ... is invalid", runners R5.96), so
 // the password is letters and digits, with upper, lower and digit all present.
 func TestRandomPasswordLettersAndDigitsOnly(t *testing.T) {
 	for range 200 {
