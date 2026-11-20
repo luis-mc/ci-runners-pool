@@ -231,6 +231,9 @@ func (b *Backend) want(r backend.RunnerSpec, account string) (persistent.Meta, s
 	// hooks clean after every job (runners R5.90, R5.91).
 	maps.Copy(kv, runnercache.DependencyEnvJoin(folder, Join))
 	kv[hygiene.EnvRunnerDir] = folder
+	if r.SharedTools.On() {
+		maps.Copy(kv, r.SharedTools.Env(Join, r.Name))
+	}
 	if r.MaxParallel > 0 {
 		maps.Copy(kv, poolsize.Env(r.MaxParallel))
 	}
@@ -376,6 +379,17 @@ func (b *Backend) start(ctx context.Context, r backend.RunnerSpec, cfg backend.S
 	}
 	if err := b.rights.Grant(ctx, account, r.WindowsSymlinkRight); err != nil {
 		return h, err
+	}
+	// The shared tool folders: every runner account is in crsp-runners, which
+	// gets Modify, inherited (caches R5.57).
+	for _, c := range runnercache.WindowsSharePlan(r.SharedTools) {
+		res, err := b.d.Cmd.Run(ctx, c)
+		if err == nil && res.ExitCode != 0 {
+			err = fmt.Errorf("%s exited %d: %s", c.Name, res.ExitCode, strings.TrimSpace(res.Stderr))
+		}
+		if err != nil {
+			return h, fmt.Errorf("share tools: %w", err)
+		}
 	}
 	if err := b.writeHooksAndEnv(folder, wantEnv, r.KeepDependencies); err != nil {
 		return h, err

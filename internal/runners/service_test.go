@@ -614,3 +614,37 @@ func TestRollbackThatFailsNamesWhatIsLeft(t *testing.T) {
 		t.Fatalf("%+v", got.Steps[0])
 	}
 }
+
+// Caches R5.57: a repository runner on Linux or Windows is added with the
+// repository's shared folders and group; the switch and a missing repository
+// turn it off.
+func TestAddPassesSharedToolFoldersOfTheRepository(t *testing.T) {
+	r := newRig(machine("linux", "x64", true))
+	r.add(t)
+	st := r.ag.added[0].SharedTools
+	if st.Root != "/var/lib/crsp/tools/1" || st.Group != "crsp-repo-1" || !st.On() {
+		t.Errorf("%+v", st)
+	}
+	r.svc.SharedToolsRoot = "/srv/tools/"
+	if got := r.svc.sharedTools(AddSpec{OS: "linux", Scope: Scope{Kind: "repository", RepositoryID: 7}}, Target{}); got.Root != "/srv/tools/7" {
+		t.Errorf("custom root: %+v", got)
+	}
+	r.svc.SharedToolsRoot = ""
+	win := r.svc.sharedTools(AddSpec{OS: "windows", Scope: Scope{Kind: "repository", RepositoryID: 7}}, Target{})
+	if win.Root != `C:\ProgramData\crsp\tools\7` || win.Group != "crsp-runners" {
+		t.Errorf("windows: %+v", win)
+	}
+	for name, a := range map[string]AddSpec{
+		"macos":      {OS: "macos", Scope: Scope{Kind: "repository", RepositoryID: 1}},
+		"pool":       {OS: "linux", Scope: Scope{Kind: "pool"}},
+		"no repo id": {OS: "linux", Scope: Scope{Kind: "repository"}},
+	} {
+		if r.svc.sharedTools(a, Target{}).On() {
+			t.Errorf("%s: shared folders must be off", name)
+		}
+	}
+	r.svc.NoSharedTools = true
+	if r.svc.sharedTools(AddSpec{OS: "linux", Scope: Scope{Kind: "repository", RepositoryID: 1}}, Target{}).On() {
+		t.Error("the switch turns it off")
+	}
+}

@@ -105,6 +105,11 @@ type RunnerSpec struct {
 	// takes the defaults. The runner exports CI_TOOLS_DIR and the quotas to
 	// its jobs (runners R5.39).
 	CacheQuota runnercache.Quota
+	// SharedTools asks for the shared tool folders of the runner's repository,
+	// with group access for every runner user of it and an own build-output
+	// folder for this runner (caches R5.57). The zero value keeps the runner's
+	// own folders.
+	SharedTools runnercache.SharedTools
 	// MaxParallel is the runner's CPU count, exported to its jobs as
 	// CI_MAX_PARALLEL (runners R5.53, machines R5.54). 0 exports none.
 	MaxParallel int

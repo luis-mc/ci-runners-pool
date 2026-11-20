@@ -11,3 +11,4 @@ Branch `OPS52-pool-findings` (base RELEASE-48). Six items, each with a spec requ
 - Item 1: runner caches are per runner folder; repository lanes are made 0755 by the agent, so a second runner user cannot write. Gap: per-runner build folder, group/ACL grant, doctor check.
 
 ## Steps
+- Items 4, 3, 2, 1 coded and pushed (see git log); 5 and 6 and the specs follow.

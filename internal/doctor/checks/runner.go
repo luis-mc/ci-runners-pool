@@ -3,6 +3,7 @@ package checks
 import (
 	"context"
 	"fmt"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/runnercache"
 	"sort"
 	"strings"
 	"time"
@@ -550,6 +551,50 @@ func runnerSymlink(ctx context.Context, env doctor.Env) []doctor.Finding {
 			f.Fix = doctor.Fix{Text: "Add the runner again from the Runners screen; it takes the right away.", Link: "/runners"}
 		default:
 			f.Severity, f.Title = doctor.OK, r.Name+" holds no symbolic link right, as its setting says"
+		}
+		out = append(out, f)
+	}
+	return out
+}
+
+// runnerCacheWrite is caches R5.57: a runner can write the shared tool folders
+// of its repository (cargo-target, cargo-home, rustup-home, xwin, ...). A second
+// runner on a machine met `Permission denied` on folders the first runner's user
+// had made. The agent tries a file in each folder as the runner's own user; the
+// fix is the group and ACL commands crsp runs when it adds a runner, shown as
+// text. The check reads only (R5.7).
+func runnerCacheWrite(ctx context.Context, env doctor.Env) []doctor.Finding {
+	rs, ms, out := persistentRunners(ctx, env, "runner.cachewrite")
+	for _, r := range rs {
+		m := ms[r.MachineID]
+		f := doctor.Finding{Check: "runner.cachewrite", Subject: runnerSubject(r)}
+		p := r.CacheWrite
+		switch {
+		case !isOnline(env, m):
+			out = append(out, offlineSkip("runner.cachewrite", m))
+			continue
+		case p == nil:
+			// A runner with its own folders only has nothing shared to write.
+			f.Severity, f.Title = doctor.Skip, "The shared tool folders of "+r.Name+" were not looked at"
+			f.Detail = "The agent on " + m.Name + " did not try to write them as the runner's user, or the runner keeps its own folders."
+			f.Fix = doctor.Fix{Text: "Update the agent on " + m.Name + " and run the checks again.", Command: "crsp doctor --check runner.cachewrite"}
+		default:
+			var bad []string
+			for _, d := range p.Dirs {
+				if d.Err != "" {
+					bad = append(bad, fmt.Sprintf("%s (%s)", d.Dir, d.Err))
+				}
+			}
+			if len(bad) == 0 {
+				f.Severity, f.Title = doctor.OK, r.Name+" can write its shared tool folders"
+				break
+			}
+			f.Severity, f.Title = doctor.Fail, r.Name+" cannot write its shared tool folders"
+			f.Detail = "Permission denied in: " + strings.Join(bad, "; ") + ". Another runner's user made them, so this runner's user has no access."
+			f.Fix = doctor.Fix{
+				Text:    "Give the group " + p.Group + " read and write access to " + p.Root + ", with default access for new files, from an administrator shell on " + m.Name + ". Adding a runner does this itself.",
+				Command: runnercache.FixCommands(r.OS, runnercache.SharedTools{Root: p.Root, Group: p.Group}, r.Name),
+			}
 		}
 		out = append(out, f)
 	}

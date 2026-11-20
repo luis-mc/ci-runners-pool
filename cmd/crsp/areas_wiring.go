@@ -237,6 +237,8 @@ func buildController(ctx context.Context, d controllerDeps) (*controller, error)
 		Store: rstore, Machines: machineLookup{svc: d.Machines}, Resolver: scopeResolver{repos: repoStore, auth: asvc, addr: d.Cfg.Addresses},
 		GitHub: gh, Agent: agent, Audit: runnerAudit{auth: asvc},
 		PoolName: pool, CacheQuota: d.Cfg.Cache, Now: d.Now, Services: agent.Services,
+		// Shared tool folders with group access, one build folder per runner (caches R5.57).
+		SharedToolsRoot: os.Getenv("CRSP_SHARED_TOOLS_ROOT"), NoSharedTools: os.Getenv("CRSP_NO_SHARED_TOOLS") != "",
 		// A public repository gets no new runner while the setting is off (github-integration R5.55).
 		// A plan with no scope takes the first repository with the pool on (D31, until OPS23).
 		DefaultScope: func(ctx context.Context) (runners.Scope, error) {

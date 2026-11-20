@@ -137,7 +137,7 @@ func (b *Backend) PrepareImage(context.Context, backend.ImageSpec) (backend.Imag
 }
 
 // Unit renders the systemd system unit (runners R5.22).
-func Unit(name, user, folder string) string {
+func Unit(name, user, folder string, extraWritable ...string) string {
 	return strings.Join([]string{
 		"[Unit]",
 		"Description=CRSP runner " + name,
@@ -157,7 +157,7 @@ func Unit(name, user, folder string) string {
 		"NoNewPrivileges=yes",
 		"PrivateTmp=yes",
 		"ProtectSystem=strict",
-		"ReadWritePaths=" + folder,
+		"ReadWritePaths=" + strings.Join(append([]string{folder}, extraWritable...), " "),
 		"",
 		"[Install]",
 		"WantedBy=multi-user.target",
@@ -172,6 +172,9 @@ func (b *Backend) want(r backend.RunnerSpec, user string) (persistent.Meta, stri
 	// hooks clean after every job (runners R5.90, R5.91).
 	maps.Copy(kv, runnercache.DependencyEnvJoin(folder, path.Join))
 	kv[hygiene.EnvRunnerDir] = folder
+	if r.SharedTools.On() {
+		maps.Copy(kv, r.SharedTools.Env(path.Join, r.Name))
+	}
 	if r.MaxParallel > 0 {
 		maps.Copy(kv, poolsize.Env(r.MaxParallel))
 	}
@@ -260,6 +263,9 @@ func (b *Backend) Start(ctx context.Context, r backend.RunnerSpec, cfg backend.S
 	if err := b.ensureUser(ctx, user, folder); err != nil {
 		return h, err
 	}
+	if err := b.shareTools(ctx, r, user); err != nil {
+		return h, err
+	}
 	if _, err := b.run(ctx, "own folder", sys.Command{Name: "chown", Args: []string{"-R", user + ":" + runners.RunnersGroup, folder}}); err != nil {
 		return h, err
 	}
@@ -276,7 +282,7 @@ func (b *Backend) Start(ctx context.Context, r backend.RunnerSpec, cfg backend.S
 	if err := persistent.WriteMeta(b.d.FS, folder+"/"+persistent.MetaFile, wantMeta); err != nil {
 		return h, err
 	}
-	if err := b.d.FS.WriteFile(b.unitPath(wantMeta.Service), []byte(Unit(r.Name, user, folder)), 0o644); err != nil {
+	if err := b.d.FS.WriteFile(b.unitPath(wantMeta.Service), []byte(Unit(r.Name, user, folder, sharedWritable(r)...)), 0o644); err != nil {
 		return h, err
 	}
 	if err := b.guardStart(ctx, folder); err != nil {
@@ -289,6 +295,42 @@ func (b *Backend) Start(ctx context.Context, r backend.RunnerSpec, cfg backend.S
 	}
 	b.log("start", "unit "+unit+" started as "+user)
 	return h, nil
+}
+
+// sharedWritable is the shared tools folder the unit may write, when it is used.
+func sharedWritable(r backend.RunnerSpec) []string {
+	if r.SharedTools.On() {
+		return []string{r.SharedTools.Root}
+	}
+	return nil
+}
+
+// shareTools makes the repository's shared tool folders and gives the runner's
+// user the group that may read and write them (caches R5.57). Without
+// SharedTools it does nothing.
+func (b *Backend) shareTools(ctx context.Context, r backend.RunnerSpec, user string) error {
+	st := r.SharedTools
+	if !st.On() {
+		return nil
+	}
+	if !b.probe(ctx, sys.Command{Name: "getent", Args: []string{"group", st.Group}}) {
+		if _, err := b.run(ctx, "tools group", sys.Command{Name: "groupadd", Args: []string{"--system", st.Group}}); err != nil {
+			return err
+		}
+	}
+	if _, err := b.run(ctx, "tools group member", sys.Command{Name: "usermod", Args: []string{"-aG", st.Group, user}}); err != nil {
+		return err
+	}
+	plan, err := runnercache.LinuxSharePlan(st, r.Name)
+	if err != nil {
+		return err
+	}
+	for _, c := range plan {
+		if _, err := b.run(ctx, "share tools", c); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (b *Backend) fresh(ctx context.Context, r backend.RunnerSpec, folder string) error {

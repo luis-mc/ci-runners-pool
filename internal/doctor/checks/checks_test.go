@@ -129,7 +129,7 @@ func only(t *testing.T, fs []doctor.Finding, check string) doctor.Finding {
 func TestEveryRegisteredCheckIsM1AndHasAnID(t *testing.T) {
 	reg := doctor.NewRegistry()
 	Register(reg)
-	if len(reg.All()) != 45 {
+	if len(reg.All()) != 46 {
 		t.Fatalf("checks: %v", reg.SortedIDs())
 	}
 	for _, c := range reg.All() {
@@ -929,5 +929,29 @@ func TestRegistrationHalvesOfferRemove(t *testing.T) {
 	fs = forCheck(run(t, doctor.Env{GitHub: g, Fleet: fl}, "runner.registered"), "runner.registered")
 	if len(fs) != 1 || fs[0].Severity != doctor.Fail || fs[0].Action == nil || fs[0].Action.ID != doctor.ActionRemoveRunnerRecord || fs[0].Action.Args.RunnerID != "r1" {
 		t.Fatalf("record with no GitHub runner: %+v", fs)
+	}
+}
+
+// Caches R5.57: a runner whose user cannot write the shared tool folders is a
+// fail with the commands that fix it; one that can is ok.
+func TestRunnerCacheWrite(t *testing.T) {
+	bad, good, unlooked := persistent("r1", "crsp-bad"), persistent("r2", "crsp-good"), persistent("r3", "crsp-new")
+	bad.OS, good.OS = "linux", "linux"
+	root := "/var/lib/crsp/tools/1"
+	bad.CacheWrite = &doctor.CacheWriteProbe{Root: root, Group: "crsp-repo-1", Dirs: []doctor.CacheDirProbe{
+		{Dir: root + "/cargo-target", Err: "Permission denied"}, {Dir: root + "/xwin"}}}
+	good.CacheWrite = &doctor.CacheWriteProbe{Root: root, Group: "crsp-repo-1", Dirs: []doctor.CacheDirProbe{{Dir: root + "/cargo-target"}}}
+	fl := &fleet{machines: []doctor.Machine{healthyMachine()}, runners: []doctor.Runner{bad, good, unlooked}}
+	got := map[string]doctor.Finding{}
+	for _, f := range forCheck(run(t, doctor.Env{Fleet: fl}, "runner.cachewrite"), "runner.cachewrite") {
+		got[f.Subject.Name] = f
+	}
+	b := got["crsp-bad"]
+	if b.Severity != doctor.Fail || !strings.Contains(b.Detail, root+"/cargo-target (Permission denied)") || strings.Contains(b.Detail, "xwin") ||
+		!strings.Contains(b.Fix.Command, "setfacl -R -d -m g:crsp-repo-1:rwX "+root) {
+		t.Errorf("bad: %+v", b)
+	}
+	if got["crsp-good"].Severity != doctor.OK || got["crsp-new"].Severity != doctor.Skip {
+		t.Errorf("good %+v, unlooked %+v", got["crsp-good"], got["crsp-new"])
 	}
 }
