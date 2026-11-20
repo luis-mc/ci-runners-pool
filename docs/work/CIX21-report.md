@@ -22,3 +22,7 @@ Env note: installed golangci-lint (built go1.25) cannot load the repo config (go
 - Settings mapping (gap 4) in handlers_ops.go at the join, after CIX10 adds the keys.
 - Wire real services into `insightsDeps` at the join (store readers of CIX9 to CIX17, CIX20; `ErrInsightNotFound` / `ErrPlanNotDraft` / `ErrFindingResolved` mapping for their store errors).
 - "Run elsewhere" filter (gap 2).
+
+PR: draft #330 opened with the GitHub tool (gh not used).
+
+CODE DONE 023610d94fd3d0194c43c14d083d2118b81bbcaa
