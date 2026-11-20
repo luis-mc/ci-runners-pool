@@ -580,3 +580,37 @@ func TestMemStoreKeepsFailedReason(t *testing.T) {
 		t.Errorf("reason = %q", got.FailedReason)
 	}
 }
+
+// A runner registered on GitHub whose local record cannot be written (the
+// 20 Nov "permission" failure) is rolled back: the registration, the service
+// and the folder go, and the runner shows failed (runners R5.94).
+func TestLocalRecordFailureAfterRegistrationRollsBack(t *testing.T) {
+	r := newRig(machine("linux", "x64", true))
+	r.store.svcErr = errors.New("permission denied")
+	ctx := context.Background()
+	p, _ := r.svc.PlanAdd(ctx, AddRequest{OS: "linux", Kind: "persistent", MachineID: "m1", Count: 1, Scope: Scope{Kind: "repository", RepositoryID: 1}}, "u")
+	got, _ := r.svc.Apply(ctx, p.ID, nil, "u")
+	if got.State != PlanFailed || !strings.Contains(got.Steps[0].Error, "permission denied") || !strings.Contains(got.Steps[0].Error, "Cleaned up: GitHub registration box-1") {
+		t.Fatalf("%+v", got)
+	}
+	if len(r.ag.removed) != 1 || r.ag.removed[0].RemoveToken == "" || r.ag.removed[0].KeepFiles {
+		t.Errorf("the agent must deregister with a remove token and remove the files: %+v", r.ag.removed)
+	}
+	all, _ := r.store.ListRunners(ctx, Filter{})
+	if len(all) != 1 || all[0].State != Failed {
+		t.Errorf("%+v", all)
+	}
+}
+
+// When the rollback itself fails the error names what is left, for the Doctor.
+func TestRollbackThatFailsNamesWhatIsLeft(t *testing.T) {
+	r := newRig(machine("linux", "x64", true))
+	r.store.svcErr = errors.New("permission denied")
+	r.ag.rmErr = errors.New("agent offline")
+	ctx := context.Background()
+	p, _ := r.svc.PlanAdd(ctx, AddRequest{OS: "linux", Kind: "persistent", MachineID: "m1", Count: 1, Scope: Scope{Kind: "repository", RepositoryID: 1}}, "u")
+	got, _ := r.svc.Apply(ctx, p.ID, nil, "u")
+	if !strings.Contains(got.Steps[0].Error, "Left behind: GitHub registration box-1") {
+		t.Fatalf("%+v", got.Steps[0])
+	}
+}

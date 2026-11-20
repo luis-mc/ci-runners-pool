@@ -959,6 +959,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/doctor/registration-fixes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Remove one half of a half-registered runner
+         * @description doctor R5.50, runners R5.94. `remove_github_runner` deletes a GitHub runner with the pool's name prefix that no local record owns; `remove_runner_record` removes the local record (and its service, account and folder when the machine answers) of a runner GitHub does not list. The server reads GitHub and the records again and refuses when the state changed. Without `confirm=true` it answers 409 needs_confirmation naming what goes.
+         */
+        post: operations["removeRegistration"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/machines/{machineId}/runner-leftovers/remove": {
         parameters: {
             query?: never;
@@ -5257,6 +5277,27 @@ export interface components {
             /** @description Why it is not owned, in words for people. */
             why: string;
         };
+        /** @description What a registration action needs back (doctor R5.50). */
+        RegistrationActionArgs: {
+            runner_id?: string;
+            /** Format: int64 */
+            github_runner_id?: number;
+            name?: string;
+            /** Format: int64 */
+            installation_id?: number;
+            owner?: string;
+            repo?: string;
+            organization?: string;
+        };
+        RemoveRegistrationRequest: {
+            /** @enum {string} */
+            action: "remove_github_runner" | "remove_runner_record";
+            args: components["schemas"]["RegistrationActionArgs"];
+        };
+        RemoveRegistrationResult: {
+            removed: boolean;
+            name: string;
+        };
         RemoveRunnerLeftoversRequest: {
             items: {
                 kind: components["schemas"]["RunnerLeftoverKind"];
@@ -5312,11 +5353,12 @@ export interface components {
             needs_admin: boolean;
             /** @description The things the finding lists, for example the runner leftovers of a machine (doctor R5.48). */
             items?: components["schemas"]["RunnerLeftover"][];
-            /** @description The one button the finding offers. `remove_runner_leftovers` removes `items` through POST /api/v1/machines/{machineId}/runner-leftovers/remove (the subject is the machine). */
+            /** @description The one button the finding offers. `remove_runner_leftovers` removes `items` through POST /api/v1/machines/{machineId}/runner-leftovers/remove (the subject is the machine). `remove_github_runner` and `remove_runner_record` send `args` through POST /api/v1/doctor/registration-fixes. */
             action?: {
                 /** @enum {string} */
-                id: "remove_runner_leftovers";
+                id: "remove_runner_leftovers" | "remove_github_runner" | "remove_runner_record";
                 label: string;
+                args?: components["schemas"]["RegistrationActionArgs"];
             };
             milestone: number;
             /** Format: date-time */
@@ -7966,6 +8008,34 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HostCommandResult"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    removeRegistration: {
+        parameters: {
+            query?: {
+                /** @description The yes to a question card that named what goes (UX-62). */
+                confirm?: components["parameters"]["Confirm"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RemoveRegistrationRequest"];
+            };
+        };
+        responses: {
+            /** @description Removed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RemoveRegistrationResult"];
                 };
             };
             default: components["responses"]["Error"];

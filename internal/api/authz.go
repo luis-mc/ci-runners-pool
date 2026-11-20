@@ -58,7 +58,7 @@ var otherAreaAuth = map[string]string{
 	"updateQueueSettings": authAdmin, "putEnvSet": authAdmin, "deleteEnvSet": authAdmin, "getRegistrySettings": authAdmin,
 	"putRegistryLogin": authAdmin, "deleteRegistryLogin": authAdmin, "putRegistryCaBundle": authAdmin, "deleteRegistryCaBundle": authAdmin,
 
-	"restoreBackup": authOwner, "runMachineCommand": authOwner, "removeRunnerLeftovers": authAdmin, "updateSettings": authOwner,
+	"restoreBackup": authOwner, "runMachineCommand": authOwner, "removeRunnerLeftovers": authAdmin, "removeRegistration": authAdmin, "updateSettings": authOwner,
 }
 
 // roleFor returns the role an operation needs (public, user, admin or owner).

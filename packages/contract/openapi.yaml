@@ -1422,6 +1422,38 @@ paths:
                 $ref: '#/components/schemas/HostCommandResult'
         default:
           $ref: '#/components/responses/Error'
+  /api/v1/doctor/registration-fixes:
+    post:
+      operationId: removeRegistration
+      tags: [doctor]
+      summary: Remove one half of a half-registered runner
+      description: >-
+        doctor R5.50, runners R5.94. `remove_github_runner` deletes a GitHub
+        runner with the pool's name prefix that no local record owns;
+        `remove_runner_record` removes the local record (and its service, account
+        and folder when the machine answers) of a runner GitHub does not list.
+        The server reads GitHub and the records again and refuses when the state
+        changed. Without `confirm=true` it answers 409 needs_confirmation naming
+        what goes.
+      x-auth: admin
+      x-rate-limit: 30/minute/user
+      parameters:
+        - $ref: '#/components/parameters/Confirm'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RemoveRegistrationRequest'
+      responses:
+        '200':
+          description: Removed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RemoveRegistrationResult'
+        default:
+          $ref: '#/components/responses/Error'
   /api/v1/machines/{machineId}/runner-leftovers/remove:
     post:
       operationId: removeRunnerLeftovers
@@ -8509,6 +8541,43 @@ components:
         why:
           type: string
           description: Why it is not owned, in words for people.
+    RegistrationActionArgs:
+      type: object
+      description: What a registration action needs back (doctor R5.50).
+      properties:
+        runner_id:
+          type: string
+        github_runner_id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        installation_id:
+          type: integer
+          format: int64
+        owner:
+          type: string
+        repo:
+          type: string
+        organization:
+          type: string
+    RemoveRegistrationRequest:
+      type: object
+      required: [action, args]
+      properties:
+        action:
+          type: string
+          enum: [remove_github_runner, remove_runner_record]
+        args:
+          $ref: '#/components/schemas/RegistrationActionArgs'
+    RemoveRegistrationResult:
+      type: object
+      required: [removed, name]
+      properties:
+        removed:
+          type: boolean
+        name:
+          type: string
     RemoveRunnerLeftoversRequest:
       type: object
       required: [items]
@@ -8590,14 +8659,16 @@ components:
             $ref: '#/components/schemas/RunnerLeftover'
         action:
           type: object
-          description: The one button the finding offers. `remove_runner_leftovers` removes `items` through POST /api/v1/machines/{machineId}/runner-leftovers/remove (the subject is the machine).
+          description: The one button the finding offers. `remove_runner_leftovers` removes `items` through POST /api/v1/machines/{machineId}/runner-leftovers/remove (the subject is the machine). `remove_github_runner` and `remove_runner_record` send `args` through POST /api/v1/doctor/registration-fixes.
           required: [id, label]
           properties:
             id:
               type: string
-              enum: [remove_runner_leftovers]
+              enum: [remove_runner_leftovers, remove_github_runner, remove_runner_record]
             label:
               type: string
+            args:
+              $ref: '#/components/schemas/RegistrationActionArgs'
         milestone:
           type: integer
         checked_at:

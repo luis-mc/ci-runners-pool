@@ -402,13 +402,19 @@ func (e DockerCompactMode) Valid() bool {
 
 // Defines values for DoctorFindingActionId.
 const (
-	RemoveRunnerLeftovers DoctorFindingActionId = "remove_runner_leftovers"
+	DoctorFindingActionIdRemoveGithubRunner    DoctorFindingActionId = "remove_github_runner"
+	DoctorFindingActionIdRemoveRunnerLeftovers DoctorFindingActionId = "remove_runner_leftovers"
+	DoctorFindingActionIdRemoveRunnerRecord    DoctorFindingActionId = "remove_runner_record"
 )
 
 // Valid indicates whether the value is a known member of the DoctorFindingActionId enum.
 func (e DoctorFindingActionId) Valid() bool {
 	switch e {
-	case RemoveRunnerLeftovers:
+	case DoctorFindingActionIdRemoveGithubRunner:
+		return true
+	case DoctorFindingActionIdRemoveRunnerLeftovers:
+		return true
+	case DoctorFindingActionIdRemoveRunnerRecord:
 		return true
 	default:
 		return false
@@ -2263,6 +2269,24 @@ func (e RegistryStackFileChangeChange) Valid() bool {
 	}
 }
 
+// Defines values for RemoveRegistrationRequestAction.
+const (
+	RemoveRegistrationRequestActionRemoveGithubRunner RemoveRegistrationRequestAction = "remove_github_runner"
+	RemoveRegistrationRequestActionRemoveRunnerRecord RemoveRegistrationRequestAction = "remove_runner_record"
+)
+
+// Valid indicates whether the value is a known member of the RemoveRegistrationRequestAction enum.
+func (e RemoveRegistrationRequestAction) Valid() bool {
+	switch e {
+	case RemoveRegistrationRequestActionRemoveGithubRunner:
+		return true
+	case RemoveRegistrationRequestActionRemoveRunnerRecord:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for RemoveRunnerLeftoversResultResultsOutcome.
 const (
 	RemoveRunnerLeftoversResultResultsOutcomeAlreadyGone RemoveRunnerLeftoversResultResultsOutcome = "already_gone"
@@ -4111,10 +4135,12 @@ type DockerCompactStatus struct {
 
 // DoctorFinding defines model for DoctorFinding.
 type DoctorFinding struct {
-	// Action The one button the finding offers. `remove_runner_leftovers` removes `items` through POST /api/v1/machines/{machineId}/runner-leftovers/remove (the subject is the machine).
+	// Action The one button the finding offers. `remove_runner_leftovers` removes `items` through POST /api/v1/machines/{machineId}/runner-leftovers/remove (the subject is the machine). `remove_github_runner` and `remove_runner_record` send `args` through POST /api/v1/doctor/registration-fixes.
 	Action *struct {
-		Id    DoctorFindingActionId `json:"id"`
-		Label string                `json:"label"`
+		// Args What a registration action needs back (doctor R5.50).
+		Args  *RegistrationActionArgs `json:"args,omitempty"`
+		Id    DoctorFindingActionId   `json:"id"`
+		Label string                  `json:"label"`
 	} `json:"action,omitempty"`
 	Check     string    `json:"check"`
 	CheckedAt time.Time `json:"checked_at"`
@@ -5881,6 +5907,17 @@ type RedeemSetupLinkRequest struct {
 	Code string `json:"code"`
 }
 
+// RegistrationActionArgs What a registration action needs back (doctor R5.50).
+type RegistrationActionArgs struct {
+	GithubRunnerId *int64  `json:"github_runner_id,omitempty"`
+	InstallationId *int64  `json:"installation_id,omitempty"`
+	Name           *string `json:"name,omitempty"`
+	Organization   *string `json:"organization,omitempty"`
+	Owner          *string `json:"owner,omitempty"`
+	Repo           *string `json:"repo,omitempty"`
+	RunnerId       *string `json:"runner_id,omitempty"`
+}
+
 // RegistryArch defines model for RegistryArch.
 type RegistryArch string
 
@@ -6379,6 +6416,23 @@ type RegistryWhere struct {
 
 	// WhyNot Why it is not running, in plain words.
 	WhyNot *string `json:"why_not,omitempty"`
+}
+
+// RemoveRegistrationRequest defines model for RemoveRegistrationRequest.
+type RemoveRegistrationRequest struct {
+	Action RemoveRegistrationRequestAction `json:"action"`
+
+	// Args What a registration action needs back (doctor R5.50).
+	Args RegistrationActionArgs `json:"args"`
+}
+
+// RemoveRegistrationRequestAction defines model for RemoveRegistrationRequest.Action.
+type RemoveRegistrationRequestAction string
+
+// RemoveRegistrationResult defines model for RemoveRegistrationResult.
+type RemoveRegistrationResult struct {
+	Name    string `json:"name"`
+	Removed bool   `json:"removed"`
 }
 
 // RemoveRunnerLeftoversRequest defines model for RemoveRunnerLeftoversRequest.
@@ -7654,6 +7708,12 @@ type ListDoctorFindingsParams struct {
 	Group    *string   `form:"group,omitempty" json:"group,omitempty"`
 }
 
+// RemoveRegistrationParams defines parameters for RemoveRegistration.
+type RemoveRegistrationParams struct {
+	// Confirm The yes to a question card that named what goes (UX-62).
+	Confirm *Confirm `form:"confirm,omitempty" json:"confirm,omitempty"`
+}
+
 // StreamEventsParams defines parameters for StreamEvents.
 type StreamEventsParams struct {
 	LastEventID *string `json:"Last-Event-ID,omitempty"`
@@ -8058,6 +8118,9 @@ type SetAppWebhookJSONRequestBody = AppWebhookUpdate
 // ExchangeCliTokenJSONRequestBody defines body for ExchangeCliToken for application/json ContentType.
 type ExchangeCliTokenJSONRequestBody = ExchangeCliTokenRequest
 
+// RemoveRegistrationJSONRequestBody defines body for RemoveRegistration for application/json ContentType.
+type RemoveRegistrationJSONRequestBody = RemoveRegistrationRequest
+
 // RunDoctorJSONRequestBody defines body for RunDoctor for application/json ContentType.
 type RunDoctorJSONRequestBody = DoctorScope
 
@@ -8261,6 +8324,9 @@ type ServerInterface interface {
 	// ListDoctorFindings The latest finding per check and subject
 	// (GET /api/v1/doctor/findings)
 	ListDoctorFindings(w http.ResponseWriter, r *http.Request, params ListDoctorFindingsParams)
+	// RemoveRegistration Remove one half of a half-registered runner
+	// (POST /api/v1/doctor/registration-fixes)
+	RemoveRegistration(w http.ResponseWriter, r *http.Request, params RemoveRegistrationParams)
 	// RunDoctor Run the doctor now
 	// (POST /api/v1/doctor/runs)
 	RunDoctor(w http.ResponseWriter, r *http.Request)
@@ -9339,6 +9405,39 @@ func (siw *ServerInterfaceWrapper) ListDoctorFindings(w http.ResponseWriter, r *
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.ListDoctorFindings(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RemoveRegistration operation middleware
+func (siw *ServerInterfaceWrapper) RemoveRegistration(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params RemoveRegistrationParams
+
+	// ------------- Optional query parameter "confirm" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "confirm", r.URL.Query(), &params.Confirm, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "confirm"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "confirm", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RemoveRegistration(w, r, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -14512,6 +14611,7 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodPatch+" "+options.BaseURL+"/api/v1/machines/{machineId}", wrapper.UpdateMachine)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/machines/{machineId}/drain", wrapper.DrainMachine)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/machines/{machineId}/command", wrapper.RunMachineCommand)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/doctor/registration-fixes", wrapper.RemoveRegistration)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/machines/{machineId}/runner-leftovers/remove", wrapper.RemoveRunnerLeftovers)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/machines/{machineId}/resume", wrapper.ResumeMachine)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/machines/{machineId}/pool-size-check", wrapper.CheckMachinePoolSize)
@@ -15528,6 +15628,46 @@ type ListDoctorFindingsdefaultJSONResponse struct {
 }
 
 func (response ListDoctorFindingsdefaultJSONResponse) VisitListDoctorFindingsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RemoveRegistrationRequestObject struct {
+	Params RemoveRegistrationParams
+	Body   *RemoveRegistrationJSONRequestBody
+}
+
+type RemoveRegistrationResponseObject interface {
+	VisitRemoveRegistrationResponse(w http.ResponseWriter) error
+}
+
+type RemoveRegistration200JSONResponse RemoveRegistrationResult
+
+func (response RemoveRegistration200JSONResponse) VisitRemoveRegistrationResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RemoveRegistrationdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response RemoveRegistrationdefaultJSONResponse) VisitRemoveRegistrationResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
@@ -21854,6 +21994,9 @@ type StrictServerInterface interface {
 	// ListDoctorFindings The latest finding per check and subject
 	// (GET /api/v1/doctor/findings)
 	ListDoctorFindings(ctx context.Context, request ListDoctorFindingsRequestObject) (ListDoctorFindingsResponseObject, error)
+	// RemoveRegistration Remove one half of a half-registered runner
+	// (POST /api/v1/doctor/registration-fixes)
+	RemoveRegistration(ctx context.Context, request RemoveRegistrationRequestObject) (RemoveRegistrationResponseObject, error)
 	// RunDoctor Run the doctor now
 	// (POST /api/v1/doctor/runs)
 	RunDoctor(ctx context.Context, request RunDoctorRequestObject) (RunDoctorResponseObject, error)
@@ -22954,6 +23097,39 @@ func (sh *strictHandler) ListDoctorFindings(w http.ResponseWriter, r *http.Reque
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(ListDoctorFindingsResponseObject); ok {
 		if err := validResponse.VisitListDoctorFindingsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// RemoveRegistration operation middleware
+func (sh *strictHandler) RemoveRegistration(w http.ResponseWriter, r *http.Request, params RemoveRegistrationParams) {
+	var request RemoveRegistrationRequestObject
+
+	request.Params = params
+
+	var body RemoveRegistrationJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.RemoveRegistration(ctx, request.(RemoveRegistrationRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "RemoveRegistration")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(RemoveRegistrationResponseObject); ok {
+		if err := validResponse.VisitRemoveRegistrationResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

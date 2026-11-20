@@ -25,6 +25,7 @@ type fakeRunners struct {
 	lastActor string
 	lastAdd   runners.AddRequest
 	views     map[string]runners.View // overrides of the view fields of a record
+	stray     []runners.StrayRegistration
 }
 
 func (f *fakeRunners) ListView(_ context.Context, fl runners.Filter) ([]runners.View, error) {
@@ -324,5 +325,40 @@ func TestRunnerCarriesMachineNameAndReason(t *testing.T) {
 	}
 	if rec = do(runnersMux(sample()), http.MethodGet, "/api/v1/runners/r1", ""); strings.Contains(rec.Body.String(), `"reason"`) {
 		t.Errorf("no reason when there is nothing to say: %s", rec.Body)
+	}
+}
+
+func (f *fakeRunners) RemoveStrayRegistration(_ context.Context, in runners.StrayRegistration, prefix string, confirm bool, _ string) error {
+	if !confirm {
+		return &runners.NeedsConfirmation{Items: []runners.ConfirmItem{{Kind: "registration", Text: "The registration of runner " + in.Name}}}
+	}
+	if prefix != "crsp-" {
+		return &runners.RefusalError{Reason: "prefix"}
+	}
+	f.stray = append(f.stray, in)
+	return nil
+}
+
+func (f *fakeRunners) RemoveRecordWithoutRegistration(ctx context.Context, id string, confirm bool, actor string) (runners.Record, error) {
+	return f.DeleteOfflineRegistration(ctx, id, confirm, actor)
+}
+
+// Doctor R5.50: the Remove button of a half-registered runner asks first, then
+// passes what the finding carried to the service.
+func TestRemoveRegistrationFixes(t *testing.T) {
+	f := sample()
+	body := `{"action":"remove_github_runner","args":{"github_runner_id":555,"name":"crsp-stray","installation_id":7,"owner":"o","repo":"r"}}`
+	rec := do(runnersMux(f), http.MethodPost, "/api/v1/doctor/registration-fixes", body)
+	if rec.Code != http.StatusConflict {
+		t.Fatalf("%d %s", rec.Code, rec.Body)
+	}
+	assertEnvelope(t, rec, CodeNeedsConfirmation)
+	rec = do(runnersMux(f), http.MethodPost, "/api/v1/doctor/registration-fixes?confirm=true", body)
+	if rec.Code != http.StatusOK || len(f.stray) != 1 || f.stray[0].GitHubID != 555 || f.stray[0].Scope.Repo != "r" || f.stray[0].InstallationID != 7 {
+		t.Fatalf("%d %s %+v", rec.Code, rec.Body, f.stray)
+	}
+	rec = do(runnersMux(f), http.MethodPost, "/api/v1/doctor/registration-fixes?confirm=true", `{"action":"remove_runner_record","args":{"runner_id":"r1"}}`)
+	if rec.Code != http.StatusOK || !f.removed {
+		t.Fatalf("%d %s", rec.Code, rec.Body)
 	}
 }

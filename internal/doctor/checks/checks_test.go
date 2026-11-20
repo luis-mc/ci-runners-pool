@@ -906,3 +906,28 @@ func TestSymlinkProbeFrom(t *testing.T) {
 		t.Fatalf("%+v", p)
 	}
 }
+
+// Doctor R5.50: both halves of a half-registered runner offer a Remove button
+// that carries what the server needs to check again; the doctor itself removes
+// nothing.
+func TestRegistrationHalvesOfferRemove(t *testing.T) {
+	g := newGH()
+	g.runners["o/r"] = []github.Runner{{ID: 555, Name: "crsp-stray", Status: "offline"}}
+	fl := &fleet{machines: []doctor.Machine{healthyMachine()}, runners: []doctor.Runner{persistent("r1", "crsp-mine")}}
+	fs := run(t, doctor.Env{GitHub: g, Fleet: fl}, "runner.orphan")
+	var stray doctor.Finding
+	for _, f := range fs {
+		if f.Subject.Name == "crsp-stray" {
+			stray = f
+		}
+	}
+	if stray.Action == nil || stray.Action.ID != doctor.ActionRemoveGitHubRunner || stray.Action.Args == nil ||
+		stray.Action.Args.GitHubRunnerID != 555 || stray.Action.Args.Name != "crsp-stray" || stray.Action.Args.Owner != "o" || stray.Action.Args.Repo != "r" {
+		t.Fatalf("GitHub runner with no record: %+v", stray)
+	}
+	// The record GitHub does not list.
+	fs = forCheck(run(t, doctor.Env{GitHub: g, Fleet: fl}, "runner.registered"), "runner.registered")
+	if len(fs) != 1 || fs[0].Severity != doctor.Fail || fs[0].Action == nil || fs[0].Action.ID != doctor.ActionRemoveRunnerRecord || fs[0].Action.Args.RunnerID != "r1" {
+		t.Fatalf("record with no GitHub runner: %+v", fs)
+	}
+}

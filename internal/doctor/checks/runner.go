@@ -185,7 +185,9 @@ func runnerRegistered(ctx context.Context, env doctor.Env) []doctor.Finding {
 		case got == nil:
 			f.Severity, f.Title = doctor.Fail, r.Name+" is not registered on GitHub"
 			f.Detail = "GitHub does not list a runner with this name, so no job reaches it."
-			f.Fix = doctor.Fix{Text: "Restart the runner service; if it stays missing, add the runner again from the Runners screen.", Link: "/runners"}
+			f.Fix = doctor.Fix{Text: "Restart the runner service; if it stays missing, remove the record here (Remove) and add the runner again from the Runners screen.", Link: "/runners"}
+			// A record GitHub does not list: a half-made add (R5.50). The button asks first.
+			f.Action = &doctor.Action{ID: doctor.ActionRemoveRunnerRecord, Label: "Remove", Args: &doctor.ActionArgs{RunnerID: r.ID, Name: r.Name}}
 		case got.Status != "online":
 			f.Severity, f.Title = doctor.Fail, r.Name+" is offline on GitHub"
 			f.Detail = "GitHub lists the runner but it is not connected."
@@ -264,7 +266,9 @@ func runnerOrphan(ctx context.Context, env doctor.Env) []doctor.Finding {
 				Subject: doctor.Subject{Kind: "github_runner", ID: fmt.Sprint(gr.ID), Name: gr.Name},
 				Title:   gr.Name + " on GitHub belongs to no machine",
 				Detail:  "It has the pool's name prefix in " + sc.name + " but no machine runs it.",
-				Fix:     doctor.Fix{Text: "Remove it from GitHub. The product asks first and uses a remove token.", Link: "/runners"},
+				Fix:     doctor.Fix{Text: "Press Remove. The product asks first and removes only this registration from GitHub.", Link: "/runners"},
+				Action: &doctor.Action{ID: doctor.ActionRemoveGitHubRunner, Label: "Remove", Args: &doctor.ActionArgs{
+					GitHubRunnerID: gr.ID, Name: gr.Name, InstallationID: sc.inst, Owner: sc.sc.Owner, Repo: sc.sc.Repo, Organization: sc.sc.Organization}},
 			})
 		}
 		if orphans == 0 {
