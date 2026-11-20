@@ -12,6 +12,7 @@ import {
 } from '@crsp/ui';
 import { useMachines } from '../../api/machines';
 import type { Schemas } from '../../api/api';
+import { DemandSection } from '../insights/RepositoryPanes';
 import { Load } from '../common';
 
 type Machine = Schemas['Machine'];
@@ -47,6 +48,7 @@ export function PoolSizePage() {
         title="Size and backends"
         lead="How many jobs each machine runs at once, and how it isolates them."
       />
+      <DemandSection />
       <Load result={result} what="the machines" reload={reload}>
         {(data) =>
           data.items.length === 0 ? (

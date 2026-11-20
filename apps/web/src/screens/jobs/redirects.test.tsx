@@ -33,6 +33,7 @@ describe('the old Jobs addresses', () => {
       'By runner',
       'By runner type',
       'By job type',
+      'Run insights',
       'Charts',
     ]);
   });

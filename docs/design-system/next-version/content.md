@@ -1209,3 +1209,48 @@ The lines the agent writes to the job log while it asks the controller for a job
 | Pull failed | The pull from the registry failed ({reason}); building the image here instead |
 | Push failed | The image stays on this machine; it was not pushed: {reason} |
 | Push done | Pushed the image to the registry staging |
+
+## Run insights words (CIX22, owner decisions D7 and D8 of 20 Nov 2026)
+
+Run insights is a tab of Jobs, placed before Charts. Estimates always say *estimate* or *about*. `{n}` is a number, `{x}` a value, `{time}` a time.
+
+| Where | Words |
+|---|---|
+| Jobs tab | Run insights |
+| Segments | Do next, Waits, Timeline, Tests, Guardrails |
+| Filter chip, Queue and Running | Run elsewhere |
+| Run elsewhere, empty | No job runs on another runner. |
+| Run elsewhere, runner column | Runner and labels; "{runner} (group {group}; labels {labels})" |
+| Do next, table | What to do, Project, Area, Saves ("about {n} min a week"), Since; row action Open |
+| Do next, project of a pool finding | the pool |
+| Do next, empty | Nothing to do. crsp found no waste in the last 7 days. |
+| Do next, not enough data | Not enough finished jobs yet to rank anything. crsp needs a few days of CI. |
+| Do next, digest fold | Weekly digest, {week} |
+| Finding, panes | The fix, Evidence, Estimate |
+| Finding, primary | Review the change |
+| Finding, normal button | Open the workflow on GitHub |
+| Overview line | {n} things to do next, about {m} min a week |
+| Waits, panes | Wait, hold and run per day, By repository, By job |
+| Waits, columns | Wait, middle; Wait, slow end; Hold, middle; Hold, slow end; Run, middle; Run, slow end; Holds over the cap |
+| Timeline, notes | idle while {n} job(s) waited; after-merge work |
+| Timeline, empty | No runner took a job in this range. |
+| Tests, segments | Slowest, Flaky, Duplicated, No assertions |
+| Tests, over the limit | {x} s, over the {kind} limit of {n} s |
+| Tests, empty | No test reports found. crsp reads JUnit, Playwright, vitest, go test, nextest and TRX reports your CI uploads. |
+| Guardrails, states | ✓ pass, ✕ break {n}, – off ({reason}), ◷ unknown |
+| Guardrails, source | guard report of {date}, crsp check |
+| Waiting on GitHub | Waiting for GitHub's hourly limit until {time}; {n} jobs not read yet. |
+| Action wizard, steps | Review, Changing, Done |
+| Action wizard, buttons | Make the change, Not now |
+| Job page, fact | Runs on: "crsp runner {runner} on {machine}", "Another runner: {name} (group {group}; labels {labels})", "GitHub-hosted runner ({label})", "not known yet" |
+| Job page, steps source | Steps from GitHub events. / Steps read from GitHub. |
+| Job page, checked | Last checked with GitHub {ago}. |
+| Job page, pane | CPU and memory; CPU, peak; CPU, slow end (p95); Memory, peak; Memory, slow end (p95) |
+| Run page, pane | Savings |
+| Run page, notes | This run was superseded; This commit ran twice; This code was tested again; This run went on after its first failure |
+| Size and backends, section | Demand; columns Labels, Slots, Busy, Jobs an hour, Wait, middle, Wait, slow end |
+| Size and backends, estimate | {labels}: with {n} more slot(s) the p95 wait would be about {x} (now {y}). An estimate from the last 7 days. |
+| Size and backends, queue grows | The queue grows: at least {n} more slots are needed. |
+| Repository page, panes | CI checks, Guardrails, Job slots |
+| Repository page, CI checks | ✓ pass, ✕ fix, – skipped; columns Status, Rule, Job, Line, Fix; "Checked {time}." |
+| Repository page, Job slots | No advice: the limit of this repository did not hold jobs back while slots were free. |
