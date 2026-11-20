@@ -13,7 +13,7 @@ func parseFixture(t *testing.T, file string) (Format, []Case) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 	var cases []Case
 	format, err := ParseAny(f, func(_ Format, c Case) error { cases = append(cases, c); return nil })
 	if err != nil {

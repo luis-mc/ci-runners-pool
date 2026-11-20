@@ -255,8 +255,8 @@ func checkTimeout(wf *workflow) []Result {
 		if j.reusable {
 			continue // a called workflow sets its own timeouts
 		}
-		switch {
-		case j.timeout == nil:
+		switch j.timeout {
+		case nil:
 			out = append(out, result(CheckTimeout, j.id, false, j.line,
 				fmt.Sprintf("Job %s has no timeout-minutes, so a hung job holds its slot for 6 hours. Fix: add `timeout-minutes: %d` or less to the job.", j.title(), MaxTimeoutMinutes)))
 		default:

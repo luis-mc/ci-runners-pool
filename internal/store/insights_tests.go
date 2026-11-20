@@ -77,7 +77,7 @@ WHERE repository_id = ? AND finished_at >= ? AND finished_at < ? ORDER BY id LIM
 	if err != nil {
 		return nil, fmt.Errorf("read test results: %w", err)
 	}
-	defer rs.Close()
+	defer func() { _ = rs.Close() }()
 	var list []sqlcgen.TestResult
 	for rs.Next() {
 		var r sqlcgen.TestResult

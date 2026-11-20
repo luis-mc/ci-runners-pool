@@ -83,7 +83,7 @@ func (ReportParser) Parse(r io.Reader) (Report, error) {
 		}
 		e := Entry{Guardrail: g, State: st, Count: re.Count, Reason: re.Reason}
 		for _, b := range re.Breaks {
-			e.Breaks = append(e.Breaks, Break{File: b.File, Line: b.Line, Message: b.Message})
+			e.Breaks = append(e.Breaks, Break(b))
 		}
 		if e.Count == 0 && len(e.Breaks) > 0 {
 			e.Count = len(e.Breaks)
