@@ -5,7 +5,6 @@
     "./guards",
     "./images",
     "./internal/addresses",
-    "./internal/agent",
     "./internal/api",
     "./internal/audit",
     "./internal/backup",
@@ -22,5 +21,5 @@
     "./internal/settings",
     "./packaging/hooks"
   ],
-  "slow": ["./internal/scheduler", "./internal/store"]
+  "slow": ["./internal/agent", "./internal/scheduler", "./internal/store"]
 }
