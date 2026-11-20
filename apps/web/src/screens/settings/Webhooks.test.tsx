@@ -159,7 +159,9 @@ describe('Settings > Access > Webhooks', () => {
     await open(signedIn(viewer).on('GET', PATH, { state: 'off' }));
     const save = await screen.findByRole<HTMLButtonElement>('button', { name: 'Save' });
     expect(save.disabled || save.getAttribute('aria-disabled') === 'true').toBe(true);
-    expect((await screen.findAllByText(/Only the owner can do this/)).length).toBeGreaterThan(0);
+    expect(
+      (await screen.findAllByText(/Only the owner can do this/)).length,
+    ).toBeGreaterThan(0);
   });
 });
 

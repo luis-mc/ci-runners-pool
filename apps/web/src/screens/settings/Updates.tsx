@@ -342,7 +342,6 @@ export function UpdateWizard({ compact = false }: { compact?: boolean } = {}) {
     if (polling.current) return;
     polling.current = true;
     setPhase('running');
-    let lost = false;
     let since: number | undefined; // when the service went away or began to restart
     while (mounted.current) {
       await new Promise((r) => setTimeout(r, TIMING.planPollMs));
@@ -370,11 +369,9 @@ export function UpdateWizard({ compact = false }: { compact?: boolean } = {}) {
         }
         if (kind === 'restart' && (u.state === 'restarting' || u.state === 'installing'))
           since ??= Date.now();
-        lost = false;
         setLostService(false);
       } catch {
         // The service stops to install and comes back: keep following.
-        lost = true;
         setLostService(true);
         since ??= Date.now();
       }

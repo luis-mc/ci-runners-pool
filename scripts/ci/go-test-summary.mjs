@@ -65,11 +65,14 @@ for await (const line of rl) {
           failed++;
           failedTests.push(key);
         } else skipped++;
-        if (typeof e.Elapsed === 'number') testTimes.push({ pkg, test: e.Test, s: e.Elapsed });
+        if (typeof e.Elapsed === 'number')
+          testTimes.push({ pkg, test: e.Test, s: e.Elapsed });
       } else {
         if (e.Action === 'fail') failedPkgs.add(pkg);
         if (typeof e.Elapsed === 'number') pkgTimes.set(pkg, e.Elapsed);
-        console.log(`${e.Action === 'pass' ? 'ok  ' : e.Action === 'fail' ? 'FAIL' : 'skip'} ${pkg}  ${(e.Elapsed ?? 0).toFixed(1)}s`);
+        console.log(
+          `${e.Action === 'pass' ? 'ok  ' : e.Action === 'fail' ? 'FAIL' : 'skip'} ${pkg}  ${(e.Elapsed ?? 0).toFixed(1)}s`,
+        );
       }
       break;
   }
@@ -100,7 +103,9 @@ console.log('\n--- 20 slowest tests (s)');
 for (const t of testTimes.sort((a, b) => b.s - a.s).slice(0, 20)) {
   console.log(`${t.s.toFixed(1).padStart(8)}  ${t.pkg} ${t.test}`);
 }
-console.log(`\ngo test: ${passed} passed, ${failed} failed, ${skipped} skipped; per-test times in ${file}`);
+console.log(
+  `\ngo test: ${passed} passed, ${failed} failed, ${skipped} skipped; per-test times in ${file}`,
+);
 if (passed === 0) {
   console.error('zero-test guard: go test ran no passing tests');
   process.exit(3);
