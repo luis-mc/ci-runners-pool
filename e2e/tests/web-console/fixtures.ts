@@ -1,6 +1,7 @@
 // A mocked controller API for the console e2e specs. No spec calls the real GitHub API or the real controller API:
 // every /api/ request is answered here (CRSP24).
 import type { Page, Route } from '@playwright/test';
+import { registryApi } from './registry-fixtures';
 
 export interface Call {
   method: string;
@@ -277,6 +278,10 @@ export const image = () => ({
 
 /** The routes every signed-in screen needs. */
 export function signedIn(user: unknown = owner): Mock {
+  return registryApi(signedInBase(user));
+}
+
+function signedInBase(user: unknown): Mock {
   return new Mock()
     .on('GET', '/api/v1/me', {
       user,

@@ -2,6 +2,7 @@ package fake
 
 import (
 	"crypto/rand"
+	"crypto/sha1" //nolint:gosec // git blob ids are SHA-1 by definition
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
@@ -365,6 +366,8 @@ func (s *Server) repoRoutes(w http.ResponseWriter, r *http.Request) {
 		s.secretPublicKey(w, full)
 	case strings.HasPrefix(rest, "actions/secrets/") && r.Method == "PUT":
 		s.putSecret(w, r, full, strings.TrimPrefix(rest, "actions/secrets/"))
+	case strings.HasPrefix(rest, "git/trees/"):
+		s.gitTree(w, full)
 	case strings.HasPrefix(rest, "contents/"):
 		s.contents(w, r, full, strings.TrimPrefix(rest, "contents/"))
 	case strings.HasPrefix(rest, "collaborators/") && strings.HasSuffix(rest, "/permission"):
@@ -704,6 +707,25 @@ func (s *Server) variableRoutes(w http.ResponseWriter, r *http.Request, full, na
 	default:
 		notFound(w)
 	}
+}
+
+// gitTree answers the recursive tree of any ref with the files set by
+// SetWorkflow (every path, not only workflows), each a blob with its size.
+// TreeTruncated makes it answer a cut-short tree.
+func (s *Server) gitTree(w http.ResponseWriter, full string) {
+	files := s.WorkflowFiles[full]
+	names := make([]string, 0, len(files))
+	for n := range files {
+		names = append(names, n)
+	}
+	sort.Strings(names)
+	items := []map[string]any{}
+	for _, n := range names {
+		sum := sha1.Sum([]byte(files[n]))
+		items = append(items, map[string]any{"path": n, "mode": "100644", "type": "blob",
+			"sha": hex.EncodeToString(sum[:]), "size": len(files[n])})
+	}
+	writeJSON(w, 200, map[string]any{"sha": "0123456789abcdef0123456789abcdef01234567", "tree": items, "truncated": s.TreeTruncated})
 }
 
 func (s *Server) contents(w http.ResponseWriter, r *http.Request, full, p string) {

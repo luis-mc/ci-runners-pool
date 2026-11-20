@@ -106,7 +106,7 @@ describe('Runners list', () => {
     const table = await screen.findByRole('table', { name: /^Runners on/ });
     expect(within(table).queryByRole('columnheader', { name: 'System' })).toBeNull();
     expect(within(table).queryByRole('columnheader', { name: 'Backend' })).toBeNull();
-    expect(within(table).getByText('windows x64, persistent')).toBeTruthy();
+    expect(table.querySelector('[title*="windows x64, persistent"]')).toBeTruthy();
     expect(within(table).getByText('self-hosted, windows +2')).toBeTruthy();
     expect(
       within(table).getByText('self-hosted, windows, x64, docker').className,

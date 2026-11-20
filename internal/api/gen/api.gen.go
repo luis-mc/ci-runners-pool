@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/oapi-codegen/runtime"
+	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
 // Defines values for AccessScope.
@@ -95,16 +96,16 @@ func (e AppWebhookState) Valid() bool {
 
 // Defines values for Arch.
 const (
-	Arm64 Arch = "arm64"
-	X64   Arch = "x64"
+	ArchArm64 Arch = "arm64"
+	ArchX64   Arch = "x64"
 )
 
 // Valid indicates whether the value is a known member of the Arch enum.
 func (e Arch) Valid() bool {
 	switch e {
-	case Arm64:
+	case ArchArm64:
 		return true
-	case X64:
+	case ArchX64:
 		return true
 	default:
 		return false
@@ -603,6 +604,129 @@ func (e ImageState) Valid() bool {
 	}
 }
 
+// Defines values for ImageBuildFailureClass.
+const (
+	ImageBuildFailureClassApt      ImageBuildFailureClass = "apt"
+	ImageBuildFailureClassChecksum ImageBuildFailureClass = "checksum"
+	ImageBuildFailureClassDisk     ImageBuildFailureClass = "disk"
+	ImageBuildFailureClassNetwork  ImageBuildFailureClass = "network"
+	ImageBuildFailureClassOther    ImageBuildFailureClass = "other"
+	ImageBuildFailureClassTimeout  ImageBuildFailureClass = "timeout"
+)
+
+// Valid indicates whether the value is a known member of the ImageBuildFailureClass enum.
+func (e ImageBuildFailureClass) Valid() bool {
+	switch e {
+	case ImageBuildFailureClassApt:
+		return true
+	case ImageBuildFailureClassChecksum:
+		return true
+	case ImageBuildFailureClassDisk:
+		return true
+	case ImageBuildFailureClassNetwork:
+		return true
+	case ImageBuildFailureClassOther:
+		return true
+	case ImageBuildFailureClassTimeout:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ImageBuildReason.
+const (
+	Asked         ImageBuildReason = "asked"
+	BaseUpdated   ImageBuildReason = "base_updated"
+	FirstRunner   ImageBuildReason = "first_runner"
+	LayersChanged ImageBuildReason = "layers_changed"
+	NotInRegistry ImageBuildReason = "not_in_registry"
+	PinUpdated    ImageBuildReason = "pin_updated"
+	StackChanged  ImageBuildReason = "stack_changed"
+)
+
+// Valid indicates whether the value is a known member of the ImageBuildReason enum.
+func (e ImageBuildReason) Valid() bool {
+	switch e {
+	case Asked:
+		return true
+	case BaseUpdated:
+		return true
+	case FirstRunner:
+		return true
+	case LayersChanged:
+		return true
+	case NotInRegistry:
+		return true
+	case PinUpdated:
+		return true
+	case StackChanged:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ImageBuildState.
+const (
+	ImageBuildStateBuilding  ImageBuildState = "building"
+	ImageBuildStateCancelled ImageBuildState = "cancelled"
+	ImageBuildStateDone      ImageBuildState = "done"
+	ImageBuildStateFailed    ImageBuildState = "failed"
+	ImageBuildStateQueued    ImageBuildState = "queued"
+)
+
+// Valid indicates whether the value is a known member of the ImageBuildState enum.
+func (e ImageBuildState) Valid() bool {
+	switch e {
+	case ImageBuildStateBuilding:
+		return true
+	case ImageBuildStateCancelled:
+		return true
+	case ImageBuildStateDone:
+		return true
+	case ImageBuildStateFailed:
+		return true
+	case ImageBuildStateQueued:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ImagePushState.
+const (
+	ImagePushStateFailed            ImagePushState = "failed"
+	ImagePushStateNone              ImagePushState = "none"
+	ImagePushStatePromoted          ImagePushState = "promoted"
+	ImagePushStatePushed            ImagePushState = "pushed"
+	ImagePushStatePushing           ImagePushState = "pushing"
+	ImagePushStateRefused           ImagePushState = "refused"
+	ImagePushStateWaitingController ImagePushState = "waiting_controller"
+)
+
+// Valid indicates whether the value is a known member of the ImagePushState enum.
+func (e ImagePushState) Valid() bool {
+	switch e {
+	case ImagePushStateFailed:
+		return true
+	case ImagePushStateNone:
+		return true
+	case ImagePushStatePromoted:
+		return true
+	case ImagePushStatePushed:
+		return true
+	case ImagePushStatePushing:
+		return true
+	case ImagePushStateRefused:
+		return true
+	case ImagePushStateWaitingController:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for InstallationAccountType.
 const (
 	InstallationAccountTypeOrganization InstallationAccountType = "Organization"
@@ -1034,19 +1158,19 @@ func (e MachineSettingsUpdateGateOnTimeout) Valid() bool {
 
 // Defines values for MachineSettingsUpdatePause.
 const (
-	None         MachineSettingsUpdatePause = "none"
-	OneHour      MachineSettingsUpdatePause = "one_hour"
-	UntilResumed MachineSettingsUpdatePause = "until_resumed"
+	MachineSettingsUpdatePauseNone         MachineSettingsUpdatePause = "none"
+	MachineSettingsUpdatePauseOneHour      MachineSettingsUpdatePause = "one_hour"
+	MachineSettingsUpdatePauseUntilResumed MachineSettingsUpdatePause = "until_resumed"
 )
 
 // Valid indicates whether the value is a known member of the MachineSettingsUpdatePause enum.
 func (e MachineSettingsUpdatePause) Valid() bool {
 	switch e {
-	case None:
+	case MachineSettingsUpdatePauseNone:
 		return true
-	case OneHour:
+	case MachineSettingsUpdatePauseOneHour:
 		return true
-	case UntilResumed:
+	case MachineSettingsUpdatePauseUntilResumed:
 		return true
 	default:
 		return false
@@ -1479,6 +1603,129 @@ func (e QueueSettingsOrder) Valid() bool {
 	}
 }
 
+// Defines values for RegistryArch.
+const (
+	RegistryArchAmd64 RegistryArch = "amd64"
+	RegistryArchArm64 RegistryArch = "arm64"
+)
+
+// Valid indicates whether the value is a known member of the RegistryArch enum.
+func (e RegistryArch) Valid() bool {
+	switch e {
+	case RegistryArchAmd64:
+		return true
+	case RegistryArchArm64:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RegistryCleanupState.
+const (
+	RegistryCleanupStateDone    RegistryCleanupState = "done"
+	RegistryCleanupStateFailed  RegistryCleanupState = "failed"
+	RegistryCleanupStateRunning RegistryCleanupState = "running"
+)
+
+// Valid indicates whether the value is a known member of the RegistryCleanupState enum.
+func (e RegistryCleanupState) Valid() bool {
+	switch e {
+	case RegistryCleanupStateDone:
+		return true
+	case RegistryCleanupStateFailed:
+		return true
+	case RegistryCleanupStateRunning:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RegistryCleanupTrigger.
+const (
+	Now    RegistryCleanupTrigger = "now"
+	Weekly RegistryCleanupTrigger = "weekly"
+)
+
+// Valid indicates whether the value is a known member of the RegistryCleanupTrigger enum.
+func (e RegistryCleanupTrigger) Valid() bool {
+	switch e {
+	case Now:
+		return true
+	case Weekly:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RegistryDecider.
+const (
+	RegistryDeciderCrsp  RegistryDecider = "crsp"
+	RegistryDeciderOwner RegistryDecider = "owner"
+)
+
+// Valid indicates whether the value is a known member of the RegistryDecider enum.
+func (e RegistryDecider) Valid() bool {
+	switch e {
+	case RegistryDeciderCrsp:
+		return true
+	case RegistryDeciderOwner:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RegistryImageKind.
+const (
+	RegistryImageKindCustom   RegistryImageKind = "custom"
+	RegistryImageKindStandard RegistryImageKind = "standard"
+)
+
+// Valid indicates whether the value is a known member of the RegistryImageKind enum.
+func (e RegistryImageKind) Valid() bool {
+	switch e {
+	case RegistryImageKindCustom:
+		return true
+	case RegistryImageKindStandard:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RegistryImageState.
+const (
+	RegistryImageStateCurrent    RegistryImageState = "current"
+	RegistryImageStateDeleted    RegistryImageState = "deleted"
+	RegistryImageStateRefused    RegistryImageState = "refused"
+	RegistryImageStateStaged     RegistryImageState = "staged"
+	RegistryImageStateSuperseded RegistryImageState = "superseded"
+	RegistryImageStateVariant    RegistryImageState = "variant"
+)
+
+// Valid indicates whether the value is a known member of the RegistryImageState enum.
+func (e RegistryImageState) Valid() bool {
+	switch e {
+	case RegistryImageStateCurrent:
+		return true
+	case RegistryImageStateDeleted:
+		return true
+	case RegistryImageStateRefused:
+		return true
+	case RegistryImageStateStaged:
+		return true
+	case RegistryImageStateSuperseded:
+		return true
+	case RegistryImageStateVariant:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for RegistryLoginKind.
 const (
 	RegistryLoginKindContainer  RegistryLoginKind = "container"
@@ -1515,6 +1762,162 @@ func (e RegistryLoginInputKind) Valid() bool {
 	case RegistryLoginInputKindPersistent:
 		return true
 	case RegistryLoginInputKindVm:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RegistryPullSource.
+const (
+	Built  RegistryPullSource = "built"
+	Local  RegistryPullSource = "local"
+	Pulled RegistryPullSource = "pulled"
+)
+
+// Valid indicates whether the value is a known member of the RegistryPullSource enum.
+func (e RegistryPullSource) Valid() bool {
+	switch e {
+	case Built:
+		return true
+	case Local:
+		return true
+	case Pulled:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RegistryPullState.
+const (
+	RegistryPullStateDone              RegistryPullState = "done"
+	RegistryPullStateFailed            RegistryPullState = "failed"
+	RegistryPullStatePulling           RegistryPullState = "pulling"
+	RegistryPullStateWaitingController RegistryPullState = "waiting_controller"
+)
+
+// Valid indicates whether the value is a known member of the RegistryPullState enum.
+func (e RegistryPullState) Valid() bool {
+	switch e {
+	case RegistryPullStateDone:
+		return true
+	case RegistryPullStateFailed:
+		return true
+	case RegistryPullStatePulling:
+		return true
+	case RegistryPullStateWaitingController:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RegistryReplacePlanState.
+const (
+	RegistryReplacePlanStateDone       RegistryReplacePlanState = "done"
+	RegistryReplacePlanStateDraft      RegistryReplacePlanState = "draft"
+	RegistryReplacePlanStateFailed     RegistryReplacePlanState = "failed"
+	RegistryReplacePlanStateRolledBack RegistryReplacePlanState = "rolled_back"
+	RegistryReplacePlanStateRunning    RegistryReplacePlanState = "running"
+	RegistryReplacePlanStateStopped    RegistryReplacePlanState = "stopped"
+)
+
+// Valid indicates whether the value is a known member of the RegistryReplacePlanState enum.
+func (e RegistryReplacePlanState) Valid() bool {
+	switch e {
+	case RegistryReplacePlanStateDone:
+		return true
+	case RegistryReplacePlanStateDraft:
+		return true
+	case RegistryReplacePlanStateFailed:
+		return true
+	case RegistryReplacePlanStateRolledBack:
+		return true
+	case RegistryReplacePlanStateRunning:
+		return true
+	case RegistryReplacePlanStateStopped:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RegistryRule.
+const (
+	RegistryRuleDangling       RegistryRule = "dangling"
+	RegistryRuleOverBudget     RegistryRule = "over_budget"
+	RegistryRuleProfileRemoved RegistryRule = "profile_removed"
+	RegistryRuleReplace        RegistryRule = "replace"
+	RegistryRuleSuperseded     RegistryRule = "superseded"
+	RegistryRuleUnused         RegistryRule = "unused"
+	RegistryRuleVariant        RegistryRule = "variant"
+)
+
+// Valid indicates whether the value is a known member of the RegistryRule enum.
+func (e RegistryRule) Valid() bool {
+	switch e {
+	case RegistryRuleDangling:
+		return true
+	case RegistryRuleOverBudget:
+		return true
+	case RegistryRuleProfileRemoved:
+		return true
+	case RegistryRuleReplace:
+		return true
+	case RegistryRuleSuperseded:
+		return true
+	case RegistryRuleUnused:
+		return true
+	case RegistryRuleVariant:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RegistryScanState.
+const (
+	RegistryScanStateDone       RegistryScanState = "done"
+	RegistryScanStateFailed     RegistryScanState = "failed"
+	RegistryScanStateNotScanned RegistryScanState = "not_scanned"
+	RegistryScanStateQueued     RegistryScanState = "queued"
+	RegistryScanStateScanning   RegistryScanState = "scanning"
+)
+
+// Valid indicates whether the value is a known member of the RegistryScanState enum.
+func (e RegistryScanState) Valid() bool {
+	switch e {
+	case RegistryScanStateDone:
+		return true
+	case RegistryScanStateFailed:
+		return true
+	case RegistryScanStateNotScanned:
+		return true
+	case RegistryScanStateQueued:
+		return true
+	case RegistryScanStateScanning:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RegistryStackFileChangeChange.
+const (
+	RegistryStackFileChangeChangeAdded   RegistryStackFileChangeChange = "added"
+	RegistryStackFileChangeChangeChanged RegistryStackFileChangeChange = "changed"
+	RegistryStackFileChangeChangeRemoved RegistryStackFileChangeChange = "removed"
+)
+
+// Valid indicates whether the value is a known member of the RegistryStackFileChangeChange enum.
+func (e RegistryStackFileChangeChange) Valid() bool {
+	switch e {
+	case RegistryStackFileChangeChangeAdded:
+		return true
+	case RegistryStackFileChangeChangeChanged:
+		return true
+	case RegistryStackFileChangeChangeRemoved:
 		return true
 	default:
 		return false
@@ -3389,6 +3792,52 @@ type Image struct {
 // ImageState defines model for Image.State.
 type ImageState string
 
+// ImageBuild defines model for ImageBuild.
+type ImageBuild struct {
+	Arch    *RegistryArch `json:"arch,omitempty"`
+	Failure *struct {
+		Class ImageBuildFailureClass `json:"class"`
+		Step  string                 `json:"step"`
+		Why   string                 `json:"why"`
+	} `json:"failure,omitempty"`
+	FinishedAt *time.Time `json:"finished_at,omitempty"`
+	Id         string     `json:"id"`
+	Key        string     `json:"key"`
+
+	// LogTail Redacted, capped. Only on getImageBuild.
+	LogTail     *string           `json:"log_tail,omitempty"`
+	MachineId   string            `json:"machine_id"`
+	MachineName *string           `json:"machine_name,omitempty"`
+	Profile     *string           `json:"profile,omitempty"`
+	PushState   ImagePushState    `json:"push_state"`
+	QueuedAt    time.Time         `json:"queued_at"`
+	Reason      *ImageBuildReason `json:"reason,omitempty"`
+	SecondsLeft *float32          `json:"seconds_left,omitempty"`
+	SizeBytes   *int64            `json:"size_bytes,omitempty"`
+	StartedAt   *time.Time        `json:"started_at,omitempty"`
+	State       ImageBuildState   `json:"state"`
+	Step        int               `json:"step"`
+	StepName    *string           `json:"step_name,omitempty"`
+	StepsTotal  int               `json:"steps_total"`
+
+	// TypicalSeconds From earlier builds; absent with no history (the bar is the unknown-total bar, UX-29).
+	TypicalSeconds *float32 `json:"typical_seconds,omitempty"`
+}
+
+// ImageBuildFailureClass defines model for ImageBuild.Failure.Class.
+type ImageBuildFailureClass string
+
+// ImageBuildReason defines model for ImageBuild.Reason.
+type ImageBuildReason string
+
+// ImageBuildList defines model for ImageBuildList.
+type ImageBuildList struct {
+	Items []ImageBuild `json:"items"`
+}
+
+// ImageBuildState defines model for ImageBuildState.
+type ImageBuildState string
+
 // ImageExtraPackages defines model for ImageExtraPackages.
 type ImageExtraPackages struct {
 	Packages   []string `json:"packages"`
@@ -3415,6 +3864,9 @@ type ImageLayer struct {
 type ImageList struct {
 	Items []Image `json:"items"`
 }
+
+// ImagePushState defines model for ImagePushState.
+type ImagePushState string
 
 // ImageTool defines model for ImageTool.
 type ImageTool struct {
@@ -4482,6 +4934,206 @@ type RedeemSetupLinkRequest struct {
 	Code string `json:"code"`
 }
 
+// RegistryArch defines model for RegistryArch.
+type RegistryArch string
+
+// RegistryBudget defines model for RegistryBudget.
+type RegistryBudget struct {
+	Kind       RegistryImageKind `json:"kind"`
+	LimitBytes int64             `json:"limit_bytes"`
+	Over       bool              `json:"over"`
+
+	// SharedBytes Layers shared with the other kind, counted once against the oldest image's kind.
+	SharedBytes int64 `json:"shared_bytes"`
+	UsedBytes   int64 `json:"used_bytes"`
+}
+
+// RegistryBudgets defines model for RegistryBudgets.
+type RegistryBudgets struct {
+	Custom        RegistryBudget `json:"custom"`
+	FreeDiskBytes int64          `json:"free_disk_bytes"`
+
+	// MaxTotalBytes Half the free disk plus what the registry holds now; the two limits may not add up to more.
+	MaxTotalBytes int64          `json:"max_total_bytes"`
+	Standard      RegistryBudget `json:"standard"`
+}
+
+// RegistryBudgetsInput defines model for RegistryBudgetsInput.
+type RegistryBudgetsInput struct {
+	CustomBytes   int64 `json:"custom_bytes"`
+	StandardBytes int64 `json:"standard_bytes"`
+}
+
+// RegistryCleanup defines model for RegistryCleanup.
+type RegistryCleanup struct {
+	Error      *string                `json:"error,omitempty"`
+	FinishedAt *time.Time             `json:"finished_at,omitempty"`
+	FreedBytes int64                  `json:"freed_bytes"`
+	Id         int64                  `json:"id"`
+	StartedAt  time.Time              `json:"started_at"`
+	State      RegistryCleanupState   `json:"state"`
+	Trigger    RegistryCleanupTrigger `json:"trigger"`
+}
+
+// RegistryCleanupState defines model for RegistryCleanup.State.
+type RegistryCleanupState string
+
+// RegistryCleanupTrigger defines model for RegistryCleanup.Trigger.
+type RegistryCleanupTrigger string
+
+// RegistryCompare defines model for RegistryCompare.
+type RegistryCompare struct {
+	BaseChanged     bool                 `json:"base_changed"`
+	FreesBytes      int64                `json:"frees_bytes"`
+	KeepDaysDefault int                  `json:"keep_days_default"`
+	New             RegistryImageSummary `json:"new"`
+	Old             RegistryImageSummary `json:"old"`
+
+	// Repositories Repositories whose pointer would move.
+	Repositories []string                  `json:"repositories"`
+	SharedBytes  int64                     `json:"shared_bytes"`
+	StackFiles   []RegistryStackFileChange `json:"stack_files"`
+}
+
+// RegistryDecider owner waits for a yes; crsp acts alone on due_at.
+type RegistryDecider string
+
+// RegistryImage defines model for RegistryImage.
+type RegistryImage struct {
+	Arch       RegistryArch `json:"arch"`
+	BaseDigest *string      `json:"base_digest,omitempty"`
+	BaseName   *string      `json:"base_name,omitempty"`
+
+	// Branch Empty for the default branch.
+	Branch    *string    `json:"branch,omitempty"`
+	Commit    *string    `json:"commit,omitempty"`
+	Id        string     `json:"id"`
+	KeepUntil *time.Time `json:"keep_until,omitempty"`
+
+	// Key The image key, 12 hex; lists show the first 6. It is also the tag.
+	Key        string            `json:"key"`
+	Kind       RegistryImageKind `json:"kind"`
+	LastPullAt *time.Time        `json:"last_pull_at,omitempty"`
+	Layers     []RegistryLayer   `json:"layers"`
+
+	// Lineage The images of the same repository, profile and arch, newest first.
+	Lineage        []RegistryLineageEntry `json:"lineage"`
+	Machines       []RegistryImageMachine `json:"machines"`
+	ManifestDigest string                 `json:"manifest_digest"`
+
+	// Name crsp/std/<profile> or crsp/custom/<owner>-<repo>/<profile>.
+	Name       string            `json:"name"`
+	Pointers   []RegistryPointer `json:"pointers"`
+	Profile    string            `json:"profile"`
+	PromotedAt *time.Time        `json:"promoted_at,omitempty"`
+	Pulls7Days int               `json:"pulls_7_days"`
+
+	// PullsByDay 14 days, oldest first; every day present (0 when none).
+	PullsByDay []RegistryPullDay `json:"pulls_by_day"`
+
+	// PullsText The text form of the chart (UX-41).
+	PullsText *string   `json:"pulls_text,omitempty"`
+	PushedAt  time.Time `json:"pushed_at"`
+
+	// PushedBy Machine id.
+	PushedBy     *string           `json:"pushed_by,omitempty"`
+	ReplacedBy   *string           `json:"replaced_by,omitempty"`
+	Replaces     *string           `json:"replaces,omitempty"`
+	SavedSeconds *float32          `json:"saved_seconds,omitempty"`
+	Scan         *RegistryScan     `json:"scan,omitempty"`
+	ScanState    RegistryScanState `json:"scan_state"`
+
+	// Similar Images of the same profile and arch sharing over 60% of bytes. Information only; never offered for replace.
+	Similar *[]struct {
+		ImageId       string  `json:"image_id"`
+		SharedPercent float32 `json:"shared_percent"`
+	} `json:"similar,omitempty"`
+	SizeBytes        int64   `json:"size_bytes"`
+	SourceRepository *string `json:"source_repository,omitempty"`
+	StackHash        *string `json:"stack_hash,omitempty"`
+
+	// State registry R5.29. staged and refused are shown only on the image page.
+	State       RegistryImageState `json:"state"`
+	UniqueBytes int64              `json:"unique_bytes"`
+
+	// UpdateFound A newer image updates this one (an open replace recommendation).
+	UpdateFound *bool `json:"update_found,omitempty"`
+}
+
+// RegistryImageKind defines model for RegistryImageKind.
+type RegistryImageKind string
+
+// RegistryImageList defines model for RegistryImageList.
+type RegistryImageList struct {
+	Items []RegistryImageSummary `json:"items"`
+}
+
+// RegistryImageMachine defines model for RegistryImageMachine.
+type RegistryImageMachine struct {
+	// Holds The machine's engine has the image now (agent inventory).
+	Holds         bool       `json:"holds"`
+	InUseByRunner *bool      `json:"in_use_by_runner,omitempty"`
+	LastUsedAt    *time.Time `json:"last_used_at,omitempty"`
+	MachineId     string     `json:"machine_id"`
+	MachineName   string     `json:"machine_name"`
+}
+
+// RegistryImageState registry R5.29. staged and refused are shown only on the image page.
+type RegistryImageState string
+
+// RegistryImageSummary defines model for RegistryImageSummary.
+type RegistryImageSummary struct {
+	Arch RegistryArch `json:"arch"`
+
+	// Branch Empty for the default branch.
+	Branch    *string    `json:"branch,omitempty"`
+	Id        string     `json:"id"`
+	KeepUntil *time.Time `json:"keep_until,omitempty"`
+
+	// Key The image key, 12 hex; lists show the first 6. It is also the tag.
+	Key            string            `json:"key"`
+	Kind           RegistryImageKind `json:"kind"`
+	LastPullAt     *time.Time        `json:"last_pull_at,omitempty"`
+	ManifestDigest string            `json:"manifest_digest"`
+
+	// Name crsp/std/<profile> or crsp/custom/<owner>-<repo>/<profile>.
+	Name             string            `json:"name"`
+	Profile          string            `json:"profile"`
+	Pulls7Days       int               `json:"pulls_7_days"`
+	PushedAt         time.Time         `json:"pushed_at"`
+	ScanState        RegistryScanState `json:"scan_state"`
+	SizeBytes        int64             `json:"size_bytes"`
+	SourceRepository *string           `json:"source_repository,omitempty"`
+
+	// State registry R5.29. staged and refused are shown only on the image page.
+	State       RegistryImageState `json:"state"`
+	UniqueBytes int64              `json:"unique_bytes"`
+
+	// UpdateFound A newer image updates this one (an open replace recommendation).
+	UpdateFound *bool `json:"update_found,omitempty"`
+}
+
+// RegistryLayer defines model for RegistryLayer.
+type RegistryLayer struct {
+	Digest    string  `json:"digest"`
+	MediaType *string `json:"media_type,omitempty"`
+
+	// SharedWith How many other images hold this layer.
+	SharedWith int   `json:"shared_with"`
+	SizeBytes  int64 `json:"size_bytes"`
+}
+
+// RegistryLineageEntry defines model for RegistryLineageEntry.
+type RegistryLineageEntry struct {
+	Branch   *string   `json:"branch,omitempty"`
+	ImageId  string    `json:"image_id"`
+	Key      string    `json:"key"`
+	PushedAt time.Time `json:"pushed_at"`
+
+	// State registry R5.29. staged and refused are shown only on the image page.
+	State RegistryImageState `json:"state"`
+}
+
 // RegistryLogin defines model for RegistryLogin.
 type RegistryLogin struct {
 	Host     string            `json:"host"`
@@ -4505,10 +5157,235 @@ type RegistryLoginInput struct {
 // RegistryLoginInputKind defines model for RegistryLoginInput.Kind.
 type RegistryLoginInputKind string
 
+// RegistryMirrorSettings defines model for RegistryMirrorSettings.
+type RegistryMirrorSettings struct {
+	BudgetBytes int64  `json:"budget_bytes"`
+	Enabled     bool   `json:"enabled"`
+	Folder      string `json:"folder"`
+
+	// Path Where engines reach the mirror on the controller's listener.
+	Path              *string  `json:"path,omitempty"`
+	TagRecheckMinutes int      `json:"tag_recheck_minutes"`
+	Upstreams         []string `json:"upstreams"`
+	UsedBytes         int64    `json:"used_bytes"`
+}
+
+// RegistryMirrorSettingsInput defines model for RegistryMirrorSettingsInput.
+type RegistryMirrorSettingsInput struct {
+	BudgetBytes       int64    `json:"budget_bytes"`
+	Enabled           bool     `json:"enabled"`
+	Folder            *string  `json:"folder,omitempty"`
+	TagRecheckMinutes int      `json:"tag_recheck_minutes"`
+	Upstreams         []string `json:"upstreams"`
+}
+
+// RegistryOverview defines model for RegistryOverview.
+type RegistryOverview struct {
+	Budgets []RegistryBudget `json:"budgets"`
+	Images  struct {
+		Custom   int `json:"custom"`
+		Standard int `json:"standard"`
+	} `json:"images"`
+	InFlight struct {
+		Builds int `json:"builds"`
+		Pulls  int `json:"pulls"`
+		Pushes int `json:"pushes"`
+	} `json:"in_flight"`
+	Last7Days     RegistryWeek     `json:"last_7_days"`
+	LastCleanup   *RegistryCleanup `json:"last_cleanup,omitempty"`
+	NextCleanupAt *time.Time       `json:"next_cleanup_at,omitempty"`
+
+	// Recommendations Owner's-yes rules first, then crsp's by due date. None can be dismissed.
+	Recommendations []RegistryRecommendation `json:"recommendations"`
+	Where           RegistryWhere            `json:"where"`
+}
+
+// RegistryPointer defines model for RegistryPointer.
+type RegistryPointer struct {
+	Arch            RegistryArch `json:"arch"`
+	ImageId         string       `json:"image_id"`
+	MovedAt         time.Time    `json:"moved_at"`
+	MovedBy         string       `json:"moved_by"`
+	PreviousImageId *string      `json:"previous_image_id,omitempty"`
+	Profile         string       `json:"profile"`
+	Repository      string       `json:"repository"`
+}
+
+// RegistryPull defines model for RegistryPull.
+type RegistryPull struct {
+	BytesDone   int64   `json:"bytes_done"`
+	BytesTotal  int64   `json:"bytes_total"`
+	Error       *string `json:"error,omitempty"`
+	Id          string  `json:"id"`
+	ImageId     *string `json:"image_id,omitempty"`
+	Key         string  `json:"key"`
+	MachineId   string  `json:"machine_id"`
+	MachineName *string `json:"machine_name,omitempty"`
+	Repository  *string `json:"repository,omitempty"`
+
+	// SecondsLeft From the machine's measured pull speed; absent with no history.
+	SecondsLeft *float32           `json:"seconds_left,omitempty"`
+	Source      RegistryPullSource `json:"source"`
+	StartedAt   time.Time          `json:"started_at"`
+	State       RegistryPullState  `json:"state"`
+}
+
+// RegistryPullSource defines model for RegistryPull.Source.
+type RegistryPullSource string
+
+// RegistryPullState defines model for RegistryPull.State.
+type RegistryPullState string
+
+// RegistryPullDay defines model for RegistryPullDay.
+type RegistryPullDay struct {
+	Day   openapi_types.Date `json:"day"`
+	Pulls int                `json:"pulls"`
+}
+
+// RegistryPullList defines model for RegistryPullList.
+type RegistryPullList struct {
+	Items []RegistryPull `json:"items"`
+}
+
+// RegistryRecommendation defines model for RegistryRecommendation.
+type RegistryRecommendation struct {
+	CreatedAt time.Time `json:"created_at"`
+
+	// Decider owner waits for a yes; crsp acts alone on due_at.
+	Decider RegistryDecider `json:"decider"`
+
+	// DueAt When crsp acts alone, shown ahead. Absent when the owner decides.
+	DueAt      *time.Time         `json:"due_at,omitempty"`
+	FreesBytes int64              `json:"frees_bytes"`
+	Id         string             `json:"id"`
+	ImageId    *string            `json:"image_id,omitempty"`
+	Kind       *RegistryImageKind `json:"kind,omitempty"`
+
+	// OtherImageId For replace, the image the new one would replace.
+	OtherImageId *string      `json:"other_image_id,omitempty"`
+	Rule         RegistryRule `json:"rule"`
+}
+
+// RegistryReplacePlan defines model for RegistryReplacePlan.
+type RegistryReplacePlan struct {
+	CanRollback *bool      `json:"can_rollback,omitempty"`
+	CreatedAt   time.Time  `json:"created_at"`
+	CreatedBy   *string    `json:"created_by,omitempty"`
+	Error       *string    `json:"error,omitempty"`
+	FinishedAt  *time.Time `json:"finished_at,omitempty"`
+	FreesBytes  *int64     `json:"frees_bytes,omitempty"`
+	Id          string     `json:"id"`
+	KeepDays    int        `json:"keep_days"`
+	KeepUntil   *time.Time `json:"keep_until,omitempty"`
+
+	// Machines Machines that held the old image and are warmed with the new one.
+	Machines     []string                 `json:"machines"`
+	NewImage     RegistryImageSummary     `json:"new_image"`
+	OldImage     RegistryImageSummary     `json:"old_image"`
+	Repositories []string                 `json:"repositories"`
+	StartedAt    *time.Time               `json:"started_at,omitempty"`
+	State        RegistryReplacePlanState `json:"state"`
+
+	// StepText What runs now, in plain words.
+	StepText   *string `json:"step_text,omitempty"`
+	StepsDone  int     `json:"steps_done"`
+	StepsTotal int     `json:"steps_total"`
+}
+
+// RegistryReplacePlanInput defines model for RegistryReplacePlanInput.
+type RegistryReplacePlanInput struct {
+	KeepDays   int    `json:"keep_days"`
+	NewImageId string `json:"new_image_id"`
+}
+
+// RegistryReplacePlanState defines model for RegistryReplacePlanState.
+type RegistryReplacePlanState string
+
+// RegistryRule defines model for RegistryRule.
+type RegistryRule string
+
+// RegistryScan defines model for RegistryScan.
+type RegistryScan struct {
+	Critical  *int              `json:"critical,omitempty"`
+	Error     *string           `json:"error,omitempty"`
+	High      *int              `json:"high,omitempty"`
+	Low       *int              `json:"low,omitempty"`
+	Medium    *int              `json:"medium,omitempty"`
+	Packages  *int              `json:"packages,omitempty"`
+	ScannedAt *time.Time        `json:"scanned_at,omitempty"`
+	State     RegistryScanState `json:"state"`
+}
+
+// RegistryScanState defines model for RegistryScanState.
+type RegistryScanState string
+
 // RegistrySettings defines model for RegistrySettings.
 type RegistrySettings struct {
 	CaBundleSet bool            `json:"ca_bundle_set"`
 	Logins      []RegistryLogin `json:"logins"`
+}
+
+// RegistryStackFileChange defines model for RegistryStackFileChange.
+type RegistryStackFileChange struct {
+	AfterSha256  *string                       `json:"after_sha256,omitempty"`
+	BeforeSha256 *string                       `json:"before_sha256,omitempty"`
+	Change       RegistryStackFileChangeChange `json:"change"`
+	Path         string                        `json:"path"`
+}
+
+// RegistryStackFileChangeChange defines model for RegistryStackFileChange.Change.
+type RegistryStackFileChangeChange string
+
+// RegistryStoreSettings defines model for RegistryStoreSettings.
+type RegistryStoreSettings struct {
+	// AloneRules The rules crsp acts on without a yes (fixed by the owner).
+	AloneRules  *[]RegistryRule `json:"alone_rules,omitempty"`
+	CleanupHour int             `json:"cleanup_hour"`
+
+	// CleanupWeekday 0 is Sunday.
+	CleanupWeekday int    `json:"cleanup_weekday"`
+	Folder         string `json:"folder"`
+
+	// FolderPending A new folder waiting for the blobs to move.
+	FolderPending     *string `json:"folder_pending,omitempty"`
+	KeepOldDays       int     `json:"keep_old_days"`
+	UnusedDays        int     `json:"unused_days"`
+	VariantGoneDays   int     `json:"variant_gone_days"`
+	VariantUnusedDays int     `json:"variant_unused_days"`
+}
+
+// RegistryStoreSettingsInput defines model for RegistryStoreSettingsInput.
+type RegistryStoreSettingsInput struct {
+	CleanupHour       int    `json:"cleanup_hour"`
+	CleanupWeekday    int    `json:"cleanup_weekday"`
+	Folder            string `json:"folder"`
+	KeepOldDays       int    `json:"keep_old_days"`
+	UnusedDays        int    `json:"unused_days"`
+	VariantGoneDays   int    `json:"variant_gone_days"`
+	VariantUnusedDays int    `json:"variant_unused_days"`
+}
+
+// RegistryWeek defines model for RegistryWeek.
+type RegistryWeek struct {
+	BuildsAvoided int     `json:"builds_avoided"`
+	BytesPulled   int64   `json:"bytes_pulled"`
+	Pulls         int     `json:"pulls"`
+	SavedSeconds  float32 `json:"saved_seconds"`
+}
+
+// RegistryWhere defines model for RegistryWhere.
+type RegistryWhere struct {
+	Folder string `json:"folder"`
+
+	// Host host:port on the controller's HTTPS listener (private LAN address only).
+	Host string `json:"host"`
+
+	// ReadOnly True during the cleanup window; pulls keep working.
+	ReadOnly bool `json:"read_only"`
+	Running  bool `json:"running"`
+
+	// WhyNot Why it is not running, in plain words.
+	WhyNot *string `json:"why_not,omitempty"`
 }
 
 // RemoveRunnerLeftoversRequest defines model for RemoveRunnerLeftoversRequest.
@@ -5424,6 +6301,9 @@ type WebhookModeUpdateMode string
 // BackupId defines model for BackupId.
 type BackupId = string
 
+// BuildId defines model for BuildId.
+type BuildId = string
+
 // CacheId defines model for CacheId.
 type CacheId = string
 
@@ -5489,6 +6369,9 @@ type OAuthState = string
 
 // PlanId defines model for PlanId.
 type PlanId = string
+
+// RegistryImageId defines model for RegistryImageId.
+type RegistryImageId = string
 
 // RepositoryId defines model for RepositoryId.
 type RepositoryId = int64
@@ -5757,8 +6640,35 @@ type DeleteNotificationChannelParams struct {
 	Confirm *Confirm `form:"confirm,omitempty" json:"confirm,omitempty"`
 }
 
+// ListImageBuildsParams defines parameters for ListImageBuilds.
+type ListImageBuildsParams struct {
+	MachineId *string `form:"machine_id,omitempty" json:"machine_id,omitempty"`
+}
+
+// ListRegistryImagesParams defines parameters for ListRegistryImages.
+type ListRegistryImagesParams struct {
+	Kind  *RegistryImageKind  `form:"kind,omitempty" json:"kind,omitempty"`
+	State *RegistryImageState `form:"state,omitempty" json:"state,omitempty"`
+
+	// Repository owner/name; images it points to or that were built for it.
+	Repository *string       `form:"repository,omitempty" json:"repository,omitempty"`
+	Arch       *RegistryArch `form:"arch,omitempty" json:"arch,omitempty"`
+	Profile    *string       `form:"profile,omitempty" json:"profile,omitempty"`
+}
+
+// DeleteRegistryImageParams defines parameters for DeleteRegistryImage.
+type DeleteRegistryImageParams struct {
+	// Confirm The yes to a question card that named what goes (UX-62).
+	Confirm *Confirm `form:"confirm,omitempty" json:"confirm,omitempty"`
+}
+
 // DeleteRegistryLoginParamsKind defines parameters for DeleteRegistryLogin.
 type DeleteRegistryLoginParamsKind string
+
+// ListRegistryPullsParams defines parameters for ListRegistryPulls.
+type ListRegistryPullsParams struct {
+	MachineId *string `form:"machine_id,omitempty" json:"machine_id,omitempty"`
+}
 
 // ListRunnersParams defines parameters for ListRunners.
 type ListRunnersParams struct {
@@ -5921,11 +6831,23 @@ type CreateNotificationChannelJSONRequestBody = NotificationChannelInput
 // UpdateNotificationChannelJSONRequestBody defines body for UpdateNotificationChannel for application/json ContentType.
 type UpdateNotificationChannelJSONRequestBody = NotificationChannelUpdate
 
+// PutRegistryBudgetsJSONRequestBody defines body for PutRegistryBudgets for application/json ContentType.
+type PutRegistryBudgetsJSONRequestBody = RegistryBudgetsInput
+
 // PutRegistryCaBundleJSONRequestBody defines body for PutRegistryCaBundle for application/json ContentType.
 type PutRegistryCaBundleJSONRequestBody = CaBundleInput
 
 // PutRegistryLoginJSONRequestBody defines body for PutRegistryLogin for application/json ContentType.
 type PutRegistryLoginJSONRequestBody = RegistryLoginInput
+
+// PutRegistryMirrorSettingsJSONRequestBody defines body for PutRegistryMirrorSettings for application/json ContentType.
+type PutRegistryMirrorSettingsJSONRequestBody = RegistryMirrorSettingsInput
+
+// CreateRegistryReplacePlanJSONRequestBody defines body for CreateRegistryReplacePlan for application/json ContentType.
+type CreateRegistryReplacePlanJSONRequestBody = RegistryReplacePlanInput
+
+// PutRegistryStoreSettingsJSONRequestBody defines body for PutRegistryStoreSettings for application/json ContentType.
+type PutRegistryStoreSettingsJSONRequestBody = RegistryStoreSettingsInput
 
 // SetRepositoryExtraPackagesJSONRequestBody defines body for SetRepositoryExtraPackages for application/json ContentType.
 type SetRepositoryExtraPackagesJSONRequestBody = ExtraPackagesUpdate
@@ -6244,18 +7166,78 @@ type ServerInterface interface {
 	// GetRegistrySettings Registry logins per backend and whether a private CA bundle is set
 	// (GET /api/v1/registry)
 	GetRegistrySettings(w http.ResponseWriter, r *http.Request)
+	// GetRegistryBudgets Budgets of standard and custom images with their use and the free disk
+	// (GET /api/v1/registry/budgets)
+	GetRegistryBudgets(w http.ResponseWriter, r *http.Request)
+	// PutRegistryBudgets Set the two budgets
+	// (PUT /api/v1/registry/budgets)
+	PutRegistryBudgets(w http.ResponseWriter, r *http.Request)
+	// ListImageBuilds Image builds, the running ones first, with their push state
+	// (GET /api/v1/registry/builds)
+	ListImageBuilds(w http.ResponseWriter, r *http.Request, params ListImageBuildsParams)
+	// GetImageBuild One build with its steps and log tail
+	// (GET /api/v1/registry/builds/{buildId})
+	GetImageBuild(w http.ResponseWriter, r *http.Request, buildId BuildId)
 	// DeleteRegistryCaBundle Remove the private CA bundle
 	// (DELETE /api/v1/registry/ca-bundle)
 	DeleteRegistryCaBundle(w http.ResponseWriter, r *http.Request)
 	// PutRegistryCaBundle Set the private CA bundle that runners trust
 	// (PUT /api/v1/registry/ca-bundle)
 	PutRegistryCaBundle(w http.ResponseWriter, r *http.Request)
+	// StartRegistryCleanup Clean up now (read-only window, then garbage collection)
+	// (POST /api/v1/registry/cleanup)
+	StartRegistryCleanup(w http.ResponseWriter, r *http.Request)
+	// ListRegistryImages Images in the registry, newest first
+	// (GET /api/v1/registry/images)
+	ListRegistryImages(w http.ResponseWriter, r *http.Request, params ListRegistryImagesParams)
+	// DeleteRegistryImage Delete one image's manifest
+	// (DELETE /api/v1/registry/images/{registryImageId})
+	DeleteRegistryImage(w http.ResponseWriter, r *http.Request, registryImageId RegistryImageId, params DeleteRegistryImageParams)
+	// GetRegistryImage One image with lineage, layers, pulls by day, machines, pointers and scan
+	// (GET /api/v1/registry/images/{registryImageId})
+	GetRegistryImage(w http.ResponseWriter, r *http.Request, registryImageId RegistryImageId)
+	// CompareRegistryImage The image against the one it would replace
+	// (GET /api/v1/registry/images/{registryImageId}/compare)
+	CompareRegistryImage(w http.ResponseWriter, r *http.Request, registryImageId RegistryImageId)
 	// PutRegistryLogin Store a registry login for one backend kind
 	// (PUT /api/v1/registry/logins)
 	PutRegistryLogin(w http.ResponseWriter, r *http.Request)
 	// DeleteRegistryLogin Remove a registry login and its stored password
 	// (DELETE /api/v1/registry/logins/{kind}/{host})
 	DeleteRegistryLogin(w http.ResponseWriter, r *http.Request, kind DeleteRegistryLoginParamsKind, host string)
+	// GetRegistryMirrorSettings The pull-through mirror of upstream bases
+	// (GET /api/v1/registry/mirror)
+	GetRegistryMirrorSettings(w http.ResponseWriter, r *http.Request)
+	// PutRegistryMirrorSettings Turn the mirror on or off, its upstreams and budget
+	// (PUT /api/v1/registry/mirror)
+	PutRegistryMirrorSettings(w http.ResponseWriter, r *http.Request)
+	// GetRegistryOverview Where the registry runs, budgets, the last 7 days and the recommendations
+	// (GET /api/v1/registry/overview)
+	GetRegistryOverview(w http.ResponseWriter, r *http.Request)
+	// ListRegistryPulls Pulls in progress and waiting for the controller
+	// (GET /api/v1/registry/pulls)
+	ListRegistryPulls(w http.ResponseWriter, r *http.Request, params ListRegistryPullsParams)
+	// CreateRegistryReplacePlan Make a replace plan (nothing changes yet)
+	// (POST /api/v1/registry/replace-plans)
+	CreateRegistryReplacePlan(w http.ResponseWriter, r *http.Request)
+	// GetRegistryReplacePlan One replace plan with its progress
+	// (GET /api/v1/registry/replace-plans/{planId})
+	GetRegistryReplacePlan(w http.ResponseWriter, r *http.Request, planId PlanId)
+	// RollbackRegistryReplacePlan Go back to the old image while it is kept
+	// (POST /api/v1/registry/replace-plans/{planId}/rollback)
+	RollbackRegistryReplacePlan(w http.ResponseWriter, r *http.Request, planId PlanId)
+	// StartRegistryReplacePlan Replace (move the pointers, warm machines, keep the old image)
+	// (POST /api/v1/registry/replace-plans/{planId}/start)
+	StartRegistryReplacePlan(w http.ResponseWriter, r *http.Request, planId PlanId)
+	// StopRegistryReplacePlan Stop a running replace after its current step
+	// (POST /api/v1/registry/replace-plans/{planId}/stop)
+	StopRegistryReplacePlan(w http.ResponseWriter, r *http.Request, planId PlanId)
+	// GetRegistryStoreSettings Folder, days and cleanup time of the registry
+	// (GET /api/v1/registry/settings)
+	GetRegistryStoreSettings(w http.ResponseWriter, r *http.Request)
+	// PutRegistryStoreSettings Change the folder, the days or the cleanup time
+	// (PUT /api/v1/registry/settings)
+	PutRegistryStoreSettings(w http.ResponseWriter, r *http.Request)
 	// GetRepository One repository with its policy and variable status
 	// (GET /api/v1/repositories/{repositoryId})
 	GetRepository(w http.ResponseWriter, r *http.Request, repositoryId RepositoryId)
@@ -9294,6 +10276,93 @@ func (siw *ServerInterfaceWrapper) GetRegistrySettings(w http.ResponseWriter, r 
 	handler.ServeHTTP(w, r)
 }
 
+// GetRegistryBudgets operation middleware
+func (siw *ServerInterfaceWrapper) GetRegistryBudgets(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetRegistryBudgets(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PutRegistryBudgets operation middleware
+func (siw *ServerInterfaceWrapper) PutRegistryBudgets(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PutRegistryBudgets(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListImageBuilds operation middleware
+func (siw *ServerInterfaceWrapper) ListImageBuilds(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListImageBuildsParams
+
+	// ------------- Optional query parameter "machine_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "machine_id", r.URL.Query(), &params.MachineId, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "machine_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "machine_id", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListImageBuilds(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetImageBuild operation middleware
+func (siw *ServerInterfaceWrapper) GetImageBuild(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "buildId" -------------
+	var buildId BuildId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "buildId", r.PathValue("buildId"), &buildId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "buildId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetImageBuild(w, r, buildId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // DeleteRegistryCaBundle operation middleware
 func (siw *ServerInterfaceWrapper) DeleteRegistryCaBundle(w http.ResponseWriter, r *http.Request) {
 
@@ -9313,6 +10382,199 @@ func (siw *ServerInterfaceWrapper) PutRegistryCaBundle(w http.ResponseWriter, r 
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.PutRegistryCaBundle(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// StartRegistryCleanup operation middleware
+func (siw *ServerInterfaceWrapper) StartRegistryCleanup(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.StartRegistryCleanup(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListRegistryImages operation middleware
+func (siw *ServerInterfaceWrapper) ListRegistryImages(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListRegistryImagesParams
+
+	// ------------- Optional query parameter "kind" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "kind", r.URL.Query(), &params.Kind, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "kind"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "kind", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "state" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "state", r.URL.Query(), &params.State, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "state"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "state", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "repository" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "repository", r.URL.Query(), &params.Repository, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "repository"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "repository", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "arch" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "arch", r.URL.Query(), &params.Arch, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "arch"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "arch", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "profile" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "profile", r.URL.Query(), &params.Profile, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "profile"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "profile", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListRegistryImages(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteRegistryImage operation middleware
+func (siw *ServerInterfaceWrapper) DeleteRegistryImage(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "registryImageId" -------------
+	var registryImageId RegistryImageId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "registryImageId", r.PathValue("registryImageId"), &registryImageId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "registryImageId", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params DeleteRegistryImageParams
+
+	// ------------- Optional query parameter "confirm" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "confirm", r.URL.Query(), &params.Confirm, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "confirm"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "confirm", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteRegistryImage(w, r, registryImageId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetRegistryImage operation middleware
+func (siw *ServerInterfaceWrapper) GetRegistryImage(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "registryImageId" -------------
+	var registryImageId RegistryImageId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "registryImageId", r.PathValue("registryImageId"), &registryImageId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "registryImageId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetRegistryImage(w, r, registryImageId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CompareRegistryImage operation middleware
+func (siw *ServerInterfaceWrapper) CompareRegistryImage(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "registryImageId" -------------
+	var registryImageId RegistryImageId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "registryImageId", r.PathValue("registryImageId"), &registryImageId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "registryImageId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CompareRegistryImage(w, r, registryImageId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -9362,6 +10624,227 @@ func (siw *ServerInterfaceWrapper) DeleteRegistryLogin(w http.ResponseWriter, r 
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.DeleteRegistryLogin(w, r, kind, host)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetRegistryMirrorSettings operation middleware
+func (siw *ServerInterfaceWrapper) GetRegistryMirrorSettings(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetRegistryMirrorSettings(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PutRegistryMirrorSettings operation middleware
+func (siw *ServerInterfaceWrapper) PutRegistryMirrorSettings(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PutRegistryMirrorSettings(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetRegistryOverview operation middleware
+func (siw *ServerInterfaceWrapper) GetRegistryOverview(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetRegistryOverview(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListRegistryPulls operation middleware
+func (siw *ServerInterfaceWrapper) ListRegistryPulls(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListRegistryPullsParams
+
+	// ------------- Optional query parameter "machine_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "machine_id", r.URL.Query(), &params.MachineId, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "machine_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "machine_id", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListRegistryPulls(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateRegistryReplacePlan operation middleware
+func (siw *ServerInterfaceWrapper) CreateRegistryReplacePlan(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateRegistryReplacePlan(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetRegistryReplacePlan operation middleware
+func (siw *ServerInterfaceWrapper) GetRegistryReplacePlan(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "planId" -------------
+	var planId PlanId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "planId", r.PathValue("planId"), &planId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "planId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetRegistryReplacePlan(w, r, planId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RollbackRegistryReplacePlan operation middleware
+func (siw *ServerInterfaceWrapper) RollbackRegistryReplacePlan(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "planId" -------------
+	var planId PlanId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "planId", r.PathValue("planId"), &planId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "planId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RollbackRegistryReplacePlan(w, r, planId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// StartRegistryReplacePlan operation middleware
+func (siw *ServerInterfaceWrapper) StartRegistryReplacePlan(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "planId" -------------
+	var planId PlanId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "planId", r.PathValue("planId"), &planId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "planId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.StartRegistryReplacePlan(w, r, planId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// StopRegistryReplacePlan operation middleware
+func (siw *ServerInterfaceWrapper) StopRegistryReplacePlan(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "planId" -------------
+	var planId PlanId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "planId", r.PathValue("planId"), &planId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "planId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.StopRegistryReplacePlan(w, r, planId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetRegistryStoreSettings operation middleware
+func (siw *ServerInterfaceWrapper) GetRegistryStoreSettings(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetRegistryStoreSettings(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PutRegistryStoreSettings operation middleware
+func (siw *ServerInterfaceWrapper) PutRegistryStoreSettings(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PutRegistryStoreSettings(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -11191,6 +12674,26 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/images/{imageId}/rebuild", wrapper.RebuildImage)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/caches", wrapper.ListCaches)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/caches/{cacheId}/wipe", wrapper.WipeCache)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/registry/overview", wrapper.GetRegistryOverview)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/registry/images", wrapper.ListRegistryImages)
+	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/api/v1/registry/images/{registryImageId}", wrapper.DeleteRegistryImage)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/registry/images/{registryImageId}", wrapper.GetRegistryImage)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/registry/images/{registryImageId}/compare", wrapper.CompareRegistryImage)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/registry/budgets", wrapper.GetRegistryBudgets)
+	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/v1/registry/budgets", wrapper.PutRegistryBudgets)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/registry/settings", wrapper.GetRegistryStoreSettings)
+	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/v1/registry/settings", wrapper.PutRegistryStoreSettings)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/registry/cleanup", wrapper.StartRegistryCleanup)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/registry/replace-plans", wrapper.CreateRegistryReplacePlan)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/registry/replace-plans/{planId}", wrapper.GetRegistryReplacePlan)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/registry/replace-plans/{planId}/start", wrapper.StartRegistryReplacePlan)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/registry/replace-plans/{planId}/stop", wrapper.StopRegistryReplacePlan)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/registry/replace-plans/{planId}/rollback", wrapper.RollbackRegistryReplacePlan)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/registry/mirror", wrapper.GetRegistryMirrorSettings)
+	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/api/v1/registry/mirror", wrapper.PutRegistryMirrorSettings)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/registry/builds", wrapper.ListImageBuilds)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/registry/builds/{buildId}", wrapper.GetImageBuild)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/registry/pulls", wrapper.ListRegistryPulls)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/notification-channels", wrapper.ListNotificationChannels)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/notification-channels", wrapper.CreateNotificationChannel)
 	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/api/v1/notification-channels/{channelId}", wrapper.DeleteNotificationChannel)
@@ -14674,6 +16177,161 @@ func (response GetRegistrySettingsdefaultJSONResponse) VisitGetRegistrySettingsR
 	return err
 }
 
+type GetRegistryBudgetsRequestObject struct {
+}
+
+type GetRegistryBudgetsResponseObject interface {
+	VisitGetRegistryBudgetsResponse(w http.ResponseWriter) error
+}
+
+type GetRegistryBudgets200JSONResponse RegistryBudgets
+
+func (response GetRegistryBudgets200JSONResponse) VisitGetRegistryBudgetsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetRegistryBudgetsdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response GetRegistryBudgetsdefaultJSONResponse) VisitGetRegistryBudgetsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type PutRegistryBudgetsRequestObject struct {
+	Body *PutRegistryBudgetsJSONRequestBody
+}
+
+type PutRegistryBudgetsResponseObject interface {
+	VisitPutRegistryBudgetsResponse(w http.ResponseWriter) error
+}
+
+type PutRegistryBudgets200JSONResponse RegistryBudgets
+
+func (response PutRegistryBudgets200JSONResponse) VisitPutRegistryBudgetsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type PutRegistryBudgetsdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response PutRegistryBudgetsdefaultJSONResponse) VisitPutRegistryBudgetsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListImageBuildsRequestObject struct {
+	Params ListImageBuildsParams
+}
+
+type ListImageBuildsResponseObject interface {
+	VisitListImageBuildsResponse(w http.ResponseWriter) error
+}
+
+type ListImageBuilds200JSONResponse ImageBuildList
+
+func (response ListImageBuilds200JSONResponse) VisitListImageBuildsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListImageBuildsdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response ListImageBuildsdefaultJSONResponse) VisitListImageBuildsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetImageBuildRequestObject struct {
+	BuildId BuildId `json:"buildId"`
+}
+
+type GetImageBuildResponseObject interface {
+	VisitGetImageBuildResponse(w http.ResponseWriter) error
+}
+
+type GetImageBuild200JSONResponse ImageBuild
+
+func (response GetImageBuild200JSONResponse) VisitGetImageBuildResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetImageBuilddefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response GetImageBuilddefaultJSONResponse) VisitGetImageBuildResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type DeleteRegistryCaBundleRequestObject struct {
 }
 
@@ -14734,6 +16392,201 @@ type PutRegistryCaBundledefaultJSONResponse struct {
 }
 
 func (response PutRegistryCaBundledefaultJSONResponse) VisitPutRegistryCaBundleResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type StartRegistryCleanupRequestObject struct {
+}
+
+type StartRegistryCleanupResponseObject interface {
+	VisitStartRegistryCleanupResponse(w http.ResponseWriter) error
+}
+
+type StartRegistryCleanup202JSONResponse RegistryCleanup
+
+func (response StartRegistryCleanup202JSONResponse) VisitStartRegistryCleanupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(202)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type StartRegistryCleanupdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response StartRegistryCleanupdefaultJSONResponse) VisitStartRegistryCleanupResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListRegistryImagesRequestObject struct {
+	Params ListRegistryImagesParams
+}
+
+type ListRegistryImagesResponseObject interface {
+	VisitListRegistryImagesResponse(w http.ResponseWriter) error
+}
+
+type ListRegistryImages200JSONResponse RegistryImageList
+
+func (response ListRegistryImages200JSONResponse) VisitListRegistryImagesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListRegistryImagesdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response ListRegistryImagesdefaultJSONResponse) VisitListRegistryImagesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteRegistryImageRequestObject struct {
+	RegistryImageId RegistryImageId `json:"registryImageId"`
+	Params          DeleteRegistryImageParams
+}
+
+type DeleteRegistryImageResponseObject interface {
+	VisitDeleteRegistryImageResponse(w http.ResponseWriter) error
+}
+
+type DeleteRegistryImage202JSONResponse RegistryImage
+
+func (response DeleteRegistryImage202JSONResponse) VisitDeleteRegistryImageResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(202)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteRegistryImagedefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response DeleteRegistryImagedefaultJSONResponse) VisitDeleteRegistryImageResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetRegistryImageRequestObject struct {
+	RegistryImageId RegistryImageId `json:"registryImageId"`
+}
+
+type GetRegistryImageResponseObject interface {
+	VisitGetRegistryImageResponse(w http.ResponseWriter) error
+}
+
+type GetRegistryImage200JSONResponse RegistryImage
+
+func (response GetRegistryImage200JSONResponse) VisitGetRegistryImageResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetRegistryImagedefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response GetRegistryImagedefaultJSONResponse) VisitGetRegistryImageResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CompareRegistryImageRequestObject struct {
+	RegistryImageId RegistryImageId `json:"registryImageId"`
+}
+
+type CompareRegistryImageResponseObject interface {
+	VisitCompareRegistryImageResponse(w http.ResponseWriter) error
+}
+
+type CompareRegistryImage200JSONResponse RegistryCompare
+
+func (response CompareRegistryImage200JSONResponse) VisitCompareRegistryImageResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CompareRegistryImagedefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response CompareRegistryImagedefaultJSONResponse) VisitCompareRegistryImageResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
@@ -14807,6 +16660,432 @@ type DeleteRegistryLogindefaultJSONResponse struct {
 }
 
 func (response DeleteRegistryLogindefaultJSONResponse) VisitDeleteRegistryLoginResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetRegistryMirrorSettingsRequestObject struct {
+}
+
+type GetRegistryMirrorSettingsResponseObject interface {
+	VisitGetRegistryMirrorSettingsResponse(w http.ResponseWriter) error
+}
+
+type GetRegistryMirrorSettings200JSONResponse RegistryMirrorSettings
+
+func (response GetRegistryMirrorSettings200JSONResponse) VisitGetRegistryMirrorSettingsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetRegistryMirrorSettingsdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response GetRegistryMirrorSettingsdefaultJSONResponse) VisitGetRegistryMirrorSettingsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type PutRegistryMirrorSettingsRequestObject struct {
+	Body *PutRegistryMirrorSettingsJSONRequestBody
+}
+
+type PutRegistryMirrorSettingsResponseObject interface {
+	VisitPutRegistryMirrorSettingsResponse(w http.ResponseWriter) error
+}
+
+type PutRegistryMirrorSettings200JSONResponse RegistryMirrorSettings
+
+func (response PutRegistryMirrorSettings200JSONResponse) VisitPutRegistryMirrorSettingsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type PutRegistryMirrorSettingsdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response PutRegistryMirrorSettingsdefaultJSONResponse) VisitPutRegistryMirrorSettingsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetRegistryOverviewRequestObject struct {
+}
+
+type GetRegistryOverviewResponseObject interface {
+	VisitGetRegistryOverviewResponse(w http.ResponseWriter) error
+}
+
+type GetRegistryOverview200JSONResponse RegistryOverview
+
+func (response GetRegistryOverview200JSONResponse) VisitGetRegistryOverviewResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetRegistryOverviewdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response GetRegistryOverviewdefaultJSONResponse) VisitGetRegistryOverviewResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListRegistryPullsRequestObject struct {
+	Params ListRegistryPullsParams
+}
+
+type ListRegistryPullsResponseObject interface {
+	VisitListRegistryPullsResponse(w http.ResponseWriter) error
+}
+
+type ListRegistryPulls200JSONResponse RegistryPullList
+
+func (response ListRegistryPulls200JSONResponse) VisitListRegistryPullsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListRegistryPullsdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response ListRegistryPullsdefaultJSONResponse) VisitListRegistryPullsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateRegistryReplacePlanRequestObject struct {
+	Body *CreateRegistryReplacePlanJSONRequestBody
+}
+
+type CreateRegistryReplacePlanResponseObject interface {
+	VisitCreateRegistryReplacePlanResponse(w http.ResponseWriter) error
+}
+
+type CreateRegistryReplacePlan201JSONResponse RegistryReplacePlan
+
+func (response CreateRegistryReplacePlan201JSONResponse) VisitCreateRegistryReplacePlanResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateRegistryReplacePlandefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response CreateRegistryReplacePlandefaultJSONResponse) VisitCreateRegistryReplacePlanResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetRegistryReplacePlanRequestObject struct {
+	PlanId PlanId `json:"planId"`
+}
+
+type GetRegistryReplacePlanResponseObject interface {
+	VisitGetRegistryReplacePlanResponse(w http.ResponseWriter) error
+}
+
+type GetRegistryReplacePlan200JSONResponse RegistryReplacePlan
+
+func (response GetRegistryReplacePlan200JSONResponse) VisitGetRegistryReplacePlanResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetRegistryReplacePlandefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response GetRegistryReplacePlandefaultJSONResponse) VisitGetRegistryReplacePlanResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RollbackRegistryReplacePlanRequestObject struct {
+	PlanId PlanId `json:"planId"`
+}
+
+type RollbackRegistryReplacePlanResponseObject interface {
+	VisitRollbackRegistryReplacePlanResponse(w http.ResponseWriter) error
+}
+
+type RollbackRegistryReplacePlan202JSONResponse RegistryReplacePlan
+
+func (response RollbackRegistryReplacePlan202JSONResponse) VisitRollbackRegistryReplacePlanResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(202)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RollbackRegistryReplacePlandefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response RollbackRegistryReplacePlandefaultJSONResponse) VisitRollbackRegistryReplacePlanResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type StartRegistryReplacePlanRequestObject struct {
+	PlanId PlanId `json:"planId"`
+}
+
+type StartRegistryReplacePlanResponseObject interface {
+	VisitStartRegistryReplacePlanResponse(w http.ResponseWriter) error
+}
+
+type StartRegistryReplacePlan202JSONResponse RegistryReplacePlan
+
+func (response StartRegistryReplacePlan202JSONResponse) VisitStartRegistryReplacePlanResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(202)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type StartRegistryReplacePlandefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response StartRegistryReplacePlandefaultJSONResponse) VisitStartRegistryReplacePlanResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type StopRegistryReplacePlanRequestObject struct {
+	PlanId PlanId `json:"planId"`
+}
+
+type StopRegistryReplacePlanResponseObject interface {
+	VisitStopRegistryReplacePlanResponse(w http.ResponseWriter) error
+}
+
+type StopRegistryReplacePlan202JSONResponse RegistryReplacePlan
+
+func (response StopRegistryReplacePlan202JSONResponse) VisitStopRegistryReplacePlanResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(202)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type StopRegistryReplacePlandefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response StopRegistryReplacePlandefaultJSONResponse) VisitStopRegistryReplacePlanResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetRegistryStoreSettingsRequestObject struct {
+}
+
+type GetRegistryStoreSettingsResponseObject interface {
+	VisitGetRegistryStoreSettingsResponse(w http.ResponseWriter) error
+}
+
+type GetRegistryStoreSettings200JSONResponse RegistryStoreSettings
+
+func (response GetRegistryStoreSettings200JSONResponse) VisitGetRegistryStoreSettingsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetRegistryStoreSettingsdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response GetRegistryStoreSettingsdefaultJSONResponse) VisitGetRegistryStoreSettingsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type PutRegistryStoreSettingsRequestObject struct {
+	Body *PutRegistryStoreSettingsJSONRequestBody
+}
+
+type PutRegistryStoreSettingsResponseObject interface {
+	VisitPutRegistryStoreSettingsResponse(w http.ResponseWriter) error
+}
+
+type PutRegistryStoreSettings200JSONResponse RegistryStoreSettings
+
+func (response PutRegistryStoreSettings200JSONResponse) VisitPutRegistryStoreSettingsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type PutRegistryStoreSettingsdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response PutRegistryStoreSettingsdefaultJSONResponse) VisitPutRegistryStoreSettingsResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
@@ -17239,18 +19518,78 @@ type StrictServerInterface interface {
 	// GetRegistrySettings Registry logins per backend and whether a private CA bundle is set
 	// (GET /api/v1/registry)
 	GetRegistrySettings(ctx context.Context, request GetRegistrySettingsRequestObject) (GetRegistrySettingsResponseObject, error)
+	// GetRegistryBudgets Budgets of standard and custom images with their use and the free disk
+	// (GET /api/v1/registry/budgets)
+	GetRegistryBudgets(ctx context.Context, request GetRegistryBudgetsRequestObject) (GetRegistryBudgetsResponseObject, error)
+	// PutRegistryBudgets Set the two budgets
+	// (PUT /api/v1/registry/budgets)
+	PutRegistryBudgets(ctx context.Context, request PutRegistryBudgetsRequestObject) (PutRegistryBudgetsResponseObject, error)
+	// ListImageBuilds Image builds, the running ones first, with their push state
+	// (GET /api/v1/registry/builds)
+	ListImageBuilds(ctx context.Context, request ListImageBuildsRequestObject) (ListImageBuildsResponseObject, error)
+	// GetImageBuild One build with its steps and log tail
+	// (GET /api/v1/registry/builds/{buildId})
+	GetImageBuild(ctx context.Context, request GetImageBuildRequestObject) (GetImageBuildResponseObject, error)
 	// DeleteRegistryCaBundle Remove the private CA bundle
 	// (DELETE /api/v1/registry/ca-bundle)
 	DeleteRegistryCaBundle(ctx context.Context, request DeleteRegistryCaBundleRequestObject) (DeleteRegistryCaBundleResponseObject, error)
 	// PutRegistryCaBundle Set the private CA bundle that runners trust
 	// (PUT /api/v1/registry/ca-bundle)
 	PutRegistryCaBundle(ctx context.Context, request PutRegistryCaBundleRequestObject) (PutRegistryCaBundleResponseObject, error)
+	// StartRegistryCleanup Clean up now (read-only window, then garbage collection)
+	// (POST /api/v1/registry/cleanup)
+	StartRegistryCleanup(ctx context.Context, request StartRegistryCleanupRequestObject) (StartRegistryCleanupResponseObject, error)
+	// ListRegistryImages Images in the registry, newest first
+	// (GET /api/v1/registry/images)
+	ListRegistryImages(ctx context.Context, request ListRegistryImagesRequestObject) (ListRegistryImagesResponseObject, error)
+	// DeleteRegistryImage Delete one image's manifest
+	// (DELETE /api/v1/registry/images/{registryImageId})
+	DeleteRegistryImage(ctx context.Context, request DeleteRegistryImageRequestObject) (DeleteRegistryImageResponseObject, error)
+	// GetRegistryImage One image with lineage, layers, pulls by day, machines, pointers and scan
+	// (GET /api/v1/registry/images/{registryImageId})
+	GetRegistryImage(ctx context.Context, request GetRegistryImageRequestObject) (GetRegistryImageResponseObject, error)
+	// CompareRegistryImage The image against the one it would replace
+	// (GET /api/v1/registry/images/{registryImageId}/compare)
+	CompareRegistryImage(ctx context.Context, request CompareRegistryImageRequestObject) (CompareRegistryImageResponseObject, error)
 	// PutRegistryLogin Store a registry login for one backend kind
 	// (PUT /api/v1/registry/logins)
 	PutRegistryLogin(ctx context.Context, request PutRegistryLoginRequestObject) (PutRegistryLoginResponseObject, error)
 	// DeleteRegistryLogin Remove a registry login and its stored password
 	// (DELETE /api/v1/registry/logins/{kind}/{host})
 	DeleteRegistryLogin(ctx context.Context, request DeleteRegistryLoginRequestObject) (DeleteRegistryLoginResponseObject, error)
+	// GetRegistryMirrorSettings The pull-through mirror of upstream bases
+	// (GET /api/v1/registry/mirror)
+	GetRegistryMirrorSettings(ctx context.Context, request GetRegistryMirrorSettingsRequestObject) (GetRegistryMirrorSettingsResponseObject, error)
+	// PutRegistryMirrorSettings Turn the mirror on or off, its upstreams and budget
+	// (PUT /api/v1/registry/mirror)
+	PutRegistryMirrorSettings(ctx context.Context, request PutRegistryMirrorSettingsRequestObject) (PutRegistryMirrorSettingsResponseObject, error)
+	// GetRegistryOverview Where the registry runs, budgets, the last 7 days and the recommendations
+	// (GET /api/v1/registry/overview)
+	GetRegistryOverview(ctx context.Context, request GetRegistryOverviewRequestObject) (GetRegistryOverviewResponseObject, error)
+	// ListRegistryPulls Pulls in progress and waiting for the controller
+	// (GET /api/v1/registry/pulls)
+	ListRegistryPulls(ctx context.Context, request ListRegistryPullsRequestObject) (ListRegistryPullsResponseObject, error)
+	// CreateRegistryReplacePlan Make a replace plan (nothing changes yet)
+	// (POST /api/v1/registry/replace-plans)
+	CreateRegistryReplacePlan(ctx context.Context, request CreateRegistryReplacePlanRequestObject) (CreateRegistryReplacePlanResponseObject, error)
+	// GetRegistryReplacePlan One replace plan with its progress
+	// (GET /api/v1/registry/replace-plans/{planId})
+	GetRegistryReplacePlan(ctx context.Context, request GetRegistryReplacePlanRequestObject) (GetRegistryReplacePlanResponseObject, error)
+	// RollbackRegistryReplacePlan Go back to the old image while it is kept
+	// (POST /api/v1/registry/replace-plans/{planId}/rollback)
+	RollbackRegistryReplacePlan(ctx context.Context, request RollbackRegistryReplacePlanRequestObject) (RollbackRegistryReplacePlanResponseObject, error)
+	// StartRegistryReplacePlan Replace (move the pointers, warm machines, keep the old image)
+	// (POST /api/v1/registry/replace-plans/{planId}/start)
+	StartRegistryReplacePlan(ctx context.Context, request StartRegistryReplacePlanRequestObject) (StartRegistryReplacePlanResponseObject, error)
+	// StopRegistryReplacePlan Stop a running replace after its current step
+	// (POST /api/v1/registry/replace-plans/{planId}/stop)
+	StopRegistryReplacePlan(ctx context.Context, request StopRegistryReplacePlanRequestObject) (StopRegistryReplacePlanResponseObject, error)
+	// GetRegistryStoreSettings Folder, days and cleanup time of the registry
+	// (GET /api/v1/registry/settings)
+	GetRegistryStoreSettings(ctx context.Context, request GetRegistryStoreSettingsRequestObject) (GetRegistryStoreSettingsResponseObject, error)
+	// PutRegistryStoreSettings Change the folder, the days or the cleanup time
+	// (PUT /api/v1/registry/settings)
+	PutRegistryStoreSettings(ctx context.Context, request PutRegistryStoreSettingsRequestObject) (PutRegistryStoreSettingsResponseObject, error)
 	// GetRepository One repository with its policy and variable status
 	// (GET /api/v1/repositories/{repositoryId})
 	GetRepository(ctx context.Context, request GetRepositoryRequestObject) (GetRepositoryResponseObject, error)
@@ -19742,6 +22081,113 @@ func (sh *strictHandler) GetRegistrySettings(w http.ResponseWriter, r *http.Requ
 	}
 }
 
+// GetRegistryBudgets operation middleware
+func (sh *strictHandler) GetRegistryBudgets(w http.ResponseWriter, r *http.Request) {
+	var request GetRegistryBudgetsRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetRegistryBudgets(ctx, request.(GetRegistryBudgetsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetRegistryBudgets")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetRegistryBudgetsResponseObject); ok {
+		if err := validResponse.VisitGetRegistryBudgetsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// PutRegistryBudgets operation middleware
+func (sh *strictHandler) PutRegistryBudgets(w http.ResponseWriter, r *http.Request) {
+	var request PutRegistryBudgetsRequestObject
+
+	var body PutRegistryBudgetsJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.PutRegistryBudgets(ctx, request.(PutRegistryBudgetsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "PutRegistryBudgets")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(PutRegistryBudgetsResponseObject); ok {
+		if err := validResponse.VisitPutRegistryBudgetsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListImageBuilds operation middleware
+func (sh *strictHandler) ListImageBuilds(w http.ResponseWriter, r *http.Request, params ListImageBuildsParams) {
+	var request ListImageBuildsRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListImageBuilds(ctx, request.(ListImageBuildsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListImageBuilds")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListImageBuildsResponseObject); ok {
+		if err := validResponse.VisitListImageBuildsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetImageBuild operation middleware
+func (sh *strictHandler) GetImageBuild(w http.ResponseWriter, r *http.Request, buildId BuildId) {
+	var request GetImageBuildRequestObject
+
+	request.BuildId = buildId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetImageBuild(ctx, request.(GetImageBuildRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetImageBuild")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetImageBuildResponseObject); ok {
+		if err := validResponse.VisitGetImageBuildResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // DeleteRegistryCaBundle operation middleware
 func (sh *strictHandler) DeleteRegistryCaBundle(w http.ResponseWriter, r *http.Request) {
 	var request DeleteRegistryCaBundleRequestObject
@@ -19790,6 +22236,135 @@ func (sh *strictHandler) PutRegistryCaBundle(w http.ResponseWriter, r *http.Requ
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(PutRegistryCaBundleResponseObject); ok {
 		if err := validResponse.VisitPutRegistryCaBundleResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// StartRegistryCleanup operation middleware
+func (sh *strictHandler) StartRegistryCleanup(w http.ResponseWriter, r *http.Request) {
+	var request StartRegistryCleanupRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.StartRegistryCleanup(ctx, request.(StartRegistryCleanupRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "StartRegistryCleanup")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(StartRegistryCleanupResponseObject); ok {
+		if err := validResponse.VisitStartRegistryCleanupResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListRegistryImages operation middleware
+func (sh *strictHandler) ListRegistryImages(w http.ResponseWriter, r *http.Request, params ListRegistryImagesParams) {
+	var request ListRegistryImagesRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListRegistryImages(ctx, request.(ListRegistryImagesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListRegistryImages")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListRegistryImagesResponseObject); ok {
+		if err := validResponse.VisitListRegistryImagesResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// DeleteRegistryImage operation middleware
+func (sh *strictHandler) DeleteRegistryImage(w http.ResponseWriter, r *http.Request, registryImageId RegistryImageId, params DeleteRegistryImageParams) {
+	var request DeleteRegistryImageRequestObject
+
+	request.RegistryImageId = registryImageId
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteRegistryImage(ctx, request.(DeleteRegistryImageRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteRegistryImage")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(DeleteRegistryImageResponseObject); ok {
+		if err := validResponse.VisitDeleteRegistryImageResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetRegistryImage operation middleware
+func (sh *strictHandler) GetRegistryImage(w http.ResponseWriter, r *http.Request, registryImageId RegistryImageId) {
+	var request GetRegistryImageRequestObject
+
+	request.RegistryImageId = registryImageId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetRegistryImage(ctx, request.(GetRegistryImageRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetRegistryImage")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetRegistryImageResponseObject); ok {
+		if err := validResponse.VisitGetRegistryImageResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CompareRegistryImage operation middleware
+func (sh *strictHandler) CompareRegistryImage(w http.ResponseWriter, r *http.Request, registryImageId RegistryImageId) {
+	var request CompareRegistryImageRequestObject
+
+	request.RegistryImageId = registryImageId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CompareRegistryImage(ctx, request.(CompareRegistryImageRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CompareRegistryImage")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CompareRegistryImageResponseObject); ok {
+		if err := validResponse.VisitCompareRegistryImageResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
@@ -19848,6 +22423,301 @@ func (sh *strictHandler) DeleteRegistryLogin(w http.ResponseWriter, r *http.Requ
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(DeleteRegistryLoginResponseObject); ok {
 		if err := validResponse.VisitDeleteRegistryLoginResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetRegistryMirrorSettings operation middleware
+func (sh *strictHandler) GetRegistryMirrorSettings(w http.ResponseWriter, r *http.Request) {
+	var request GetRegistryMirrorSettingsRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetRegistryMirrorSettings(ctx, request.(GetRegistryMirrorSettingsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetRegistryMirrorSettings")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetRegistryMirrorSettingsResponseObject); ok {
+		if err := validResponse.VisitGetRegistryMirrorSettingsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// PutRegistryMirrorSettings operation middleware
+func (sh *strictHandler) PutRegistryMirrorSettings(w http.ResponseWriter, r *http.Request) {
+	var request PutRegistryMirrorSettingsRequestObject
+
+	var body PutRegistryMirrorSettingsJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.PutRegistryMirrorSettings(ctx, request.(PutRegistryMirrorSettingsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "PutRegistryMirrorSettings")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(PutRegistryMirrorSettingsResponseObject); ok {
+		if err := validResponse.VisitPutRegistryMirrorSettingsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetRegistryOverview operation middleware
+func (sh *strictHandler) GetRegistryOverview(w http.ResponseWriter, r *http.Request) {
+	var request GetRegistryOverviewRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetRegistryOverview(ctx, request.(GetRegistryOverviewRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetRegistryOverview")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetRegistryOverviewResponseObject); ok {
+		if err := validResponse.VisitGetRegistryOverviewResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListRegistryPulls operation middleware
+func (sh *strictHandler) ListRegistryPulls(w http.ResponseWriter, r *http.Request, params ListRegistryPullsParams) {
+	var request ListRegistryPullsRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListRegistryPulls(ctx, request.(ListRegistryPullsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListRegistryPulls")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListRegistryPullsResponseObject); ok {
+		if err := validResponse.VisitListRegistryPullsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CreateRegistryReplacePlan operation middleware
+func (sh *strictHandler) CreateRegistryReplacePlan(w http.ResponseWriter, r *http.Request) {
+	var request CreateRegistryReplacePlanRequestObject
+
+	var body CreateRegistryReplacePlanJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateRegistryReplacePlan(ctx, request.(CreateRegistryReplacePlanRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateRegistryReplacePlan")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreateRegistryReplacePlanResponseObject); ok {
+		if err := validResponse.VisitCreateRegistryReplacePlanResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetRegistryReplacePlan operation middleware
+func (sh *strictHandler) GetRegistryReplacePlan(w http.ResponseWriter, r *http.Request, planId PlanId) {
+	var request GetRegistryReplacePlanRequestObject
+
+	request.PlanId = planId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetRegistryReplacePlan(ctx, request.(GetRegistryReplacePlanRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetRegistryReplacePlan")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetRegistryReplacePlanResponseObject); ok {
+		if err := validResponse.VisitGetRegistryReplacePlanResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// RollbackRegistryReplacePlan operation middleware
+func (sh *strictHandler) RollbackRegistryReplacePlan(w http.ResponseWriter, r *http.Request, planId PlanId) {
+	var request RollbackRegistryReplacePlanRequestObject
+
+	request.PlanId = planId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.RollbackRegistryReplacePlan(ctx, request.(RollbackRegistryReplacePlanRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "RollbackRegistryReplacePlan")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(RollbackRegistryReplacePlanResponseObject); ok {
+		if err := validResponse.VisitRollbackRegistryReplacePlanResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// StartRegistryReplacePlan operation middleware
+func (sh *strictHandler) StartRegistryReplacePlan(w http.ResponseWriter, r *http.Request, planId PlanId) {
+	var request StartRegistryReplacePlanRequestObject
+
+	request.PlanId = planId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.StartRegistryReplacePlan(ctx, request.(StartRegistryReplacePlanRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "StartRegistryReplacePlan")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(StartRegistryReplacePlanResponseObject); ok {
+		if err := validResponse.VisitStartRegistryReplacePlanResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// StopRegistryReplacePlan operation middleware
+func (sh *strictHandler) StopRegistryReplacePlan(w http.ResponseWriter, r *http.Request, planId PlanId) {
+	var request StopRegistryReplacePlanRequestObject
+
+	request.PlanId = planId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.StopRegistryReplacePlan(ctx, request.(StopRegistryReplacePlanRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "StopRegistryReplacePlan")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(StopRegistryReplacePlanResponseObject); ok {
+		if err := validResponse.VisitStopRegistryReplacePlanResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetRegistryStoreSettings operation middleware
+func (sh *strictHandler) GetRegistryStoreSettings(w http.ResponseWriter, r *http.Request) {
+	var request GetRegistryStoreSettingsRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetRegistryStoreSettings(ctx, request.(GetRegistryStoreSettingsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetRegistryStoreSettings")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetRegistryStoreSettingsResponseObject); ok {
+		if err := validResponse.VisitGetRegistryStoreSettingsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// PutRegistryStoreSettings operation middleware
+func (sh *strictHandler) PutRegistryStoreSettings(w http.ResponseWriter, r *http.Request) {
+	var request PutRegistryStoreSettingsRequestObject
+
+	var body PutRegistryStoreSettingsJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.PutRegistryStoreSettings(ctx, request.(PutRegistryStoreSettingsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "PutRegistryStoreSettings")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(PutRegistryStoreSettingsResponseObject); ok {
+		if err := validResponse.VisitPutRegistryStoreSettingsResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

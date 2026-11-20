@@ -3,7 +3,31 @@
 // Order: what the bar says (the selection count, or the unsaved changes) on the left, the secondary actions
 // (Cancel, Back) next, the one primary action on the right. On a phone the bar is full width and the buttons
 // stack at equal width with the primary on top. A screen draws at most one bar and one primary (UX-4).
-import type { ReactNode } from 'react';
+import {
+  createContext,
+  useContext,
+  useId,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
+import { createPortal } from 'react-dom';
+
+/**
+ * The place in the main column where the bar is drawn (RES21 T1). `Frame` provides it: the bar is then a direct
+ * child of the main column, so it sticks to the window and not to a wrapper that ends above the page foot.
+ * `slot` is null until the frame has mounted. Outside a frame there is no value and the bar draws in place.
+ */
+export const ActionBarSlotContext = createContext<{ slot: HTMLElement | null } | null>(
+  null,
+);
+
+/**
+ * The form a bar was written inside. The bar is drawn elsewhere in the page (its slot), so a submit button in it
+ * names its form with the `form` attribute: Enter in a field and the button still send that form.
+ */
+export const FormOwnerContext = createContext<string | undefined>(undefined);
 
 export interface ActionBarProps {
   /** What the bar says about the work: "2 selected", "Unsaved changes (3)". */
@@ -25,7 +49,17 @@ export function ActionBar({
   label = 'Actions',
   sticky = true,
 }: ActionBarProps) {
-  return (
+  const host = useContext(ActionBarSlotContext);
+  const anchor = useRef<HTMLSpanElement>(null);
+  const fallbackId = useId();
+  const [formId, setFormId] = useState<string | undefined>(undefined);
+  useLayoutEffect(() => {
+    const form = anchor.current?.closest('form');
+    if (!form) return;
+    if (!form.id) form.id = fallbackId;
+    setFormId(form.id);
+  }, [fallbackId]);
+  const bar = (
     <div
       className="ds-action-bar"
       role="region"
@@ -47,6 +81,18 @@ export function ActionBar({
         {primary}
       </div>
     </div>
+  );
+  if (!host || !sticky) return bar;
+  return (
+    <>
+      <span ref={anchor} hidden />
+      {host.slot
+        ? createPortal(
+            <FormOwnerContext.Provider value={formId}>{bar}</FormOwnerContext.Provider>,
+            host.slot,
+          )
+        : null}
+    </>
   );
 }
 

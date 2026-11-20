@@ -152,3 +152,38 @@ func TestRESTWorkflowFetch(t *testing.T) {
 		t.Fatalf("missing file: %v", err)
 	}
 }
+
+func TestRESTListBlobsAt(t *testing.T) { // IMG2, registry R5.73
+	e := newEnv(t)
+	ctx := context.Background()
+	e.fake.AddInstall(10, "alice", "User")
+	e.fake.AddRepo(100, 10, "alice", "demo", true)
+	e.fake.SetWorkflow("alice/demo", "go.mod", "module x\n")
+	e.fake.SetWorkflow("alice/demo", "sub/package.json", "{}")
+	got, err := e.client.ListBlobsAt(ctx, 10, "alice", "demo", "0123456789abcdef0123456789abcdef01234567")
+	if err != nil || len(got) != 2 || got[0].Path != "go.mod" || got[0].Size != 9 || len(got[0].SHA) != 40 || got[1].Path != "sub/package.json" {
+		t.Fatalf("%+v %v", got, err)
+	}
+	e.fake.TreeTruncated = true
+	if _, err := e.client.ListBlobsAt(ctx, 10, "alice", "demo", "abc"); !errors.Is(err, ErrTreeTruncated) {
+		t.Fatalf("truncated: %v", err)
+	}
+}
+
+func TestRESTListBlobsAtHeldBackOnLowBudget(t *testing.T) { // IMG2, registry R5.75, R6.6
+	e := newEnv(t)
+	e.fake.AddInstall(10, "alice", "User")
+	e.fake.AddRepo(100, 10, "alice", "demo", true)
+	ctx := context.Background()
+	if _, err := e.client.ListBlobsAt(ctx, 10, "alice", "demo", "abc"); err != nil {
+		t.Fatal(err)
+	}
+	e.fake.Lock(func() { e.fake.RateRemaining = 2000 })
+	if _, err := e.client.ListBlobsAt(ctx, 10, "alice", "demo", "abc"); err != nil {
+		t.Fatal(err) // records the budget
+	}
+	var rl *RateLimitError
+	if _, err := e.client.ListBlobsAt(Background(ctx), 10, "alice", "demo", "abc"); !errors.As(err, &rl) {
+		t.Fatalf("want RateLimitError: %v", err)
+	}
+}

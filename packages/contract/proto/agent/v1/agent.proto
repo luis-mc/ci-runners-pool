@@ -31,6 +31,12 @@ enum ProtocolVersion {
   // Version 2 adds UpdateRunnerFiles (HND15). An agent that sends version 1 or
   // no `runner_swap` in its MachineReport never gets that message.
   PROTOCOL_VERSION_2 = 2;
+  // Version 3 adds the image registry calls (REG10, docs/features/registry
+  // R5.20): EnsureImage, RegistryTokenRequest, PushReport and PullReport from
+  // the agent, EnsureImageAnswer and RegistryToken from the controller. An
+  // agent asks only when the controller's HelloAck says version 3 or more; the
+  // controller answers only an agent whose MachineReport says `registry`.
+  PROTOCOL_VERSION_3 = 3;
 }
 
 // AgentService is the link from an agent to its controller.
@@ -109,6 +115,13 @@ message SessionRequest {
     RunnerClean runner_clean = 24;
     // The answer to ScanRunnerLeftovers and RemoveRunnerLeftovers (OPS33).
     RunnerLeftoversReport runner_leftovers_report = 25;
+    // Protocol version 3, the image registry (REG10).
+    EnsureImage ensure_image = 26;
+    RegistryTokenRequest registry_token_request = 27;
+    PushReport push_report = 28;
+    PullReport pull_report = 29;
+    // IMG1: the life of one image build (R5.68, R5.69). Protocol version 3.
+    BuildReport build_report = 30;
   }
 }
 
@@ -144,6 +157,9 @@ message SessionResponse {
     // The controller sends them only when the machine's report says `runner_leftovers`.
     ScanRunnerLeftovers scan_runner_leftovers = 26;
     RemoveRunnerLeftovers remove_runner_leftovers = 27;
+    // Protocol version 3, the image registry (REG10).
+    EnsureImageAnswer ensure_image_answer = 28;
+    RegistryToken registry_grant = 29;
   }
 }
 
@@ -847,6 +863,8 @@ message MachineReport {
   repeated RunnerServiceReport runner_services = 13;
   // True when this agent understands ScanRunnerLeftovers and RemoveRunnerLeftovers (OPS33).
   bool runner_leftovers = 14;
+  // True when this agent understands the registry calls (protocol version 3, REG10).
+  bool registry = 15;
 }
 
 // ---------------------------------------------------------------- runner leftovers (OPS33)
@@ -1061,4 +1079,170 @@ message AcceptingReport {
   string cpu_cap_detail = 7;
   // When a timed pause from the tray ends; 0 when none or until resumed.
   int64 pause_until_unix_ms = 8;
+}
+
+// ---------------------------------------------------------------- image registry (REG10, protocol version 3)
+//
+// docs/features/registry R5.20. The agent asks; the controller answers with the
+// same request_id. A request the controller cannot answer now gets
+// `busy`; a controller that is offline gets nothing, and the job WAITS for it
+// (owner decision): the agent builds only on a clear `not_found`.
+
+// EnsureImage asks: does the registry have key K for arch A?
+message EnsureImage {
+  string request_id = 1;
+  // The image key, 12 lowercase hex characters (registry R5.21).
+  string key = 2;
+  // amd64 or arm64.
+  string arch = 3;
+  // The canonical JSON the key hashes, so the controller can check it and
+  // record the inputs. Never secret.
+  string key_input_json = 4;
+  // The repository and job that need it, for the pull record; may be empty.
+  string repository = 5;
+  string job_id = 6;
+}
+
+// EnsureImageAnswer is the controller's answer.
+message EnsureImageAnswer {
+  string request_id = 1;
+  enum Outcome {
+    OUTCOME_UNSPECIFIED = 0;
+    // The registry has it: pull `name@manifest_digest`.
+    OUTCOME_FOUND = 1;
+    // Not in the registry: build locally, then push to staging.
+    OUTCOME_NOT_FOUND = 2;
+    // The controller answers but cannot look now (read-only window, store
+    // busy): ask again after retry_after_ms. Never build on this answer.
+    OUTCOME_BUSY = 3;
+  }
+  Outcome outcome = 2;
+  // Full reference without host, e.g. crsp/std/node-web. Set with FOUND.
+  string name = 3;
+  // sha256:<64 hex>. The agent pulls by this digest and refuses any other.
+  string manifest_digest = 4;
+  int64 size_bytes = 5;
+  int64 retry_after_ms = 6;
+  // Where to push after a local build, set with NOT_FOUND:
+  // crsp/incoming/<machine id>/... and the target it is promoted to.
+  string staging_name = 7;
+  string target_name = 8;
+  // host:port of the registry on the controller's HTTPS listener.
+  string registry_host = 9;
+}
+
+// RegistryTokenRequest asks for a registry token for a pull or a push.
+message RegistryTokenRequest {
+  string request_id = 1;
+  enum Action {
+    ACTION_UNSPECIFIED = 0;
+    ACTION_PULL = 1;
+    ACTION_PUSH = 2;
+  }
+  Action action = 2;
+  // Repository names. A push names only crsp/incoming/<own machine id>/...
+  repeated string names = 3;
+}
+
+// RegistryToken is a 10-minute token (registry R5.10). The agent gives it to
+// the engine once on standard input or in a temporary DOCKER_CONFIG folder it
+// deletes after the call; it is never logged, stored or given to a job.
+message RegistryToken {
+  string request_id = 1;
+  string token = 2;
+  int64 expires_at_unix_ms = 3;
+  // Set when the controller refuses: the reason in plain words.
+  string refused = 4;
+}
+
+// PushReport tells the controller about a push to staging. The controller
+// checks and promotes on state PUSHED (registry R5.5) and answers nothing;
+// the outcome shows in the next EnsureImageAnswer and in the console.
+message PushReport {
+  string push_id = 1;
+  string key = 2;
+  string arch = 3;
+  string staging_name = 4;
+  string target_name = 5;
+  string manifest_digest = 6;
+  enum State {
+    STATE_UNSPECIFIED = 0;
+    STATE_PUSHING = 1;
+    STATE_WAITING_CONTROLLER = 2;
+    STATE_PUSHED = 3;
+    STATE_FAILED = 4;
+  }
+  State state = 7;
+  int64 bytes_done = 8;
+  int64 bytes_total = 9;
+  double seconds = 10;
+  string error = 11;
+  string key_input_json = 12;
+  string repository = 13;
+  string commit_sha = 14;
+  string branch = 15;
+  // The IMG1 build record this push follows, if any.
+  string build_id = 16;
+}
+
+// BuildReport tells the controller about one image build of the agent: it
+// begins, moves from step to step and ends (registry R5.68, R5.69). The agent
+// chooses build_id; the controller keeps its own record id and maps the two.
+// The controller answers nothing; a lost report only leaves the record short.
+message BuildReport {
+  string build_id = 1;
+  enum Phase {
+    PHASE_UNSPECIFIED = 0;
+    PHASE_BEGIN = 1;
+    PHASE_PROGRESS = 2;
+    PHASE_END = 3;
+  }
+  Phase phase = 2;
+  // PHASE_BEGIN: what is built and why.
+  string profile = 3;
+  string arch = 4;
+  string key = 5;
+  string reason = 6;
+  // PHASE_PROGRESS: the step now running.
+  int32 step = 7;
+  int32 total = 8;
+  string step_name = 9;
+  // PHASE_END: done, failed or cancelled, and what to show of a failure.
+  string state = 10;
+  int64 size_bytes = 11;
+  string failure_step = 12;
+  string failure_class = 13;
+  string failure_why = 14;
+  string log_tail = 15;
+}
+
+// PullReport tells the controller how the machine got an image and how a pull
+// goes. Sent at start, about every 2 seconds while bytes move, and at the end.
+message PullReport {
+  string pull_id = 1;
+  string key = 2;
+  string arch = 3;
+  string manifest_digest = 4;
+  enum Source {
+    SOURCE_UNSPECIFIED = 0;
+    SOURCE_LOCAL = 1;
+    SOURCE_PULLED = 2;
+    SOURCE_BUILT = 3;
+  }
+  Source source = 5;
+  enum State {
+    STATE_UNSPECIFIED = 0;
+    STATE_PULLING = 1;
+    STATE_WAITING_CONTROLLER = 2;
+    STATE_DONE = 3;
+    STATE_FAILED = 4;
+  }
+  State state = 6;
+  int64 bytes_done = 7;
+  int64 bytes_total = 8;
+  double seconds = 9;
+  string repository = 10;
+  string job_id = 11;
+  string error = 12;
+  int64 at_unix_ms = 13;
 }

@@ -11,6 +11,7 @@ import (
 	"github.com/luis-mc/ci-runners-shared-pool/internal/dockercompact"
 	agentv1 "github.com/luis-mc/ci-runners-shared-pool/internal/gen/agent/v1"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/machines"
+	enginemirror "github.com/luis-mc/ci-runners-shared-pool/internal/registry/mirror/engineconf"
 )
 
 // Host maintenance (cli R5.29, HND24). The controller sends RunHostCommand to a
@@ -70,6 +71,10 @@ func (l *link) runHostCommand(ctx context.Context, m *agentv1.RunHostCommand) {
 	defer cancel()
 	if argv[0] == dockercompact.Command {
 		l.runDockerCompact(runCtx, id)
+		return
+	}
+	if argv[0] == enginemirror.Command {
+		l.runEngineMirror(id, argv[1:], l.cfg.engineMirrorPaths())
 		return
 	}
 	out := &tailBuffer{max: MaxHostOutput}

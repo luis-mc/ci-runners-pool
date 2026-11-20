@@ -36,6 +36,7 @@ import { useSession } from '../../auth/session';
 import { useLiveStore, useVersion } from '../../live/LiveProvider';
 import { TIMING } from '../../timing';
 import { Ask, Load } from '../common';
+import { RegistryTab } from '../registry/RegistryTab';
 import { cacheName, imageTitle, missingOf, wipingLabel } from './labels';
 
 type Cache = Schemas['Cache'];
@@ -43,13 +44,15 @@ type Cache = Schemas['Cache'];
 const TABS = [
   { id: 'images', label: 'Images' },
   { id: 'caches', label: 'Caches' },
+  { id: 'registry', label: 'Registry' },
 ] as const;
 
 export function ImagesAndCaches() {
   const [params, setParams] = useSearchParams();
   const navigate = useNavigate();
   const session = useSession();
-  const tab = params.get('tab') === 'caches' ? 'caches' : 'images';
+  const raw = params.get('tab');
+  const tab = raw === 'caches' || raw === 'registry' ? raw : 'images';
   const client = useClient();
   const mv = useVersion('machines');
   const { result: machines } = useLoad(
@@ -74,10 +77,12 @@ export function ImagesAndCaches() {
         label="Images and caches"
         tabs={TABS}
         current={tab}
-        onChange={(id) => setParams(id === 'caches' ? { tab: 'caches' } : {})}
+        onChange={(id) => setParams(id === 'images' ? {} : { tab: id })}
       />
-      {tab === 'images' ? <ImagesTab nameOf={nameOf} /> : <CachesTab nameOf={nameOf} />}
-      {session.can('admin') ? (
+      {tab === 'images' ? <ImagesTab nameOf={nameOf} /> : null}
+      {tab === 'caches' ? <CachesTab nameOf={nameOf} /> : null}
+      {tab === 'registry' ? <RegistryTab /> : null}
+      {session.can('admin') && tab !== 'registry' ? (
         <ActionBar
           primary={
             <Button kind="primary" onPress={() => void navigate('/pool/runners/add')}>

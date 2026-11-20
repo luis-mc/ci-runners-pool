@@ -2,6 +2,7 @@ package container
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -10,6 +11,8 @@ import (
 	"time"
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backend"
+	agentv1 "github.com/luis-mc/ci-runners-shared-pool/internal/gen/agent/v1"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/registry/builds"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/runners"
 )
 
@@ -37,14 +40,63 @@ func (b *Backend) PrepareImage(ctx context.Context, spec backend.ImageSpec) (bac
 	if spec.OS != "" && spec.OS != "linux" {
 		return backend.ImageRef{}, fmt.Errorf("the container backend builds Linux images only, not %s", spec.OS)
 	}
-	key := b.KeyFor(spec)
+	req := b.registryRequest(spec)
+	key := req.Key
 	tag := ImageTag(key)
+	ctl := b.controller()
 	if mb, ok, err := b.imageSize(ctx, tag); err != nil {
 		return backend.ImageRef{}, err
 	} else if ok {
 		b.log("prepare image", "image "+key+" is there; not built again")
+		if ctl != nil {
+			b.pullReport(ctl, nextID("pull"), req, "", agentv1.PullReport_SOURCE_LOCAL, agentv1.PullReport_STATE_DONE, 0, 0, 0, "")
+		}
 		return backend.ImageRef{ID: tag, SizeMB: mb}, nil
 	}
+	// Not here: ask the controller (registry R5.13). A controller that does
+	// not answer is waited for; the build is only for a clear "not found".
+	var stage *agentv1.EnsureImageAnswer
+	if ctl != nil {
+		ans, err := b.ask(ctx, ctl, req)
+		if err != nil {
+			return backend.ImageRef{}, err
+		}
+		if ans.GetOutcome() == agentv1.EnsureImageAnswer_OUTCOME_FOUND {
+			perr := b.pull(ctx, ctl, req, ans, tag)
+			if perr == nil {
+				if mb, ok, err := b.imageSize(ctx, tag); err == nil && ok {
+					return backend.ImageRef{ID: tag, SizeMB: mb}, nil
+				}
+				perr = errors.New("the pulled image cannot be read")
+			}
+			if ctx.Err() != nil {
+				return backend.ImageRef{}, ctx.Err()
+			}
+			b.log("prepare image", "The pull from the registry failed ("+b.redact(perr.Error())+"); building the image here instead")
+		} else {
+			if ans.GetOutcome() == agentv1.EnsureImageAnswer_OUTCOME_NOT_FOUND {
+				// The controller said the registry has no such image (R5.71).
+				m := builds.MetaFrom(ctx)
+				m.Reason = "not_in_registry"
+				ctx = builds.WithMeta(ctx, m)
+			}
+			if ans.GetStagingName() != "" {
+				stage = ans
+			}
+		}
+	}
+	// One build per machine at a time (decision D20): a second asker waits, then
+	// finds the image built by the first.
+	release, err := b.buildGate.Acquire(ctx)
+	if err != nil {
+		return backend.ImageRef{}, err
+	}
+	defer release()
+	if mb, ok, err := b.imageSize(ctx, tag); err == nil && ok {
+		b.log("prepare image", "image "+key+" was built while this one waited")
+		return backend.ImageRef{ID: tag, SizeMB: mb}, nil
+	}
+	buildStart := b.now()
 	dockerfile, buildContext := b.cfg.Dockerfile, b.cfg.BuildContext
 	if dockerfile == "" || buildContext == "" {
 		if b.cfg.Assets == nil {
@@ -60,14 +112,18 @@ func (b *Backend) PrepareImage(ctx context.Context, spec backend.ImageSpec) (bac
 	}
 	layers := strings.Join(runners.NormalizeLayers(spec.Layers), ",")
 	b.log("prepare image", "building image "+key+" with layers ["+layers+"]")
-	if err := b.step(ctx, "build", []string{"build", "-t", tag,
+	args := []string{"build", "-t", tag,
 		"--label", LabelImage + "=" + key, "--label", labelLayers + "=" + layers, "--label", labelOS + "=linux",
-		"--build-arg", "CRSP_LAYERS=" + layers, "--build-arg", "EXTRA_PACKAGES=" + strings.Join(runners.NormalizeLayers(spec.Extras), " "), "-f", dockerfile, buildContext}, ""); err != nil {
+		"--build-arg", "CRSP_LAYERS=" + layers, "--build-arg", "EXTRA_PACKAGES=" + strings.Join(runners.NormalizeLayers(spec.Extras), " "), "-f", dockerfile, buildContext}
+	mb, err := b.streamBuild(ctx, spec, key, args)
+	if err != nil {
 		return backend.ImageRef{}, err
 	}
-	mb, ok, err := b.imageSize(ctx, tag)
-	if err != nil || !ok {
-		return backend.ImageRef{}, fmt.Errorf("the image %s was built but cannot be read: %v", key, err)
+	if ctl != nil {
+		b.pullReport(ctl, nextID("pull"), req, "", agentv1.PullReport_SOURCE_BUILT, agentv1.PullReport_STATE_DONE, 0, 0, b.now().Sub(buildStart).Seconds(), "")
+		if stage != nil {
+			b.pushAsync(ctx, ctl, req, stage, tag, b.now().Sub(buildStart))
+		}
 	}
 	return backend.ImageRef{ID: tag, SizeMB: mb}, nil
 }

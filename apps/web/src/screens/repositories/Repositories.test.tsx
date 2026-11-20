@@ -28,6 +28,13 @@ function withRepos(api: MockApi, items = [repository(), on]): MockApi {
   return api.on('GET', '/api/v1/github/repositories', page(items));
 }
 
+/** The repository page draws its title while it loads (RES21 B18): wait for the data, not for the title. */
+async function repoHeading(name: string) {
+  const heading = await screen.findByRole('heading', { level: 1, name });
+  await waitFor(() => expect(screen.queryByText(/Loading the repository/)).toBeNull());
+  return heading;
+}
+
 describe('Repositories list', () => {
   it('shows four columns, and limits and variable status as a muted line under the name (LOOK29)', async () => {
     renderApp(withRepos(signedIn()), '/repositories');
@@ -281,9 +288,7 @@ describe('Repository detail', () => {
 
   it('shows state, variables and the policy form', async () => {
     renderApp(api(), '/repositories/octo/site');
-    expect(
-      await screen.findByRole('heading', { level: 1, name: 'octo/site' }),
-    ).toBeTruthy();
+    expect(await repoHeading('octo/site')).toBeTruthy();
     expect(screen.getByText('RUNS_ON_LINUX')).toBeTruthy();
     expect(screen.getByRole('textbox', { name: 'Labels' })).toBeTruthy();
   });
@@ -291,7 +296,7 @@ describe('Repository detail', () => {
   it('asks first before jobs from public forks are turned on (UX-9)', async () => {
     const a = api().on('PATCH', '/api/v1/repositories/:id/policy', on.policy);
     renderApp(a, '/repositories/octo/app');
-    await screen.findByRole('heading', { name: 'octo/app' });
+    await repoHeading('octo/app');
     fireEvent.click(screen.getByRole('checkbox', { name: 'Run jobs from public forks' }));
     expect(
       screen.getByText(/Jobs from public forks run code you did not write/),
@@ -351,7 +356,7 @@ describe('Repository detail', () => {
       withRepos(signedIn(), [wait]).on('GET', '/api/v1/repositories/:id', wait),
       '/repositories/octo/app',
     );
-    await screen.findByRole('heading', { name: 'octo/app' });
+    await repoHeading('octo/app');
     expect(
       screen.getByText('No crsp machine for Linux is up. Jobs wait for one.'),
     ).toBeTruthy();
@@ -362,7 +367,7 @@ describe('Repository detail', () => {
   it('asks first before the hosted fallback is turned on (UX-9, R5.42)', async () => {
     const a = api().on('PATCH', '/api/v1/repositories/:id/policy', on.policy);
     renderApp(a, '/repositories/octo/app');
-    await screen.findByRole('heading', { name: 'octo/app' });
+    await repoHeading('octo/app');
     fireEvent.click(screen.getByRole('radio', { name: 'Run on GitHub-hosted runners' }));
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
     const dialog = await screen.findByRole('dialog', {
@@ -388,21 +393,21 @@ describe('Repository detail', () => {
       withRepos(signedIn(), [pub]).on('GET', '/api/v1/repositories/:id', pub),
       '/repositories/octo/app',
     );
-    await screen.findByRole('heading', { name: 'octo/app' });
+    await repoHeading('octo/app');
     const r = screen.getByRole('radio', { name: /Run on GitHub-hosted runners/ });
     expect((r as HTMLInputElement).disabled).toBe(true);
   });
 
   it('has no light runner setting in the policy form (OPS49)', async () => {
     renderApp(api(), '/repositories/octo/app');
-    await screen.findByRole('heading', { name: 'octo/app' });
+    await repoHeading('octo/app');
     expect(screen.queryByRole('checkbox', { name: /light runner/i })).toBeNull();
     expect(screen.queryByText(/RUNS_ON_LIGHT/)).toBeNull();
   });
 
   it('shows every mistake above its box and in a list after Save (UX-21)', async () => {
     renderApp(api(), '/repositories/octo/app');
-    await screen.findByRole('heading', { name: 'octo/app' });
+    await repoHeading('octo/app');
     fireEvent.change(screen.getByRole('textbox', { name: 'Labels' }), {
       target: { value: '' },
     });
@@ -427,7 +432,7 @@ describe('Repository detail', () => {
         text: 'zlib1g-dev',
       });
     renderApp(a, '/repositories/octo/app');
-    await screen.findByRole('heading', { name: 'octo/app' });
+    await repoHeading('octo/app');
     const box = screen.getByRole<HTMLTextAreaElement>('textbox', {
       name: /Extra packages/,
     });
@@ -447,7 +452,7 @@ describe('Repository detail', () => {
       text: '',
     });
     renderApp(a, '/repositories/octo/app');
-    await screen.findByRole('heading', { name: 'octo/app' });
+    await repoHeading('octo/app');
     fireEvent.change(screen.getByRole('textbox', { name: /Extra packages/ }), {
       target: { value: 'zlib1g-dev\n# a note\n-evil' },
     });
@@ -465,7 +470,7 @@ describe('Repository detail', () => {
       apiError(400, 'invalid', 'line 1: "a b" is not a package name'),
     );
     renderApp(a, '/repositories/octo/app');
-    await screen.findByRole('heading', { name: 'octo/app' });
+    await repoHeading('octo/app');
     fireEvent.change(screen.getByRole('textbox', { name: /Extra packages/ }), {
       target: { value: 'ok-name' },
     });
@@ -496,7 +501,7 @@ describe('Repository detail', () => {
       repository(),
     );
     renderApp(a, '/repositories/octo/app');
-    await screen.findByRole('heading', { name: 'octo/app' });
+    await repoHeading('octo/app');
     expect(screen.getByRole<HTMLButtonElement>('button', { name: 'Save' }).disabled).toBe(
       true,
     );
@@ -612,7 +617,7 @@ describe('Webhook health (RES14)', () => {
       healthy,
     );
     renderApp(a, '/repositories/octo/fine');
-    await screen.findByRole('heading', { name: 'octo/fine' });
+    await repoHeading('octo/fine');
     expect(screen.queryByText(/now polls GitHub/)).toBeNull();
     expect(screen.getByText('Last webhook delivery')).toBeTruthy();
   });
@@ -648,7 +653,7 @@ describe('A repository that left the installation (github-integration R5.22)', (
       repository(),
     );
     renderApp(a, '/repositories/octo/app');
-    await screen.findByRole('heading', { level: 1, name: 'octo/app' });
+    await repoHeading('octo/app');
     expect(screen.queryByText(reason)).toBeNull();
   });
 });

@@ -71,6 +71,8 @@ type Options struct {
 	Live LiveService
 	// Doctor serves the doctor routes (handlers_doctor.go). Nil answers 501.
 	Doctor DoctorService
+	// RegistryMirror serves the pull-through mirror settings routes (handlers_registry_reg9.go). Nil answers 501.
+	RegistryMirror RegistryMirrorService
 	// Caches serves the caches routes (handlers_caches.go). Nil answers 501.
 	Caches CachesService
 	// Notify serves the notification channel routes (handlers_notify.go). Nil answers 501.
@@ -78,8 +80,19 @@ type Options struct {
 	// EnvSets serves the environment set routes and the merged runner
 	// environment (handlers_envsets.go). Nil answers 501.
 	EnvSets *envsets.Service
+	// RegistryReplace serves compare, replace plans and rollback of pool registry images
+	// (handlers_registry_reg7.go). Nil answers 501.
+	RegistryReplace RegistryReplaceService
+	// Builds serves the image build records (handlers_registry_img1.go). Nil answers 501.
+	Builds BuildsService
 	// Registry serves the registry login and CA bundle routes. Nil answers 501.
 	Registry *regcreds.Store
+	// RegistryRetention serves the registry budgets, store settings, image delete and
+	// cleanup routes (handlers_registry_reg6.go). Nil answers 501.
+	RegistryRetention RegistryRetentionService
+	// RegistryRead serves the pool registry read routes: overview, images, image page, pulls (handlers_registry_reg4.go,
+	// registry R5.33 to R5.36). Nil answers 501.
+	RegistryRead RegistryReadService
 	// Compare serves the speed comparison route (handlers_compare.go). Nil answers 501.
 	Compare CompareService
 	// Trial serves the trial mode routes (handlers_trial.go). Nil answers 501.

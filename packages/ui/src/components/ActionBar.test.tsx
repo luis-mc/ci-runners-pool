@@ -51,3 +51,70 @@ describe('ActionBar', () => {
     expect(unsavedStatus(3)).toBe('Unsaved changes (3)');
   });
 });
+
+describe('ActionBar in a Frame (RES21 T1)', () => {
+  it('is a direct child of the main column, whatever wrapper holds it', async () => {
+    const { Frame } = await import('./Shell');
+    const { MemoryRouter } = await import('react-router-dom');
+    render(
+      <MemoryRouter>
+        <Frame header={<header />} menu={<nav />}>
+          <div>
+            <div>
+              <ActionBar primary={<Button kind="primary">Save</Button>} />
+            </div>
+          </div>
+        </Frame>
+      </MemoryRouter>,
+    );
+    const bar = await screen.findByRole('region', { name: 'Actions' });
+    expect(bar.parentElement?.className).toBe('ds-bar-slot');
+    expect(bar.parentElement?.parentElement?.id).toBe('main');
+  });
+
+  it('stays in the flow when it is not sticky', async () => {
+    const { Frame } = await import('./Shell');
+    const { MemoryRouter } = await import('react-router-dom');
+    render(
+      <MemoryRouter>
+        <Frame header={<header />} menu={<nav />}>
+          <section data-testid="wrap">
+            <ActionBar sticky={false} primary={<Button>Next</Button>} />
+          </section>
+        </Frame>
+      </MemoryRouter>,
+    );
+    const bar = screen.getByRole('region', { name: 'Actions' });
+    expect(bar.parentElement?.dataset.testid).toBe('wrap');
+  });
+
+  it('a submit button in the bar still sends the form it was written in', async () => {
+    const { Frame } = await import('./Shell');
+    const { MemoryRouter } = await import('react-router-dom');
+    let sent = 0;
+    render(
+      <MemoryRouter>
+        <Frame header={<header />} menu={<nav />}>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              sent += 1;
+            }}
+          >
+            <input aria-label="Name" />
+            <ActionBar
+              primary={
+                <Button kind="primary" submit>
+                  Save
+                </Button>
+              }
+            />
+          </form>
+        </Frame>
+      </MemoryRouter>,
+    );
+    const { fireEvent } = await import('@testing-library/react');
+    fireEvent.click(await screen.findByRole('button', { name: 'Save' }));
+    expect(sent).toBe(1);
+  });
+});

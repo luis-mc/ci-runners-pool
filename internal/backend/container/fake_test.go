@@ -32,6 +32,13 @@ type fakeDocker struct {
 	inspectFail string
 	engineDown  bool // `docker version` fails: the engine does not answer
 	now         time.Time
+	// registry
+	pullFail    int      // the next n pulls fail
+	pullBadSum  string   // the digest a pull really gets, when not the asked one
+	pushFail    int      // the next n pushes fail
+	pullLines   []string // output lines of a pull, given to a streaming caller
+	repoDigests map[string]string
+	pulledSize  int64
 }
 
 type fakeC struct {
@@ -73,6 +80,19 @@ func (c cmdAdapter) Run(_ context.Context, cmd sys.Command) (sys.Result, error) 
 	return c.f.handle(cmd), nil
 }
 
+// RunStream is Run that also hands the pull's output lines to onLine.
+func (c cmdAdapter) RunStream(_ context.Context, cmd sys.Command, onLine func(string)) (sys.Result, error) {
+	res := c.f.handle(cmd)
+	for _, a := range cmd.Args {
+		if a == "pull" && res.ExitCode == 0 {
+			for _, l := range c.f.pullLines {
+				onLine(l)
+			}
+		}
+	}
+	return res, nil
+}
+
 func ok0() sys.Result              { return sys.Result{} }
 func fail1(m string) sys.Result    { return sys.Result{ExitCode: 1, Stderr: m} }
 func (f *fakeDocker) text() string { return strings.Join(f.calls, "\n") }
@@ -93,6 +113,9 @@ func (f *fakeDocker) handle(cmd sys.Command) sys.Result {
 	f.calls = append(f.calls, "docker "+strings.Join(cmd.Args, " "))
 	f.stdins = append(f.stdins, cmd.Stdin)
 	a := cmd.Args
+	if a[0] == "--config" { // the token folder of a registry call
+		a = a[2:]
+	}
 	switch a[0] {
 	case "version":
 		if f.engineDown {
@@ -160,6 +183,39 @@ func (f *fakeDocker) handle(cmd sys.Command) sys.Result {
 	case "rmi":
 		delete(f.images, a[1])
 		return ok0()
+	case "pull":
+		if f.pullFail > 0 {
+			f.pullFail--
+			return fail1("error pulling image: connection reset")
+		}
+		ref := a[1]
+		_, digest, _ := strings.Cut(ref, "@")
+		if f.pullBadSum != "" {
+			digest = f.pullBadSum
+		}
+		size := f.pulledSize
+		if size == 0 {
+			size = 3400 << 20
+		}
+		f.images[ref] = fakeImg{size: size, layers: "", at: f.now}
+		if f.repoDigests == nil {
+			f.repoDigests = map[string]string{}
+		}
+		f.repoDigests[ref] = strings.SplitN(ref, "@", 2)[0] + "@" + digest
+		return sys.Result{Stdout: "Digest: " + digest + "\n"}
+	case "tag":
+		im, ok := f.images[a[1]]
+		if !ok {
+			return fail1("Error: No such image: " + a[1])
+		}
+		f.images[a[2]] = im
+		return ok0()
+	case "push":
+		if f.pushFail > 0 {
+			f.pushFail--
+			return fail1("denied: requested access to the resource is denied")
+		}
+		return sys.Result{Stdout: "k: digest: sha256:" + strings.Repeat("c", 64) + " size: 1234\n"}
 	}
 	return fail1("unknown call " + a[0])
 }
@@ -298,6 +354,9 @@ func (f *fakeDocker) image(a []string) sys.Result {
 			return fail1("Error: No such image: " + tag)
 		}
 		format := a[3]
+		if strings.Contains(format, "RepoDigests") {
+			return sys.Result{Stdout: f.repoDigests[tag] + " "}
+		}
 		if strings.Contains(format, "|") {
 			return sys.Result{Stdout: fmt.Sprintf("%d|%s|%s\n", im.size, im.at.Format(time.RFC3339Nano), im.layers)}
 		}
