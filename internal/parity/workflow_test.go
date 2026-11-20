@@ -149,10 +149,12 @@ func TestParityWorkflowActionsArePinnedToACommit(t *testing.T) { // dev standard
 
 func TestParityWorkflowHasTheTriggersAndNoWritePermission(t *testing.T) { // operations R5.85
 	wf, raw := loadParityWorkflow(t)
-	for _, k := range []string{"workflow_dispatch", "schedule"} {
-		if _, ok := wf.On[k]; !ok {
-			t.Errorf("trigger %s is missing", k)
-		}
+	// CRSP209: no schedule. The nightly run waited 293 min for a label nobody carried and failed 7 times.
+	if _, ok := wf.On["workflow_dispatch"]; !ok {
+		t.Error("trigger workflow_dispatch is missing")
+	}
+	if _, ok := wf.On["schedule"]; ok {
+		t.Error("the workflow has no schedule (CRSP209)")
 	}
 	if !regexp.MustCompile(`(?m)^permissions:\r?\n  contents: read\r?\n`).MatchString(raw) {
 		t.Error("the workflow must have only `contents: read`")
