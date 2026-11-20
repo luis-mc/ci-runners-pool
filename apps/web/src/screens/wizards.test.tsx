@@ -455,12 +455,15 @@ const updateDriverFor = (compact: boolean): WizardDriver => ({
         '/api/v1/update',
         upd({ latest_version: '1.4.0', update_available: false }),
       );
-    if (state === 'failed')
+    if (state === 'failed') {
+      // CRSP205: the page shows only the failure of its own attempt, named in the address.
+      path += `${sep}attempt=a1`;
       api.on(
         'GET',
         '/api/v1/update',
-        upd({ state: 'failed', error: 'the checksum check failed' }),
+        upd({ state: 'failed', error: 'the checksum check failed', error_attempt: 'a1' }),
       );
+    }
     if (state === 'done-after-reload') {
       path += `${sep}started=1&to=1.5.0`;
       api.on(
