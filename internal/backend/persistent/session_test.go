@@ -12,7 +12,7 @@ const refusal = "2026-11-15 10:00:01Z: Runner listener exit with terminated erro
 
 func guard(now *time.Time, logs *[]string, pids []int) *SessionGuard {
 	t0 := time.Date(2026, 11, 15, 10, 0, 0, 0, time.UTC)
-	return &SessionGuard{Runner: "crsp-a", Restart: t0, Now: func() time.Time { return *now },
+	return &SessionGuard{Runner: "crsp-a", Restart: t0, Window: 3 * time.Minute, Now: func() time.Time { return *now },
 		Log:  func(s string) { *logs = append(*logs, s) },
 		List: func(context.Context) ([]int, error) { return pids, nil }}
 }
