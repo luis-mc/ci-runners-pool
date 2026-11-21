@@ -57,9 +57,7 @@ export function StatTile({
           'no data yet'
         ) : change && changeText ? (
           <>
-            {GLYPH[change] ? (
-              <span aria-hidden="true">{GLYPH[change]} </span>
-            ) : null}
+            {GLYPH[change] ? <span aria-hidden="true">{GLYPH[change]} </span> : null}
             {changeText}
           </>
         ) : (

@@ -103,7 +103,9 @@ describe('SearchTable', () => {
     const user = userEvent.setup();
     render(<Harness />);
     await user.keyboard('{ArrowDown}');
-    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Show details' }));
+    expect(document.activeElement).toBe(
+      screen.getByRole('button', { name: 'Show details' }),
+    );
     await user.keyboard('j');
     expect(document.activeElement).toBe(rows()[0]);
     await user.keyboard('j');
@@ -116,7 +118,11 @@ describe('SearchTable', () => {
     render(<Harness />);
     const svg = screen.getByRole('button', { name: 'Show details' }).querySelector('svg');
     expect(svg).not.toBeNull();
-    const e = new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true });
+    const e = new KeyboardEvent('keydown', {
+      key: 'ArrowDown',
+      bubbles: true,
+      cancelable: true,
+    });
     Object.defineProperty(e, 'target', { value: svg });
     expect(handleNavigationKey(e)).toBe(true);
     expect(document.activeElement).toBe(rows()[0]);

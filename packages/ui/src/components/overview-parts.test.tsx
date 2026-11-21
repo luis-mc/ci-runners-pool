@@ -45,7 +45,14 @@ describe('FindingList', () => {
       <FindingList
         label="Needs you"
         items={[
-          { key: 'a', title: 'Add a runner', minutes: 'about 40 min a week', fix: 'Add one.', to: '/jobs/insights/finding/1', linkLabel: 'Open: Add a runner' },
+          {
+            key: 'a',
+            title: 'Add a runner',
+            minutes: 'about 40 min a week',
+            fix: 'Add one.',
+            to: '/jobs/insights/finding/1',
+            linkLabel: 'Open: Add a runner',
+          },
         ]}
       />,
     );
@@ -66,7 +73,14 @@ describe('BarList', () => {
       <BarList
         label="Busiest repositories"
         items={[
-          { key: 'a', label: 'repo-a', value: 212, text: '212 min', linkName: 'Open the jobs of repo-a', to: '/jobs/done?repository=repo-a' },
+          {
+            key: 'a',
+            label: 'repo-a',
+            value: 212,
+            text: '212 min',
+            linkName: 'Open the jobs of repo-a',
+            to: '/jobs/done?repository=repo-a',
+          },
         ]}
       />,
     );

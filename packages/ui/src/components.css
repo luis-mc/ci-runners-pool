@@ -2673,7 +2673,10 @@ button.ds-jobgraph__node:hover {
   align-items: start;
 }
 .ds-search-table__grid[data-open] {
-  grid-template-columns: minmax(0, 1fr) minmax(0, calc(var(--ds-width-field-medium) * 1.4));
+  grid-template-columns: minmax(0, 1fr) minmax(
+      0,
+      calc(var(--ds-width-field-medium) * 1.4)
+    );
 }
 .ds-search-table__main {
   display: grid;

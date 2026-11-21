@@ -48,7 +48,8 @@ export function handleRowKey(e: KeyboardEvent): boolean {
   // An Element, not an HTMLElement: the target may be an SVG shape inside a button.
   const hit = e.target instanceof Element ? e.target : null;
   if (!hit) return false;
-  const target: Element = hit instanceof HTMLElement ? hit : (hit.closest<HTMLElement>(ITEMS) ?? hit);
+  const target: Element =
+    hit instanceof HTMLElement ? hit : (hit.closest<HTMLElement>(ITEMS) ?? hit);
   const row = rowOf(target);
   if (!row || row.items.length === 0) return false;
   const at = row.items.indexOf(target as HTMLElement);
