@@ -129,7 +129,7 @@ func only(t *testing.T, fs []doctor.Finding, check string) doctor.Finding {
 func TestEveryRegisteredCheckIsM1AndHasAnID(t *testing.T) {
 	reg := doctor.NewRegistry()
 	Register(reg)
-	if len(reg.All()) != 48 {
+	if len(reg.All()) != 50 {
 		t.Fatalf("checks: %v", reg.SortedIDs())
 	}
 	for _, c := range reg.All() {
@@ -212,6 +212,24 @@ func TestLoadBudget(t *testing.T) {
 	}
 	if sev["alpha"] != doctor.OK || sev["beta"] != doctor.Warn || sev["gamma"] != doctor.OK {
 		t.Fatalf("severities = %v", sev)
+	}
+}
+
+// Scheduling R5.77: a warning from the load watch warns at once and names the
+// figures, the budget and the running jobs.
+func TestLoadBudgetWarnsWhileJobsRun(t *testing.T) {
+	m := healthyMachine()
+	m.Load = &doctor.Load{MemoryPct: 96, MemoryKnown: true, CPUPct: 20, CPUKnown: true, SampledAt: now}
+	m.LoadWarnSince = now.Add(-10 * time.Second)
+	m.RunningJobs = []string{"o/r build", "o/r e2e"}
+	fs := run(t, doctor.Env{Fleet: &fleet{machines: []doctor.Machine{m}}}, "machine.load.budget")
+	if len(fs) != 1 || fs[0].Severity != doctor.Warn {
+		t.Fatalf("findings %+v", fs)
+	}
+	for _, want := range []string{"Memory 96% of 85%", "CPU 20% of 60%", "o/r build, o/r e2e", "not stopped"} {
+		if !strings.Contains(fs[0].Detail, want) {
+			t.Fatalf("detail %q lacks %q", fs[0].Detail, want)
+		}
 	}
 }
 

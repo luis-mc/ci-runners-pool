@@ -20,6 +20,8 @@ type Repository interface {
 	MachineByKey(ctx context.Context, keyHash string) (Machine, error)
 	// RevokeKeys revokes every key of a machine and marks it removed.
 	RevokeKeys(ctx context.Context, machineID string) error
+	// AddKey gives an existing machine one more live key: a rejoin (R5.70).
+	AddKey(ctx context.Context, machineID, keyHash string) error
 	MarkRemoved(ctx context.Context, machineID string, at time.Time) error
 
 	GetSettings(ctx context.Context, machineID string) (Settings, error)

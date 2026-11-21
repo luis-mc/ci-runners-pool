@@ -39,7 +39,7 @@ export function InsightsLayout() {
         ]
       : [];
   return (
-    <Stack>
+    <Stack gap="section">
       <Segmented
         label="Run insights views"
         options={SEGMENTS.map(({ value, label }) => ({ value, label }))}

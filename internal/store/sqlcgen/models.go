@@ -89,6 +89,49 @@ type CliToken struct {
 	RevokedAt    sql.NullString
 }
 
+type CtlJoinCode struct {
+	ID       string
+	CodeHash string
+	Doc      string
+}
+
+type CtlMachine struct {
+	ID      string
+	Name    string
+	Removed int64
+	Doc     string
+}
+
+type CtlMachineChange struct {
+	ID        string
+	MachineID string
+	Open      int64
+	Doc       string
+}
+
+type CtlMachineKey struct {
+	Hash      string
+	MachineID string
+	Revoked   int64
+}
+
+type CtlMachineSetting struct {
+	MachineID string
+	Doc       string
+}
+
+type CtlRunner struct {
+	ID        string
+	MachineID string
+	Name      string
+	Doc       string
+}
+
+type CtlRunnerPlan struct {
+	ID  string
+	Doc string
+}
+
 type DoctorFinding struct {
 	ID          int64
 	RunID       string

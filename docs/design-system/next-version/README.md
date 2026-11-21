@@ -1,7 +1,7 @@
 # Design system: next version (draft)
 
 <!-- status:start -->
-**Status:** draft. Not approved. Created on 2026-11-20 as a full copy of `v3`; the apps follow `v3` until the owner approves this draft.
+**Status:** draft. Not approved. Created on 2026-11-21 as a full copy of `v4`; the apps follow `v4` until the owner approves this draft.
 <!-- status:end -->
 
 > **Starter.** Every item in this version is a starter item. Keep, change or delete each one before v1 is approved.

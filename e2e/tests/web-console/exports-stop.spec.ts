@@ -222,6 +222,33 @@ test('Add runners: Linux on a Windows machine is planned and added to the pool',
   expect(mock.count('POST', '/api/v1/runner-plans')).toBe(1);
 });
 
+// OPS60 (runners R5.100, R5.101; core UX-30): a runner whose image build failed never ends at "The runners are added".
+test('Add runners: a failed runner ends at Done with its reason and a next step', async ({
+  page,
+}) => {
+  const failedPlan = {
+    ...poolPlan('failed', 'failed'),
+    steps: [{ ...poolPlan('failed', 'failed').steps[0], error: 'build failed (exit 1)' }],
+  };
+  const mock = signedIn()
+    .on('GET', '/api/v1/machines', { items: [winMachine(true)] })
+    .on('GET', '/api/v1/github/repositories', emptyRepos)
+    .on('POST', '/api/v1/runner-plans', poolPlan('planned', 'planned'))
+    .on('POST', '/api/v1/runner-plans/:id/apply', poolPlan('applying', 'running'))
+    .on('GET', '/api/v1/runner-plans/:id', failedPlan);
+  await mock.install(page);
+  await page.goto('/pool/runners/add');
+  await page.getByRole('button', { name: 'Next' }).click();
+  await page.getByRole('button', { name: 'Add 1 runner' }).click();
+  await expect(
+    page.getByText(/1 failed, 0 done\. build failed \(exit 1\)\./),
+  ).toBeVisible({
+    timeout: 10_000,
+  });
+  await expect(page.getByText(/Open Runners, remove it/)).toBeVisible();
+  await expect(page.getByText('The runners are added.')).toHaveCount(0);
+});
+
 test('Add runners: the container backend not allowed is said on step 1', async ({
   page,
 }) => {
