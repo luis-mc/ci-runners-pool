@@ -120,17 +120,10 @@ export function runColumns(kind: RunKind, _now: number): Column<RunRow>[] {
         <Status kind={s.kind} word={s.word} />
       );
     },
+    // The follow-up is named in the hover text and in the details panel; a column of its own would not fit one line.
+    title: (r) =>
+      r.startedNext?.length ? `Started next: ${startedNextWords(r.startedNext)}` : '',
     sort: (r) => runStatus(r).word,
-  };
-  // CIX24: what the run started next, such as the Installers workflow after CI.
-  const next: Column<RunRow> = {
-    id: 'next',
-    header: 'Started next',
-    cell: (r) => startedNextWords(r.startedNext) || 'nothing',
-    title: (r) => startedNextWords(r.startedNext),
-    sort: (r) => startedNextWords(r.startedNext),
-    kind: 'grow',
-    secondary: true,
   };
   const doneOf: Column<RunRow> = {
     id: 'jobs',
@@ -255,7 +248,6 @@ export function runColumns(kind: RunKind, _now: number): Column<RunRow>[] {
       sort: (r) => r.jobsFailed ?? 0,
       secondary: true,
     },
-    next,
     status,
   ];
 }
