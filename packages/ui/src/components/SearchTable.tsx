@@ -8,6 +8,8 @@
 import { useRef, useState, type ReactNode } from 'react';
 import { Button } from './Button';
 import { SearchBar, ListToolbar } from './Controls';
+import { Text } from './layout';
+import { Pane } from './Pane';
 import { Empty } from './State';
 import { Table, type Column, type RowActionSpec } from './Table';
 
@@ -77,6 +79,8 @@ function PanelRightIcon() {
 
 export function SearchTable<T>({
   label,
+  title,
+  hint,
   searchLabel,
   placeholder = 'Search, or repo: state: runner: branch: job:',
   rows,
@@ -101,6 +105,10 @@ export function SearchTable<T>({
 }: {
   /** The name of the list, for screen readers. */
   label: string;
+  /** The title of the pane the table sits in (CORE-7); the pane counts the rows that match. */
+  title: string;
+  /** One quiet line under the title: what a row is. */
+  hint?: string | undefined;
   searchLabel?: string | undefined;
   placeholder?: string | undefined;
   rows: readonly T[];
@@ -180,24 +188,27 @@ export function SearchTable<T>({
       />
       <div className="ds-search-table__grid" data-open={panel ? true : undefined}>
         <div className="ds-search-table__main">
-          {shown.length === 0 ? (
-            <Empty title={empty} />
-          ) : (
-            <Table
-              caption={caption}
-              columns={columns}
-              rows={shown}
-              rowKey={rowKey}
-              expandLabel={expandLabel}
-              rowLabel={rowLabel}
-              onOpen={onOpen}
-              action={action}
-              oneLine={oneLine}
-              current={panel && current ? rowKey(current) : undefined}
-              onSelect={detail ? (r) => setChosen(rowKey(r)) : undefined}
-            />
-          )}
-          {below}
+          <Pane title={title} count={shown.length}>
+            {hint ? <Text tone="muted">{hint}</Text> : null}
+            {shown.length === 0 ? (
+              <Empty title={empty} />
+            ) : (
+              <Table
+                caption={caption}
+                columns={columns}
+                rows={shown}
+                rowKey={rowKey}
+                expandLabel={expandLabel}
+                rowLabel={rowLabel}
+                onOpen={onOpen}
+                action={action}
+                oneLine={oneLine}
+                current={panel && current ? rowKey(current) : undefined}
+                onSelect={detail ? (r) => setChosen(rowKey(r)) : undefined}
+              />
+            )}
+            {below}
+          </Pane>
         </div>
         {panel && current ? (
           <aside

@@ -27,15 +27,17 @@ describe('StatTile', () => {
     );
     const link = screen.getByRole('link');
     expect(link.getAttribute('href')).toBe('/jobs/live?state=queued');
-    expect(link.getAttribute('aria-label')).toBe(
-      'Waiting now: 3 jobs, up 2 vs the previous 7 days, worse. Open the jobs that wait now',
+    // The visible words are the name, in the order a person reads them, plus the hidden tone word and target.
+    expect(link.textContent).toBe(
+      'Waiting now 3 jobs ◷ up 2 vs the previous 7 days, worse. Open the jobs that wait now',
     );
+    expect(link.getAttribute('aria-label')).toBeNull();
     expect(screen.getByText(/up 2 vs the previous/).textContent).toContain('◷');
   });
   it('says no data yet without a value', () => {
     wrap(<StatTile label="Pool busy" />);
-    expect(screen.getByRole('group', { name: 'Pool busy: no data yet' })).toBeTruthy();
-    expect(screen.getAllByText('no data yet')).toHaveLength(1);
+    expect(screen.getByText('no data yet')).toBeTruthy();
+    expect(screen.getByText('Pool busy')).toBeTruthy();
   });
 });
 
@@ -85,7 +87,7 @@ describe('BarList', () => {
       />,
     );
     expect(
-      screen.getByRole('link', { name: 'repo-a: 212 min. Open the jobs of repo-a' }),
+      screen.getByRole('link', { name: /^repo-a 212 min.*Open the jobs of repo-a/ }),
     ).toBeTruthy();
   });
   it('says so when there is nothing to rank', () => {

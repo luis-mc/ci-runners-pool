@@ -19,7 +19,7 @@ Branch `LOOK41-jobs-redesign`, from `origin/CRSP208-release-48`. Branch-only fil
 ## Where the unified list overrode concept A
 - Concept A had Live (queued, then running) and Done as two lists with their own filter chips (Queued, Running, No runner). The owner's option 11 wins: all three tabs are one list with the state filter All, Queue, Running, Done. Live opens on All (so it also shows the latest finished rows after the running ones), Done opens on Done, and every filter works on every tab. UX-74 and content.md say so (C7).
 - The "No runner" chip is gone (the wait reason is in the row and in the search: `state:waiting`).
-- The Overview columns of the All list drop Event (runs) and Runner and machine (jobs) so a row stays one line at 1300 px; both are in the details panel.
+- The columns of the All list drop Commit and Event (runs) and Runner and machine (jobs) so a row stays one line at 1300 px with the table inside its pane; they are in the details panel.
 
 ## Checks run
 - vitest: `packages/ui` full (27 files, 216 tests), `apps/web` jobs, insights, pool, shell, settings; new tests `SearchTable.test.tsx`, `overview-parts.test.tsx`, `unified.test.tsx`, `overview.test.tsx`, updated `Jobs.test.tsx`, `elsewhere.test.tsx`, `redirects.test.tsx`.

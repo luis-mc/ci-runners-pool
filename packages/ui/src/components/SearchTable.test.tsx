@@ -29,6 +29,7 @@ function Harness() {
       <ArrowNavigation>
         <SearchTable<Row>
           label="Jobs"
+          title="Jobs"
           rows={ROWS}
           text={(r) => `${r.repo} ${r.state} ${r.branch}`}
           fields={{ repo: (r) => r.repo, state: (r) => r.state, branch: (r) => r.branch }}

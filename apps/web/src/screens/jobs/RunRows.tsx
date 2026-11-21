@@ -117,14 +117,13 @@ export function runColumns(kind: RunKind, _now: number): Column<RunRow>[] {
     secondary: true,
   };
   // All states in one list (the unified list, 20 Nov 2026): when it starts, ends or ended, and what it waits for. The
-  // event is in the details panel, so the columns fit one line at 1300 px.
+  // commit and event are in the details panel, so the columns fit one line at 1300 px.
   if (kind === 'all')
     return [
       repo,
       workflow,
       runNumber,
       branch,
-      commit,
       doneOf,
       {
         id: 'when',

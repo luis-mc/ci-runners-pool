@@ -872,6 +872,14 @@ function JobsListTab({ tab }: { tab: Tab }) {
       : EMPTY[state];
   const common = {
     label: elsewhere ? 'Run elsewhere' : TITLES[state],
+    title: elsewhere
+      ? 'Run elsewhere'
+      : state === 'all'
+        ? view === 'runs'
+          ? 'Runs'
+          : 'Jobs'
+        : TITLES[state],
+    hint: HINTS[state][view],
     query: q,
     onQuery: setQuery,
     filters,
@@ -986,7 +994,6 @@ function JobsListTab({ tab }: { tab: Tab }) {
       <Stack>
         <FilterNote note={f.note} to={f.clearTo} />
         {doneBar}
-        {group ? null : <Text tone="muted">{HINTS[state][view]}</Text>}
         {body()}
       </Stack>
       <ActionBar

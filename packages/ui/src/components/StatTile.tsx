@@ -38,50 +38,52 @@ export function StatTile({
   loading?: boolean | undefined;
 }) {
   const none = value === undefined;
-  const words = loading
-    ? `${label}: loading`
-    : none
-      ? `${label}: no data yet`
-      : `${label}: ${value}${unit ? ` ${unit}` : ''}${changeText ? `, ${changeText}` : ''}${change && change !== 'same' ? `, ${change}` : ''}`;
   const body = (
     <>
-      <span className="ds-stat__label">{label}</span>
+      <span className="ds-stat__label">{label}</span>{' '}
       <span className="ds-stat__value">
         {loading ? 'Loading' : none ? '–' : value}
         {!loading && !none && unit ? (
-          <span className="ds-stat__unit"> {unit}</span>
+          <>
+            {' '}
+            <span className="ds-stat__unit">{unit}</span>
+          </>
         ) : null}
       </span>
-      <span className="ds-stat__change" data-change={change}>
-        {none && !loading ? (
-          'no data yet'
-        ) : change && changeText ? (
-          <>
-            {GLYPH[change] ? <span aria-hidden="true">{GLYPH[change]} </span> : null}
-            {changeText}
-          </>
-        ) : (
-          (changeText ?? '')
-        )}
-      </span>
+      {(none && !loading) || changeText ? (
+        <>
+          {' '}
+          <span className="ds-stat__change" data-change={change}>
+            {none && !loading ? (
+              'no data yet'
+            ) : (
+              <>
+                {change && GLYPH[change] ? (
+                  <span aria-hidden="true">{GLYPH[change]} </span>
+                ) : null}
+                {changeText}
+                {change && change !== 'same' ? (
+                  <span className="ds-visually-hidden">, {change}</span>
+                ) : null}
+              </>
+            )}
+          </span>
+        </>
+      ) : null}
       {trend && trend.length > 1 ? (
         <span className="ds-stat__trend" aria-hidden="true">
           <Sparkline label={`${label} trend`} values={trend} unit={trendUnit} />
         </span>
       ) : null}
+      {to && linkName ? <span className="ds-visually-hidden">. {linkName}</span> : null}
     </>
   );
   return to ? (
-    <Link
-      to={to}
-      className="ds-stat"
-      aria-label={linkName ? `${words}. ${linkName}` : words}
-      data-layout-group
-    >
+    <Link to={to} className="ds-stat" data-layout-group>
       {body}
     </Link>
   ) : (
-    <div className="ds-stat" role="group" aria-label={words} data-layout-group>
+    <div className="ds-stat" data-layout-group>
       {body}
     </div>
   );

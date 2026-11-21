@@ -29,13 +29,10 @@ export function BarList({
     <ul className="ds-bars" aria-label={label}>
       {items.map((i) => (
         <li key={i.key}>
-          <Link
-            to={i.to}
-            className="ds-bars__row"
-            aria-label={`${i.label}: ${i.text}. ${i.linkName}`}
-          >
-            <span className="ds-bars__label">{i.label}</span>
+          <Link to={i.to} className="ds-bars__row">
+            <span className="ds-bars__label">{i.label}</span>{' '}
             <span className="ds-bars__value">{i.text}</span>
+            <span className="ds-visually-hidden">. {i.linkName}</span>
             <span className="ds-bars__track" aria-hidden="true">
               <span
                 className="ds-bars__bar"
