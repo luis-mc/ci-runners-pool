@@ -813,7 +813,11 @@ function JobsListTab({ tab }: { tab: Tab }) {
         }}
         allLabel={null}
       />
-      {!elsewhere ? <ViewSwitch view={view} onChange={set} /> : <HelpTerm term="elsewhere" />}
+      {!elsewhere ? (
+        <ViewSwitch view={view} onChange={set} />
+      ) : (
+        <HelpTerm term="elsewhere" />
+      )}
     </>
   );
 

@@ -210,7 +210,7 @@ test('Jobs: Down, Up, j and k move from the search box through the controls to t
   };
   const rowIndex = () =>
     page.evaluate(() =>
-      [...document.querySelectorAll('tbody tr[data-list-row]')].findIndex(
+      Array.from(document.querySelectorAll('tbody tr[data-list-row]')).findIndex(
         (r) => r === document.activeElement,
       ),
     );

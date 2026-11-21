@@ -111,7 +111,6 @@ export function DoNext() {
                   rows={items}
                   rowKey={(f) => String(f.id)}
                   rowLabel={(f) => f.title}
-                  oneLine
                   action={{ label: 'Open', to: findingPath, name: (f) => f.title }}
                 />
               )}
