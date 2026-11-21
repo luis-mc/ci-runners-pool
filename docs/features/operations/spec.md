@@ -337,6 +337,8 @@ Not built: a copyable reinstall command with a one-time token in the console, an
 
 **R5.122** (built, CRSP205) — **An update or a restart has its own attempt.** The yes starts an attempt with an id, its kind and its start time; the status (`GET /api/v1/update`) carries it as `attempt`, with `service_started_at` (when this service process started), `server_time` and `error_attempt` (the attempt that `error` belongs to). The helper plan, the stage file and `result.json` carry the id, so the next process still knows which attempt it ends. The Update and the Restart the service wizards judge only their own attempt: a restart is done when the service runs as a process that started after the yes, and Done shows the version and how long the restart took; it fails when the status names this attempt's error, or when the service has not come back 5 minutes after it began to restart, and the Problem then names this restart and its start time. A failure of an older update (an `error_attempt` that is not the attempt of the page) is never shown on a restart or on a new update. A failure recorded before attempts had ids has `error_attempt` `earlier` and belongs to no attempt. (CORE-3, UX-6.)
 
+**R5.123** (OPS59) — **An update keeps the owner's data.** The MSI never removes the data folder on an upgrade: it authors no `RemoveFolder` or `RemoveFile`, and the only deletion, `RemoveData`, needs `REMOVEDATA=1` and `NOT UPGRADINGPRODUCTCODE`, which the automatic update never sets. What the owner chose (machines, settings, keys, runners) is in the database in that folder (machines R5.68, runners R5.99), which an upgrade keeps. If the controller's own agent still loses its key, it joins again as the same machine (machines R5.70) and the doctor says so (doctor R5.61).
+
 ## 6. Non-functional requirements
 
 **R6.1** (M3) — An update never stops a running job. A controller restart never stops a job on any machine; agents reconnect with backoff.
@@ -484,6 +486,7 @@ All tests are planned; none exists yet. Paths are where each test will live.
 | R5.120 | built (TRAY8): cmd/crsp/update_wiring_test.go TestHealthURLIsAlwaysLoopback |
 | R5.121 | built (TRAY8): internal/update/prune_test.go TestPruneVersionsKeepsCurrentAndPrevious, TestManagerPrunesAfterASuccessfulUpdate |
 | R5.122 | built (CRSP205): internal/update/attempt_test.go TestRestartHasItsOwnAttemptApartFromAnOldFailedUpdate, TestFailedRestartCarriesItsAttempt; apps/web/src/screens/settings/Updates.test.tsx (Restart the service judges its own attempt) |
+| R5.123 | installer/wxs_test.go TestMSINeverRemovesTheDataFolderOnUpgrade; internal/store/controllerstate_test.go TestMachinesSurviveRestart | built (OPS59) |
 
 ## 10. Decisions
 

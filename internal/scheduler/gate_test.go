@@ -781,3 +781,21 @@ func TestLogRowsAndTrimFull(t *testing.T) {
 	}
 	logRowsAndTrim(t, slots.LogKeep)
 }
+
+// R5.76: a free slot number is not enough while the load is over budget, and the
+// job that already holds a slot keeps it.
+func TestOverBudgetHoldsNewStartWhileAJobRuns(t *testing.T) {
+	e := newEnv(t)
+	goes(t, e.gate(e.req("a", job("o/r", 1, "build"), 1, quiet)))
+	hot := scheduler.Load{MemoryPct: 96, MemoryKnown: true}
+	d := e.gate(e.req("b", job("o/r", 2, "build"), 1, hot))
+	waits(t, d, scheduler.WaitLoadOverBudget)
+	if d.WaitText != "memory 96% > 85%" {
+		t.Fatalf("text %q", d.WaitText)
+	}
+	if s := e.status(m1); len(s.Slots) != 1 || len(s.Tickets) != 1 {
+		t.Fatalf("the running job must keep its slot: %+v", s)
+	}
+	// the running job asks again under the same load and still goes: never stopped
+	goes(t, e.gate(e.req("a", job("o/r", 1, "build"), 1, hot)))
+}

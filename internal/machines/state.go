@@ -124,12 +124,19 @@ func (s *Service) HandleLoad(ctx context.Context, machineID string, r *agentv1.L
 	}
 	s.mu.Lock()
 	s.loads[machineID] = l
+	running := len(s.running[machineID])
 	last := s.lastKept[machineID]
 	keep := now.Sub(last) >= LoadStep
 	if keep {
 		s.lastKept[machineID] = now
 	}
 	s.mu.Unlock()
+	if running < l.SlotsUsed {
+		running = l.SlotsUsed
+	}
+	if set, err := s.o.Repo.GetSettings(ctx, machineID); err == nil {
+		s.watchLoad(machineID, l, set, running, now)
+	}
 	if keep {
 		p := LoadPoint{At: now.Truncate(time.Second), SlotsUsed: l.SlotsUsed}
 		if l.MemoryKnown {

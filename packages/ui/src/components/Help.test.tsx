@@ -1,8 +1,8 @@
-// Components 64, 65, 66 (LOOK44): job path, stepper, term help.
+// Components 64, 66 (LOOK44, LOOK47): job path, term help.
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { JobPath, Stepper, TermHelp } from './Help';
+import { JobPath, TermHelp } from './Help';
 
 afterEach(cleanup);
 
@@ -33,29 +33,6 @@ describe('JobPath', () => {
       screen.getByRole('button', { name: /Run\s*one start of a workflow/ }),
     );
     expect(pick).toHaveBeenCalledWith('run');
-  });
-});
-
-describe('Stepper', () => {
-  it('locks the steps the tour has not reached and marks the current one', () => {
-    const go = vi.fn();
-    render(
-      <Stepper
-        label="Steps"
-        steps={['One', 'Two', 'Three']}
-        current={1}
-        reached={1}
-        onStep={go}
-      />,
-    );
-    const one = screen.getByRole<HTMLButtonElement>('button', { name: /One/ });
-    const three = screen.getByRole<HTMLButtonElement>('button', { name: /Three/ });
-    expect(screen.getByRole('button', { name: /Two/ }).getAttribute('aria-current')).toBe(
-      'step',
-    );
-    expect(three.disabled).toBe(true);
-    fireEvent.click(one);
-    expect(go).toHaveBeenCalledWith(0);
   });
 });
 

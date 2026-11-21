@@ -2662,7 +2662,7 @@ button.ds-jobgraph__node:hover {
   }
 }
 
-/* components 64 and 66 (LOOK44): job path and term help. Component 65 reuses the step bar of the wizard. */
+/* components 64 and 66 (LOOK44): job path and term help. */
 .ds-jobpath {
   display: grid;
   grid-template-columns: 3fr 4fr;

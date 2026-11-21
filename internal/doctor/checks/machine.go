@@ -3,6 +3,7 @@ package checks
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/doctor"
@@ -138,7 +139,13 @@ func machineLoadBudget(ctx context.Context, env doctor.Env) []doctor.Finding {
 			continue
 		}
 		f := doctor.Finding{Check: "machine.load.budget", Subject: machineSubject(m)}
-		if !m.OverBudgetSince.IsZero() && env.Now.Sub(m.OverBudgetSince) > OverBudgetFor {
+		if !m.LoadWarnSince.IsZero() {
+			// Scheduling R5.77: over budget with jobs running warns at once, not after 10 minutes.
+			f.Severity, f.Title = doctor.Warn, m.Name+" is over its load budget while jobs run"
+			f.Detail = fmt.Sprintf("Memory %.0f%% of %d%%, CPU %.0f%% of %d%%. Running: %s. Running jobs are not stopped; new jobs wait until the load is under the budget.",
+				m.Load.MemoryPct, m.BudgetMemoryPct, m.Load.CPUPct, m.BudgetCPUPct, runningText(m.RunningJobs))
+			f.Fix = doctor.Fix{Text: "Lower the job slots or raise the budget on the Machines screen.", Link: machineLink(m)}
+		} else if !m.OverBudgetSince.IsZero() && env.Now.Sub(m.OverBudgetSince) > OverBudgetFor {
 			f.Severity, f.Title = doctor.Warn, m.Name+" has been over its load budget"
 			f.Detail = fmt.Sprintf("For %s. Memory %.0f%% of %d%%, CPU %.0f%% of %d%%.",
 				env.Now.Sub(m.OverBudgetSince).Round(time.Minute), m.Load.MemoryPct, m.BudgetMemoryPct, m.Load.CPUPct, m.BudgetCPUPct)
@@ -256,4 +263,12 @@ func machineDiskFloor(ctx context.Context, env doctor.Env) []doctor.Finding {
 		out = append(out, f)
 	}
 	return out
+}
+
+// runningText lists the running jobs of a machine for a finding.
+func runningText(jobs []string) string {
+	if len(jobs) == 0 {
+		return "none listed"
+	}
+	return strings.Join(jobs, ", ")
 }
