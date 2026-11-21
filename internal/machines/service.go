@@ -120,6 +120,8 @@ type Service struct {
 	rsvcs    map[string][]RunnerService
 	lastKept map[string]time.Time
 	running  map[string][]JobRef
+	// watches is the load watch of each machine (scheduling R5.77).
+	watches map[string]*watchState
 	// onRunning sees each running-jobs report (SetRunningObserver).
 	onRunning func(machineID string, jobs []JobRef)
 	runners   map[string][]string

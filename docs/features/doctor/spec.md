@@ -221,6 +221,7 @@ States:
 **R5.60** (M1, OPS55; scheduling R5.73, R5.75; runners R5.98) — **`runner.slots`: runners and hold against the job slots.** For each machine with known job slots the check compares the most runners one repository can use on it (pool runners plus the repository's own) with the job slots, and the machine's gate maximum wait with the 30-minute job timeout. `ok` when the runners do not exceed the slots and the wait is below the timeout. `warn` when the runners exceed the slots: the title names the machine, the repository and both numbers, and the fix says to remove runners on the machine page until there are at most as many as slots, or raise Job slots (Pool size sets how many fit). `warn` when the stored maximum wait is not below the job timeout (the hook cuts it to 10 minutes anyway); the fix says to set Gate maximum wait to 10 minutes or less on the machine page.
 
 **R5.61** (M1, OPS59; machines R5.70, R5.68) — **`machine.reset`: settings or runners that look reset.** For each machine the check is `ok` unless it finds a sign: the machine joined again (it kept its settings and runners, but the owner should look); its settings are all the defaults while an earlier machine of the same computer (host name, OS, architecture) had chosen ones; or, on the controller machine, runner records belong to a machine that is not in the pool. `warn` names the machine and the signs, and the fix says to check allowed backends, pool size and runners on the machine page and points at the `machine.rejoin` audit entry.
+**R5.62** (M1, Built OPS58; scheduling R5.76 to R5.78) — **`machine.load.budget` warns at once when a machine is over its budget with jobs running.** The check keeps its 10-minute warning for a machine over budget with nothing running. In addition it is `warn` as soon as the controller's load watch has raised a warning for the machine: the title says the machine is over its load budget while jobs run; the detail gives the measured memory and CPU against the budget and lists the running jobs; it says running jobs are not stopped and new jobs wait until the load is under the budget. The warning clears after 60 s steady under budget (scheduling R5.78), so the finding does not flap. The finding is the existing doctor channel; it adds no new screen.
 
 ## 6. Non-functional requirements
 
@@ -283,7 +284,7 @@ Machines:
 | `machine.online` | The agent's last message is older than the offline timeout (default 90 s) | fail | Start the agent service on that machine; the command per OS | no | 1 |
 | `machine.load.fresh` | The load figures are older than 60 s | fail | Restart the agent; it measures every 15 s | no | 1 |
 | `machine.load.measured` | Neither memory nor CPU can be read on an online machine, so the gate holds every job there with "load not measured" (scheduling R5.22, decision D53) | fail | Restart the agent and check it may read memory and CPU figures; jobs go on as soon as one is read | no | 1 |
-| `machine.load.budget` | Memory or CPU median over the budget for more than 10 minutes | warn | Lower slots or raise the budget on the Machines screen | no | 1 |
+| `machine.load.budget` | Memory or CPU over the budget while jobs run (at once, R5.62), or for more than 10 minutes with none | warn | Lower slots or raise the budget on the Machines screen | no | 1 |
 | `machine.disk` | Free space on the work volume under 15% or 10 GB (warn), under 5% or 2 GB (fail); total size of runner work folders | warn, fail | Clean the work folders of idle runners: `crsp runners clean-work --machine NAME` | no | 1 |
 | `machine.guard.disk` | Free space on the runner volume under 10%, where the job-started gate holds new jobs (they wait, they are not failed) until 12% is free | fail | Free space on the volume, or lower the cache quotas: `crsp runners clean-work --machine NAME` | no | 1 |
 | `machine.floor.disk` | The machine is paused with the reason `disk_low`: free disk under the floor (default 10 GiB, `disk_floor_gib`), so no job and no VM starts until the floor plus 1 GiB is free. The fix names what to clean: container images and build cache, runner caches, left-over job folders, VM disks and checkpoints | fail | `crsp runners clean-work --machine NAME`, `docker system df`, `docker image prune -a` | no | 1 |
@@ -540,6 +541,7 @@ Rows that name a file without "planned" are built (CRSP23). Planned rows are NOT
 | R5.48 (OPS52) | internal/leftovers/leftovers_test.go TestUnusedAgentFolderIsFlaggedAlone |
 | R5.60 | internal/doctor/checks/runnerslots_test.go TestRunnerSlotsWarns |
 | R5.61 | internal/doctor/checks/machinereset_test.go TestMachineResetWarns; internal/store/controllerstate_test.go TestResetSigns |
+| R5.62 | internal/doctor/checks/checks_test.go TestLoadBudgetWarnsWhileJobsRun |
 
 ## 10. Decisions
 
