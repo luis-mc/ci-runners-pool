@@ -1,8 +1,12 @@
 package container
 
 import (
+	"context"
+	"debug/elf"
+	"encoding/binary"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -15,7 +19,7 @@ func stagedRig(t *testing.T) (*rig, string) {
 	t.Helper()
 	root := t.TempDir()
 	bin := filepath.Join(t.TempDir(), "crsp-bin")
-	if err := os.WriteFile(bin, []byte("fake binary"), 0o700); err != nil {
+	if err := os.WriteFile(bin, elfHeader(nativeMachine()), 0o700); err != nil {
 		t.Fatal(err)
 	}
 	return newRig(t, func(c *Config) {
@@ -45,7 +49,7 @@ func TestBuildUsesEmbeddedFiles(t *testing.T) {
 
 func TestStageWritesTreeAndBinary(t *testing.T) {
 	r, root := stagedRig(t)
-	dir, err := r.b.stageBuild("abc123")
+	dir, err := r.b.stageBuild(context.Background(), "abc123", runtime.GOARCH)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -69,7 +73,7 @@ func TestStageWritesTreeAndBinary(t *testing.T) {
 		t.Error("staged Dockerfile differs from the embedded one")
 	}
 	// A second stage replaces the folder.
-	if _, err := r.b.stageBuild("abc123"); err != nil {
+	if _, err := r.b.stageBuild(context.Background(), "abc123", runtime.GOARCH); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -77,7 +81,7 @@ func TestStageWritesTreeAndBinary(t *testing.T) {
 func TestStageRefusesBadKey(t *testing.T) {
 	r, _ := stagedRig(t)
 	for _, k := range []string{"", "../x", "a/b"} {
-		if _, err := r.b.stageBuild(k); err == nil {
+		if _, err := r.b.stageBuild(context.Background(), k, runtime.GOARCH); err == nil {
 			t.Errorf("key %q was accepted", k)
 		}
 	}
@@ -150,4 +154,26 @@ func TestDefaultConfigPinsActionsRunnerInKey(t *testing.T) {
 	if with == other {
 		t.Fatal("a new pin must change the image key")
 	}
+}
+
+// elfHeader is the smallest file debug/elf reads: a 64-bit little-endian
+// executable header for a machine type.
+func elfHeader(m elf.Machine) []byte {
+	h := make([]byte, 64)
+	copy(h, "\x7fELF")
+	h[4], h[5], h[6] = byte(elf.ELFCLASS64), byte(elf.ELFDATA2LSB), byte(elf.EV_CURRENT)
+	binary.LittleEndian.PutUint16(h[16:], uint16(elf.ET_EXEC))
+	binary.LittleEndian.PutUint16(h[18:], uint16(m))
+	binary.LittleEndian.PutUint32(h[20:], uint32(elf.EV_CURRENT))
+	binary.LittleEndian.PutUint16(h[52:], 64)
+	return h
+}
+
+// nativeMachine is the ELF machine type of this host's architecture, so a staged
+// build on any CI runner (amd64 or arm64) finds a binary of its own arch.
+func nativeMachine() elf.Machine {
+	if runtime.GOARCH == "arm64" {
+		return elf.EM_AARCH64
+	}
+	return elf.EM_X86_64
 }

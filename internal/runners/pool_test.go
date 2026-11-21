@@ -315,3 +315,43 @@ func (f *fakeAudit) has(action string) bool {
 	}
 	return false
 }
+
+// OPS60, runners R5.101: a registration whose build failed stays, with its
+// reason, in the list as Failed. A later sync neither removes nor retries it.
+func TestFailedPoolRegistrationStaysVisibleAndIsNotRetried(t *testing.T) {
+	ctx := context.Background()
+	repos := []PoolRepo{repo(1, "a")}
+	r := newRig(machine("linux", "x64", true))
+	r.svc.Background = func(f func()) { f() }
+	r.svc.PoolRepos = func(context.Context) ([]PoolRepo, error) { return repos, nil }
+	r.ag.addErr = errors.New("build failed (exit 1): no Linux crsp")
+	p, err := r.svc.PlanAdd(ctx, AddRequest{OS: "linux", Kind: "persistent", MachineID: "m1", Count: 1, Scope: Scope{Kind: ScopePool}}, "luis-mc")
+	if err != nil {
+		t.Fatal(err)
+	}
+	done, err := r.svc.Apply(ctx, p.ID, nil, "luis-mc")
+	if err != nil {
+		t.Fatal(err)
+	}
+	// The plan never says done for a runner that is failed.
+	if done.State == "done" || len(done.Steps) == 0 || done.Steps[0].State != "failed" || !strings.Contains(done.Steps[0].Error, "build failed") {
+		t.Fatalf("plan = %+v", done)
+	}
+	tries := len(r.ag.added)
+	for range 3 {
+		if err := r.svc.SyncPoolRegistrations(ctx, "u"); err != nil {
+			t.Fatal(err)
+		}
+	}
+	kids := r.kids(t)
+	if len(kids) != 1 || kids[0].State != Failed || !strings.Contains(kids[0].Reason, "build failed") {
+		t.Fatalf("registrations = %+v", kids)
+	}
+	if len(r.ag.added) != tries {
+		t.Errorf("a sync retried the failed build: %d tries, want %d", len(r.ag.added), tries)
+	}
+	views, err := r.svc.ListView(ctx, Filter{})
+	if err != nil || len(views) != 1 || views[0].State != Failed || !strings.Contains(views[0].Reason, "build failed") {
+		t.Fatalf("the list shows %+v %v", views, err)
+	}
+}

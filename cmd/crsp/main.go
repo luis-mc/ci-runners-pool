@@ -25,6 +25,7 @@ import (
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/api"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/audit"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/backend/container"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backup"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/cli"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/config"
@@ -51,6 +52,7 @@ var version = "dev"
 var baseContext = context.Background()
 
 func main() {
+	container.ProductVersion = version
 	if runAsService() {
 		return
 	}

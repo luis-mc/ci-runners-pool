@@ -321,11 +321,11 @@ const MEASURES = {
     }
     return bad;`,
   /** UX-4: one primary button on the screen (a screen that offers an action has exactly one). The tabs and
-   *  segmented switches that switch the section, the filter chips, the sort buttons of a table head, the row buttons of a table and the ? term-help buttons (component 66) are not the screen's actions. */
+   *  segmented switches that switch the section, the filter chips, the sort buttons of a table head, the row buttons of a table, the boxes of the job path (they jump to a card) and the ? term-help buttons (component 66) are not the screen's actions. */
   primary: `${VISIBLE}
     const all = Array.from(document.querySelectorAll('[data-primary], button[data-kind=primary], a[data-button][data-kind=primary]')).filter(visible);
     const names = all.map(label);
-    const hasActions = Array.from(document.querySelectorAll('main button, main a[data-button]')).some((e) => visible(e) && !e.closest('[role=tablist], .ds-segmented, .ds-chips, table, [role=table], [role=row]') && !e.hasAttribute('data-term-help'));
+    const hasActions = Array.from(document.querySelectorAll('main button, main a[data-button]')).some((e) => visible(e) && !e.closest('[role=tablist], .ds-segmented, .ds-chips, .ds-jobpath, table, [role=table], [role=row]') && !e.hasAttribute('data-term-help'));
     if (names.length > 1) return ['more than one primary: ' + names.join(' | ')];
     if (names.length === 0 && hasActions) return ['no primary button although the screen has actions'];
     return [];`,

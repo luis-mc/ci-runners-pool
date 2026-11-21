@@ -1,4 +1,4 @@
-// The picture of how a job gets run (LOOK44): the Help page draws it with a stepper, the first-run Overview reads it.
+// The picture of how a job gets run (LOOK44): the Help page draws it with a jump to the cards, the first-run Overview reads it.
 import { JobPath } from '@crsp/ui';
 import { PATH_GROUPS, PATH_PARTS } from './helpContent';
 

@@ -327,7 +327,8 @@ body {
 .ds-stack[data-gap='loose'] {
   gap: var(--ds-space-5);
 }
-.ds-stack[data-gap='section'] {
+.ds-stack[data-gap='section'],
+.ds-stack[data-gap='normal']:has(> .ds-pane) {
   gap: var(--ds-space-6);
 }
 .ds-cluster {
@@ -347,7 +348,7 @@ body {
 }
 .ds-page {
   display: grid;
-  gap: var(--ds-space-5);
+  gap: var(--ds-space-6);
   min-inline-size: 0;
 }
 /* The default frame is the full wide frame. Only a sign-in page is narrow (UX-69). */
@@ -361,10 +362,10 @@ body {
   margin-inline: auto;
   padding: var(--ds-space-2) var(--ds-page-gutter) var(--ds-space-3);
 }
-/* Two pages one after the other in the frame (a section's tab row, then the screen under it) keep the page gap
+/* Two pages one after the other in the frame (a section's tab row, then the screen under it) keep the section gap
    between them, as the blocks inside one page do (LOOK36). */
 .ds-page + .ds-page {
-  margin-block-start: var(--ds-space-5);
+  margin-block-start: var(--ds-space-6);
 }
 .ds-h1 {
   margin: 0;
@@ -1537,7 +1538,8 @@ legend > .ds-field__changed {
 /* wizard */
 .ds-wizard {
   display: grid;
-  gap: var(--ds-space-4);
+  /* The step bar sits above the first pane: its focus ring must not reach the pane's title (LOOK46). */
+  gap: var(--ds-space-6);
 }
 .ds-steps {
   display: flex;
@@ -2660,7 +2662,7 @@ button.ds-jobgraph__node:hover {
   }
 }
 
-/* components 64 and 66 (LOOK44): job path and term help. Component 65 reuses the step bar of the wizard. */
+/* components 64 and 66 (LOOK44): job path and term help. */
 .ds-jobpath {
   display: grid;
   grid-template-columns: 3fr 4fr;
@@ -2811,7 +2813,9 @@ button.ds-jobpath__box {
 /* Component 67: search table. A search bar, a state filter, one table and a details panel (owner decision 20 Nov 2026). */
 .ds-search-table {
   display: grid;
-  gap: var(--ds-space-3);
+  /* The section gap: the bar's focus ring (outline and glow, 8 px) and the pane title cut into the border (about 9 px
+     above it) both fit in it, so the ring never covers the title (LOOK46). */
+  gap: var(--ds-space-6);
   min-inline-size: 0;
 }
 .ds-search-table__grid {
