@@ -33,7 +33,7 @@ Branch `LOOK41-jobs-redesign`, from `origin/CRSP208-release-48`. Branch-only fil
 (filled in after the gate)
 
 ## Failures proven on the release head
-(none yet)
+- `ux-routes.spec.ts` `ux wordBroken: /jobs/insights` (data, stress, empty): the word *Guardrails* in the Area column of Do next breaks over two lines at 1300 px. Proven on a clean worktree of `origin/CRSP208-release-48` (same 3 failures, 18 other cases of that route pass). It blocked the DL-88 gate record (the full suite ran because packages/ui changed), so it was fixed rather than listed: `DoNext.tsx` gives its table `oneLine`, so the Area column is a fit column sized to its widest value (UX-72). No check was weakened and no known-list entry was added. All insights routes pass after it.
 
 ## Open questions
 - Runner timeline card (component 61), the stacked trend chart (63) and Cell full-text (62) are not built: the Overview has no timeline card. Needs a slot-log API and a task of its own.
