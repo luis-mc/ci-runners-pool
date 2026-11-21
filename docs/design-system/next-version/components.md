@@ -692,7 +692,7 @@ A field's width caps its box, never its name and help: a lone field's name and h
 ## 64. Job path
 
 - **Used for:** the picture of how a job gets run, on the Help page and on the first-run Overview (LOOK44, owner pick I, D57). It shows the parts a job passes through, in order: Repository, Run, Job (*On GitHub*) and Queue, Slot, Runner, Machine (*In your pool*).
-- **Anatomy:** a list of two framed groups with a label each (*On GitHub*, *In your pool*), each holding numbered boxes in order: the number, the part's name in bold and one short muted line (*one start of a workflow*). An arrow sits between two boxes. The boxes are HTML, not a drawing, so the words wrap and a screen reader reads them (UX-17).
+- **Anatomy:** a list of two framed groups with a label each (*On GitHub*, *In your pool*), each holding numbered boxes in order: the number, the part's name in bold and one short muted line: a live example from real data when the page has one (*octo/app*, *2 waiting*), otherwise the meaning (*one start of a workflow*). An example stays on one line; a long one is cut with … and its full text is the hover text (LOOK48). An arrow sits between two boxes. The boxes are HTML, not a drawing, so the words wrap and a screen reader reads them (UX-17).
 - **States:** *read only* (the first-run Overview: the boxes are plain boxes); *with a choice* (on Help each box is a button that scrolls to the question card of its part; nothing is locked); *lit* (a part the page lights has the selection fill and the primary border; the rest stay plain), told by the fill and by `aria-pressed`, never by colour alone (UX-58).
 - **Tokens:** `--ds-color-surface`, `--ds-color-border`, `--ds-color-divider`, `--ds-color-primary`, `--ds-color-selection`, `--ds-color-on-primary`, `--ds-color-text`, `--ds-color-text-muted`, `--ds-space-1` to `--ds-space-5`, `--ds-radius-2`, `--ds-radius-3`, `--ds-target-min`. No new token.
 - **Keyboard and screen reader:** each box is one tab stop; Down, Up, `j` and `k` move through them in page order (UX-57); Enter or Space presses. A box is named by its visible words (*Slot room for one job*), so its name holds its visible text. The list is named *How a job gets run*.
@@ -733,6 +733,18 @@ Removed in LOOK47 (owner decision 21 Nov 2026, D58): Help is no wizard, so nothi
 
 - **Used for:** one moment shown as text: the date, a space, the time (content.md, Dates, times and numbers), in a `time` element that carries the instant. It never breaks across lines, at any width, in a table, a card or a sentence. Shared part: `DateTime` of `@crsp/ui`. A page never writes a bare formatted string where a moment is shown as a cell or a line of its own.
 - **Rules:** UX-78, UX-72.
+
+## 69. Help question card
+
+- **Used for:** a question card of the Help page and any later card that explains one box of the job path (LOOK48, owner decision 21 Nov 2026, D58 proposal G).
+- **Anatomy:** a card (component 8) whose first line is a **box badge**: the numbered circle and *Box N: Name* (*Box 5: Slot*), a link to that box in the job path. Then the answer and, last, one **small picture** drawn in the theme's own colours with the shared pictures `PictureShared`, `PictureRun`, `PictureLabels`, `PictureElsewhere`, `PictureQueue`, `PictureSlots` (*N of M slots busy*), `PictureBudget` (memory and CPU bars against the budget line), `PictureRunnerType`, `PictureTray` and `PictureDoctor`. The page passes the numbers and names it has from real data; a picture with no data draws a short example with no invented number. The card grid takes `columns={4}`: 4 columns on a wide screen, 2 on a tablet, 1 on a phone.
+- **States:** *badge pressed* (the page lights the box, as in component 64's *lit*); a picture with data, or an example when there is none.
+- **Tokens:** `--ds-color-surface`, `--ds-color-border`, `--ds-color-primary`, `--ds-color-text`, `--ds-color-text-muted`, `--ds-color-needs-you`, `--ds-color-needs-you-tint`, `--ds-color-on-primary`, `--ds-space-2`, `--ds-space-5`, `--ds-target-min`. No new token.
+- **Keyboard and screen reader:** the badge is one tab stop; Enter presses it. Each picture is an image named by words that hold its numbers (*build-1: 2 of 4 slots busy.*) (UX-17, UX-41).
+- **Phone (360, 393 px):** one column; a picture is at most 20 rem wide and scales to the card; the badge is `--ds-target-min` high.
+- **Source:** `packages/ui/src/components/Help.tsx` (`HelpQuestionCard`), `packages/ui/src/components/HelpPictures.tsx`, `packages/ui/src/components/Card.tsx` (`CardGrid columns`), `packages/ui/src/components.css`
+- **Rules:** UX-41, UX-10, UX-51, UX-17, UX-16, UX-72, CORE-1, CORE-5.
+- **Guard:** `packages/ui/src/components/Help.test.tsx`, `apps/web/src/screens/help/Help.test.tsx`, `e2e/tests/web-console/help.spec.ts` and the DOM layout checks of `ux-routes.spec.ts` at 360, 393 and 1300 px.
 
 ## How to add a component
 
