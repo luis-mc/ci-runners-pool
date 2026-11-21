@@ -183,7 +183,7 @@ func (m *Model) State() State {
 	if st != nil {
 		switch st.Name {
 		case "done":
-			if trust {
+			if trust && !m.leftoverDone(st) {
 				return StateDone
 			}
 		case "failed":
@@ -224,6 +224,12 @@ func (m *Model) State() State {
 	return StateReview
 }
 
+// leftoverDone says a done stage is an earlier update's: it names the version the window
+// opened on while a newer one is offered. It is never shown as Done.
+func (m *Model) leftoverDone(st *tray.StageInfo) bool {
+	return st.Version != "" && st.Version == m.From && m.To != "" && update.Newer(m.From, m.To)
+}
+
 // version is the version the update brings, as far as it is known.
 func (m *Model) version() string {
 	if st := m.last.Stage; st != nil && st.Version != "" {
@@ -247,6 +253,9 @@ func (m *Model) View() View {
 	v := View{State: s, Percent: -1}
 	switch s {
 	case StateReview:
+		if m.To != "" {
+			to = m.To // the offer, never the version of a leftover stage
+		}
 		v.Heading = "Update to " + to
 		v.Body = []string{
 			fmt.Sprintf("Version %s is ready. You run %s.", to, m.From),

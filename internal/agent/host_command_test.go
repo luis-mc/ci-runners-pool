@@ -26,7 +26,7 @@ func TestHostHelperProcess(t *testing.T) {
 	}
 	fmt.Println("helper says " + os.Getenv("CRSP_HOST_SAY"))
 	if d, err := time.ParseDuration(os.Getenv("CRSP_HOST_SLEEP")); err == nil {
-		time.Sleep(d)
+		<-time.After(d) // lives until the parent stops it
 	}
 	code, _ := strconv.Atoi(os.Getenv("CRSP_HOST_EXIT"))
 	os.Exit(code)

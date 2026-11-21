@@ -196,15 +196,11 @@ func TestScaleSetDemandJobs(t *testing.T) {
 		t.Fatalf("completed job = %+v", c)
 	}
 	// The last message is acknowledged right after its job was handed on.
-	for i := 0; i < 500; i++ {
+	waitFor(t, func() bool {
 		f.mu.Lock()
-		n := len(f.acked)
-		f.mu.Unlock()
-		if n == 3 {
-			break
-		}
-		time.Sleep(10 * time.Millisecond)
-	}
+		defer f.mu.Unlock()
+		return len(f.acked) == 3
+	})
 	cancel()
 	for range ch {
 	}

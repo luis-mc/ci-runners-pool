@@ -102,7 +102,7 @@ func TestListManyRepositoriesPaged(t *testing.T) { // R6.11
 		t.Fatal(err)
 	}
 	var seen, after = 0, ""
-	for {
+	for pages := 0; pages < 20; pages++ { // 1100 repos at 100 a page: 11 full pages and an empty one
 		page, err := e.svc.List(context.Background(), adminP, ListFilter{AfterName: after, Limit: 100})
 		if err != nil {
 			t.Fatal(err)

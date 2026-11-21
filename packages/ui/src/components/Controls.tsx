@@ -1,5 +1,5 @@
 // Tabs (3), filter chips (12), search bar (21), code block with Copy, number field with the keypad (37).
-import { useId, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { NumberKeypad } from '../pickers/NumberKeypad';
 import { commitValue } from '../pickers/number-keypad-logic';
 import { Button } from './Button';
@@ -12,13 +12,19 @@ export function SearchBar({
   onChange,
   label = 'Search',
   placeholder,
+  autoFocus = false,
 }: {
   value: string;
   onChange: (value: string) => void;
   label?: string | undefined;
   placeholder?: string | undefined;
+  /** Focus starts in the box (a list page whose first act is to search). */
+  autoFocus?: boolean | undefined;
 }) {
   const ref = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (autoFocus) ref.current?.focus();
+  }, [autoFocus]);
   return (
     <div className="ds-search" role="search" data-layout-group>
       <CaretInput

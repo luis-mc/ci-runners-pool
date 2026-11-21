@@ -402,13 +402,19 @@ func (e DockerCompactMode) Valid() bool {
 
 // Defines values for DoctorFindingActionId.
 const (
-	RemoveRunnerLeftovers DoctorFindingActionId = "remove_runner_leftovers"
+	DoctorFindingActionIdRemoveGithubRunner    DoctorFindingActionId = "remove_github_runner"
+	DoctorFindingActionIdRemoveRunnerLeftovers DoctorFindingActionId = "remove_runner_leftovers"
+	DoctorFindingActionIdRemoveRunnerRecord    DoctorFindingActionId = "remove_runner_record"
 )
 
 // Valid indicates whether the value is a known member of the DoctorFindingActionId enum.
 func (e DoctorFindingActionId) Valid() bool {
 	switch e {
-	case RemoveRunnerLeftovers:
+	case DoctorFindingActionIdRemoveGithubRunner:
+		return true
+	case DoctorFindingActionIdRemoveRunnerLeftovers:
+		return true
+	case DoctorFindingActionIdRemoveRunnerRecord:
 		return true
 	default:
 		return false
@@ -559,6 +565,81 @@ func (e GithubGrantStepId) Valid() bool {
 	case GithubGrantStepIdAsk:
 		return true
 	case GithubGrantStepIdInstall:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for Guardrail.
+const (
+	G1 Guardrail = "G1"
+	G2 Guardrail = "G2"
+	G3 Guardrail = "G3"
+	G4 Guardrail = "G4"
+	G5 Guardrail = "G5"
+	G6 Guardrail = "G6"
+	G7 Guardrail = "G7"
+)
+
+// Valid indicates whether the value is a known member of the Guardrail enum.
+func (e Guardrail) Valid() bool {
+	switch e {
+	case G1:
+		return true
+	case G2:
+		return true
+	case G3:
+		return true
+	case G4:
+		return true
+	case G5:
+		return true
+	case G6:
+		return true
+	case G7:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for GuardrailStateSource.
+const (
+	GuardrailStateSourceCrsp        GuardrailStateSource = "crsp"
+	GuardrailStateSourceGuardReport GuardrailStateSource = "guard_report"
+)
+
+// Valid indicates whether the value is a known member of the GuardrailStateSource enum.
+func (e GuardrailStateSource) Valid() bool {
+	switch e {
+	case GuardrailStateSourceCrsp:
+		return true
+	case GuardrailStateSourceGuardReport:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for GuardrailStateState.
+const (
+	GuardrailStateStateBreak   GuardrailStateState = "break"
+	GuardrailStateStateOff     GuardrailStateState = "off"
+	GuardrailStateStatePass    GuardrailStateState = "pass"
+	GuardrailStateStateUnknown GuardrailStateState = "unknown"
+)
+
+// Valid indicates whether the value is a known member of the GuardrailStateState enum.
+func (e GuardrailStateState) Valid() bool {
+	switch e {
+	case GuardrailStateStateBreak:
+		return true
+	case GuardrailStateStateOff:
+		return true
+	case GuardrailStateStatePass:
+		return true
+	case GuardrailStateStateUnknown:
 		return true
 	default:
 		return false
@@ -727,6 +808,126 @@ func (e ImagePushState) Valid() bool {
 	}
 }
 
+// Defines values for InsightActionKind.
+const (
+	LightLane         InsightActionKind = "light_lane"
+	MachineSlots      InsightActionKind = "machine_slots"
+	RepoParallelLimit InsightActionKind = "repo_parallel_limit"
+)
+
+// Valid indicates whether the value is a known member of the InsightActionKind enum.
+func (e InsightActionKind) Valid() bool {
+	switch e {
+	case LightLane:
+		return true
+	case MachineSlots:
+		return true
+	case RepoParallelLimit:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for InsightArea.
+const (
+	InsightAreaGuardrails InsightArea = "guardrails"
+	InsightAreaPool       InsightArea = "pool"
+	InsightAreaRuns       InsightArea = "runs"
+	InsightAreaTests      InsightArea = "tests"
+	InsightAreaWaits      InsightArea = "waits"
+	InsightAreaWorkflows  InsightArea = "workflows"
+)
+
+// Valid indicates whether the value is a known member of the InsightArea enum.
+func (e InsightArea) Valid() bool {
+	switch e {
+	case InsightAreaGuardrails:
+		return true
+	case InsightAreaPool:
+		return true
+	case InsightAreaRuns:
+		return true
+	case InsightAreaTests:
+		return true
+	case InsightAreaWaits:
+		return true
+	case InsightAreaWorkflows:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for InsightFindingScope.
+const (
+	InsightFindingScopePool InsightFindingScope = "pool"
+	InsightFindingScopeRepo InsightFindingScope = "repo"
+)
+
+// Valid indicates whether the value is a known member of the InsightFindingScope enum.
+func (e InsightFindingScope) Valid() bool {
+	switch e {
+	case InsightFindingScopePool:
+		return true
+	case InsightFindingScopeRepo:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for InsightPlanState.
+const (
+	InsightPlanStateDone    InsightPlanState = "done"
+	InsightPlanStateDraft   InsightPlanState = "draft"
+	InsightPlanStateFailed  InsightPlanState = "failed"
+	InsightPlanStateRunning InsightPlanState = "running"
+	InsightPlanStateStopped InsightPlanState = "stopped"
+)
+
+// Valid indicates whether the value is a known member of the InsightPlanState enum.
+func (e InsightPlanState) Valid() bool {
+	switch e {
+	case InsightPlanStateDone:
+		return true
+	case InsightPlanStateDraft:
+		return true
+	case InsightPlanStateFailed:
+		return true
+	case InsightPlanStateRunning:
+		return true
+	case InsightPlanStateStopped:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for InsightPlanResultState.
+const (
+	InsightPlanResultStateDone    InsightPlanResultState = "done"
+	InsightPlanResultStateFailed  InsightPlanResultState = "failed"
+	InsightPlanResultStatePending InsightPlanResultState = "pending"
+	InsightPlanResultStateSkipped InsightPlanResultState = "skipped"
+)
+
+// Valid indicates whether the value is a known member of the InsightPlanResultState enum.
+func (e InsightPlanResultState) Valid() bool {
+	switch e {
+	case InsightPlanResultStateDone:
+		return true
+	case InsightPlanResultStateFailed:
+		return true
+	case InsightPlanResultStatePending:
+		return true
+	case InsightPlanResultStateSkipped:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for InstallationAccountType.
 const (
 	InstallationAccountTypeOrganization InstallationAccountType = "Organization"
@@ -808,6 +1009,27 @@ func (e JobJobType) Valid() bool {
 	}
 }
 
+// Defines values for JobRunnerOrigin.
+const (
+	JobRunnerOriginCrsp   JobRunnerOrigin = "crsp"
+	JobRunnerOriginHosted JobRunnerOrigin = "hosted"
+	JobRunnerOriginOther  JobRunnerOrigin = "other"
+)
+
+// Valid indicates whether the value is a known member of the JobRunnerOrigin enum.
+func (e JobRunnerOrigin) Valid() bool {
+	switch e {
+	case JobRunnerOriginCrsp:
+		return true
+	case JobRunnerOriginHosted:
+		return true
+	case JobRunnerOriginOther:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for JobState.
 const (
 	JobStateDone    JobState = "done"
@@ -823,6 +1045,24 @@ func (e JobState) Valid() bool {
 	case JobStateQueued:
 		return true
 	case JobStateRunning:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for JobStepsSource.
+const (
+	JobStepsSourceEvents JobStepsSource = "events"
+	JobStepsSourceRest   JobStepsSource = "rest"
+)
+
+// Valid indicates whether the value is a known member of the JobStepsSource enum.
+func (e JobStepsSource) Valid() bool {
+	switch e {
+	case JobStepsSourceEvents:
+		return true
+	case JobStepsSourceRest:
 		return true
 	default:
 		return false
@@ -850,6 +1090,27 @@ func (e JobDetailJobType) Valid() bool {
 	}
 }
 
+// Defines values for JobDetailRunnerOrigin.
+const (
+	JobDetailRunnerOriginCrsp   JobDetailRunnerOrigin = "crsp"
+	JobDetailRunnerOriginHosted JobDetailRunnerOrigin = "hosted"
+	JobDetailRunnerOriginOther  JobDetailRunnerOrigin = "other"
+)
+
+// Valid indicates whether the value is a known member of the JobDetailRunnerOrigin enum.
+func (e JobDetailRunnerOrigin) Valid() bool {
+	switch e {
+	case JobDetailRunnerOriginCrsp:
+		return true
+	case JobDetailRunnerOriginHosted:
+		return true
+	case JobDetailRunnerOriginOther:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for JobDetailState.
 const (
 	JobDetailStateDone    JobDetailState = "done"
@@ -865,6 +1126,24 @@ func (e JobDetailState) Valid() bool {
 	case JobDetailStateQueued:
 		return true
 	case JobDetailStateRunning:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for JobDetailStepsSource.
+const (
+	JobDetailStepsSourceEvents JobDetailStepsSource = "events"
+	JobDetailStepsSourceRest   JobDetailStepsSource = "rest"
+)
+
+// Valid indicates whether the value is a known member of the JobDetailStepsSource enum.
+func (e JobDetailStepsSource) Valid() bool {
+	switch e {
+	case JobDetailStepsSourceEvents:
+		return true
+	case JobDetailStepsSourceRest:
 		return true
 	default:
 		return false
@@ -1209,7 +1488,6 @@ const (
 	MachineTakingReasonModePaused       MachineTakingReason = "mode_paused"
 	MachineTakingReasonOffline          MachineTakingReason = "offline"
 	MachineTakingReasonOnBattery        MachineTakingReason = "on_battery"
-	MachineTakingReasonQuietHours       MachineTakingReason = "quiet_hours"
 	MachineTakingReasonStopped          MachineTakingReason = "stopped"
 	MachineTakingReasonTrayPaused       MachineTakingReason = "tray_paused"
 )
@@ -1228,8 +1506,6 @@ func (e MachineTakingReason) Valid() bool {
 	case MachineTakingReasonOffline:
 		return true
 	case MachineTakingReasonOnBattery:
-		return true
-	case MachineTakingReasonQuietHours:
 		return true
 	case MachineTakingReasonStopped:
 		return true
@@ -1399,7 +1675,6 @@ const (
 	PauseReasonBudget           PauseReason = "budget"
 	PauseReasonOnBattery        PauseReason = "on_battery"
 	PauseReasonPaused           PauseReason = "paused"
-	PauseReasonQuietHours       PauseReason = "quiet_hours"
 )
 
 // Valid indicates whether the value is a known member of the PauseReason enum.
@@ -1412,8 +1687,6 @@ func (e PauseReason) Valid() bool {
 	case PauseReasonOnBattery:
 		return true
 	case PauseReasonPaused:
-		return true
-	case PauseReasonQuietHours:
 		return true
 	default:
 		return false
@@ -1990,6 +2263,24 @@ func (e RegistryStackFileChangeChange) Valid() bool {
 	}
 }
 
+// Defines values for RemoveRegistrationRequestAction.
+const (
+	RemoveRegistrationRequestActionRemoveGithubRunner RemoveRegistrationRequestAction = "remove_github_runner"
+	RemoveRegistrationRequestActionRemoveRunnerRecord RemoveRegistrationRequestAction = "remove_runner_record"
+)
+
+// Valid indicates whether the value is a known member of the RemoveRegistrationRequestAction enum.
+func (e RemoveRegistrationRequestAction) Valid() bool {
+	switch e {
+	case RemoveRegistrationRequestActionRemoveGithubRunner:
+		return true
+	case RemoveRegistrationRequestActionRemoveRunnerRecord:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for RemoveRunnerLeftoversResultResultsOutcome.
 const (
 	RemoveRunnerLeftoversResultResultsOutcomeAlreadyGone RemoveRunnerLeftoversResultResultsOutcome = "already_gone"
@@ -2278,6 +2569,27 @@ func (e RunItemState) Valid() bool {
 	}
 }
 
+// Defines values for RunSavingChange.
+const (
+	MedianRun       RunSavingChange = "median_run"
+	NoWait          RunSavingChange = "no_wait"
+	StartAfterNeeds RunSavingChange = "start_after_needs"
+)
+
+// Valid indicates whether the value is a known member of the RunSavingChange enum.
+func (e RunSavingChange) Valid() bool {
+	switch e {
+	case MedianRun:
+		return true
+	case NoWait:
+		return true
+	case StartAfterNeeds:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for RunSummaryState.
 const (
 	RunSummaryStateDone    RunSummaryState = "done"
@@ -2293,6 +2605,30 @@ func (e RunSummaryState) Valid() bool {
 	case RunSummaryStateQueued:
 		return true
 	case RunSummaryStateRunning:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RunWasteKind.
+const (
+	RunWasteKindDuplicateEvent RunWasteKind = "duplicate_event"
+	RunWasteKindFailFast       RunWasteKind = "fail_fast"
+	RunWasteKindRetestedTree   RunWasteKind = "retested_tree"
+	RunWasteKindSuperseded     RunWasteKind = "superseded"
+)
+
+// Valid indicates whether the value is a known member of the RunWasteKind enum.
+func (e RunWasteKind) Valid() bool {
+	switch e {
+	case RunWasteKindDuplicateEvent:
+		return true
+	case RunWasteKindFailFast:
+		return true
+	case RunWasteKindRetestedTree:
+		return true
+	case RunWasteKindSuperseded:
 		return true
 	default:
 		return false
@@ -2443,6 +2779,27 @@ func (e RunsOnFindingKind) Valid() bool {
 	case RunsOnFindingKindNotGeneric:
 		return true
 	case RunsOnFindingKindUsesVariable:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SettingsInsightsUpdatePeriod.
+const (
+	EveryNthRun SettingsInsightsUpdatePeriod = "every_nth_run"
+	EveryRun    SettingsInsightsUpdatePeriod = "every_run"
+	Hourly      SettingsInsightsUpdatePeriod = "hourly"
+)
+
+// Valid indicates whether the value is a known member of the SettingsInsightsUpdatePeriod enum.
+func (e SettingsInsightsUpdatePeriod) Valid() bool {
+	switch e {
+	case EveryNthRun:
+		return true
+	case EveryRun:
+		return true
+	case Hourly:
 		return true
 	default:
 		return false
@@ -2662,6 +3019,27 @@ func (e StepItemState) Valid() bool {
 	}
 }
 
+// Defines values for TestInsightKind.
+const (
+	E2e         TestInsightKind = "e2e"
+	Integration TestInsightKind = "integration"
+	Unit        TestInsightKind = "unit"
+)
+
+// Valid indicates whether the value is a known member of the TestInsightKind enum.
+func (e TestInsightKind) Valid() bool {
+	switch e {
+	case E2e:
+		return true
+	case Integration:
+		return true
+	case Unit:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for Theme.
 const (
 	ThemeDark   Theme = "dark"
@@ -2677,6 +3055,63 @@ func (e Theme) Valid() bool {
 	case ThemeLight:
 		return true
 	case ThemeSystem:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for TimelineLaneOrigin.
+const (
+	TimelineLaneOriginCrsp   TimelineLaneOrigin = "crsp"
+	TimelineLaneOriginHosted TimelineLaneOrigin = "hosted"
+	TimelineLaneOriginOther  TimelineLaneOrigin = "other"
+)
+
+// Valid indicates whether the value is a known member of the TimelineLaneOrigin enum.
+func (e TimelineLaneOrigin) Valid() bool {
+	switch e {
+	case TimelineLaneOriginCrsp:
+		return true
+	case TimelineLaneOriginHosted:
+		return true
+	case TimelineLaneOriginOther:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for TimelineSegmentKind.
+const (
+	TimelineSegmentKindIdle TimelineSegmentKind = "idle"
+	TimelineSegmentKindJob  TimelineSegmentKind = "job"
+)
+
+// Valid indicates whether the value is a known member of the TimelineSegmentKind enum.
+func (e TimelineSegmentKind) Valid() bool {
+	switch e {
+	case TimelineSegmentKindIdle:
+		return true
+	case TimelineSegmentKindJob:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for TimelineSegmentMarkers.
+const (
+	AfterMergeWork   TimelineSegmentMarkers = "after_merge_work"
+	IdleWhileWaiting TimelineSegmentMarkers = "idle_while_waiting"
+)
+
+// Valid indicates whether the value is a known member of the TimelineSegmentMarkers enum.
+func (e TimelineSegmentMarkers) Valid() bool {
+	switch e {
+	case AfterMergeWork:
+		return true
+	case IdleWhileWaiting:
 		return true
 	default:
 		return false
@@ -2869,7 +3304,6 @@ const (
 	WaitReasonNoRunnerWithLabels      WaitReason = "no_runner_with_labels"
 	WaitReasonOnBattery               WaitReason = "on_battery"
 	WaitReasonPaused                  WaitReason = "paused"
-	WaitReasonQuietHours              WaitReason = "quiet_hours"
 	WaitReasonRepositoryParallelLimit WaitReason = "repository_parallel_limit"
 	WaitReasonUnknown                 WaitReason = "unknown"
 )
@@ -2891,11 +3325,30 @@ func (e WaitReason) Valid() bool {
 		return true
 	case WaitReasonPaused:
 		return true
-	case WaitReasonQuietHours:
-		return true
 	case WaitReasonRepositoryParallelLimit:
 		return true
 	case WaitReasonUnknown:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for WaitSplitGroup.
+const (
+	WaitSplitGroupDay        WaitSplitGroup = "day"
+	WaitSplitGroupJobKey     WaitSplitGroup = "job_key"
+	WaitSplitGroupRepository WaitSplitGroup = "repository"
+)
+
+// Valid indicates whether the value is a known member of the WaitSplitGroup enum.
+func (e WaitSplitGroup) Valid() bool {
+	switch e {
+	case WaitSplitGroupDay:
+		return true
+	case WaitSplitGroupJobKey:
+		return true
+	case WaitSplitGroupRepository:
 		return true
 	default:
 		return false
@@ -2950,6 +3403,57 @@ const (
 func (e WebhookModeUpdateMode) Valid() bool {
 	switch e {
 	case WebhookModeUpdateModeWebhook:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for WorkflowCheckCheckId.
+const (
+	WorkflowCache         WorkflowCheckCheckId = "workflow.cache"
+	WorkflowMatrixAxis    WorkflowCheckCheckId = "workflow.matrix_axis"
+	WorkflowRetry         WorkflowCheckCheckId = "workflow.retry"
+	WorkflowSlowTestsOnPr WorkflowCheckCheckId = "workflow.slow_tests_on_pr"
+	WorkflowStepOrder     WorkflowCheckCheckId = "workflow.step_order"
+	WorkflowTimeout       WorkflowCheckCheckId = "workflow.timeout"
+)
+
+// Valid indicates whether the value is a known member of the WorkflowCheckCheckId enum.
+func (e WorkflowCheckCheckId) Valid() bool {
+	switch e {
+	case WorkflowCache:
+		return true
+	case WorkflowMatrixAxis:
+		return true
+	case WorkflowRetry:
+		return true
+	case WorkflowSlowTestsOnPr:
+		return true
+	case WorkflowStepOrder:
+		return true
+	case WorkflowTimeout:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for WorkflowCheckStatus.
+const (
+	WorkflowCheckStatusFail WorkflowCheckStatus = "fail"
+	WorkflowCheckStatusOk   WorkflowCheckStatus = "ok"
+	WorkflowCheckStatusSkip WorkflowCheckStatus = "skip"
+)
+
+// Valid indicates whether the value is a known member of the WorkflowCheckStatus enum.
+func (e WorkflowCheckStatus) Valid() bool {
+	switch e {
+	case WorkflowCheckStatusFail:
+		return true
+	case WorkflowCheckStatusOk:
+		return true
+	case WorkflowCheckStatusSkip:
 		return true
 	default:
 		return false
@@ -3031,6 +3535,132 @@ func (e ListRepositoriesParamsPool) Valid() bool {
 	}
 }
 
+// Defines values for ListInsightFindingsParamsState.
+const (
+	Open     ListInsightFindingsParamsState = "open"
+	Resolved ListInsightFindingsParamsState = "resolved"
+)
+
+// Valid indicates whether the value is a known member of the ListInsightFindingsParamsState enum.
+func (e ListInsightFindingsParamsState) Valid() bool {
+	switch e {
+	case Open:
+		return true
+	case Resolved:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for GetPoolSizingParamsDays.
+const (
+	GetPoolSizingParamsDaysN14 GetPoolSizingParamsDays = 14
+	GetPoolSizingParamsDaysN30 GetPoolSizingParamsDays = 30
+	GetPoolSizingParamsDaysN7  GetPoolSizingParamsDays = 7
+)
+
+// Valid indicates whether the value is a known member of the GetPoolSizingParamsDays enum.
+func (e GetPoolSizingParamsDays) Valid() bool {
+	switch e {
+	case GetPoolSizingParamsDaysN14:
+		return true
+	case GetPoolSizingParamsDaysN30:
+		return true
+	case GetPoolSizingParamsDaysN7:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ListTestInsightsParamsView.
+const (
+	Duplicated   ListTestInsightsParamsView = "duplicated"
+	Flaky        ListTestInsightsParamsView = "flaky"
+	NoAssertions ListTestInsightsParamsView = "no_assertions"
+	Slowest      ListTestInsightsParamsView = "slowest"
+)
+
+// Valid indicates whether the value is a known member of the ListTestInsightsParamsView enum.
+func (e ListTestInsightsParamsView) Valid() bool {
+	switch e {
+	case Duplicated:
+		return true
+	case Flaky:
+		return true
+	case NoAssertions:
+		return true
+	case Slowest:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ListTestInsightsParamsDays.
+const (
+	ListTestInsightsParamsDaysN14 ListTestInsightsParamsDays = 14
+	ListTestInsightsParamsDaysN30 ListTestInsightsParamsDays = 30
+	ListTestInsightsParamsDaysN7  ListTestInsightsParamsDays = 7
+)
+
+// Valid indicates whether the value is a known member of the ListTestInsightsParamsDays enum.
+func (e ListTestInsightsParamsDays) Valid() bool {
+	switch e {
+	case ListTestInsightsParamsDaysN14:
+		return true
+	case ListTestInsightsParamsDaysN30:
+		return true
+	case ListTestInsightsParamsDaysN7:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for GetWaitSplitParamsDays.
+const (
+	GetWaitSplitParamsDaysN14 GetWaitSplitParamsDays = 14
+	GetWaitSplitParamsDaysN30 GetWaitSplitParamsDays = 30
+	GetWaitSplitParamsDaysN7  GetWaitSplitParamsDays = 7
+)
+
+// Valid indicates whether the value is a known member of the GetWaitSplitParamsDays enum.
+func (e GetWaitSplitParamsDays) Valid() bool {
+	switch e {
+	case GetWaitSplitParamsDaysN14:
+		return true
+	case GetWaitSplitParamsDaysN30:
+		return true
+	case GetWaitSplitParamsDaysN7:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for GetWaitSplitParamsGroup.
+const (
+	GetWaitSplitParamsGroupDay        GetWaitSplitParamsGroup = "day"
+	GetWaitSplitParamsGroupJobKey     GetWaitSplitParamsGroup = "job_key"
+	GetWaitSplitParamsGroupRepository GetWaitSplitParamsGroup = "repository"
+)
+
+// Valid indicates whether the value is a known member of the GetWaitSplitParamsGroup enum.
+func (e GetWaitSplitParamsGroup) Valid() bool {
+	switch e {
+	case GetWaitSplitParamsGroupDay:
+		return true
+	case GetWaitSplitParamsGroupJobKey:
+		return true
+	case GetWaitSplitParamsGroupRepository:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ListJobsParamsState.
 const (
 	ListJobsParamsStateDone    ListJobsParamsState = "done"
@@ -3081,19 +3711,19 @@ func (e ListJobGroupsParamsBy) Valid() bool {
 
 // Defines values for GetJobStatsParamsDays.
 const (
-	N14 GetJobStatsParamsDays = 14
-	N30 GetJobStatsParamsDays = 30
-	N7  GetJobStatsParamsDays = 7
+	GetJobStatsParamsDaysN14 GetJobStatsParamsDays = 14
+	GetJobStatsParamsDaysN30 GetJobStatsParamsDays = 30
+	GetJobStatsParamsDaysN7  GetJobStatsParamsDays = 7
 )
 
 // Valid indicates whether the value is a known member of the GetJobStatsParamsDays enum.
 func (e GetJobStatsParamsDays) Valid() bool {
 	switch e {
-	case N14:
+	case GetJobStatsParamsDaysN14:
 		return true
-	case N30:
+	case GetJobStatsParamsDaysN30:
 		return true
-	case N7:
+	case GetJobStatsParamsDaysN7:
 		return true
 	default:
 		return false
@@ -3483,6 +4113,12 @@ type DayStat struct {
 	WaitP90 float32 `json:"wait_p90"`
 }
 
+// DayValue defines model for DayValue.
+type DayValue struct {
+	Day   openapi_types.Date `json:"day"`
+	Value float32            `json:"value"`
+}
+
 // DockerCompactMode The automatic compact of Docker's disk file. auto (default) is on for a Windows machine with a Docker Desktop disk file and off elsewhere (caches R5.51 to R5.54).
 type DockerCompactMode string
 
@@ -3502,7 +4138,7 @@ type DockerCompactStatus struct {
 	// LastResult Sizes of the last compact, or why it failed.
 	LastResult *string `json:"last_result,omitempty"`
 
-	// Reason Why the last look did not compact, or `run`. One of off, offline, not_active, no_report, no_admin, below_threshold, outside_quiet_hours, busy, not_idle_long_enough, done_today, already_running, change_open.
+	// Reason Why the last look did not compact, or `run`. One of off, offline, not_active, no_report, no_admin, below_threshold, busy, not_idle_long_enough, done_today, already_running, change_open.
 	Reason           *string `json:"reason,omitempty"`
 	ReclaimableBytes *int64  `json:"reclaimable_bytes,omitempty"`
 	Running          bool    `json:"running"`
@@ -3511,10 +4147,12 @@ type DockerCompactStatus struct {
 
 // DoctorFinding defines model for DoctorFinding.
 type DoctorFinding struct {
-	// Action The one button the finding offers. `remove_runner_leftovers` removes `items` through POST /api/v1/machines/{machineId}/runner-leftovers/remove (the subject is the machine).
+	// Action The one button the finding offers. `remove_runner_leftovers` removes `items` through POST /api/v1/machines/{machineId}/runner-leftovers/remove (the subject is the machine). `remove_github_runner` and `remove_runner_record` send `args` through POST /api/v1/doctor/registration-fixes.
 	Action *struct {
-		Id    DoctorFindingActionId `json:"id"`
-		Label string                `json:"label"`
+		// Args What a registration action needs back (doctor R5.50).
+		Args  *RegistrationActionArgs `json:"args,omitempty"`
+		Id    DoctorFindingActionId   `json:"id"`
+		Label string                  `json:"label"`
 	} `json:"action,omitempty"`
 	Check     string    `json:"check"`
 	CheckedAt time.Time `json:"checked_at"`
@@ -3589,6 +4227,15 @@ type DrainHolder struct {
 // DrainRequest defines model for DrainRequest.
 type DrainRequest struct {
 	Reason *string `json:"reason,omitempty"`
+}
+
+// DurationStats defines model for DurationStats.
+type DurationStats struct {
+	// Known Jobs with a known value; unknown is never counted as 0.
+	Known        *int  `json:"known,omitempty"`
+	P50Seconds   *int  `json:"p50_seconds,omitempty"`
+	P95Seconds   *int  `json:"p95_seconds,omitempty"`
+	TotalSeconds int64 `json:"total_seconds"`
 }
 
 // EnvSet defines model for EnvSet.
@@ -3796,6 +4443,42 @@ type GithubGrantStep struct {
 // GithubGrantStepId defines model for GithubGrantStep.Id.
 type GithubGrantStepId string
 
+// Guardrail The dev-standards test guardrails G1 to G7.
+type Guardrail string
+
+// GuardrailState defines model for GuardrailState.
+type GuardrailState struct {
+	Count *int `json:"count,omitempty"`
+
+	// Guardrail The dev-standards test guardrails G1 to G7.
+	Guardrail  Guardrail            `json:"guardrail"`
+	Reason     *string              `json:"reason,omitempty"`
+	ReportedAt *time.Time           `json:"reported_at,omitempty"`
+	Source     GuardrailStateSource `json:"source"`
+	State      GuardrailStateState  `json:"state"`
+}
+
+// GuardrailStateSource defines model for GuardrailState.Source.
+type GuardrailStateSource string
+
+// GuardrailStateState defines model for GuardrailState.State.
+type GuardrailStateState string
+
+// GuardrailStatus defines model for GuardrailStatus.
+type GuardrailStatus struct {
+	Guardrails []GuardrailState `json:"guardrails"`
+
+	// KnownCountByDay The guard's known-list count per day, 30 days.
+	KnownCountByDay *[]DayValue `json:"known_count_by_day,omitempty"`
+	Repository      string      `json:"repository"`
+	RepositoryId    int64       `json:"repository_id"`
+}
+
+// GuardrailStatusList defines model for GuardrailStatusList.
+type GuardrailStatusList struct {
+	Items []GuardrailStatus `json:"items"`
+}
+
 // Health defines model for Health.
 type Health struct {
 	Status  HealthStatus `json:"status"`
@@ -3958,6 +4641,139 @@ type ImageTool struct {
 	Version *string `json:"version,omitempty"`
 }
 
+// InsightActionKind ci-run-insights R5.10. A setup change crsp can make after Review; absent when the fix is outside crsp.
+type InsightActionKind string
+
+// InsightArea ci-run-insights section 7. The screen area a finding belongs to.
+type InsightArea string
+
+// InsightBacklog ci-run-insights R6.1. Work waiting for the GitHub hourly limit.
+type InsightBacklog struct {
+	Jobs  int        `json:"jobs"`
+	Until *time.Time `json:"until,omitempty"`
+}
+
+// InsightDigest defines model for InsightDigest.
+type InsightDigest struct {
+	// Text The digest file's Markdown, shown as text.
+	Text      string    `json:"text"`
+	Week      string    `json:"week"`
+	WrittenAt time.Time `json:"written_at"`
+}
+
+// InsightDigestList defines model for InsightDigestList.
+type InsightDigestList struct {
+	Items []InsightDigest `json:"items"`
+}
+
+// InsightFinding ci-run-insights R5.7. Text fields are plain words, shown as text, never as markup.
+type InsightFinding struct {
+	// ActionKind ci-run-insights R5.10. A setup change crsp can make after Review; absent when the fix is outside crsp.
+	ActionKind *InsightActionKind `json:"action_kind,omitempty"`
+
+	// Area ci-run-insights section 7. The screen area a finding belongs to.
+	Area InsightArea `json:"area"`
+
+	// DismissedUntil Set while the finding is hidden (owner decision D17); it shows again at this time if it is still true.
+	DismissedUntil *time.Time `json:"dismissed_until,omitempty"`
+
+	// Evidence The numbers the finding page shows; its keys depend on the kind.
+	Evidence  map[string]interface{} `json:"evidence"`
+	FirstSeen time.Time              `json:"first_seen"`
+	Fix       string                 `json:"fix"`
+
+	// Guardrail The dev-standards test guardrails G1 to G7.
+	Guardrail *Guardrail `json:"guardrail,omitempty"`
+	Id        int64      `json:"id"`
+
+	// Kind The finding kind of ci-run-insights section 7, such as wait.hold or workflow.timeout.
+	Kind     string    `json:"kind"`
+	LastSeen time.Time `json:"last_seen"`
+
+	// MinutesSavedWeek An estimate (R5.9).
+	MinutesSavedWeek int                 `json:"minutes_saved_week"`
+	Repository       *string             `json:"repository,omitempty"`
+	RepositoryId     *int64              `json:"repository_id,omitempty"`
+	ResolvedAt       *time.Time          `json:"resolved_at,omitempty"`
+	Scope            InsightFindingScope `json:"scope"`
+
+	// Snippet A workflow snippet for the fix, shown in a copyable block.
+	Snippet *string `json:"snippet,omitempty"`
+
+	// Subject What it is about inside its kind (a job key, a label set, a workflow file, a test).
+	Subject *string `json:"subject,omitempty"`
+	Title   string  `json:"title"`
+}
+
+// InsightFindingScope defines model for InsightFinding.Scope.
+type InsightFindingScope string
+
+// InsightFindingList defines model for InsightFindingList.
+type InsightFindingList struct {
+	Items      []InsightFinding `json:"items"`
+	NextCursor *string          `json:"next_cursor,omitempty"`
+
+	// NotReadYet ci-run-insights R6.1. Work waiting for the GitHub hourly limit.
+	NotReadYet *InsightBacklog `json:"not_read_yet,omitempty"`
+	Total      int             `json:"total"`
+}
+
+// InsightPlan defines model for InsightPlan.
+type InsightPlan struct {
+	// ActionKind ci-run-insights R5.10. A setup change crsp can make after Review; absent when the fix is outside crsp.
+	ActionKind InsightActionKind   `json:"action_kind"`
+	Changes    []InsightPlanChange `json:"changes"`
+	CreatedAt  time.Time           `json:"created_at"`
+	CreatedBy  *string             `json:"created_by,omitempty"`
+
+	// Estimate The estimate in words, such as "p95 wait from about 9 to about 3 min".
+	Estimate   *string             `json:"estimate,omitempty"`
+	FindingId  int64               `json:"finding_id"`
+	FinishedAt *time.Time          `json:"finished_at,omitempty"`
+	Id         string              `json:"id"`
+	Results    []InsightPlanResult `json:"results"`
+	StartedAt  *time.Time          `json:"started_at,omitempty"`
+	State      InsightPlanState    `json:"state"`
+}
+
+// InsightPlanState defines model for InsightPlan.State.
+type InsightPlanState string
+
+// InsightPlanChange defines model for InsightPlanChange.
+type InsightPlanChange struct {
+	// Field The setting, such as job_slots, light_slots or max_parallel_jobs.
+	Field string `json:"field"`
+	From  int    `json:"from"`
+
+	// JobsWaitedFor Running jobs the change waits for (UX-62).
+	JobsWaitedFor *[]string `json:"jobs_waited_for,omitempty"`
+
+	// Target The machine id or repository it changes.
+	Target     string  `json:"target"`
+	TargetName *string `json:"target_name,omitempty"`
+	To         int     `json:"to"`
+	Words      string  `json:"words"`
+}
+
+// InsightPlanResult defines model for InsightPlanResult.
+type InsightPlanResult struct {
+	Error  *string                `json:"error,omitempty"`
+	Field  string                 `json:"field"`
+	State  InsightPlanResultState `json:"state"`
+	Target string                 `json:"target"`
+}
+
+// InsightPlanResultState defines model for InsightPlanResult.State.
+type InsightPlanResultState string
+
+// InsightSummary defines model for InsightSummary.
+type InsightSummary struct {
+	// EnoughData False under 50 finished jobs in the window.
+	EnoughData       *bool `json:"enough_data,omitempty"`
+	MinutesSavedWeek int   `json:"minutes_saved_week"`
+	Open             int   `json:"open"`
+}
+
 // InstallCommands defines model for InstallCommands.
 type InstallCommands struct {
 	AgentPort int `json:"agent_port"`
@@ -4002,8 +4818,11 @@ type Isolation string
 
 // Job One job attempt (observability R5.7, R5.8).
 type Job struct {
-	Backend        *string    `json:"backend,omitempty"`
-	Branch         *string    `json:"branch,omitempty"`
+	Backend *string `json:"backend,omitempty"`
+	Branch  *string `json:"branch,omitempty"`
+
+	// CheckedAt ci-run-insights R5.41. When crsp last re-read the job from GitHub.
+	CheckedAt      *time.Time `json:"checked_at,omitempty"`
 	CleanupSeconds *int       `json:"cleanup_seconds,omitempty"`
 	CompletedAt    *time.Time `json:"completed_at,omitempty"`
 	CreatedAt      *time.Time `json:"created_at,omitempty"`
@@ -4038,21 +4857,33 @@ type Job struct {
 	QueueEta *Eta `json:"queue_eta,omitempty"`
 
 	// QueuePosition 1-based place in the queue, queued jobs only.
-	QueuePosition   *int       `json:"queue_position,omitempty"`
-	QueuedAt        *time.Time `json:"queued_at,omitempty"`
-	Repository      string     `json:"repository"`
-	RepositoryId    *int64     `json:"repository_id,omitempty"`
-	Result          *JobResult `json:"result,omitempty"`
-	RunAttempt      int        `json:"run_attempt"`
-	RunId           int64      `json:"run_id"`
-	RunSeconds      *int       `json:"run_seconds,omitempty"`
-	Runner          *RunnerRef `json:"runner,omitempty"`
-	RunnerId        *string    `json:"runner_id,omitempty"`
-	RunnerName      *string    `json:"runner_name,omitempty"`
-	SlotAt          *time.Time `json:"slot_at,omitempty"`
-	SlotWaitSeconds *int       `json:"slot_wait_seconds,omitempty"`
-	StartedAt       *time.Time `json:"started_at,omitempty"`
-	State           JobState   `json:"state"`
+	QueuePosition *int       `json:"queue_position,omitempty"`
+	QueuedAt      *time.Time `json:"queued_at,omitempty"`
+	Repository    string     `json:"repository"`
+	RepositoryId  *int64     `json:"repository_id,omitempty"`
+	Result        *JobResult `json:"result,omitempty"`
+	RunAttempt    int        `json:"run_attempt"`
+	RunId         int64      `json:"run_id"`
+	RunSeconds    *int       `json:"run_seconds,omitempty"`
+	Runner        *RunnerRef `json:"runner,omitempty"`
+
+	// RunnerGroup GitHub's runner group name of the runner that ran the job.
+	RunnerGroup *string `json:"runner_group,omitempty"`
+	RunnerId    *string `json:"runner_id,omitempty"`
+
+	// RunnerLabels The labels of the runner that ran the job, as GitHub reports them.
+	RunnerLabels *[]string `json:"runner_labels,omitempty"`
+	RunnerName   *string   `json:"runner_name,omitempty"`
+
+	// RunnerOrigin ci-run-insights R5.39. Who ran the job; absent while not known.
+	RunnerOrigin    *JobRunnerOrigin `json:"runner_origin,omitempty"`
+	SlotAt          *time.Time       `json:"slot_at,omitempty"`
+	SlotWaitSeconds *int             `json:"slot_wait_seconds,omitempty"`
+	StartedAt       *time.Time       `json:"started_at,omitempty"`
+	State           JobState         `json:"state"`
+
+	// StepsSource ci-run-insights R5.40. Where the steps came from.
+	StepsSource *JobStepsSource `json:"steps_source,omitempty"`
 
 	// TaskId The task id the branch starts with, when it does.
 	TaskId  *string `json:"task_id,omitempty"`
@@ -4072,17 +4903,26 @@ type Job struct {
 // JobJobType The scheduler class of the job. Not the job name; filter by name with the `job_type` query.
 type JobJobType string
 
+// JobRunnerOrigin ci-run-insights R5.39. Who ran the job; absent while not known.
+type JobRunnerOrigin string
+
 // JobState defines model for Job.State.
 type JobState string
 
+// JobStepsSource ci-run-insights R5.40. Where the steps came from.
+type JobStepsSource string
+
 // JobDetail A job with its steps, the last 30 runs of its key, its attempts and the ETA of its run (OPS34).
 type JobDetail struct {
-	Attempts       []AttemptRef `json:"attempts"`
-	Backend        *string      `json:"backend,omitempty"`
-	Branch         *string      `json:"branch,omitempty"`
-	CleanupSeconds *int         `json:"cleanup_seconds,omitempty"`
-	CompletedAt    *time.Time   `json:"completed_at,omitempty"`
-	CreatedAt      *time.Time   `json:"created_at,omitempty"`
+	Attempts []AttemptRef `json:"attempts"`
+	Backend  *string      `json:"backend,omitempty"`
+	Branch   *string      `json:"branch,omitempty"`
+
+	// CheckedAt ci-run-insights R5.41. When crsp last re-read the job from GitHub.
+	CheckedAt      *time.Time `json:"checked_at,omitempty"`
+	CleanupSeconds *int       `json:"cleanup_seconds,omitempty"`
+	CompletedAt    *time.Time `json:"completed_at,omitempty"`
+	CreatedAt      *time.Time `json:"created_at,omitempty"`
 
 	// Forecast A duration in seconds with a range and the basis it rests on (OPS34 D4). The range is p25 to p90, at least 10 percent either way.
 	Forecast          *Forecast `json:"forecast,omitempty"`
@@ -4125,17 +4965,29 @@ type JobDetail struct {
 	RunAttempt    int        `json:"run_attempt"`
 
 	// RunEta Seconds from now, with a range. When a queued job starts, or when a run ends.
-	RunEta          *Eta           `json:"run_eta,omitempty"`
-	RunId           int64          `json:"run_id"`
-	RunSeconds      *int           `json:"run_seconds,omitempty"`
-	Runner          *RunnerRef     `json:"runner,omitempty"`
-	RunnerId        *string        `json:"runner_id,omitempty"`
-	RunnerName      *string        `json:"runner_name,omitempty"`
-	SlotAt          *time.Time     `json:"slot_at,omitempty"`
-	SlotWaitSeconds *int           `json:"slot_wait_seconds,omitempty"`
-	StartedAt       *time.Time     `json:"started_at,omitempty"`
-	State           JobDetailState `json:"state"`
-	Steps           []StepItem     `json:"steps"`
+	RunEta     *Eta       `json:"run_eta,omitempty"`
+	RunId      int64      `json:"run_id"`
+	RunSeconds *int       `json:"run_seconds,omitempty"`
+	Runner     *RunnerRef `json:"runner,omitempty"`
+
+	// RunnerGroup GitHub's runner group name of the runner that ran the job.
+	RunnerGroup *string `json:"runner_group,omitempty"`
+	RunnerId    *string `json:"runner_id,omitempty"`
+
+	// RunnerLabels The labels of the runner that ran the job, as GitHub reports them.
+	RunnerLabels *[]string `json:"runner_labels,omitempty"`
+	RunnerName   *string   `json:"runner_name,omitempty"`
+
+	// RunnerOrigin ci-run-insights R5.39. Who ran the job; absent while not known.
+	RunnerOrigin    *JobDetailRunnerOrigin `json:"runner_origin,omitempty"`
+	SlotAt          *time.Time             `json:"slot_at,omitempty"`
+	SlotWaitSeconds *int                   `json:"slot_wait_seconds,omitempty"`
+	StartedAt       *time.Time             `json:"started_at,omitempty"`
+	State           JobDetailState         `json:"state"`
+	Steps           []StepItem             `json:"steps"`
+
+	// StepsSource ci-run-insights R5.40. Where the steps came from.
+	StepsSource *JobDetailStepsSource `json:"steps_source,omitempty"`
 
 	// TaskId The task id the branch starts with, when it does.
 	TaskId  *string `json:"task_id,omitempty"`
@@ -4155,8 +5007,14 @@ type JobDetail struct {
 // JobDetailJobType The scheduler class of the job. Not the job name; filter by name with the `job_type` query.
 type JobDetailJobType string
 
+// JobDetailRunnerOrigin ci-run-insights R5.39. Who ran the job; absent while not known.
+type JobDetailRunnerOrigin string
+
 // JobDetailState defines model for JobDetail.State.
 type JobDetailState string
+
+// JobDetailStepsSource ci-run-insights R5.40. Where the steps came from.
+type JobDetailStepsSource string
 
 // JobGroupList defines model for JobGroupList.
 type JobGroupList struct {
@@ -4195,6 +5053,16 @@ type JobPage struct {
 
 	// Total The count of the filter without paging.
 	Total *int `json:"total,omitempty"`
+}
+
+// JobResources defines model for JobResources.
+type JobResources struct {
+	CpuP95Cores     *float32         `json:"cpu_p95_cores,omitempty"`
+	CpuPeakCores    *float32         `json:"cpu_peak_cores,omitempty"`
+	MemoryP95Bytes  *int64           `json:"memory_p95_bytes,omitempty"`
+	MemoryPeakBytes *int64           `json:"memory_peak_bytes,omitempty"`
+	Samples         []ResourceSample `json:"samples"`
+	UnknownReason   *string          `json:"unknown_reason,omitempty"`
 }
 
 // JobResult defines model for JobResult.
@@ -4251,6 +5119,26 @@ type JoinCodeCreated struct {
 	Code     string          `json:"code"`
 	Commands InstallCommands `json:"commands"`
 	JoinCode JoinCode        `json:"join_code"`
+}
+
+// LabelSetDemand defines model for LabelSetDemand.
+type LabelSetDemand struct {
+	CvArrivals         *float32       `json:"cv_arrivals,omitempty"`
+	CvService          *float32       `json:"cv_service,omitempty"`
+	Estimates          []SlotEstimate `json:"estimates"`
+	JobsPerHour        float32        `json:"jobs_per_hour"`
+	Labels             []string       `json:"labels"`
+	MeanServiceSeconds *float32       `json:"mean_service_seconds,omitempty"`
+
+	// MinSlotsNeeded Set when the queue grows; the smallest slot count with utilisation under 0.85.
+	MinSlotsNeeded *int        `json:"min_slots_needed,omitempty"`
+	P50WaitSeconds *float32    `json:"p50_wait_seconds,omitempty"`
+	P95WaitByDay   *[]DayValue `json:"p95_wait_by_day,omitempty"`
+	P95WaitSeconds *float32    `json:"p95_wait_seconds,omitempty"`
+	Slots          int         `json:"slots"`
+
+	// Utilisation Busy slot minutes over available slot minutes, 0 to 1 (can exceed 1 when the queue grows).
+	Utilisation float32 `json:"utilisation"`
 }
 
 // LayerNeededBy The repositories on the machine that ask for a layer (LOOK12).
@@ -4505,12 +5393,6 @@ type MachineSettings struct {
 	// DockerCompactIdleMinutes How many minutes no job may run or wait for the machine's runners. 0 takes 30 (caches R5.51 to R5.54).
 	DockerCompactIdleMinutes *int `json:"docker_compact_idle_minutes,omitempty"`
 
-	// DockerCompactQuietEnd End of the quiet-hours window, in the machine's local time, as HH:MM. Empty takes 06:00.
-	DockerCompactQuietEnd *string `json:"docker_compact_quiet_end,omitempty"`
-
-	// DockerCompactQuietStart Start of the quiet-hours window, in the machine's local time, as HH:MM. Empty takes 01:00 (caches R5.51 to R5.54).
-	DockerCompactQuietStart *string `json:"docker_compact_quiet_start,omitempty"`
-
 	// DockerCompactThresholdGib How many GiB of Docker's disk file must be reclaimable (file size minus what Docker uses) before the compact runs. 0 takes 30 (caches R5.51 to R5.54).
 	DockerCompactThresholdGib *int                          `json:"docker_compact_threshold_gib,omitempty"`
 	DrainTimeoutMinutes       int                           `json:"drain_timeout_minutes"`
@@ -4571,12 +5453,6 @@ type MachineSettingsUpdate struct {
 	// DockerCompactIdleMinutes How many minutes no job may run or wait for the machine's runners. 0 takes 30 (caches R5.51 to R5.54).
 	DockerCompactIdleMinutes *int `json:"docker_compact_idle_minutes,omitempty"`
 
-	// DockerCompactQuietEnd End of the quiet-hours window, in the machine's local time, as HH:MM. Empty takes 06:00.
-	DockerCompactQuietEnd *string `json:"docker_compact_quiet_end,omitempty"`
-
-	// DockerCompactQuietStart Start of the quiet-hours window, in the machine's local time, as HH:MM. Empty takes 01:00 (caches R5.51 to R5.54).
-	DockerCompactQuietStart *string `json:"docker_compact_quiet_start,omitempty"`
-
 	// DockerCompactThresholdGib How many GiB of Docker's disk file must be reclaimable (file size minus what Docker uses) before the compact runs. 0 takes 30 (caches R5.51 to R5.54).
 	DockerCompactThresholdGib *int                                `json:"docker_compact_threshold_gib,omitempty"`
 	DrainTimeoutMinutes       *int                                `json:"drain_timeout_minutes,omitempty"`
@@ -4614,12 +5490,12 @@ type MachineState string
 
 // MachineTaking The one computed answer to "does this machine take new jobs" (machines R5.62, OPS29). The console state, the Now line, its note and the Stop or Resume button all read it. The controller decides from its own online flag, drain state, mode, tray pause and battery switch first, and from the agent's report only for what the agent alone knows.
 type MachineTaking struct {
-	// Reason Why not, absent while taking. offline; stopped (Stop new jobs from the console); mode_paused (mode Paused); tray_paused (a pause from the tray); on_battery (Automatic with the battery pause on); busy (load over the budget); quiet_hours; base_image_missing; disk_low.
+	// Reason Why not, absent while taking. offline; stopped (Stop new jobs from the console); mode_paused (mode Paused); tray_paused (a pause from the tray); on_battery (Automatic with the battery pause on); busy (load over the budget); base_image_missing; disk_low.
 	Reason     *MachineTakingReason `json:"reason,omitempty"`
 	TakingJobs bool                 `json:"taking_jobs"`
 }
 
-// MachineTakingReason Why not, absent while taking. offline; stopped (Stop new jobs from the console); mode_paused (mode Paused); tray_paused (a pause from the tray); on_battery (Automatic with the battery pause on); busy (load over the budget); quiet_hours; base_image_missing; disk_low.
+// MachineTakingReason Why not, absent while taking. offline; stopped (Stop new jobs from the console); mode_paused (mode Paused); tray_paused (a pause from the tray); on_battery (Automatic with the battery pause on); busy (load over the budget); base_image_missing; disk_low.
 type MachineTakingReason string
 
 // NotificationChannel One channel. No secret is returned: `secret_set` and `smtp.has_password` say only whether one is set.
@@ -4955,6 +5831,22 @@ type PoolSizeRecommended struct {
 	MemoryGib int `json:"memory_gib"`
 }
 
+// PoolSizing defines model for PoolSizing.
+type PoolSizing struct {
+	Days      int              `json:"days"`
+	LabelSets []LabelSetDemand `json:"label_sets"`
+
+	// Method The estimate's method in words (Allen-Cunneen with Sakasegawa).
+	Method string `json:"method"`
+}
+
+// PoolTimeline defines model for PoolTimeline.
+type PoolTimeline struct {
+	From  time.Time      `json:"from"`
+	Lanes []TimelineLane `json:"lanes"`
+	To    time.Time      `json:"to"`
+}
+
 // Preferences defines model for Preferences.
 type Preferences struct {
 	Theme Theme `json:"theme"`
@@ -5016,6 +5908,17 @@ type QueueSettingsOrder string
 // RedeemSetupLinkRequest defines model for RedeemSetupLinkRequest.
 type RedeemSetupLinkRequest struct {
 	Code string `json:"code"`
+}
+
+// RegistrationActionArgs What a registration action needs back (doctor R5.50).
+type RegistrationActionArgs struct {
+	GithubRunnerId *int64  `json:"github_runner_id,omitempty"`
+	InstallationId *int64  `json:"installation_id,omitempty"`
+	Name           *string `json:"name,omitempty"`
+	Organization   *string `json:"organization,omitempty"`
+	Owner          *string `json:"owner,omitempty"`
+	Repo           *string `json:"repo,omitempty"`
+	RunnerId       *string `json:"runner_id,omitempty"`
 }
 
 // RegistryArch defines model for RegistryArch.
@@ -5518,6 +6421,23 @@ type RegistryWhere struct {
 	WhyNot *string `json:"why_not,omitempty"`
 }
 
+// RemoveRegistrationRequest defines model for RemoveRegistrationRequest.
+type RemoveRegistrationRequest struct {
+	Action RemoveRegistrationRequestAction `json:"action"`
+
+	// Args What a registration action needs back (doctor R5.50).
+	Args RegistrationActionArgs `json:"args"`
+}
+
+// RemoveRegistrationRequestAction defines model for RemoveRegistrationRequest.Action.
+type RemoveRegistrationRequestAction string
+
+// RemoveRegistrationResult defines model for RemoveRegistrationResult.
+type RemoveRegistrationResult struct {
+	Name    string `json:"name"`
+	Removed bool   `json:"removed"`
+}
+
 // RemoveRunnerLeftoversRequest defines model for RemoveRunnerLeftoversRequest.
 type RemoveRunnerLeftoversRequest struct {
 	Items []struct {
@@ -5734,6 +6654,14 @@ type ResolvedEnvVar struct {
 	Value string `json:"value"`
 }
 
+// ResourceSample defines model for ResourceSample.
+type ResourceSample struct {
+	At          time.Time `json:"at"`
+	CpuCores    float32   `json:"cpu_cores"`
+	Known       *bool     `json:"known,omitempty"`
+	MemoryBytes int64     `json:"memory_bytes"`
+}
+
 // Role defines model for Role.
 type Role string
 
@@ -5797,6 +6725,27 @@ type RunPage struct {
 	Total int       `json:"total"`
 }
 
+// RunSaving defines model for RunSaving.
+type RunSaving struct {
+	Change  *RunSavingChange `json:"change,omitempty"`
+	Job     string           `json:"job"`
+	Minutes float32          `json:"minutes"`
+
+	// Words "The run would end {n} min sooner if {change}."
+	Words string `json:"words"`
+}
+
+// RunSavingChange defines model for RunSaving.Change.
+type RunSavingChange string
+
+// RunSavings defines model for RunSavings.
+type RunSavings struct {
+	// Reason Why nothing is computed (the run is not finished, no needs graph).
+	Reason  *string     `json:"reason,omitempty"`
+	Savings []RunSaving `json:"savings"`
+	Waste   []RunWaste  `json:"waste"`
+}
+
 // RunSummary One run attempt in a list.
 type RunSummary struct {
 	Attempt     int        `json:"attempt"`
@@ -5831,6 +6780,16 @@ type RunSummary struct {
 
 // RunSummaryState defines model for RunSummary.State.
 type RunSummaryState string
+
+// RunWaste defines model for RunWaste.
+type RunWaste struct {
+	Kind    RunWasteKind `json:"kind"`
+	Minutes float32      `json:"minutes"`
+	Words   string       `json:"words"`
+}
+
+// RunWasteKind defines model for RunWaste.Kind.
+type RunWasteKind string
 
 // Runner defines model for Runner.
 type Runner struct {
@@ -6007,14 +6966,44 @@ type Settings struct {
 	BackupTimeLocal *string `json:"backup_time_local,omitempty"`
 
 	// FallbackGraceMinutes github-integration R5.43. How long no crsp machine of an operating system must have been up before a repository that turned the hosted fallback on runs on GitHub-hosted runners. Default 3.
-	FallbackGraceMinutes       *int `json:"fallback_grace_minutes,omitempty"`
-	MaxEventStreams            *int `json:"max_event_streams,omitempty"`
-	RetentionAuditDays         *int `json:"retention_audit_days,omitempty"`
-	RetentionJobHistoryDays    *int `json:"retention_job_history_days,omitempty"`
-	RetentionLoadRawHours      *int `json:"retention_load_raw_hours,omitempty"`
-	RetentionLogsDays          *int `json:"retention_logs_days,omitempty"`
-	RetentionLogsMibPerMachine *int `json:"retention_logs_mib_per_machine,omitempty"`
+	FallbackGraceMinutes *int `json:"fallback_grace_minutes,omitempty"`
+
+	// InsightsCiDataDays ci-run-insights R5.5, R6.2. Default 30.
+	InsightsCiDataDays *int `json:"insights_ci_data_days,omitempty"`
+
+	// InsightsCiDataMibPerRepository ci-run-insights R5.5, R6.2. Default 1024.
+	InsightsCiDataMibPerRepository *int `json:"insights_ci_data_mib_per_repository,omitempty"`
+
+	// InsightsGuardrailArtifact ci-run-insights R5.31. Name pattern of the guard report artifact. Default test-guardrails*.
+	InsightsGuardrailArtifact *string `json:"insights_guardrail_artifact,omitempty"`
+
+	// InsightsHoldCapSeconds ci-run-insights R5.14. Default 120.
+	InsightsHoldCapSeconds *int `json:"insights_hold_cap_seconds,omitempty"`
+
+	// InsightsKeepCiData ci-run-insights R5.5. Keep CI logs and test reports on the owner's machines (owner decision D4). On by default.
+	InsightsKeepCiData *bool `json:"insights_keep_ci_data,omitempty"`
+
+	// InsightsResourceSamplesDays ci-run-insights R5.5, R6.2. Default 7.
+	InsightsResourceSamplesDays *int `json:"insights_resource_samples_days,omitempty"`
+
+	// InsightsTestResultsDays ci-run-insights R5.5, R6.2. Default 90.
+	InsightsTestResultsDays *int `json:"insights_test_results_days,omitempty"`
+
+	// InsightsUpdateEveryNRuns ci-run-insights R5.44. N of every_nth_run. Default 5.
+	InsightsUpdateEveryNRuns *int `json:"insights_update_every_n_runs,omitempty"`
+
+	// InsightsUpdatePeriod ci-run-insights R5.44 (owner decisions D18, D19). How often insights are re-analysed. every_run (the default) analyses after each CI run; every_nth_run after every Nth run; hourly once an hour. The cost warning recommends a slower one.
+	InsightsUpdatePeriod       *SettingsInsightsUpdatePeriod `json:"insights_update_period,omitempty"`
+	MaxEventStreams            *int                          `json:"max_event_streams,omitempty"`
+	RetentionAuditDays         *int                          `json:"retention_audit_days,omitempty"`
+	RetentionJobHistoryDays    *int                          `json:"retention_job_history_days,omitempty"`
+	RetentionLoadRawHours      *int                          `json:"retention_load_raw_hours,omitempty"`
+	RetentionLogsDays          *int                          `json:"retention_logs_days,omitempty"`
+	RetentionLogsMibPerMachine *int                          `json:"retention_logs_mib_per_machine,omitempty"`
 }
+
+// SettingsInsightsUpdatePeriod ci-run-insights R5.44 (owner decisions D18, D19). How often insights are re-analysed. every_run (the default) analyses after each CI run; every_nth_run after every Nth run; hourly once an hour. The cost warning recommends a slower one.
+type SettingsInsightsUpdatePeriod string
 
 // SetupState defines model for SetupState.
 type SetupState struct {
@@ -6073,6 +7062,16 @@ type Slot struct {
 
 // SlotKind defines model for Slot.Kind.
 type SlotKind string
+
+// SlotEstimate defines model for SlotEstimate.
+type SlotEstimate struct {
+	ExtraSlots int `json:"extra_slots"`
+
+	// MeanWaitSeconds Absent when the queue would still grow.
+	MeanWaitSeconds *float32 `json:"mean_wait_seconds,omitempty"`
+	P95WaitSeconds  *float32 `json:"p95_wait_seconds,omitempty"`
+	Utilisation     *float32 `json:"utilisation,omitempty"`
+}
 
 // SlotStatus defines model for SlotStatus.
 type SlotStatus struct {
@@ -6204,6 +7203,41 @@ type StepItemResult string
 // StepItemState defines model for StepItem.State.
 type StepItemState string
 
+// TestInsight defines model for TestInsight.
+type TestInsight struct {
+	// Assertions -1 when the format does not report them.
+	Assertions *int             `json:"assertions,omitempty"`
+	Failures   *int             `json:"failures,omitempty"`
+	File       *string          `json:"file,omitempty"`
+	FlakyRuns  *int             `json:"flaky_runs,omitempty"`
+	JobIdents  *[]string        `json:"job_idents,omitempty"`
+	Kind       *TestInsightKind `json:"kind,omitempty"`
+	LastSeen   *time.Time       `json:"last_seen,omitempty"`
+	Name       string           `json:"name"`
+
+	// OverLimitSeconds Set when the p95 is over the G1 limit of its kind.
+	OverLimitSeconds *int    `json:"over_limit_seconds,omitempty"`
+	P50Ms            *int    `json:"p50_ms,omitempty"`
+	P95Ms            *int    `json:"p95_ms,omitempty"`
+	Repository       string  `json:"repository"`
+	Runs             int     `json:"runs"`
+	Suite            *string `json:"suite,omitempty"`
+	TestId           string  `json:"test_id"`
+}
+
+// TestInsightKind defines model for TestInsight.Kind.
+type TestInsightKind string
+
+// TestInsightList defines model for TestInsightList.
+type TestInsightList struct {
+	Items      []TestInsight `json:"items"`
+	NextCursor *string       `json:"next_cursor,omitempty"`
+
+	// ReportsFound False when no test report was found in the window.
+	ReportsFound bool `json:"reports_found"`
+	Total        int  `json:"total"`
+}
+
 // Theme defines model for Theme.
 type Theme string
 
@@ -6226,6 +7260,39 @@ type Ticket struct {
 	// WaitReason observability R5.5.
 	WaitReason *WaitReason `json:"wait_reason,omitempty"`
 }
+
+// TimelineLane defines model for TimelineLane.
+type TimelineLane struct {
+	Labels      *[]string          `json:"labels,omitempty"`
+	MachineName *string            `json:"machine_name,omitempty"`
+	Origin      TimelineLaneOrigin `json:"origin"`
+	RunnerName  string             `json:"runner_name"`
+	Segments    []TimelineSegment  `json:"segments"`
+}
+
+// TimelineLaneOrigin defines model for TimelineLane.Origin.
+type TimelineLaneOrigin string
+
+// TimelineSegment defines model for TimelineSegment.
+type TimelineSegment struct {
+	End        time.Time                 `json:"end"`
+	Event      *string                   `json:"event,omitempty"`
+	JobId      *int64                    `json:"job_id,omitempty"`
+	JobIdent   *string                   `json:"job_ident,omitempty"`
+	Kind       TimelineSegmentKind       `json:"kind"`
+	Markers    *[]TimelineSegmentMarkers `json:"markers,omitempty"`
+	Repository *string                   `json:"repository,omitempty"`
+	Start      time.Time                 `json:"start"`
+
+	// WaitingJobIds For a marked segment, the jobs that waited meanwhile.
+	WaitingJobIds *[]int64 `json:"waiting_job_ids,omitempty"`
+}
+
+// TimelineSegmentKind defines model for TimelineSegment.Kind.
+type TimelineSegmentKind string
+
+// TimelineSegmentMarkers defines model for TimelineSegment.Markers.
+type TimelineSegmentMarkers string
 
 // Trial defines model for Trial.
 type Trial struct {
@@ -6405,6 +7472,32 @@ type VariableStatus string
 // WaitReason observability R5.5.
 type WaitReason string
 
+// WaitSplit defines model for WaitSplit.
+type WaitSplit struct {
+	Days           int            `json:"days"`
+	Group          WaitSplitGroup `json:"group"`
+	HoldCapSeconds int            `json:"hold_cap_seconds"`
+	Rows           []WaitSplitRow `json:"rows"`
+}
+
+// WaitSplitGroup defines model for WaitSplit.Group.
+type WaitSplitGroup string
+
+// WaitSplitRow defines model for WaitSplitRow.
+type WaitSplitRow struct {
+	Hold DurationStats `json:"hold"`
+
+	// HoldReasons Holds over the cap by reason (image_pull, runner_start, registration, load, unknown).
+	HoldReasons  *map[string]int `json:"hold_reasons,omitempty"`
+	HoldsOverCap *int            `json:"holds_over_cap,omitempty"`
+	Jobs         int             `json:"jobs"`
+
+	// Key The repository, the job key or the day (year-month-day, UTC).
+	Key  string        `json:"key"`
+	Run  DurationStats `json:"run"`
+	Wait DurationStats `json:"wait"`
+}
+
 // WaitingJob One queued or held job with the first reason it waits (scheduling R5.48).
 type WaitingJob struct {
 	JobId     int64   `json:"job_id"`
@@ -6449,6 +7542,32 @@ type WebhookModeUpdate struct {
 // WebhookModeUpdateMode defines model for WebhookModeUpdate.Mode.
 type WebhookModeUpdateMode string
 
+// WorkflowCheck defines model for WorkflowCheck.
+type WorkflowCheck struct {
+	CheckId WorkflowCheckCheckId `json:"check_id"`
+	Detail  *string              `json:"detail,omitempty"`
+
+	// Guardrail The dev-standards test guardrails G1 to G7.
+	Guardrail *Guardrail          `json:"guardrail,omitempty"`
+	Job       *string             `json:"job,omitempty"`
+	Line      *int                `json:"line,omitempty"`
+	Status    WorkflowCheckStatus `json:"status"`
+	Workflow  string              `json:"workflow"`
+}
+
+// WorkflowCheckCheckId defines model for WorkflowCheck.CheckId.
+type WorkflowCheckCheckId string
+
+// WorkflowCheckStatus defines model for WorkflowCheck.Status.
+type WorkflowCheckStatus string
+
+// WorkflowCheckList defines model for WorkflowCheckList.
+type WorkflowCheckList struct {
+	CheckedAt *time.Time      `json:"checked_at,omitempty"`
+	HeadSha   *string         `json:"head_sha,omitempty"`
+	Items     []WorkflowCheck `json:"items"`
+}
+
 // BackupId defines model for BackupId.
 type BackupId = string
 
@@ -6472,6 +7591,9 @@ type Confirmed = bool
 
 // Cursor defines model for Cursor.
 type Cursor = string
+
+// FindingId defines model for FindingId.
+type FindingId = int64
 
 // From defines model for From.
 type From = time.Time
@@ -6598,6 +7720,12 @@ type ListDoctorFindingsParams struct {
 	Group    *string   `form:"group,omitempty" json:"group,omitempty"`
 }
 
+// RemoveRegistrationParams defines parameters for RemoveRegistration.
+type RemoveRegistrationParams struct {
+	// Confirm The yes to a question card that named what goes (UX-62).
+	Confirm *Confirm `form:"confirm,omitempty" json:"confirm,omitempty"`
+}
+
 // StreamEventsParams defines parameters for StreamEvents.
 type StreamEventsParams struct {
 	LastEventID *string `json:"Last-Event-ID,omitempty"`
@@ -6696,6 +7824,66 @@ type RebuildImageParams struct {
 	Confirm *Confirm `form:"confirm,omitempty" json:"confirm,omitempty"`
 }
 
+// ListInsightFindingsParams defines parameters for ListInsightFindings.
+type ListInsightFindingsParams struct {
+	RepositoryId *int64                          `form:"repository_id,omitempty" json:"repository_id,omitempty"`
+	Area         *InsightArea                    `form:"area,omitempty" json:"area,omitempty"`
+	Guardrail    *Guardrail                      `form:"guardrail,omitempty" json:"guardrail,omitempty"`
+	State        *ListInsightFindingsParamsState `form:"state,omitempty" json:"state,omitempty"`
+	Limit        *int                            `form:"limit,omitempty" json:"limit,omitempty"`
+	Cursor       *string                         `form:"cursor,omitempty" json:"cursor,omitempty"`
+}
+
+// ListInsightFindingsParamsState defines parameters for ListInsightFindings.
+type ListInsightFindingsParamsState string
+
+// ListGuardrailStatusParams defines parameters for ListGuardrailStatus.
+type ListGuardrailStatusParams struct {
+	RepositoryId *int64 `form:"repository_id,omitempty" json:"repository_id,omitempty"`
+}
+
+// GetPoolSizingParams defines parameters for GetPoolSizing.
+type GetPoolSizingParams struct {
+	Days *GetPoolSizingParamsDays `form:"days,omitempty" json:"days,omitempty"`
+}
+
+// GetPoolSizingParamsDays defines parameters for GetPoolSizing.
+type GetPoolSizingParamsDays int
+
+// ListTestInsightsParams defines parameters for ListTestInsights.
+type ListTestInsightsParams struct {
+	View         *ListTestInsightsParamsView `form:"view,omitempty" json:"view,omitempty"`
+	RepositoryId *int64                      `form:"repository_id,omitempty" json:"repository_id,omitempty"`
+	Days         *ListTestInsightsParamsDays `form:"days,omitempty" json:"days,omitempty"`
+	Limit        *int                        `form:"limit,omitempty" json:"limit,omitempty"`
+	Cursor       *string                     `form:"cursor,omitempty" json:"cursor,omitempty"`
+}
+
+// ListTestInsightsParamsView defines parameters for ListTestInsights.
+type ListTestInsightsParamsView string
+
+// ListTestInsightsParamsDays defines parameters for ListTestInsights.
+type ListTestInsightsParamsDays int
+
+// GetPoolTimelineParams defines parameters for GetPoolTimeline.
+type GetPoolTimelineParams struct {
+	From *time.Time `form:"from,omitempty" json:"from,omitempty"`
+	To   *time.Time `form:"to,omitempty" json:"to,omitempty"`
+}
+
+// GetWaitSplitParams defines parameters for GetWaitSplit.
+type GetWaitSplitParams struct {
+	Days         *GetWaitSplitParamsDays  `form:"days,omitempty" json:"days,omitempty"`
+	Group        *GetWaitSplitParamsGroup `form:"group,omitempty" json:"group,omitempty"`
+	RepositoryId *int64                   `form:"repository_id,omitempty" json:"repository_id,omitempty"`
+}
+
+// GetWaitSplitParamsDays defines parameters for GetWaitSplit.
+type GetWaitSplitParamsDays int
+
+// GetWaitSplitParamsGroup defines parameters for GetWaitSplit.
+type GetWaitSplitParamsGroup string
+
 // ListJobsParams defines parameters for ListJobs.
 type ListJobsParams struct {
 	State        *ListJobsParamsState `form:"state,omitempty" json:"state,omitempty"`
@@ -6773,6 +7961,12 @@ type RemoveMachineParams struct {
 	Confirm *Confirm `form:"confirm,omitempty" json:"confirm,omitempty"`
 }
 
+// StartDockerCompactParams defines parameters for StartDockerCompact.
+type StartDockerCompactParams struct {
+	// Confirm The yes to a question card that named what goes (UX-62).
+	Confirm *Confirm `form:"confirm,omitempty" json:"confirm,omitempty"`
+}
+
 // GetMachineLoadParams defines parameters for GetMachineLoad.
 type GetMachineLoadParams struct {
 	From *From `form:"from,omitempty" json:"from,omitempty"`
@@ -6821,6 +8015,12 @@ type ListRegistryPullsParams struct {
 	MachineId *string `form:"machine_id,omitempty" json:"machine_id,omitempty"`
 }
 
+// ListWorkflowChecksParams defines parameters for ListWorkflowChecks.
+type ListWorkflowChecksParams struct {
+	// HeadSha Another commit; the latest default-branch commit checked when absent.
+	HeadSha *string `form:"head_sha,omitempty" json:"head_sha,omitempty"`
+}
+
 // ListRunnersParams defines parameters for ListRunners.
 type ListRunnersParams struct {
 	MachineId *string      `form:"machine_id,omitempty" json:"machine_id,omitempty"`
@@ -6863,6 +8063,11 @@ type ListRunsParamsState string
 // GetRunParams defines parameters for GetRun.
 type GetRunParams struct {
 	// Attempt The attempt; the newest when absent.
+	Attempt *int `form:"attempt,omitempty" json:"attempt,omitempty"`
+}
+
+// GetRunSavingsParams defines parameters for GetRunSavings.
+type GetRunSavingsParams struct {
 	Attempt *int `form:"attempt,omitempty" json:"attempt,omitempty"`
 }
 
@@ -6930,6 +8135,9 @@ type SetAppWebhookJSONRequestBody = AppWebhookUpdate
 
 // ExchangeCliTokenJSONRequestBody defines body for ExchangeCliToken for application/json ContentType.
 type ExchangeCliTokenJSONRequestBody = ExchangeCliTokenRequest
+
+// RemoveRegistrationJSONRequestBody defines body for RemoveRegistration for application/json ContentType.
+type RemoveRegistrationJSONRequestBody = RemoveRegistrationRequest
 
 // RunDoctorJSONRequestBody defines body for RunDoctor for application/json ContentType.
 type RunDoctorJSONRequestBody = DoctorScope
@@ -7134,6 +8342,9 @@ type ServerInterface interface {
 	// ListDoctorFindings The latest finding per check and subject
 	// (GET /api/v1/doctor/findings)
 	ListDoctorFindings(w http.ResponseWriter, r *http.Request, params ListDoctorFindingsParams)
+	// RemoveRegistration Remove one half of a half-registered runner
+	// (POST /api/v1/doctor/registration-fixes)
+	RemoveRegistration(w http.ResponseWriter, r *http.Request, params RemoveRegistrationParams)
 	// RunDoctor Run the doctor now
 	// (POST /api/v1/doctor/runs)
 	RunDoctor(w http.ResponseWriter, r *http.Request)
@@ -7200,6 +8411,45 @@ type ServerInterface interface {
 	// RebuildImage Rebuild an image after a drain
 	// (POST /api/v1/images/{imageId}/rebuild)
 	RebuildImage(w http.ResponseWriter, r *http.Request, imageId ImageId, params RebuildImageParams)
+	// ListInsightDigests The last weekly digests, with their text
+	// (GET /api/v1/insights/digests)
+	ListInsightDigests(w http.ResponseWriter, r *http.Request)
+	// ListInsightFindings The Do next list across projects
+	// (GET /api/v1/insights/findings)
+	ListInsightFindings(w http.ResponseWriter, r *http.Request, params ListInsightFindingsParams)
+	// GetInsightFinding One finding with its evidence
+	// (GET /api/v1/insights/findings/{findingId})
+	GetInsightFinding(w http.ResponseWriter, r *http.Request, findingId FindingId)
+	// DismissInsightFinding Hide a finding for 7 days
+	// (POST /api/v1/insights/findings/{findingId}/dismiss)
+	DismissInsightFinding(w http.ResponseWriter, r *http.Request, findingId FindingId)
+	// CreateInsightPlan Make the plan of a setup change (nothing changes yet)
+	// (POST /api/v1/insights/findings/{findingId}/plans)
+	CreateInsightPlan(w http.ResponseWriter, r *http.Request, findingId FindingId)
+	// ListGuardrailStatus G1 to G7 per project
+	// (GET /api/v1/insights/guardrails)
+	ListGuardrailStatus(w http.ResponseWriter, r *http.Request, params ListGuardrailStatusParams)
+	// GetInsightPlan One plan with its progress
+	// (GET /api/v1/insights/plans/{planId})
+	GetInsightPlan(w http.ResponseWriter, r *http.Request, planId PlanId)
+	// StartInsightPlan Make the reviewed change
+	// (POST /api/v1/insights/plans/{planId}/start)
+	StartInsightPlan(w http.ResponseWriter, r *http.Request, planId PlanId)
+	// GetPoolSizing Demand per label set and the wait with more slots
+	// (GET /api/v1/insights/pool-sizing)
+	GetPoolSizing(w http.ResponseWriter, r *http.Request, params GetPoolSizingParams)
+	// GetInsightSummary The count and minutes the Overview shows
+	// (GET /api/v1/insights/summary)
+	GetInsightSummary(w http.ResponseWriter, r *http.Request)
+	// ListTestInsights Slowest, flaky, duplicated and empty tests
+	// (GET /api/v1/insights/tests)
+	ListTestInsights(w http.ResponseWriter, r *http.Request, params ListTestInsightsParams)
+	// GetPoolTimeline Which project held which runner when
+	// (GET /api/v1/insights/timeline)
+	GetPoolTimeline(w http.ResponseWriter, r *http.Request, params GetPoolTimelineParams)
+	// GetWaitSplit Wait, hold and run per repository, job key or day
+	// (GET /api/v1/insights/waits)
+	GetWaitSplit(w http.ResponseWriter, r *http.Request, params GetWaitSplitParams)
 	// GetInstallCommand The install command per OS, without a join code
 	// (GET /api/v1/install-command)
 	GetInstallCommand(w http.ResponseWriter, r *http.Request)
@@ -7218,6 +8468,9 @@ type ServerInterface interface {
 	// GetJob One job attempt with its timing
 	// (GET /api/v1/jobs/{jobId})
 	GetJob(w http.ResponseWriter, r *http.Request, jobId JobId)
+	// GetJobResources CPU and memory of one job
+	// (GET /api/v1/jobs/{jobId}/resources)
+	GetJobResources(w http.ResponseWriter, r *http.Request, jobId JobId)
 	// CreateJoinCode Make a one-time join code and the install commands
 	// (POST /api/v1/join-codes)
 	CreateJoinCode(w http.ResponseWriter, r *http.Request)
@@ -7254,6 +8507,9 @@ type ServerInterface interface {
 	// RunMachineCommand Run one command on a drained machine (host maintenance)
 	// (POST /api/v1/machines/{machineId}/command)
 	RunMachineCommand(w http.ResponseWriter, r *http.Request, machineId MachineId)
+	// StartDockerCompact Make Docker's disk file smaller now
+	// (POST /api/v1/machines/{machineId}/docker-compact)
+	StartDockerCompact(w http.ResponseWriter, r *http.Request, machineId MachineId, params StartDockerCompactParams)
 	// DrainMachine Stop new jobs on a machine; running jobs finish
 	// (POST /api/v1/machines/{machineId}/drain)
 	DrainMachine(w http.ResponseWriter, r *http.Request, machineId MachineId)
@@ -7416,6 +8672,9 @@ type ServerInterface interface {
 	// SetRepositoryWebhookMode Switch a repository back to webhook deliveries
 	// (PUT /api/v1/repositories/{repositoryId}/webhook-mode)
 	SetRepositoryWebhookMode(w http.ResponseWriter, r *http.Request, repositoryId RepositoryId)
+	// ListWorkflowChecks Workflow file checks of the latest default-branch commit
+	// (GET /api/v1/repositories/{repositoryId}/workflow-checks)
+	ListWorkflowChecks(w http.ResponseWriter, r *http.Request, repositoryId RepositoryId, params ListWorkflowChecksParams)
 	// PlanRepositoryChanges Plan turning the pool on or off for repositories
 	// (POST /api/v1/repository-plans)
 	PlanRepositoryChanges(w http.ResponseWriter, r *http.Request)
@@ -7470,6 +8729,9 @@ type ServerInterface interface {
 	// GetRun One run attempt with its jobs, needs graph and ETA
 	// (GET /api/v1/runs/{runId})
 	GetRun(w http.ResponseWriter, r *http.Request, runId int64, params GetRunParams)
+	// GetRunSavings How much sooner the run could have ended
+	// (GET /api/v1/runs/{runId}/savings)
+	GetRunSavings(w http.ResponseWriter, r *http.Request, runId RunId, params GetRunSavingsParams)
 	// RestartService Restart the service after a drain
 	// (POST /api/v1/service/restart)
 	RestartService(w http.ResponseWriter, r *http.Request, params RestartServiceParams)
@@ -8167,6 +9429,39 @@ func (siw *ServerInterfaceWrapper) ListDoctorFindings(w http.ResponseWriter, r *
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.ListDoctorFindings(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RemoveRegistration operation middleware
+func (siw *ServerInterfaceWrapper) RemoveRegistration(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params RemoveRegistrationParams
+
+	// ------------- Optional query parameter "confirm" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "confirm", r.URL.Query(), &params.Confirm, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "confirm"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "confirm", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RemoveRegistration(w, r, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -9108,6 +10403,518 @@ func (siw *ServerInterfaceWrapper) RebuildImage(w http.ResponseWriter, r *http.R
 	handler.ServeHTTP(w, r)
 }
 
+// ListInsightDigests operation middleware
+func (siw *ServerInterfaceWrapper) ListInsightDigests(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListInsightDigests(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListInsightFindings operation middleware
+func (siw *ServerInterfaceWrapper) ListInsightFindings(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListInsightFindingsParams
+
+	// ------------- Optional query parameter "repository_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "repository_id", r.URL.Query(), &params.RepositoryId, runtime.BindQueryParameterOptions{Type: "integer", Format: "int64"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "repository_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "repository_id", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "area" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "area", r.URL.Query(), &params.Area, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "area"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "area", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "guardrail" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "guardrail", r.URL.Query(), &params.Guardrail, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "guardrail"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "guardrail", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "state" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "state", r.URL.Query(), &params.State, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "state"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "state", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", r.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "limit"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "cursor" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "cursor", r.URL.Query(), &params.Cursor, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "cursor"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "cursor", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListInsightFindings(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetInsightFinding operation middleware
+func (siw *ServerInterfaceWrapper) GetInsightFinding(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "findingId" -------------
+	var findingId FindingId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "findingId", r.PathValue("findingId"), &findingId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "findingId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetInsightFinding(w, r, findingId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DismissInsightFinding operation middleware
+func (siw *ServerInterfaceWrapper) DismissInsightFinding(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "findingId" -------------
+	var findingId FindingId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "findingId", r.PathValue("findingId"), &findingId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "findingId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DismissInsightFinding(w, r, findingId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateInsightPlan operation middleware
+func (siw *ServerInterfaceWrapper) CreateInsightPlan(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "findingId" -------------
+	var findingId FindingId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "findingId", r.PathValue("findingId"), &findingId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "findingId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateInsightPlan(w, r, findingId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListGuardrailStatus operation middleware
+func (siw *ServerInterfaceWrapper) ListGuardrailStatus(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListGuardrailStatusParams
+
+	// ------------- Optional query parameter "repository_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "repository_id", r.URL.Query(), &params.RepositoryId, runtime.BindQueryParameterOptions{Type: "integer", Format: "int64"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "repository_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "repository_id", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListGuardrailStatus(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetInsightPlan operation middleware
+func (siw *ServerInterfaceWrapper) GetInsightPlan(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "planId" -------------
+	var planId PlanId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "planId", r.PathValue("planId"), &planId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "planId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetInsightPlan(w, r, planId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// StartInsightPlan operation middleware
+func (siw *ServerInterfaceWrapper) StartInsightPlan(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "planId" -------------
+	var planId PlanId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "planId", r.PathValue("planId"), &planId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "planId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.StartInsightPlan(w, r, planId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetPoolSizing operation middleware
+func (siw *ServerInterfaceWrapper) GetPoolSizing(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetPoolSizingParams
+
+	// ------------- Optional query parameter "days" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "days", r.URL.Query(), &params.Days, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "days"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "days", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetPoolSizing(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetInsightSummary operation middleware
+func (siw *ServerInterfaceWrapper) GetInsightSummary(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetInsightSummary(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListTestInsights operation middleware
+func (siw *ServerInterfaceWrapper) ListTestInsights(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListTestInsightsParams
+
+	// ------------- Optional query parameter "view" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "view", r.URL.Query(), &params.View, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "view"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "view", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "repository_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "repository_id", r.URL.Query(), &params.RepositoryId, runtime.BindQueryParameterOptions{Type: "integer", Format: "int64"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "repository_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "repository_id", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "days" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "days", r.URL.Query(), &params.Days, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "days"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "days", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", r.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "limit"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "cursor" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "cursor", r.URL.Query(), &params.Cursor, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "cursor"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "cursor", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListTestInsights(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetPoolTimeline operation middleware
+func (siw *ServerInterfaceWrapper) GetPoolTimeline(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetPoolTimelineParams
+
+	// ------------- Optional query parameter "from" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "from", r.URL.Query(), &params.From, runtime.BindQueryParameterOptions{Type: "string", Format: "date-time"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "from"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "from", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "to" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "to", r.URL.Query(), &params.To, runtime.BindQueryParameterOptions{Type: "string", Format: "date-time"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "to"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "to", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetPoolTimeline(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetWaitSplit operation middleware
+func (siw *ServerInterfaceWrapper) GetWaitSplit(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetWaitSplitParams
+
+	// ------------- Optional query parameter "days" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "days", r.URL.Query(), &params.Days, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "days"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "days", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "group" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "group", r.URL.Query(), &params.Group, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "group"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "group", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "repository_id" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "repository_id", r.URL.Query(), &params.RepositoryId, runtime.BindQueryParameterOptions{Type: "integer", Format: "int64"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "repository_id"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "repository_id", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetWaitSplit(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // GetInstallCommand operation middleware
 func (siw *ServerInterfaceWrapper) GetInstallCommand(w http.ResponseWriter, r *http.Request) {
 
@@ -9618,6 +11425,32 @@ func (siw *ServerInterfaceWrapper) GetJob(w http.ResponseWriter, r *http.Request
 	handler.ServeHTTP(w, r)
 }
 
+// GetJobResources operation middleware
+func (siw *ServerInterfaceWrapper) GetJobResources(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "jobId" -------------
+	var jobId JobId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "jobId", r.PathValue("jobId"), &jobId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "jobId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetJobResources(w, r, jobId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // CreateJoinCode operation middleware
 func (siw *ServerInterfaceWrapper) CreateJoinCode(w http.ResponseWriter, r *http.Request) {
 
@@ -9907,6 +11740,48 @@ func (siw *ServerInterfaceWrapper) RunMachineCommand(w http.ResponseWriter, r *h
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.RunMachineCommand(w, r, machineId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// StartDockerCompact operation middleware
+func (siw *ServerInterfaceWrapper) StartDockerCompact(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "machineId" -------------
+	var machineId MachineId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "machineId", r.PathValue("machineId"), &machineId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "machineId", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params StartDockerCompactParams
+
+	// ------------- Optional query parameter "confirm" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "confirm", r.URL.Query(), &params.Confirm, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "confirm"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "confirm", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.StartDockerCompact(w, r, machineId, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -11239,6 +13114,48 @@ func (siw *ServerInterfaceWrapper) SetRepositoryWebhookMode(w http.ResponseWrite
 	handler.ServeHTTP(w, r)
 }
 
+// ListWorkflowChecks operation middleware
+func (siw *ServerInterfaceWrapper) ListWorkflowChecks(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "repositoryId" -------------
+	var repositoryId RepositoryId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "repositoryId", r.PathValue("repositoryId"), &repositoryId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "repositoryId", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListWorkflowChecksParams
+
+	// ------------- Optional query parameter "head_sha" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "head_sha", r.URL.Query(), &params.HeadSha, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "head_sha"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "head_sha", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListWorkflowChecks(w, r, repositoryId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // PlanRepositoryChanges operation middleware
 func (siw *ServerInterfaceWrapper) PlanRepositoryChanges(w http.ResponseWriter, r *http.Request) {
 
@@ -11866,6 +13783,48 @@ func (siw *ServerInterfaceWrapper) GetRun(w http.ResponseWriter, r *http.Request
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetRun(w, r, runId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetRunSavings operation middleware
+func (siw *ServerInterfaceWrapper) GetRunSavings(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "runId" -------------
+	var runId RunId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "runId", r.PathValue("runId"), &runId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "runId", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetRunSavingsParams
+
+	// ------------- Optional query parameter "attempt" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "attempt", r.URL.Query(), &params.Attempt, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "attempt"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "attempt", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetRunSavings(w, r, runId, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -12744,6 +14703,8 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodPatch+" "+options.BaseURL+"/api/v1/machines/{machineId}", wrapper.UpdateMachine)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/machines/{machineId}/drain", wrapper.DrainMachine)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/machines/{machineId}/command", wrapper.RunMachineCommand)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/doctor/registration-fixes", wrapper.RemoveRegistration)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/machines/{machineId}/docker-compact", wrapper.StartDockerCompact)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/machines/{machineId}/runner-leftovers/remove", wrapper.RemoveRunnerLeftovers)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/machines/{machineId}/resume", wrapper.ResumeMachine)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/machines/{machineId}/pool-size-check", wrapper.CheckMachinePoolSize)
@@ -12851,6 +14812,22 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodPatch+" "+options.BaseURL+"/api/v1/notification-channels/{channelId}", wrapper.UpdateNotificationChannel)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/notification-channels/{channelId}/test", wrapper.TestNotificationChannel)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/webhooks/github", wrapper.ReceiveGithubWebhook)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/insights/findings", wrapper.ListInsightFindings)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/insights/findings/{findingId}", wrapper.GetInsightFinding)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/insights/findings/{findingId}/dismiss", wrapper.DismissInsightFinding)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/insights/findings/{findingId}/plans", wrapper.CreateInsightPlan)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/insights/plans/{planId}", wrapper.GetInsightPlan)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/insights/plans/{planId}/start", wrapper.StartInsightPlan)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/insights/summary", wrapper.GetInsightSummary)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/insights/waits", wrapper.GetWaitSplit)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/insights/timeline", wrapper.GetPoolTimeline)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/insights/pool-sizing", wrapper.GetPoolSizing)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/insights/tests", wrapper.ListTestInsights)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/insights/guardrails", wrapper.ListGuardrailStatus)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/insights/digests", wrapper.ListInsightDigests)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/runs/{runId}/savings", wrapper.GetRunSavings)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/repositories/{repositoryId}/workflow-checks", wrapper.ListWorkflowChecks)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/jobs/{jobId}/resources", wrapper.GetJobResources)
 
 	return m
 }
@@ -13745,6 +15722,46 @@ type ListDoctorFindingsdefaultJSONResponse struct {
 }
 
 func (response ListDoctorFindingsdefaultJSONResponse) VisitListDoctorFindingsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RemoveRegistrationRequestObject struct {
+	Params RemoveRegistrationParams
+	Body   *RemoveRegistrationJSONRequestBody
+}
+
+type RemoveRegistrationResponseObject interface {
+	VisitRemoveRegistrationResponse(w http.ResponseWriter) error
+}
+
+type RemoveRegistration200JSONResponse RemoveRegistrationResult
+
+func (response RemoveRegistration200JSONResponse) VisitRemoveRegistrationResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RemoveRegistrationdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response RemoveRegistrationdefaultJSONResponse) VisitRemoveRegistrationResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
@@ -14791,6 +16808,511 @@ func (response RebuildImagedefaultJSONResponse) VisitRebuildImageResponse(w http
 	return err
 }
 
+type ListInsightDigestsRequestObject struct {
+}
+
+type ListInsightDigestsResponseObject interface {
+	VisitListInsightDigestsResponse(w http.ResponseWriter) error
+}
+
+type ListInsightDigests200JSONResponse InsightDigestList
+
+func (response ListInsightDigests200JSONResponse) VisitListInsightDigestsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListInsightDigestsdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response ListInsightDigestsdefaultJSONResponse) VisitListInsightDigestsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListInsightFindingsRequestObject struct {
+	Params ListInsightFindingsParams
+}
+
+type ListInsightFindingsResponseObject interface {
+	VisitListInsightFindingsResponse(w http.ResponseWriter) error
+}
+
+type ListInsightFindings200JSONResponse InsightFindingList
+
+func (response ListInsightFindings200JSONResponse) VisitListInsightFindingsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListInsightFindingsdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response ListInsightFindingsdefaultJSONResponse) VisitListInsightFindingsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetInsightFindingRequestObject struct {
+	FindingId FindingId `json:"findingId"`
+}
+
+type GetInsightFindingResponseObject interface {
+	VisitGetInsightFindingResponse(w http.ResponseWriter) error
+}
+
+type GetInsightFinding200JSONResponse InsightFinding
+
+func (response GetInsightFinding200JSONResponse) VisitGetInsightFindingResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetInsightFindingdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response GetInsightFindingdefaultJSONResponse) VisitGetInsightFindingResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DismissInsightFindingRequestObject struct {
+	FindingId FindingId `json:"findingId"`
+}
+
+type DismissInsightFindingResponseObject interface {
+	VisitDismissInsightFindingResponse(w http.ResponseWriter) error
+}
+
+type DismissInsightFinding200JSONResponse InsightFinding
+
+func (response DismissInsightFinding200JSONResponse) VisitDismissInsightFindingResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DismissInsightFindingdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response DismissInsightFindingdefaultJSONResponse) VisitDismissInsightFindingResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateInsightPlanRequestObject struct {
+	FindingId FindingId `json:"findingId"`
+}
+
+type CreateInsightPlanResponseObject interface {
+	VisitCreateInsightPlanResponse(w http.ResponseWriter) error
+}
+
+type CreateInsightPlan201JSONResponse InsightPlan
+
+func (response CreateInsightPlan201JSONResponse) VisitCreateInsightPlanResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateInsightPlandefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response CreateInsightPlandefaultJSONResponse) VisitCreateInsightPlanResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListGuardrailStatusRequestObject struct {
+	Params ListGuardrailStatusParams
+}
+
+type ListGuardrailStatusResponseObject interface {
+	VisitListGuardrailStatusResponse(w http.ResponseWriter) error
+}
+
+type ListGuardrailStatus200JSONResponse GuardrailStatusList
+
+func (response ListGuardrailStatus200JSONResponse) VisitListGuardrailStatusResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListGuardrailStatusdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response ListGuardrailStatusdefaultJSONResponse) VisitListGuardrailStatusResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetInsightPlanRequestObject struct {
+	PlanId PlanId `json:"planId"`
+}
+
+type GetInsightPlanResponseObject interface {
+	VisitGetInsightPlanResponse(w http.ResponseWriter) error
+}
+
+type GetInsightPlan200JSONResponse InsightPlan
+
+func (response GetInsightPlan200JSONResponse) VisitGetInsightPlanResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetInsightPlandefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response GetInsightPlandefaultJSONResponse) VisitGetInsightPlanResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type StartInsightPlanRequestObject struct {
+	PlanId PlanId `json:"planId"`
+}
+
+type StartInsightPlanResponseObject interface {
+	VisitStartInsightPlanResponse(w http.ResponseWriter) error
+}
+
+type StartInsightPlan202JSONResponse InsightPlan
+
+func (response StartInsightPlan202JSONResponse) VisitStartInsightPlanResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(202)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type StartInsightPlandefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response StartInsightPlandefaultJSONResponse) VisitStartInsightPlanResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetPoolSizingRequestObject struct {
+	Params GetPoolSizingParams
+}
+
+type GetPoolSizingResponseObject interface {
+	VisitGetPoolSizingResponse(w http.ResponseWriter) error
+}
+
+type GetPoolSizing200JSONResponse PoolSizing
+
+func (response GetPoolSizing200JSONResponse) VisitGetPoolSizingResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetPoolSizingdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response GetPoolSizingdefaultJSONResponse) VisitGetPoolSizingResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetInsightSummaryRequestObject struct {
+}
+
+type GetInsightSummaryResponseObject interface {
+	VisitGetInsightSummaryResponse(w http.ResponseWriter) error
+}
+
+type GetInsightSummary200JSONResponse InsightSummary
+
+func (response GetInsightSummary200JSONResponse) VisitGetInsightSummaryResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetInsightSummarydefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response GetInsightSummarydefaultJSONResponse) VisitGetInsightSummaryResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListTestInsightsRequestObject struct {
+	Params ListTestInsightsParams
+}
+
+type ListTestInsightsResponseObject interface {
+	VisitListTestInsightsResponse(w http.ResponseWriter) error
+}
+
+type ListTestInsights200JSONResponse TestInsightList
+
+func (response ListTestInsights200JSONResponse) VisitListTestInsightsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListTestInsightsdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response ListTestInsightsdefaultJSONResponse) VisitListTestInsightsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetPoolTimelineRequestObject struct {
+	Params GetPoolTimelineParams
+}
+
+type GetPoolTimelineResponseObject interface {
+	VisitGetPoolTimelineResponse(w http.ResponseWriter) error
+}
+
+type GetPoolTimeline200JSONResponse PoolTimeline
+
+func (response GetPoolTimeline200JSONResponse) VisitGetPoolTimelineResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetPoolTimelinedefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response GetPoolTimelinedefaultJSONResponse) VisitGetPoolTimelineResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetWaitSplitRequestObject struct {
+	Params GetWaitSplitParams
+}
+
+type GetWaitSplitResponseObject interface {
+	VisitGetWaitSplitResponse(w http.ResponseWriter) error
+}
+
+type GetWaitSplit200JSONResponse WaitSplit
+
+func (response GetWaitSplit200JSONResponse) VisitGetWaitSplitResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetWaitSplitdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response GetWaitSplitdefaultJSONResponse) VisitGetWaitSplitResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type GetInstallCommandRequestObject struct {
 }
 
@@ -15013,6 +17535,45 @@ type GetJobdefaultJSONResponse struct {
 }
 
 func (response GetJobdefaultJSONResponse) VisitGetJobResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetJobResourcesRequestObject struct {
+	JobId JobId `json:"jobId"`
+}
+
+type GetJobResourcesResponseObject interface {
+	VisitGetJobResourcesResponse(w http.ResponseWriter) error
+}
+
+type GetJobResources200JSONResponse JobResources
+
+func (response GetJobResources200JSONResponse) VisitGetJobResourcesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetJobResourcesdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response GetJobResourcesdefaultJSONResponse) VisitGetJobResourcesResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
@@ -15508,6 +18069,48 @@ type RunMachineCommanddefaultJSONResponse struct {
 }
 
 func (response RunMachineCommanddefaultJSONResponse) VisitRunMachineCommandResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type StartDockerCompactRequestObject struct {
+	MachineId MachineId `json:"machineId"`
+	Params    StartDockerCompactParams
+}
+
+type StartDockerCompactResponseObject interface {
+	VisitStartDockerCompactResponse(w http.ResponseWriter) error
+}
+
+type StartDockerCompact202JSONResponse struct {
+	Started bool `json:"started"`
+}
+
+func (response StartDockerCompact202JSONResponse) VisitStartDockerCompactResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(202)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type StartDockerCompactdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response StartDockerCompactdefaultJSONResponse) VisitStartDockerCompactResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
@@ -17604,6 +20207,46 @@ func (response SetRepositoryWebhookModedefaultJSONResponse) VisitSetRepositoryWe
 	return err
 }
 
+type ListWorkflowChecksRequestObject struct {
+	RepositoryId RepositoryId `json:"repositoryId"`
+	Params       ListWorkflowChecksParams
+}
+
+type ListWorkflowChecksResponseObject interface {
+	VisitListWorkflowChecksResponse(w http.ResponseWriter) error
+}
+
+type ListWorkflowChecks200JSONResponse WorkflowCheckList
+
+func (response ListWorkflowChecks200JSONResponse) VisitListWorkflowChecksResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListWorkflowChecksdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response ListWorkflowChecksdefaultJSONResponse) VisitListWorkflowChecksResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type PlanRepositoryChangesRequestObject struct {
 	Body *PlanRepositoryChangesJSONRequestBody
 }
@@ -18301,6 +20944,46 @@ type GetRundefaultJSONResponse struct {
 }
 
 func (response GetRundefaultJSONResponse) VisitGetRunResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetRunSavingsRequestObject struct {
+	RunId  RunId `json:"runId"`
+	Params GetRunSavingsParams
+}
+
+type GetRunSavingsResponseObject interface {
+	VisitGetRunSavingsResponse(w http.ResponseWriter) error
+}
+
+type GetRunSavings200JSONResponse RunSavings
+
+func (response GetRunSavings200JSONResponse) VisitGetRunSavingsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetRunSavingsdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response GetRunSavingsdefaultJSONResponse) VisitGetRunSavingsResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
@@ -19486,6 +22169,9 @@ type StrictServerInterface interface {
 	// ListDoctorFindings The latest finding per check and subject
 	// (GET /api/v1/doctor/findings)
 	ListDoctorFindings(ctx context.Context, request ListDoctorFindingsRequestObject) (ListDoctorFindingsResponseObject, error)
+	// RemoveRegistration Remove one half of a half-registered runner
+	// (POST /api/v1/doctor/registration-fixes)
+	RemoveRegistration(ctx context.Context, request RemoveRegistrationRequestObject) (RemoveRegistrationResponseObject, error)
 	// RunDoctor Run the doctor now
 	// (POST /api/v1/doctor/runs)
 	RunDoctor(ctx context.Context, request RunDoctorRequestObject) (RunDoctorResponseObject, error)
@@ -19552,6 +22238,45 @@ type StrictServerInterface interface {
 	// RebuildImage Rebuild an image after a drain
 	// (POST /api/v1/images/{imageId}/rebuild)
 	RebuildImage(ctx context.Context, request RebuildImageRequestObject) (RebuildImageResponseObject, error)
+	// ListInsightDigests The last weekly digests, with their text
+	// (GET /api/v1/insights/digests)
+	ListInsightDigests(ctx context.Context, request ListInsightDigestsRequestObject) (ListInsightDigestsResponseObject, error)
+	// ListInsightFindings The Do next list across projects
+	// (GET /api/v1/insights/findings)
+	ListInsightFindings(ctx context.Context, request ListInsightFindingsRequestObject) (ListInsightFindingsResponseObject, error)
+	// GetInsightFinding One finding with its evidence
+	// (GET /api/v1/insights/findings/{findingId})
+	GetInsightFinding(ctx context.Context, request GetInsightFindingRequestObject) (GetInsightFindingResponseObject, error)
+	// DismissInsightFinding Hide a finding for 7 days
+	// (POST /api/v1/insights/findings/{findingId}/dismiss)
+	DismissInsightFinding(ctx context.Context, request DismissInsightFindingRequestObject) (DismissInsightFindingResponseObject, error)
+	// CreateInsightPlan Make the plan of a setup change (nothing changes yet)
+	// (POST /api/v1/insights/findings/{findingId}/plans)
+	CreateInsightPlan(ctx context.Context, request CreateInsightPlanRequestObject) (CreateInsightPlanResponseObject, error)
+	// ListGuardrailStatus G1 to G7 per project
+	// (GET /api/v1/insights/guardrails)
+	ListGuardrailStatus(ctx context.Context, request ListGuardrailStatusRequestObject) (ListGuardrailStatusResponseObject, error)
+	// GetInsightPlan One plan with its progress
+	// (GET /api/v1/insights/plans/{planId})
+	GetInsightPlan(ctx context.Context, request GetInsightPlanRequestObject) (GetInsightPlanResponseObject, error)
+	// StartInsightPlan Make the reviewed change
+	// (POST /api/v1/insights/plans/{planId}/start)
+	StartInsightPlan(ctx context.Context, request StartInsightPlanRequestObject) (StartInsightPlanResponseObject, error)
+	// GetPoolSizing Demand per label set and the wait with more slots
+	// (GET /api/v1/insights/pool-sizing)
+	GetPoolSizing(ctx context.Context, request GetPoolSizingRequestObject) (GetPoolSizingResponseObject, error)
+	// GetInsightSummary The count and minutes the Overview shows
+	// (GET /api/v1/insights/summary)
+	GetInsightSummary(ctx context.Context, request GetInsightSummaryRequestObject) (GetInsightSummaryResponseObject, error)
+	// ListTestInsights Slowest, flaky, duplicated and empty tests
+	// (GET /api/v1/insights/tests)
+	ListTestInsights(ctx context.Context, request ListTestInsightsRequestObject) (ListTestInsightsResponseObject, error)
+	// GetPoolTimeline Which project held which runner when
+	// (GET /api/v1/insights/timeline)
+	GetPoolTimeline(ctx context.Context, request GetPoolTimelineRequestObject) (GetPoolTimelineResponseObject, error)
+	// GetWaitSplit Wait, hold and run per repository, job key or day
+	// (GET /api/v1/insights/waits)
+	GetWaitSplit(ctx context.Context, request GetWaitSplitRequestObject) (GetWaitSplitResponseObject, error)
 	// GetInstallCommand The install command per OS, without a join code
 	// (GET /api/v1/install-command)
 	GetInstallCommand(ctx context.Context, request GetInstallCommandRequestObject) (GetInstallCommandResponseObject, error)
@@ -19570,6 +22295,9 @@ type StrictServerInterface interface {
 	// GetJob One job attempt with its timing
 	// (GET /api/v1/jobs/{jobId})
 	GetJob(ctx context.Context, request GetJobRequestObject) (GetJobResponseObject, error)
+	// GetJobResources CPU and memory of one job
+	// (GET /api/v1/jobs/{jobId}/resources)
+	GetJobResources(ctx context.Context, request GetJobResourcesRequestObject) (GetJobResourcesResponseObject, error)
 	// CreateJoinCode Make a one-time join code and the install commands
 	// (POST /api/v1/join-codes)
 	CreateJoinCode(ctx context.Context, request CreateJoinCodeRequestObject) (CreateJoinCodeResponseObject, error)
@@ -19606,6 +22334,9 @@ type StrictServerInterface interface {
 	// RunMachineCommand Run one command on a drained machine (host maintenance)
 	// (POST /api/v1/machines/{machineId}/command)
 	RunMachineCommand(ctx context.Context, request RunMachineCommandRequestObject) (RunMachineCommandResponseObject, error)
+	// StartDockerCompact Make Docker's disk file smaller now
+	// (POST /api/v1/machines/{machineId}/docker-compact)
+	StartDockerCompact(ctx context.Context, request StartDockerCompactRequestObject) (StartDockerCompactResponseObject, error)
 	// DrainMachine Stop new jobs on a machine; running jobs finish
 	// (POST /api/v1/machines/{machineId}/drain)
 	DrainMachine(ctx context.Context, request DrainMachineRequestObject) (DrainMachineResponseObject, error)
@@ -19768,6 +22499,9 @@ type StrictServerInterface interface {
 	// SetRepositoryWebhookMode Switch a repository back to webhook deliveries
 	// (PUT /api/v1/repositories/{repositoryId}/webhook-mode)
 	SetRepositoryWebhookMode(ctx context.Context, request SetRepositoryWebhookModeRequestObject) (SetRepositoryWebhookModeResponseObject, error)
+	// ListWorkflowChecks Workflow file checks of the latest default-branch commit
+	// (GET /api/v1/repositories/{repositoryId}/workflow-checks)
+	ListWorkflowChecks(ctx context.Context, request ListWorkflowChecksRequestObject) (ListWorkflowChecksResponseObject, error)
 	// PlanRepositoryChanges Plan turning the pool on or off for repositories
 	// (POST /api/v1/repository-plans)
 	PlanRepositoryChanges(ctx context.Context, request PlanRepositoryChangesRequestObject) (PlanRepositoryChangesResponseObject, error)
@@ -19822,6 +22556,9 @@ type StrictServerInterface interface {
 	// GetRun One run attempt with its jobs, needs graph and ETA
 	// (GET /api/v1/runs/{runId})
 	GetRun(ctx context.Context, request GetRunRequestObject) (GetRunResponseObject, error)
+	// GetRunSavings How much sooner the run could have ended
+	// (GET /api/v1/runs/{runId}/savings)
+	GetRunSavings(ctx context.Context, request GetRunSavingsRequestObject) (GetRunSavingsResponseObject, error)
 	// RestartService Restart the service after a drain
 	// (POST /api/v1/service/restart)
 	RestartService(ctx context.Context, request RestartServiceRequestObject) (RestartServiceResponseObject, error)
@@ -20548,6 +23285,39 @@ func (sh *strictHandler) ListDoctorFindings(w http.ResponseWriter, r *http.Reque
 	}
 }
 
+// RemoveRegistration operation middleware
+func (sh *strictHandler) RemoveRegistration(w http.ResponseWriter, r *http.Request, params RemoveRegistrationParams) {
+	var request RemoveRegistrationRequestObject
+
+	request.Params = params
+
+	var body RemoveRegistrationJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.RemoveRegistration(ctx, request.(RemoveRegistrationRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "RemoveRegistration")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(RemoveRegistrationResponseObject); ok {
+		if err := validResponse.VisitRemoveRegistrationResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // RunDoctor operation middleware
 func (sh *strictHandler) RunDoctor(w http.ResponseWriter, r *http.Request) {
 	var request RunDoctorRequestObject
@@ -21138,6 +23908,340 @@ func (sh *strictHandler) RebuildImage(w http.ResponseWriter, r *http.Request, im
 	}
 }
 
+// ListInsightDigests operation middleware
+func (sh *strictHandler) ListInsightDigests(w http.ResponseWriter, r *http.Request) {
+	var request ListInsightDigestsRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListInsightDigests(ctx, request.(ListInsightDigestsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListInsightDigests")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListInsightDigestsResponseObject); ok {
+		if err := validResponse.VisitListInsightDigestsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListInsightFindings operation middleware
+func (sh *strictHandler) ListInsightFindings(w http.ResponseWriter, r *http.Request, params ListInsightFindingsParams) {
+	var request ListInsightFindingsRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListInsightFindings(ctx, request.(ListInsightFindingsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListInsightFindings")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListInsightFindingsResponseObject); ok {
+		if err := validResponse.VisitListInsightFindingsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetInsightFinding operation middleware
+func (sh *strictHandler) GetInsightFinding(w http.ResponseWriter, r *http.Request, findingId FindingId) {
+	var request GetInsightFindingRequestObject
+
+	request.FindingId = findingId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetInsightFinding(ctx, request.(GetInsightFindingRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetInsightFinding")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetInsightFindingResponseObject); ok {
+		if err := validResponse.VisitGetInsightFindingResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// DismissInsightFinding operation middleware
+func (sh *strictHandler) DismissInsightFinding(w http.ResponseWriter, r *http.Request, findingId FindingId) {
+	var request DismissInsightFindingRequestObject
+
+	request.FindingId = findingId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.DismissInsightFinding(ctx, request.(DismissInsightFindingRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DismissInsightFinding")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(DismissInsightFindingResponseObject); ok {
+		if err := validResponse.VisitDismissInsightFindingResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CreateInsightPlan operation middleware
+func (sh *strictHandler) CreateInsightPlan(w http.ResponseWriter, r *http.Request, findingId FindingId) {
+	var request CreateInsightPlanRequestObject
+
+	request.FindingId = findingId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateInsightPlan(ctx, request.(CreateInsightPlanRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateInsightPlan")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreateInsightPlanResponseObject); ok {
+		if err := validResponse.VisitCreateInsightPlanResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListGuardrailStatus operation middleware
+func (sh *strictHandler) ListGuardrailStatus(w http.ResponseWriter, r *http.Request, params ListGuardrailStatusParams) {
+	var request ListGuardrailStatusRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListGuardrailStatus(ctx, request.(ListGuardrailStatusRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListGuardrailStatus")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListGuardrailStatusResponseObject); ok {
+		if err := validResponse.VisitListGuardrailStatusResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetInsightPlan operation middleware
+func (sh *strictHandler) GetInsightPlan(w http.ResponseWriter, r *http.Request, planId PlanId) {
+	var request GetInsightPlanRequestObject
+
+	request.PlanId = planId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetInsightPlan(ctx, request.(GetInsightPlanRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetInsightPlan")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetInsightPlanResponseObject); ok {
+		if err := validResponse.VisitGetInsightPlanResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// StartInsightPlan operation middleware
+func (sh *strictHandler) StartInsightPlan(w http.ResponseWriter, r *http.Request, planId PlanId) {
+	var request StartInsightPlanRequestObject
+
+	request.PlanId = planId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.StartInsightPlan(ctx, request.(StartInsightPlanRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "StartInsightPlan")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(StartInsightPlanResponseObject); ok {
+		if err := validResponse.VisitStartInsightPlanResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetPoolSizing operation middleware
+func (sh *strictHandler) GetPoolSizing(w http.ResponseWriter, r *http.Request, params GetPoolSizingParams) {
+	var request GetPoolSizingRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetPoolSizing(ctx, request.(GetPoolSizingRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetPoolSizing")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetPoolSizingResponseObject); ok {
+		if err := validResponse.VisitGetPoolSizingResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetInsightSummary operation middleware
+func (sh *strictHandler) GetInsightSummary(w http.ResponseWriter, r *http.Request) {
+	var request GetInsightSummaryRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetInsightSummary(ctx, request.(GetInsightSummaryRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetInsightSummary")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetInsightSummaryResponseObject); ok {
+		if err := validResponse.VisitGetInsightSummaryResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListTestInsights operation middleware
+func (sh *strictHandler) ListTestInsights(w http.ResponseWriter, r *http.Request, params ListTestInsightsParams) {
+	var request ListTestInsightsRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListTestInsights(ctx, request.(ListTestInsightsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListTestInsights")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListTestInsightsResponseObject); ok {
+		if err := validResponse.VisitListTestInsightsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetPoolTimeline operation middleware
+func (sh *strictHandler) GetPoolTimeline(w http.ResponseWriter, r *http.Request, params GetPoolTimelineParams) {
+	var request GetPoolTimelineRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetPoolTimeline(ctx, request.(GetPoolTimelineRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetPoolTimeline")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetPoolTimelineResponseObject); ok {
+		if err := validResponse.VisitGetPoolTimelineResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetWaitSplit operation middleware
+func (sh *strictHandler) GetWaitSplit(w http.ResponseWriter, r *http.Request, params GetWaitSplitParams) {
+	var request GetWaitSplitRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetWaitSplit(ctx, request.(GetWaitSplitRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetWaitSplit")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetWaitSplitResponseObject); ok {
+		if err := validResponse.VisitGetWaitSplitResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // GetInstallCommand operation middleware
 func (sh *strictHandler) GetInstallCommand(w http.ResponseWriter, r *http.Request) {
 	var request GetInstallCommandRequestObject
@@ -21285,6 +24389,32 @@ func (sh *strictHandler) GetJob(w http.ResponseWriter, r *http.Request, jobId Jo
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(GetJobResponseObject); ok {
 		if err := validResponse.VisitGetJobResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetJobResources operation middleware
+func (sh *strictHandler) GetJobResources(w http.ResponseWriter, r *http.Request, jobId JobId) {
+	var request GetJobResourcesRequestObject
+
+	request.JobId = jobId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetJobResources(ctx, request.(GetJobResourcesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetJobResources")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetJobResourcesResponseObject); ok {
+		if err := validResponse.VisitGetJobResourcesResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
@@ -21637,6 +24767,33 @@ func (sh *strictHandler) RunMachineCommand(w http.ResponseWriter, r *http.Reques
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(RunMachineCommandResponseObject); ok {
 		if err := validResponse.VisitRunMachineCommandResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// StartDockerCompact operation middleware
+func (sh *strictHandler) StartDockerCompact(w http.ResponseWriter, r *http.Request, machineId MachineId, params StartDockerCompactParams) {
+	var request StartDockerCompactRequestObject
+
+	request.MachineId = machineId
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.StartDockerCompact(ctx, request.(StartDockerCompactRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "StartDockerCompact")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(StartDockerCompactResponseObject); ok {
+		if err := validResponse.VisitStartDockerCompactResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
@@ -23148,6 +26305,33 @@ func (sh *strictHandler) SetRepositoryWebhookMode(w http.ResponseWriter, r *http
 	}
 }
 
+// ListWorkflowChecks operation middleware
+func (sh *strictHandler) ListWorkflowChecks(w http.ResponseWriter, r *http.Request, repositoryId RepositoryId, params ListWorkflowChecksParams) {
+	var request ListWorkflowChecksRequestObject
+
+	request.RepositoryId = repositoryId
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListWorkflowChecks(ctx, request.(ListWorkflowChecksRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListWorkflowChecks")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListWorkflowChecksResponseObject); ok {
+		if err := validResponse.VisitListWorkflowChecksResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // PlanRepositoryChanges operation middleware
 func (sh *strictHandler) PlanRepositoryChanges(w http.ResponseWriter, r *http.Request) {
 	var request PlanRepositoryChangesRequestObject
@@ -23643,6 +26827,33 @@ func (sh *strictHandler) GetRun(w http.ResponseWriter, r *http.Request, runId in
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(GetRunResponseObject); ok {
 		if err := validResponse.VisitGetRunResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetRunSavings operation middleware
+func (sh *strictHandler) GetRunSavings(w http.ResponseWriter, r *http.Request, runId RunId, params GetRunSavingsParams) {
+	var request GetRunSavingsRequestObject
+
+	request.RunId = runId
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetRunSavings(ctx, request.(GetRunSavingsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetRunSavings")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetRunSavingsResponseObject); ok {
+		if err := validResponse.VisitGetRunSavingsResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

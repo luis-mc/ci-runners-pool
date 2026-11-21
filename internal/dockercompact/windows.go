@@ -40,6 +40,11 @@ func (c *run) windows(ctx context.Context) error {
 		c.say("Docker uses %s inside", FormatBytes(used))
 	}
 
+	// Whether /dev/kvm is there now: after the restart it must be again, or the
+	// pool's microVM jobs fail (caches R5.58).
+	kvmBefore := c.kvmPresent(ctx)
+	c.r.KVMBefore = kvmBefore
+
 	c.step("trim")
 	if _, err := c.exec(ctx, TrimTimeout, "wsl", "-d", dockerDistro, "-e", "fstrim", "-av"); err != nil {
 		// A failed trim only means less is reclaimed; the compact still works.
@@ -84,7 +89,40 @@ func (c *run) windows(ctx context.Context) error {
 	if used, ok := c.usedInside(context.WithoutCancel(ctx)); ok {
 		c.r.UsedAfter = used
 	}
+	if kvmBefore && c.r.DockerRunning {
+		// The restart unloads the KVM module: load it again and check.
+		c.step("kvm")
+		if err := c.restoreKVM(context.WithoutCancel(ctx)); err != nil {
+			failure = errors.Join(failure, err)
+		}
+	}
 	return failure
+}
+
+const kvmProbe = "test -e /dev/kvm"
+
+// kvmPresent says whether /dev/kvm exists in the Docker VM.
+func (c *run) kvmPresent(ctx context.Context) bool {
+	res, err := c.h.Run(ctx, probeTimeout, "wsl", "-d", dockerDistro, "-e", "sh", "-c", kvmProbe)
+	return err == nil && res.ExitCode == 0
+}
+
+// restoreKVM loads kvm_intel (or kvm_amd) and checks that /dev/kvm is back. The
+// old pool did the same by hand after a compact. A machine that had no KVM
+// before is never asked (caches R5.58).
+func (c *run) restoreKVM(ctx context.Context) error {
+	if c.kvmPresent(ctx) {
+		c.r.KVMAfter = true
+		c.say("/dev/kvm is present")
+		return nil
+	}
+	_, _ = c.exec(ctx, probeTimeout, "wsl", "-d", dockerDistro, "-e", "sh", "-c", "modprobe kvm_intel || modprobe kvm_amd")
+	if c.kvmPresent(ctx) {
+		c.r.KVMAfter = true
+		c.say("loaded the KVM module; /dev/kvm is present")
+		return nil
+	}
+	return errors.New("/dev/kvm is not back after the restart; microVM jobs will fail until it is (load kvm_intel or kvm_amd in the Docker VM)")
 }
 
 // findDisks lists the disk files Docker Desktop uses, with no duplicates, from

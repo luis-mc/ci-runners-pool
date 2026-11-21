@@ -51,9 +51,29 @@ func (f Finding) API() gen.DoctorFinding {
 	}
 	if f.Action != nil {
 		out.Action = &struct {
-			Id    gen.DoctorFindingActionId `json:"id"`
-			Label string                    `json:"label"`
+			Args  *gen.RegistrationActionArgs `json:"args,omitempty"`
+			Id    gen.DoctorFindingActionId   `json:"id"`
+			Label string                      `json:"label"`
 		}{Id: gen.DoctorFindingActionId(f.Action.ID), Label: f.Action.Label}
+		if a := f.Action.Args; a != nil {
+			args := &gen.RegistrationActionArgs{}
+			str := func(v string) *string {
+				if v == "" {
+					return nil
+				}
+				return &v
+			}
+			num := func(v int64) *int64 {
+				if v == 0 {
+					return nil
+				}
+				return &v
+			}
+			args.RunnerId, args.Name = str(a.RunnerID), str(a.Name)
+			args.Owner, args.Repo, args.Organization = str(a.Owner), str(a.Repo), str(a.Organization)
+			args.GithubRunnerId, args.InstallationId = num(a.GitHubRunnerID), num(a.InstallationID)
+			out.Action.Args = args
+		}
 	}
 	return out
 }

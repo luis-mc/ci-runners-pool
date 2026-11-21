@@ -1422,6 +1422,75 @@ paths:
                 $ref: '#/components/schemas/HostCommandResult'
         default:
           $ref: '#/components/responses/Error'
+  /api/v1/doctor/registration-fixes:
+    post:
+      operationId: removeRegistration
+      x-cli: none
+      x-cli-reason: 'The owner confirms each half-registered runner in the Doctor screen; the CLI has no command for it yet.'
+      tags: [doctor]
+      summary: Remove one half of a half-registered runner
+      description: >-
+        doctor R5.50, runners R5.94. `remove_github_runner` deletes a GitHub
+        runner with the pool's name prefix that no local record owns;
+        `remove_runner_record` removes the local record (and its service, account
+        and folder when the machine answers) of a runner GitHub does not list.
+        The server reads GitHub and the records again and refuses when the state
+        changed. Without `confirm=true` it answers 409 needs_confirmation naming
+        what goes.
+      x-auth: admin
+      x-rate-limit: 30/minute/user
+      parameters:
+        - $ref: '#/components/parameters/Confirm'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RemoveRegistrationRequest'
+      responses:
+        '200':
+          description: Removed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RemoveRegistrationResult'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/machines/{machineId}/docker-compact:
+    post:
+      operationId: startDockerCompact
+      x-cli: none
+      x-cli-reason: 'The owner confirms the size on the machine screen first; the CLI has no command for it yet.'
+      tags: [machines]
+      summary: Make Docker's disk file smaller now
+      description: >-
+        caches R5.58. The owner starts the compact the policy would start later:
+        the machine is drained (new jobs wait, running jobs finish), Docker's disk
+        file is made smaller, and the machine takes jobs again. Without
+        `confirm=true` it answers 409 needs_confirmation naming the size that can
+        be reclaimed and what happens to jobs. With it the compact starts in the
+        background and answers 202; the machine's `docker_compact_status` shows
+        it running and then its result. Refused with 400 when the agent reports no
+        disk file or has no administrator rights, 409 when the machine is offline
+        or a compact or a change already holds it.
+      x-auth: admin
+      x-rate-limit: 10/minute/user
+      parameters:
+        - $ref: '#/components/parameters/MachineId'
+        - $ref: '#/components/parameters/Confirm'
+      responses:
+        '202':
+          description: The compact has started.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [started]
+                properties:
+                  started:
+                    type: boolean
+        default:
+          $ref: '#/components/responses/Error'
   /api/v1/machines/{machineId}/runner-leftovers/remove:
     post:
       operationId: removeRunnerLeftovers
@@ -4204,6 +4273,424 @@ paths:
         default:
           $ref: '#/components/responses/Error'
 
+  /api/v1/insights/findings:
+    get:
+      operationId: listInsightFindings
+      x-cli: none
+      x-cli-reason: 'Later: the insights commands come in their own task (cli open question 7).'
+      tags: [insights]
+      summary: The Do next list across projects
+      description: ci-run-insights R5.11 (CIX). Open findings ranked by minutes saved a week, then by first seen. No route dismisses a finding (R5.8).
+      x-auth: user
+      x-rate-limit: 600/minute/user
+      parameters:
+        - name: repository_id
+          in: query
+          required: false
+          schema: { type: integer, format: int64 }
+        - name: area
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/InsightArea'
+        - name: guardrail
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/Guardrail'
+        - name: state
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [open, resolved]
+            default: open
+        - name: limit
+          in: query
+          required: false
+          schema: { type: integer, minimum: 1, maximum: 100, default: 50 }
+        - name: cursor
+          in: query
+          required: false
+          schema: { type: string }
+      responses:
+        '200':
+          description: One page of findings.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InsightFindingList'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/insights/findings/{findingId}:
+    get:
+      operationId: getInsightFinding
+      x-cli: none
+      x-cli-reason: 'Later: the insights commands come in their own task (cli open question 7).'
+      tags: [insights]
+      summary: One finding with its evidence
+      description: ci-run-insights R5.7 (CIX).
+      x-auth: user
+      x-rate-limit: 600/minute/user
+      parameters:
+        - $ref: '#/components/parameters/FindingId'
+      responses:
+        '200':
+          description: The finding.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InsightFinding'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/insights/findings/{findingId}/dismiss:
+    post:
+      operationId: dismissInsightFinding
+      x-cli: none
+      x-cli-reason: 'Later: the insights commands come in their own task (cli open question 7).'
+      tags: [insights]
+      summary: Hide a finding for 7 days
+      description: ci-run-insights R5.8 (owner decision D17). The finding leaves the Do next list and the counts for 7 days and comes back if it is still true. It is never deleted or closed by this call. 404 when there is no such finding, 409 when it is resolved.
+      x-auth: admin
+      x-rate-limit: 60/minute/user
+      parameters:
+        - $ref: '#/components/parameters/FindingId'
+      responses:
+        '200':
+          description: The finding, with when it shows again.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InsightFinding'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/insights/findings/{findingId}/plans:
+    post:
+      operationId: createInsightPlan
+      x-cli: none
+      x-cli-reason: 'Later: the insights commands come in their own task (cli open question 7).'
+      tags: [insights]
+      summary: Make the plan of a setup change (nothing changes yet)
+      description: ci-run-insights R5.10 (CIX). The plan is the Review step's data. 409 conflict when the finding has no action or is resolved.
+      x-auth: admin
+      x-rate-limit: 30/minute/user
+      parameters:
+        - $ref: '#/components/parameters/FindingId'
+      responses:
+        '201':
+          description: The plan, in draft.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InsightPlan'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/insights/plans/{planId}:
+    get:
+      operationId: getInsightPlan
+      x-cli: none
+      x-cli-reason: 'Later: the insights commands come in their own task (cli open question 7).'
+      tags: [insights]
+      summary: One plan with its progress
+      description: ci-run-insights R5.10 (CIX). The wizard reads this after a reload.
+      x-auth: user
+      x-rate-limit: 600/minute/user
+      parameters:
+        - $ref: '#/components/parameters/PlanId'
+      responses:
+        '200':
+          description: The plan.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InsightPlan'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/insights/plans/{planId}/start:
+    post:
+      operationId: startInsightPlan
+      x-cli: none
+      x-cli-reason: 'Later: the insights commands come in their own task (cli open question 7).'
+      tags: [insights]
+      summary: Make the reviewed change
+      description: ci-run-insights R5.10, R6.6 (CIX). 409 conflict unless the plan is draft. Each change writes an audit row.
+      x-auth: admin
+      x-rate-limit: 10/minute/user
+      parameters:
+        - $ref: '#/components/parameters/PlanId'
+      responses:
+        '202':
+          description: Running.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InsightPlan'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/insights/summary:
+    get:
+      operationId: getInsightSummary
+      x-cli: none
+      x-cli-reason: 'Later: the insights commands come in their own task (cli open question 7).'
+      tags: [insights]
+      summary: The count and minutes the Overview shows
+      description: ci-run-insights R5.11 (CIX). The Overview only shows and links (UX-52).
+      x-auth: user
+      x-rate-limit: 600/minute/user
+      responses:
+        '200':
+          description: The summary.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InsightSummary'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/insights/waits:
+    get:
+      operationId: getWaitSplit
+      x-cli: none
+      x-cli-reason: 'Later: the insights commands come in their own task (cli open question 7).'
+      tags: [insights]
+      summary: Wait, hold and run per repository, job key or day
+      description: ci-run-insights R5.12 to R5.14 (CIX).
+      x-auth: user
+      x-rate-limit: 600/minute/user
+      parameters:
+        - name: days
+          in: query
+          required: false
+          schema: { type: integer, enum: [7, 14, 30], default: 7 }
+        - name: group
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [repository, job_key, day]
+            default: day
+        - name: repository_id
+          in: query
+          required: false
+          schema: { type: integer, format: int64 }
+      responses:
+        '200':
+          description: The split.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WaitSplit'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/insights/timeline:
+    get:
+      operationId: getPoolTimeline
+      x-cli: none
+      x-cli-reason: 'Later: the insights commands come in their own task (cli open question 7).'
+      tags: [insights]
+      summary: Which project held which runner when
+      description: ci-run-insights R5.21 (CIX). At most 24 hours; the last 24 hours when from and to are absent.
+      x-auth: user
+      x-rate-limit: 120/minute/user
+      parameters:
+        - name: from
+          in: query
+          required: false
+          schema: { type: string, format: date-time }
+        - name: to
+          in: query
+          required: false
+          schema: { type: string, format: date-time }
+      responses:
+        '200':
+          description: The lanes.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PoolTimeline'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/insights/pool-sizing:
+    get:
+      operationId: getPoolSizing
+      x-cli: none
+      x-cli-reason: 'Later: the insights commands come in their own task (cli open question 7).'
+      tags: [insights]
+      summary: Demand per label set and the wait with more slots
+      description: ci-run-insights R5.15 to R5.17 (CIX). Estimates, labelled as such.
+      x-auth: user
+      x-rate-limit: 600/minute/user
+      parameters:
+        - name: days
+          in: query
+          required: false
+          schema: { type: integer, enum: [7, 14, 30], default: 7 }
+      responses:
+        '200':
+          description: The sizing.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PoolSizing'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/insights/tests:
+    get:
+      operationId: listTestInsights
+      x-cli: none
+      x-cli-reason: 'Later: the insights commands come in their own task (cli open question 7).'
+      tags: [insights]
+      summary: Slowest, flaky, duplicated and empty tests
+      description: ci-run-insights R5.33 to R5.37 (CIX).
+      x-auth: user
+      x-rate-limit: 600/minute/user
+      parameters:
+        - name: view
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [slowest, flaky, duplicated, no_assertions]
+            default: slowest
+        - name: repository_id
+          in: query
+          required: false
+          schema: { type: integer, format: int64 }
+        - name: days
+          in: query
+          required: false
+          schema: { type: integer, enum: [7, 14, 30], default: 7 }
+        - name: limit
+          in: query
+          required: false
+          schema: { type: integer, minimum: 1, maximum: 100, default: 50 }
+        - name: cursor
+          in: query
+          required: false
+          schema: { type: string }
+      responses:
+        '200':
+          description: One page of tests.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TestInsightList'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/insights/guardrails:
+    get:
+      operationId: listGuardrailStatus
+      x-cli: none
+      x-cli-reason: 'Later: the insights commands come in their own task (cli open question 7).'
+      tags: [insights]
+      summary: G1 to G7 per project
+      description: ci-run-insights R5.31, R5.32 (CIX).
+      x-auth: user
+      x-rate-limit: 600/minute/user
+      parameters:
+        - name: repository_id
+          in: query
+          required: false
+          schema: { type: integer, format: int64 }
+      responses:
+        '200':
+          description: One row per project.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GuardrailStatusList'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/insights/digests:
+    get:
+      operationId: listInsightDigests
+      x-cli: none
+      x-cli-reason: 'Later: the insights commands come in their own task (cli open question 7).'
+      tags: [insights]
+      summary: The last weekly digests, with their text
+      description: ci-run-insights R5.38 (CIX). The files stay local; nothing is sent.
+      x-auth: user
+      x-rate-limit: 120/minute/user
+      responses:
+        '200':
+          description: Up to 12 digests, newest first.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InsightDigestList'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/runs/{runId}/savings:
+    get:
+      operationId: getRunSavings
+      x-cli: none
+      x-cli-reason: 'Later: the insights commands come in their own task (cli open question 7).'
+      tags: [insights]
+      summary: How much sooner the run could have ended
+      description: ci-run-insights R5.23 to R5.27 (CIX).
+      x-auth: user
+      x-rate-limit: 600/minute/user
+      parameters:
+        - $ref: '#/components/parameters/RunId'
+        - name: attempt
+          in: query
+          required: false
+          schema: { type: integer, minimum: 1 }
+      responses:
+        '200':
+          description: Up to 3 savings and the run's waste notes.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RunSavings'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/repositories/{repositoryId}/workflow-checks:
+    get:
+      operationId: listWorkflowChecks
+      x-cli: none
+      x-cli-reason: 'Later: the insights commands come in their own task (cli open question 7).'
+      tags: [insights]
+      summary: Workflow file checks of the latest default-branch commit
+      description: ci-run-insights R5.29, R5.30 (CIX).
+      x-auth: user
+      x-rate-limit: 600/minute/user
+      parameters:
+        - $ref: '#/components/parameters/RepositoryId'
+        - name: head_sha
+          in: query
+          required: false
+          description: Another commit; the latest default-branch commit checked when absent.
+          schema: { type: string }
+      responses:
+        '200':
+          description: The checks.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkflowCheckList'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/jobs/{jobId}/resources:
+    get:
+      operationId: getJobResources
+      x-cli: none
+      x-cli-reason: 'Later: the insights commands come in their own task (cli open question 7).'
+      tags: [insights]
+      summary: CPU and memory of one job
+      description: ci-run-insights R5.19, R5.20 (CIX).
+      x-auth: user
+      x-rate-limit: 600/minute/user
+      parameters:
+        - $ref: '#/components/parameters/JobId'
+      responses:
+        '200':
+          description: The samples and the summary.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobResources'
+        default:
+          $ref: '#/components/responses/Error'
 components:
   parameters:
     OAuthCode:
@@ -4373,6 +4860,13 @@ components:
         type: string
     JobId:
       name: jobId
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
+    FindingId:
+      name: findingId
       in: path
       required: true
       schema:
@@ -4713,7 +5207,6 @@ components:
           no_runner_with_labels,
           repository_parallel_limit,
           machine_drained,
-          quiet_hours,
           load_not_measured,
           paused,
           on_battery,
@@ -6348,14 +6841,6 @@ components:
           minimum: 0
           maximum: 1440
           description: How many minutes no job may run or wait for the machine's runners. 0 takes 30 (caches R5.51 to R5.54).
-        docker_compact_quiet_start:
-          type: string
-          pattern: '^([01][0-9]|2[0-3]):[0-5][0-9]$'
-          description: Start of the quiet-hours window, in the machine's local time, as HH:MM. Empty takes 01:00 (caches R5.51 to R5.54).
-        docker_compact_quiet_end:
-          type: string
-          pattern: '^([01][0-9]|2[0-3]):[0-5][0-9]$'
-          description: End of the quiet-hours window, in the machine's local time, as HH:MM. Empty takes 06:00.
     DockerCompactMode:
       type: string
       description: The automatic compact of Docker's disk file. auto (default) is on for a Windows machine with a Docker Desktop disk file and off elsewhere (caches R5.51 to R5.54).
@@ -6370,7 +6855,7 @@ components:
           description: The policy is on for this machine.
         reason:
           type: string
-          description: Why the last look did not compact, or `run`. One of off, offline, not_active, no_report, no_admin, below_threshold, outside_quiet_hours, busy, not_idle_long_enough, done_today, already_running, change_open.
+          description: Why the last look did not compact, or `run`. One of off, offline, not_active, no_report, no_admin, below_threshold, busy, not_idle_long_enough, done_today, already_running, change_open.
         running:
           type: boolean
         disk_present:
@@ -6405,7 +6890,7 @@ components:
     PauseReason:
       type: string
       description: Why a machine takes no new job (machines R5.62). Other features read these exact names.
-      enum: [paused, on_battery, quiet_hours, budget, base_image_missing]
+      enum: [paused, on_battery, budget, base_image_missing]
     MachineTaking:
       type: object
       description: The one computed answer to "does this machine take new jobs" (machines R5.62, OPS29). The console state, the Now line, its note and the Stop or Resume button all read it. The controller decides from its own online flag, drain state, mode, tray pause and battery switch first, and from the agent's report only for what the agent alone knows.
@@ -6415,7 +6900,7 @@ components:
           type: boolean
         reason:
           type: string
-          description: Why not, absent while taking. offline; stopped (Stop new jobs from the console); mode_paused (mode Paused); tray_paused (a pause from the tray); on_battery (Automatic with the battery pause on); busy (load over the budget); quiet_hours; base_image_missing; disk_low.
+          description: Why not, absent while taking. offline; stopped (Stop new jobs from the console); mode_paused (mode Paused); tray_paused (a pause from the tray); on_battery (Automatic with the battery pause on); busy (load over the budget); base_image_missing; disk_low.
           enum:
             [
               offline,
@@ -6424,7 +6909,6 @@ components:
               tray_paused,
               on_battery,
               busy,
-              quiet_hours,
               base_image_missing,
               disk_low,
             ]
@@ -6615,14 +7099,6 @@ components:
           minimum: 0
           maximum: 1440
           description: How many minutes no job may run or wait for the machine's runners. 0 takes 30 (caches R5.51 to R5.54).
-        docker_compact_quiet_start:
-          type: string
-          pattern: '^([01][0-9]|2[0-3]):[0-5][0-9]$'
-          description: Start of the quiet-hours window, in the machine's local time, as HH:MM. Empty takes 01:00 (caches R5.51 to R5.54).
-        docker_compact_quiet_end:
-          type: string
-          pattern: '^([01][0-9]|2[0-3]):[0-5][0-9]$'
-          description: End of the quiet-hours window, in the machine's local time, as HH:MM. Empty takes 06:00.
         pause:
           type: string
           description: A pause from the tray or the console. one_hour pauses for an hour from now, until_resumed holds until none is sent, none ends a pause (machines R5.61).
@@ -7226,6 +7702,26 @@ components:
           $ref: '#/components/schemas/Eta'
         forecast:
           $ref: '#/components/schemas/Forecast'
+        runner_origin:
+          type: string
+          enum: [crsp, other, hosted]
+          description: ci-run-insights R5.39. Who ran the job; absent while not known.
+        runner_group:
+          type: string
+          description: GitHub's runner group name of the runner that ran the job.
+        runner_labels:
+          type: array
+          items:
+            type: string
+          description: The labels of the runner that ran the job, as GitHub reports them.
+        steps_source:
+          type: string
+          enum: [events, rest]
+          description: ci-run-insights R5.40. Where the steps came from.
+        checked_at:
+          type: string
+          format: date-time
+          description: ci-run-insights R5.41. When crsp last re-read the job from GitHub.
       example:
         id: 1
         repository: luis-mc/app
@@ -8085,6 +8581,43 @@ components:
         why:
           type: string
           description: Why it is not owned, in words for people.
+    RegistrationActionArgs:
+      type: object
+      description: What a registration action needs back (doctor R5.50).
+      properties:
+        runner_id:
+          type: string
+        github_runner_id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        installation_id:
+          type: integer
+          format: int64
+        owner:
+          type: string
+        repo:
+          type: string
+        organization:
+          type: string
+    RemoveRegistrationRequest:
+      type: object
+      required: [action, args]
+      properties:
+        action:
+          type: string
+          enum: [remove_github_runner, remove_runner_record]
+        args:
+          $ref: '#/components/schemas/RegistrationActionArgs'
+    RemoveRegistrationResult:
+      type: object
+      required: [removed, name]
+      properties:
+        removed:
+          type: boolean
+        name:
+          type: string
     RemoveRunnerLeftoversRequest:
       type: object
       required: [items]
@@ -8166,14 +8699,16 @@ components:
             $ref: '#/components/schemas/RunnerLeftover'
         action:
           type: object
-          description: The one button the finding offers. `remove_runner_leftovers` removes `items` through POST /api/v1/machines/{machineId}/runner-leftovers/remove (the subject is the machine).
+          description: The one button the finding offers. `remove_runner_leftovers` removes `items` through POST /api/v1/machines/{machineId}/runner-leftovers/remove (the subject is the machine). `remove_github_runner` and `remove_runner_record` send `args` through POST /api/v1/doctor/registration-fixes.
           required: [id, label]
           properties:
             id:
               type: string
-              enum: [remove_runner_leftovers]
+              enum: [remove_runner_leftovers, remove_github_runner, remove_runner_record]
             label:
               type: string
+            args:
+              $ref: '#/components/schemas/RegistrationActionArgs'
         milestone:
           type: integer
         checked_at:
@@ -8248,6 +8783,47 @@ components:
           minimum: 1
           maximum: 60
           description: github-integration R5.43. How long no crsp machine of an operating system must have been up before a repository that turned the hosted fallback on runs on GitHub-hosted runners. Default 3.
+        insights_keep_ci_data:
+          type: boolean
+          description: ci-run-insights R5.5. Keep CI logs and test reports on the owner's machines (owner decision D4). On by default.
+        insights_ci_data_days:
+          type: integer
+          minimum: 7
+          maximum: 365
+          description: ci-run-insights R5.5, R6.2. Default 30.
+        insights_ci_data_mib_per_repository:
+          type: integer
+          minimum: 64
+          maximum: 20480
+          description: ci-run-insights R5.5, R6.2. Default 1024.
+        insights_test_results_days:
+          type: integer
+          minimum: 14
+          maximum: 400
+          description: ci-run-insights R5.5, R6.2. Default 90.
+        insights_resource_samples_days:
+          type: integer
+          minimum: 1
+          maximum: 30
+          description: ci-run-insights R5.5, R6.2. Default 7.
+        insights_hold_cap_seconds:
+          type: integer
+          minimum: 30
+          maximum: 900
+          description: ci-run-insights R5.14. Default 120.
+        insights_guardrail_artifact:
+          type: string
+          maxLength: 100
+          description: ci-run-insights R5.31. Name pattern of the guard report artifact. Default test-guardrails*.
+        insights_update_period:
+          type: string
+          enum: [every_run, every_nth_run, hourly]
+          description: ci-run-insights R5.44 (owner decisions D18, D19). How often insights are re-analysed. every_run (the default) analyses after each CI run; every_nth_run after every Nth run; hourly once an hour. The cost warning recommends a slower one.
+        insights_update_every_n_runs:
+          type: integer
+          minimum: 2
+          maximum: 50
+          description: ci-run-insights R5.44. N of every_nth_run. Default 5.
         auto_update:
           type: boolean
           description: operations R5.15. On by default. When on, a newer stable release installs by itself after a drain. When off, the console Review step asks first.
@@ -9557,3 +10133,460 @@ components:
         items:
           type: array
           items: { $ref: '#/components/schemas/RegistryPull' }
+    InsightArea:
+      type: string
+      description: ci-run-insights section 7. The screen area a finding belongs to.
+      enum: [waits, pool, runs, workflows, guardrails, tests]
+    Guardrail:
+      type: string
+      description: The dev-standards test guardrails G1 to G7.
+      enum: [G1, G2, G3, G4, G5, G6, G7]
+    InsightActionKind:
+      type: string
+      description: ci-run-insights R5.10. A setup change crsp can make after Review; absent when the fix is outside crsp.
+      enum: [machine_slots, repo_parallel_limit, light_lane]
+    InsightFinding:
+      type: object
+      description: ci-run-insights R5.7. Text fields are plain words, shown as text, never as markup.
+      required:
+        [
+          id,
+          kind,
+          scope,
+          area,
+          title,
+          fix,
+          minutes_saved_week,
+          first_seen,
+          last_seen,
+          evidence,
+        ]
+      properties:
+        id: { type: integer, format: int64 }
+        kind:
+          type: string
+          description: The finding kind of ci-run-insights section 7, such as wait.hold or workflow.timeout.
+        scope:
+          type: string
+          enum: [repo, pool]
+        repository_id: { type: integer, format: int64 }
+        repository: { type: string }
+        subject:
+          type: string
+          description: What it is about inside its kind (a job key, a label set, a workflow file, a test).
+        area:
+          $ref: '#/components/schemas/InsightArea'
+        title: { type: string }
+        fix: { type: string }
+        snippet:
+          type: string
+          description: A workflow snippet for the fix, shown in a copyable block.
+        evidence:
+          type: object
+          additionalProperties: true
+          description: The numbers the finding page shows; its keys depend on the kind.
+        minutes_saved_week:
+          type: integer
+          description: An estimate (R5.9).
+        guardrail:
+          $ref: '#/components/schemas/Guardrail'
+        action_kind:
+          $ref: '#/components/schemas/InsightActionKind'
+        first_seen: { type: string, format: date-time }
+        last_seen: { type: string, format: date-time }
+        resolved_at: { type: string, format: date-time }
+        dismissed_until:
+          type: string
+          format: date-time
+          description: Set while the finding is hidden (owner decision D17); it shows again at this time if it is still true.
+    InsightFindingList:
+      type: object
+      required: [items, total]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/InsightFinding' }
+        total: { type: integer }
+        next_cursor: { type: string }
+        not_read_yet:
+          $ref: '#/components/schemas/InsightBacklog'
+    InsightBacklog:
+      type: object
+      description: ci-run-insights R6.1. Work waiting for the GitHub hourly limit.
+      required: [jobs]
+      properties:
+        jobs: { type: integer }
+        until: { type: string, format: date-time }
+    InsightSummary:
+      type: object
+      required: [open, minutes_saved_week]
+      properties:
+        open: { type: integer }
+        minutes_saved_week: { type: integer }
+        enough_data:
+          type: boolean
+          description: False under 50 finished jobs in the window.
+    InsightPlanChange:
+      type: object
+      required: [target, field, from, to, words]
+      properties:
+        target:
+          type: string
+          description: The machine id or repository it changes.
+        target_name: { type: string }
+        field:
+          type: string
+          description: The setting, such as job_slots, light_slots or max_parallel_jobs.
+        from: { type: integer }
+        to: { type: integer }
+        words: { type: string }
+        jobs_waited_for:
+          type: array
+          description: Running jobs the change waits for (UX-62).
+          items: { type: string }
+    InsightPlanResult:
+      type: object
+      required: [target, field, state]
+      properties:
+        target: { type: string }
+        field: { type: string }
+        state:
+          type: string
+          enum: [pending, done, failed, skipped]
+        error: { type: string }
+    InsightPlan:
+      type: object
+      required: [id, finding_id, action_kind, state, changes, results, created_at]
+      properties:
+        id: { type: string }
+        finding_id: { type: integer, format: int64 }
+        action_kind:
+          $ref: '#/components/schemas/InsightActionKind'
+        state:
+          type: string
+          enum: [draft, running, done, failed, stopped]
+        changes:
+          type: array
+          items: { $ref: '#/components/schemas/InsightPlanChange' }
+        results:
+          type: array
+          items: { $ref: '#/components/schemas/InsightPlanResult' }
+        estimate:
+          type: string
+          description: The estimate in words, such as "p95 wait from about 9 to about 3 min".
+        created_by: { type: string }
+        created_at: { type: string, format: date-time }
+        started_at: { type: string, format: date-time }
+        finished_at: { type: string, format: date-time }
+    WaitSplitRow:
+      type: object
+      required: [key, jobs, wait, hold, run]
+      properties:
+        key:
+          type: string
+          description: The repository, the job key or the day (year-month-day, UTC).
+        jobs: { type: integer }
+        wait: { $ref: '#/components/schemas/DurationStats' }
+        hold: { $ref: '#/components/schemas/DurationStats' }
+        run: { $ref: '#/components/schemas/DurationStats' }
+        holds_over_cap: { type: integer }
+        hold_reasons:
+          type: object
+          description: Holds over the cap by reason (image_pull, runner_start, registration, load, unknown).
+          additionalProperties: { type: integer }
+    DurationStats:
+      type: object
+      required: [total_seconds]
+      properties:
+        total_seconds: { type: integer, format: int64 }
+        p50_seconds: { type: integer }
+        p95_seconds: { type: integer }
+        known:
+          type: integer
+          description: Jobs with a known value; unknown is never counted as 0.
+    WaitSplit:
+      type: object
+      required: [days, group, rows, hold_cap_seconds]
+      properties:
+        days: { type: integer }
+        group:
+          type: string
+          enum: [repository, job_key, day]
+        hold_cap_seconds: { type: integer }
+        rows:
+          type: array
+          items: { $ref: '#/components/schemas/WaitSplitRow' }
+    TimelineSegment:
+      type: object
+      required: [kind, start, end]
+      properties:
+        kind:
+          type: string
+          enum: [job, idle]
+        start: { type: string, format: date-time }
+        end: { type: string, format: date-time }
+        job_id: { type: integer, format: int64 }
+        repository: { type: string }
+        job_ident: { type: string }
+        event: { type: string }
+        markers:
+          type: array
+          items:
+            type: string
+            enum: [idle_while_waiting, after_merge_work]
+        waiting_job_ids:
+          type: array
+          description: For a marked segment, the jobs that waited meanwhile.
+          items: { type: integer, format: int64 }
+    TimelineLane:
+      type: object
+      required: [runner_name, origin, segments]
+      properties:
+        runner_name: { type: string }
+        origin:
+          type: string
+          enum: [crsp, other, hosted]
+        machine_name: { type: string }
+        labels:
+          type: array
+          items: { type: string }
+        segments:
+          type: array
+          items: { $ref: '#/components/schemas/TimelineSegment' }
+    PoolTimeline:
+      type: object
+      required: [from, to, lanes]
+      properties:
+        from: { type: string, format: date-time }
+        to: { type: string, format: date-time }
+        lanes:
+          type: array
+          items: { $ref: '#/components/schemas/TimelineLane' }
+    SlotEstimate:
+      type: object
+      required: [extra_slots]
+      properties:
+        extra_slots: { type: integer }
+        mean_wait_seconds:
+          type: number
+          description: Absent when the queue would still grow.
+        p95_wait_seconds: { type: number }
+        utilisation: { type: number }
+    LabelSetDemand:
+      type: object
+      required: [labels, slots, utilisation, jobs_per_hour, estimates]
+      properties:
+        labels:
+          type: array
+          items: { type: string }
+        slots: { type: integer }
+        utilisation:
+          type: number
+          description: Busy slot minutes over available slot minutes, 0 to 1 (can exceed 1 when the queue grows).
+        jobs_per_hour: { type: number }
+        mean_service_seconds: { type: number }
+        cv_arrivals: { type: number }
+        cv_service: { type: number }
+        p50_wait_seconds: { type: number }
+        p95_wait_seconds: { type: number }
+        min_slots_needed:
+          type: integer
+          description: Set when the queue grows; the smallest slot count with utilisation under 0.85.
+        estimates:
+          type: array
+          items: { $ref: '#/components/schemas/SlotEstimate' }
+        p95_wait_by_day:
+          type: array
+          items: { $ref: '#/components/schemas/DayValue' }
+    DayValue:
+      type: object
+      required: [day, value]
+      properties:
+        day: { type: string, format: date }
+        value: { type: number }
+    PoolSizing:
+      type: object
+      required: [days, label_sets, method]
+      properties:
+        days: { type: integer }
+        method:
+          type: string
+          description: The estimate's method in words (Allen-Cunneen with Sakasegawa).
+        label_sets:
+          type: array
+          items: { $ref: '#/components/schemas/LabelSetDemand' }
+    TestInsight:
+      type: object
+      required: [test_id, name, repository, runs]
+      properties:
+        test_id: { type: string }
+        name: { type: string }
+        suite: { type: string }
+        file: { type: string }
+        repository: { type: string }
+        job_idents:
+          type: array
+          items: { type: string }
+        kind:
+          type: string
+          enum: [unit, integration, e2e]
+        runs: { type: integer }
+        failures: { type: integer }
+        p50_ms: { type: integer }
+        p95_ms: { type: integer }
+        over_limit_seconds:
+          type: integer
+          description: Set when the p95 is over the G1 limit of its kind.
+        flaky_runs: { type: integer }
+        assertions:
+          type: integer
+          description: -1 when the format does not report them.
+        last_seen: { type: string, format: date-time }
+    TestInsightList:
+      type: object
+      required: [items, total, reports_found]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/TestInsight' }
+        total: { type: integer }
+        next_cursor: { type: string }
+        reports_found:
+          type: boolean
+          description: False when no test report was found in the window.
+    GuardrailState:
+      type: object
+      required: [guardrail, state, source]
+      properties:
+        guardrail: { $ref: '#/components/schemas/Guardrail' }
+        state:
+          type: string
+          enum: [pass, break, off, unknown]
+        count: { type: integer }
+        reason: { type: string }
+        source:
+          type: string
+          enum: [guard_report, crsp]
+        reported_at: { type: string, format: date-time }
+    GuardrailStatus:
+      type: object
+      required: [repository_id, repository, guardrails]
+      properties:
+        repository_id: { type: integer, format: int64 }
+        repository: { type: string }
+        guardrails:
+          type: array
+          items: { $ref: '#/components/schemas/GuardrailState' }
+        known_count_by_day:
+          type: array
+          description: The guard's known-list count per day, 30 days.
+          items: { $ref: '#/components/schemas/DayValue' }
+    GuardrailStatusList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/GuardrailStatus' }
+    InsightDigest:
+      type: object
+      required: [week, written_at, text]
+      properties:
+        week: { type: string, example: 2026-W47 }
+        written_at: { type: string, format: date-time }
+        text:
+          type: string
+          description: The digest file's Markdown, shown as text.
+    InsightDigestList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/InsightDigest' }
+    RunSaving:
+      type: object
+      required: [minutes, words, job]
+      properties:
+        minutes: { type: number }
+        words:
+          type: string
+          description: '"The run would end {n} min sooner if {change}."'
+        job: { type: string }
+        change:
+          type: string
+          enum: [no_wait, median_run, start_after_needs]
+    RunWaste:
+      type: object
+      required: [kind, minutes, words]
+      properties:
+        kind:
+          type: string
+          enum: [superseded, duplicate_event, retested_tree, fail_fast]
+        minutes: { type: number }
+        words: { type: string }
+    RunSavings:
+      type: object
+      required: [savings, waste]
+      properties:
+        savings:
+          type: array
+          items: { $ref: '#/components/schemas/RunSaving' }
+        waste:
+          type: array
+          items: { $ref: '#/components/schemas/RunWaste' }
+        reason:
+          type: string
+          description: Why nothing is computed (the run is not finished, no needs graph).
+    WorkflowCheck:
+      type: object
+      required: [workflow, check_id, status]
+      properties:
+        workflow: { type: string }
+        check_id:
+          type: string
+          enum:
+            [
+              workflow.timeout,
+              workflow.retry,
+              workflow.matrix_axis,
+              workflow.step_order,
+              workflow.cache,
+              workflow.slow_tests_on_pr,
+            ]
+        job: { type: string }
+        status:
+          type: string
+          enum: [ok, fail, skip]
+        line: { type: integer }
+        detail: { type: string }
+        guardrail: { $ref: '#/components/schemas/Guardrail' }
+    WorkflowCheckList:
+      type: object
+      required: [items]
+      properties:
+        head_sha: { type: string }
+        checked_at: { type: string, format: date-time }
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/WorkflowCheck' }
+    ResourceSample:
+      type: object
+      required: [at, cpu_cores, memory_bytes]
+      properties:
+        at: { type: string, format: date-time }
+        cpu_cores: { type: number }
+        memory_bytes: { type: integer, format: int64 }
+        known: { type: boolean }
+    JobResources:
+      type: object
+      required: [samples]
+      properties:
+        samples:
+          type: array
+          items: { $ref: '#/components/schemas/ResourceSample' }
+        cpu_p95_cores: { type: number }
+        cpu_peak_cores: { type: number }
+        memory_p95_bytes: { type: integer, format: int64 }
+        memory_peak_bytes: { type: integer, format: int64 }
+        unknown_reason: { type: string }

@@ -269,7 +269,7 @@ describe('Restart the service judges its own attempt (CRSP205)', () => {
 describe('Update state words', () => {
   it('says which of the two idle cases is true', async () => {
     const waiting = signedIn().on('GET', '/api/v1/update', status());
-    renderApp(waiting, '/settings/console');
+    renderApp(waiting, '/settings/updates');
     expect(await screen.findByText('Version 1.5.0 is waiting for your yes')).toBeTruthy();
     cleanup();
     const current = signedIn().on(
@@ -277,7 +277,7 @@ describe('Update state words', () => {
       '/api/v1/update',
       status({ update_available: false }),
     );
-    renderApp(current, '/settings/console');
+    renderApp(current, '/settings/updates');
     expect(await screen.findByText('Up to date')).toBeTruthy();
   });
 });

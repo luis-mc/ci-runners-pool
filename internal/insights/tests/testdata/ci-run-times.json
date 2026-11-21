@@ -1,0 +1,1 @@
+{"event":"pull_request","headSha":"abc","scope":"full","wallSeconds":600,"targetSeconds":900,"overTarget":false,"jobs":[{"name":"unit","conclusion":"success","queuedSeconds":5,"seconds":120},{"name":"e2e","conclusion":"failure","queuedSeconds":9,"seconds":300}]}

@@ -16,6 +16,7 @@ const (
 	LabelOpenLogs     = "Open log folder"
 	LabelOpenGitHub   = "Open on GitHub"
 	LabelOpenDoctor   = "Open Doctor"
+	LabelOpenDigest   = "Open weekly digest"
 	LabelStartAtLogin = "Start at login"
 	LabelQuit         = "Quit tray"
 	LabelMode         = "Mode"
@@ -57,6 +58,7 @@ const (
 	IDRestart   = "restart"
 	IDLogs      = "logs"
 	IDDoctor    = "doctor"
+	IDDigest    = "digest"
 	IDSep4      = "sep4"
 	IDLogin     = "login"
 	IDQuit      = "quit"
@@ -233,6 +235,7 @@ func BuildMenu(version string, st Status, startAtLogin bool) []MenuItem {
 		{ID: IDRestart, Label: LabelRestart, Action: true},
 		{ID: IDLogs, Label: LabelOpenLogs, Action: true},
 		{ID: IDDoctor, Label: LabelOpenDoctor, Action: true},
+		{ID: IDDigest, Label: LabelOpenDigest, Action: true, Hidden: st.DigestPath == ""},
 		{ID: IDSep4, Separator: true},
 		{ID: IDLogin, Label: LabelStartAtLogin, Action: true, Switch: true, Checked: startAtLogin},
 		{ID: IDQuit, Label: LabelQuit, Action: true},

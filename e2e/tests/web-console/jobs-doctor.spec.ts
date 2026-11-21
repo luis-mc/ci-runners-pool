@@ -10,9 +10,12 @@ test('Jobs: the queue says why a run waits and when it should start, Done lists 
   await jobsAndDoctor(signedIn())
     .on('GET', '/api/v1/machines', { items: [] })
     .install(page);
-  await page.goto('/jobs');
+  await page.goto('/jobs/live?state=queued');
   await expect(page.getByRole('heading', { level: 1, name: 'Jobs' })).toBeVisible();
   const queue = page.getByRole('table', { name: 'Queue runs' });
+  // CRSP210: the row shows the short reason; Why opens the whole sentence under the row.
+  await expect(queue.getByText('waits for a slot', { exact: true })).toBeVisible();
+  await queue.getByRole('button', { name: 'Why' }).click();
   await expect(
     queue.getByText('waits for a free slot on any Linux machine'),
   ).toBeVisible();
@@ -20,7 +23,9 @@ test('Jobs: the queue says why a run waits and when it should start, Done lists 
   await page.getByRole('tab', { name: 'Done' }).click();
   const done = page.getByRole('table', { name: 'Done runs' });
   await expect(done.getByRole('button', { name: 'Open run' })).toHaveCount(3);
-  await expect(page.getByText(/Showing 3 of 3 runs in the last 90 days/)).toBeVisible();
+  await expect(
+    page.getByText(/Showing 3 of 3 finished runs in the last 90 days/),
+  ).toBeVisible();
 });
 
 test('Jobs: the Done range asks for a from date, and Export holds the same filter', async ({
@@ -160,4 +165,106 @@ test('Jobs and Doctor are in the menu and no longer say they arrive later', asyn
     .install(page);
   await page.goto('/doctor');
   await expect(page.getByText(/arrives in milestone/)).toHaveCount(0);
+});
+
+// LOOK41 (owner decision 20 Nov 2026, option 11 of CRSP211): one list with a state filter, a search box with focus,
+// Up, Down, j and k through every control and row, and a details panel behind a named button.
+test('Jobs: the list starts with focus in the search box and the search narrows it', async ({
+  page,
+}) => {
+  await jobsAndDoctor(signedIn())
+    .on('GET', '/api/v1/machines', { items: [] })
+    .install(page);
+  await page.goto('/jobs/live');
+  const box = page.getByRole('textbox', { name: /Search/ });
+  await expect(box).toBeFocused();
+  const rows = page.locator('table.ds-table tbody tr[data-list-row]');
+  await expect(rows.first()).toBeVisible();
+  const all = await rows.count();
+  expect(all).toBeGreaterThan(1);
+  await page.keyboard.type('state:wait');
+  await expect(rows).not.toHaveCount(all);
+  await expect(rows.first()).toContainText('waiting');
+  await page.keyboard.press('Control+A');
+  await page.keyboard.type('nothing-like-this-at-all');
+  await expect(page.getByText(/Nothing matches/)).toBeVisible();
+});
+
+test('Jobs: Down, Up, j and k move from the search box through the controls to the rows', async ({
+  page,
+}) => {
+  await jobsAndDoctor(signedIn())
+    .on('GET', '/api/v1/machines', { items: [] })
+    .install(page);
+  await page.goto('/jobs/live');
+  await expect(page.getByRole('textbox', { name: /Search/ })).toBeFocused();
+  const rows = page.locator('table.ds-table tbody tr[data-list-row]');
+  await expect(rows.first()).toBeVisible();
+  // The box, the State choices, the Runs and Jobs choice, the details button, then the rows.
+  for (let i = 0; i < 7; i++) await page.keyboard.press('ArrowDown');
+  await expect(page.getByRole('button', { name: 'Show details' })).toBeFocused();
+  // After the button come the sortable heads of the table, then each row and its own controls: the keys walk them all.
+  const walk = async (key: string, until: () => Promise<boolean>) => {
+    for (let i = 0; i < 20 && !(await until()); i++) await page.keyboard.press(key);
+    expect(await until()).toBe(true);
+  };
+  const rowIndex = () =>
+    page.evaluate(() =>
+      Array.from(document.querySelectorAll('tbody tr[data-list-row]')).findIndex(
+        (r) => r === document.activeElement,
+      ),
+    );
+  await walk('j', async () => (await rowIndex()) === 0);
+  await walk('j', async () => (await rowIndex()) === 1);
+  await walk('k', async () => (await rowIndex()) === 0);
+  await walk('ArrowUp', async () =>
+    page
+      .getByRole('button', { name: 'Show details' })
+      .evaluate((e) => e === document.activeElement),
+  );
+});
+
+test('Jobs: Show details opens the panel of the chosen row, Hide details closes it', async ({
+  page,
+}) => {
+  await jobsAndDoctor(signedIn())
+    .on('GET', '/api/v1/machines', { items: [] })
+    .install(page);
+  await page.goto('/jobs/live');
+  const toggle = page.getByRole('button', { name: 'Show details' });
+  await expect(toggle).toHaveAttribute('title', 'Show details');
+  await toggle.click();
+  const side = page.getByRole('complementary', { name: /^Details: / });
+  await expect(side).toBeVisible();
+  await expect(side.getByText('Repository')).toBeVisible();
+  await page.getByRole('button', { name: 'Hide details' }).click();
+  await expect(side).toHaveCount(0);
+});
+
+test('Jobs: the old addresses land on the new tabs and keep their filter', async ({
+  page,
+}) => {
+  await jobsAndDoctor(signedIn())
+    .on('GET', '/api/v1/machines', { items: [] })
+    .install(page);
+  await page.goto('/jobs/running');
+  await expect(page).toHaveURL(/\/jobs\/live\?state=running/);
+  await page.goto('/jobs/repository');
+  await expect(page).toHaveURL(/\/jobs\/done\?group=repository/);
+  await page.goto('/jobs/trends');
+  await expect(page).toHaveURL(/\/jobs\/charts/);
+  await page.goto('/jobs');
+  await expect(page.getByRole('tab', { name: 'Overview' })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
+  const tabs = await page.getByRole('tab').allTextContents();
+  expect(tabs.slice(0, 6)).toEqual([
+    'Overview',
+    'Live',
+    'Done',
+    'Run elsewhere',
+    'Run insights',
+    'Charts',
+  ]);
 });

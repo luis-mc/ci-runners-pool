@@ -20,6 +20,7 @@ import {
   formatNumber,
 } from '@crsp/ui';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { SavingsPane } from '../insights/JobInsights';
 import { Load } from '../common';
 import type { Schemas } from '../../api/api';
 import { useRun } from './api';
@@ -146,6 +147,7 @@ function RunBody({ run, onAttempt }: { run: RunItem; onAttempt: (a: number) => v
           />
         </Stack>
       </Section>
+      <SavingsPane runId={run.id} />
       <Section
         title="Timeline"
         hint="Each job waits in the queue (light part), then runs. A bracket is the forecast of the end. The table under Jobs says the same in words."

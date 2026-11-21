@@ -312,8 +312,6 @@ func settingsDiff(a, b Settings) string {
 	add("docker compact", a.CompactMode, b.CompactMode)
 	add("docker compact threshold GiB", a.CompactThresholdGiB, b.CompactThresholdGiB)
 	add("docker compact idle minutes", a.CompactIdleMinutes, b.CompactIdleMinutes)
-	add("docker compact quiet start", a.CompactQuietStart, b.CompactQuietStart)
-	add("docker compact quiet end", a.CompactQuietEnd, b.CompactQuietEnd)
 	add("pause until", a.PauseUntil, b.PauseUntil)
 	add("pause until resumed", a.PausedUntilResumed, b.PausedUntilResumed)
 	return out

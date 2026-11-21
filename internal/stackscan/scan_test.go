@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"os"
+	"runtime"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -200,7 +201,14 @@ func TestConcurrentAsksShareOneRead(t *testing.T) {
 			}
 		}()
 	}
-	time.Sleep(50 * time.Millisecond)
+	// the first read is in flight (blocked on the gate); the others join it or hit the cache
+	deadline := time.Now().Add(5 * time.Second)
+	for r.treeCall.Load() == 0 {
+		if time.Now().After(deadline) {
+			t.Fatal("no scan reached the reader")
+		}
+		runtime.Gosched()
+	}
 	close(r.gate)
 	wg.Wait()
 	if r.treeCall.Load() != 1 {

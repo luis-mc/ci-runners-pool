@@ -31,8 +31,6 @@ func WaitWords(reason WaitReason, text string) string {
 			return "The repository is at its parallel limit: " + text + "."
 		}
 		return "The repository is at its parallel limit."
-	case WaitQuietHours:
-		return "Waiting for quiet hours to end."
 	default:
 		return "Waiting. The reason is not known yet."
 	}

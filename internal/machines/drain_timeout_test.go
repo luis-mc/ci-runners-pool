@@ -132,13 +132,8 @@ func TestNoDecisionStopsJobs(t *testing.T) {
 
 func waitState(t *testing.T, e *env, id, chID, want string) {
 	t.Helper()
-	deadline := time.Now().Add(5 * time.Second)
-	for time.Now().Before(deadline) {
-		if c, _ := e.Svc.GetChange(context.Background(), id, chID); c.State == want {
-			return
-		}
-		time.Sleep(10 * time.Millisecond)
-	}
-	c, _ := e.Svc.GetChange(context.Background(), id, chID)
-	t.Fatalf("change state = %v, want %v", c.State, want)
+	waitUntil(t, 5*time.Second, "change state "+want, func() bool {
+		c, _ := e.Svc.GetChange(context.Background(), id, chID)
+		return c.State == want
+	})
 }

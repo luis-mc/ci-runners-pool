@@ -3,14 +3,11 @@ package cli
 import (
 	"flag"
 	"fmt"
-	"regexp"
 	"strconv"
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/api/client"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/cli/output"
 )
-
-var quietHoursRE = regexp.MustCompile(`^([01][0-9]|2[0-3]):[0-5][0-9]-([01][0-9]|2[0-3]):[0-5][0-9]$`)
 
 // machineSettingsCommand is `machine settings NAME [flags]` (caches R5.51 to R5.54): the
 // Docker disk compact policy of one machine, readable and settable from the CLI
@@ -18,16 +15,15 @@ var quietHoursRE = regexp.MustCompile(`^([01][0-9]|2[0-3]):[0-5][0-9]-([01][0-9]
 func machineSettingsCommand() *command {
 	return &command{
 		name: "settings", summary: "show or change the Docker disk compact policy of a machine",
-		args: "NAME [--docker-compact on|off|auto] [--docker-compact-threshold GIB] [--docker-compact-idle MINUTES] [--docker-compact-hours HH:MM-HH:MM]",
+		args: "NAME [--docker-compact on|off|auto] [--docker-compact-threshold GIB] [--docker-compact-idle MINUTES]",
 		flags: func(c *call, fs *flag.FlagSet) {
 			fs.String("docker-compact", "", "on, off or auto (auto is on for a Windows machine with a Docker Desktop disk file)")
 			fs.Int("docker-compact-threshold", 0, "GiB reclaimable (file size minus used) before the compact runs; default 30")
 			fs.Int("docker-compact-idle", 0, "minutes with no job running or queued before the compact runs; default 30")
-			fs.String("docker-compact-hours", "", "quiet-hours window in the machine's local time, such as 01:00-06:00")
 		},
 		run: func(c *call, args []string) error {
 			if len(args) != 1 {
-				return fail(ExitUsage, "Usage: crsp machine settings NAME [--docker-compact on|off|auto] [--docker-compact-threshold GIB] [--docker-compact-idle MINUTES] [--docker-compact-hours HH:MM-HH:MM]")
+				return fail(ExitUsage, "Usage: crsp machine settings NAME [--docker-compact on|off|auto] [--docker-compact-threshold GIB] [--docker-compact-idle MINUTES]")
 			}
 			body, err := compactUpdate(c)
 			if err != nil {
@@ -68,7 +64,7 @@ func compactUpdate(c *call) (*client.MachineSettingsUpdate, error) {
 	set := false
 	c.fs.Visit(func(f *flag.Flag) {
 		switch f.Name {
-		case "docker-compact", "docker-compact-threshold", "docker-compact-idle", "docker-compact-hours":
+		case "docker-compact", "docker-compact-threshold", "docker-compact-idle":
 			set = true
 		}
 	})
@@ -102,13 +98,6 @@ func compactUpdate(c *call) (*client.MachineSettingsUpdate, error) {
 	if u.DockerCompactIdleMinutes, err = num("docker-compact-idle", 1440); err != nil {
 		return nil, err
 	}
-	if v := c.fs.Lookup("docker-compact-hours").Value.String(); v != "" {
-		if !quietHoursRE.MatchString(v) {
-			return nil, fail(ExitUsage, "--docker-compact-hours is written HH:MM-HH:MM, such as 01:00-06:00.")
-		}
-		start, end := v[:5], v[6:]
-		u.DockerCompactQuietStart, u.DockerCompactQuietEnd = &start, &end
-	}
 	return &u, nil
 }
 
@@ -122,7 +111,6 @@ func printCompact(c *call, m client.Machine) {
 	_, _ = fmt.Fprintf(w, "Docker disk compact on %s: %s\n", m.Name, mode)
 	_, _ = fmt.Fprintf(w, "  reclaimable space to start: %d GiB\n", deref(st.DockerCompactThresholdGib))
 	_, _ = fmt.Fprintf(w, "  idle before it runs: %d minutes\n", deref(st.DockerCompactIdleMinutes))
-	_, _ = fmt.Fprintf(w, "  quiet hours (machine time): %s-%s\n", deref(st.DockerCompactQuietStart), deref(st.DockerCompactQuietEnd))
 	_, _ = fmt.Fprintln(w, "  at most once per day")
 	if d := m.DockerCompactStatus; d != nil {
 		on := "off"

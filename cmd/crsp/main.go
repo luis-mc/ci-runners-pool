@@ -181,7 +181,7 @@ func runController() error {
 	go mr.Service.RunCompactLoop(ctx, compactEvery, func(err error) { logger.Warn("docker disk compact pass", "err", err) })
 
 	um := startUpdates(ctx, cfg, logger, mr, ops.Settings, idle)
-	// A machine that is paused, on battery or in quiet hours holds new jobs with
+	// A machine that is paused or on battery holds new jobs with
 	// that reason (scheduling R5.68, machines R5.62).
 	queue := scheduler.NewEngine(db, scheduler.WithLogger(logger), scheduler.WithAccepting(func(id string) (bool, string) {
 		p := mr.Service.Policy(id)
@@ -249,7 +249,8 @@ func runController() error {
 	console := consoleURL(localAddr)
 	startTrayChannel(ctx, logger, trayBackend{
 		Updates: um, Drain: machineDrainer{svc: mr.Service}, Console: console,
-		Links: setupOrConsole{auth: ctl.Auth, console: console, next: authLinks{svc: ctl.Auth, console: console}},
+		Links:  setupOrConsole{auth: ctl.Auth, console: console, next: authLinks{svc: ctl.Auth, console: console}},
+		Digest: func() string { return latestDigest(cfg.DataDir) },
 	})
 
 	// The pull-through mirror of upstream bases, under its own route prefix (registry R5.63).
@@ -262,6 +263,8 @@ func runController() error {
 	mirrorSvc, mirrorProxy := startRegistryMirror(ctx, logger, cfg.DataDir, db, audit.New(db), mirrorGuard)
 	defer func() { _ = mirrorProxy.Close() }()
 	ctl.Options.RegistryMirror = mirrorSvc
+	// CI run insights: routes and the analyser engine (ci-run-insights R5.42).
+	startInsights(ctx, logger, &ctl.Options, insightsDeps{})
 
 	mux := http.NewServeMux()
 	api.Register(mux, ctl.Options)

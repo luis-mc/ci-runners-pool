@@ -15,7 +15,7 @@
 - Before briefing an agent that needs an external site, run `scripts/delivery/reach_check.py` in its sandbox; if it fails, fetch the material locally and commit it. <!-- check: DL-43 -->
 - Run work in the cloud first; a local agent needs a `PC-bound:` reason line in its prompt unless the cloud cap is full. <!-- check: DL-39 -->
 - Worktrees and scratch live under the configured work root, never under the projects folder; remove them when done. <!-- check: DL-53 -->
-- Never send email, messages, posts, issues or comments in the owner's name; write drafts as files. <!-- check: DL-73 -->
+- Never send email, messages, posts, issues, comments or reviews in the owner's name; write drafts as files. On repositories the owner owns, agents may open pull requests, mark them ready and edit their title and description; merging stays the owner's. <!-- check: DL-73 -->
 - No Co-Authored-By or AI attribution in commits or PR bodies when `.delivery/config.json` sets `no_attribution`. <!-- check: DL-74 -->
 
 ## Integrate once, deploy once
@@ -28,6 +28,9 @@
 - Open one ready PR when the join is pushed; its CI is the only full suite. Merge on green, never auto-merge. <!-- check: DL-05, DL-06, DL-08 -->
 - Watch CI by the workflow runs for the head commit (`scripts/delivery/ci_watch.py`), never by the PR check list. <!-- check: DL-07 -->
 - Never `gh run watch` without `--interval 60` or more: the default 3 s drains the GitHub quota every session shares. Watch CI with `ci_watch.py`, one watcher for many runs (`ci_watch.py SHA1 SHA2 --run ID`). <!-- check: DL-95 -->
+- A red release CI run finishes: never cancel it while jobs still run; wait, fix every failure, push once. Only a failure that blocks all later jobs (setup, lockfile, build) may be cancelled, with `# D105: blocks-all`. <!-- check: DL-97 -->
+- No fail-fast on release PR CI: every matrix sets `fail-fast: false` and no suite stops at its first failure (`ci.jobs.<id>.fail_fast`). The sandbox branch gate keeps its cheapest-first stop. <!-- check: DL-98 -->
+- Tests keep guardrails G1-G7: per-test timeout (unit 10 s, integration 60 s, e2e 2 min), job timeout-minutes ≤ 30, no CI retries, no sleeps, ≤ 20 cases per test, mutation off PR CI, test times reported. <!-- check: DL-99 -->
 - A train leaves when its cargo is green; late branches ride the next train. <!-- check: DL-01, DL-16 -->
 - One deploy per merge; smoke-test production; fix forward on a new branch. <!-- check: DL-18 -->
 - No preview deploys for agent branches. Never merge mid-round to "see it deployed". <!-- check: DL-19 -->

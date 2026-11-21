@@ -1,4 +1,4 @@
-// The Docker disk compact of one machine (caches R5.51 to R5.54, machines R5.66): the policy, its numbers and its quiet hours.
+// The Docker disk compact of one machine (caches R5.51 to R5.54, machines R5.66): the policy and its numbers.
 // Every control is saved at once (UX-22). Shared parts only; the words are in content.md ("Docker disk words").
 import {
   Button,
@@ -18,6 +18,7 @@ import {
 import { unwrap, useClient, type Schemas } from '../../api/api';
 import { useCommand } from '../../api/hooks';
 import { useSession } from '../../auth/session';
+import { CompactNow } from './CompactNow';
 
 type Machine = Schemas['Machine'];
 type Settings = Schemas['MachineSettingsUpdate'];
@@ -51,8 +52,6 @@ export function compactWhy(reason: string | undefined): string {
       return 'Cannot: the agent has no administrator rights';
     case 'below_threshold':
       return 'Waiting: less than the limit can be reclaimed';
-    case 'outside_quiet_hours':
-      return 'Waiting for quiet hours';
     case 'busy':
       return 'Waiting: jobs run or wait here';
     case 'not_idle_long_enough':
@@ -73,14 +72,6 @@ function statusKind(reason: string | undefined, enabled: boolean): StatusKind {
   if (reason === 'no_admin') return 'failed';
   if (reason === 'run' || reason === 'already_running') return 'ok';
   return 'waiting';
-}
-
-const hours = Array.from({ length: 24 }, (_, h) => `${String(h).padStart(2, '0')}:00`);
-
-/** The choices of an hour list, with the saved value when it is not on the hour. */
-function hourChoices(current: string) {
-  const all = hours.includes(current) ? hours : [...hours, current].sort();
-  return all.map((h) => ({ value: h, label: h }));
 }
 
 export function MachineDockerDiskSection({
@@ -107,8 +98,6 @@ export function MachineDockerDiskSection({
   });
   // A machine with no Docker Desktop disk file and no choice made has nothing to show.
   if (!st?.disk_present && mode === 'auto') return null;
-  const start = s.docker_compact_quiet_start ?? '01:00';
-  const end = s.docker_compact_quiet_end ?? '06:00';
   const locked = !session.can('admin') ? { disabledReason: why } : {};
   return (
     <Section title="Docker disk">
@@ -180,26 +169,15 @@ export function MachineDockerDiskSection({
           max={1440}
           onChange={(n) => void change.run({ docker_compact_idle_minutes: n })}
         />
-        <ChoiceField
-          label="Quiet hours start"
-          help="In the machine's own time."
-          value={start}
-          choices={hourChoices(start).map((c) => ({ ...c, ...locked }))}
-          onChange={(v) => void change.run({ docker_compact_quiet_start: v })}
-        />
-        <ChoiceField
-          label="Quiet hours end"
-          value={end}
-          choices={hourChoices(end).map((c) => ({ ...c, ...locked }))}
-          onChange={(v) => void change.run({ docker_compact_quiet_end: v })}
-        />
         <Text>
-          At most once a day. New jobs wait in the queue while the disk is made smaller.
-          No job is stopped.
+          It starts at any hour, once the machine has been idle for that long and that
+          much can be reclaimed, and at most once a day. New jobs wait in the queue while
+          the disk is made smaller. No job is stopped.
         </Text>
         {change.error ? (
           <Message tone="problem">Could not save. {change.error}</Message>
         ) : null}
+        <CompactNow m={m} onStarted={onChanged} />
         {st?.enabled && st.disk_present && !st.can_compact ? (
           <Cluster>
             <Button

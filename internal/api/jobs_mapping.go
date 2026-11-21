@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"sort"
 	"time"
 
@@ -109,6 +110,62 @@ func toJobItem(j jobsdata.Job) gen.Job {
 }
 
 func ptrOf[T any](v T) *T { return &v }
+
+// JobRunnerInfo is who ran a job and where its steps came from (ci-run-insights R5.39 to R5.41).
+// Origin is "crsp", "other", "hosted", or "" while not known.
+type JobRunnerInfo struct {
+	Origin      string
+	Group       string
+	Labels      []string
+	StepsSource string // "events" or "rest", "" while not known
+	CheckedAt   time.Time
+}
+
+// JobRunnerReader reads JobRunnerInfo of jobs by GitHub job id. A job it has nothing for is left out.
+type JobRunnerReader interface {
+	JobRunners(ctx context.Context, jobIDs []int64) (map[int64]JobRunnerInfo, error)
+}
+
+// elsewhere is true for a job crsp cannot run: another runner or a GitHub-hosted one (owner decision D7).
+func (i JobRunnerInfo) elsewhere() bool { return i.Origin == "other" || i.Origin == "hosted" }
+
+// withRunnerInfo adds the origin, group, labels, steps source and read time to a job.
+func withRunnerInfo(j gen.Job, i JobRunnerInfo) gen.Job {
+	switch i.Origin {
+	case "crsp", "other", "hosted":
+		o := gen.JobRunnerOrigin(i.Origin)
+		j.RunnerOrigin = &o
+	}
+	if i.Group != "" {
+		j.RunnerGroup = ptr(i.Group)
+	}
+	if len(i.Labels) > 0 {
+		l := i.Labels
+		j.RunnerLabels = &l
+	}
+	switch i.StepsSource {
+	case "events", "rest":
+		ss := gen.JobStepsSource(i.StepsSource)
+		j.StepsSource = &ss
+	}
+	if !i.CheckedAt.IsZero() {
+		j.CheckedAt = tptr(i.CheckedAt.UTC())
+	}
+	return j
+}
+
+// runnerInfos reads the runner info of rows; a nil reader or a failed read gives none (the page still shows).
+func (s *server) runnerInfos(ctx context.Context, ids []int64) map[int64]JobRunnerInfo {
+	if s.opts.JobRunners == nil || len(ids) == 0 {
+		return nil
+	}
+	m, err := s.opts.JobRunners.JobRunners(ctx, ids)
+	if err != nil {
+		s.opts.Logger.Warn("job runner origin not read", "err", err)
+		return nil
+	}
+	return m
+}
 
 // withRun adds what the run knows: its pull request, task and worktree.
 func withRun(j gen.Job, r jobsdata.Run, worktree string) gen.Job {

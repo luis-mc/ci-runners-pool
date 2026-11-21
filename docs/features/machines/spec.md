@@ -15,13 +15,13 @@ code:
   - internal/cpucap/**
   - internal/dockercompact/**
 design_system: [UX-4, UX-5, UX-6, UX-9, UX-13, UX-16, UX-17, UX-18, UX-19, UX-22, UX-26, UX-29, UX-30, UX-38, UX-41, UX-52, UX-53, UX-58, UX-62]
-last_verified: 2026-11-20
+last_verified: 2026-11-21
 artifact:
 generator: luismc-docs 2.6.1
 ---
 # Machines
 
-PARTLY BUILT (CRSP20). The M1 agent link, join codes, machine keys, detection, load measurement, settings, drain and the controller's own agent are built; see the change note. Not built: R5.14, R5.27 to R5.29, R5.49, R6.9, R6.10. Every requirement not built is NOT YET IMPLEMENTED. Each one names its milestone: **M1** (one machine, the controller's own) or **M3** (more machines, placement and removal), or a later one where it says so. CRSP75 built the machine mode, the battery pause, the `Accepting` status and the CPU cap (R5.61 to R5.64); quiet hours (R5.28) are still not built.
+PARTLY BUILT (CRSP20). The M1 agent link, join codes, machine keys, detection, load measurement, settings, drain and the controller's own agent are built; see the change note. Not built: R5.14, R5.27 to R5.29, R5.49, R6.9, R6.10. Every requirement not built is NOT YET IMPLEMENTED. Each one names its milestone: **M1** (one machine, the controller's own) or **M3** (more machines, placement and removal), or a later one where it says so. CRSP75 built the machine mode, the battery pause, the `Accepting` status and the CPU cap (R5.61 to R5.64); quiet hours (R5.28) were dropped (OPS51).
 
 Sources: the product brief ([product.md](../../overview/product.md)), decisions [0003](../../architecture/decisions/0003-isolation-backends.md), [0004](../../architecture/decisions/0004-agent-link.md) and [0005](../../architecture/decisions/0005-product-boundary.md). Requirements ported from dev-standards cite their origin there: `docs/features/runner-pool/spec.md` (runner-pool R5.x) and `docs/architecture/DELIVERYSPEC.md` (DL-x).
 
@@ -78,7 +78,7 @@ flowchart LR
 4. The agent dials the controller on port 8461. It checks the controller's certificate against the fingerprint in the command and keeps it. It shows the join code.
 5. The controller checks the code, uses it up and issues a key for this machine. The agent keeps the key in the OS secret store.
 6. The agent sends the machine's facts and backends, then its load every 15 seconds.
-7. The user sets the machine's budget, slots, allowed backends, maintenance windows and quiet hours.
+7. The user sets the machine's budget, slots, allowed backends, maintenance windows.
 8. A change that restarts runners drains the machine first. It says which jobs it waits for. Right before the restart it checks again that nothing runs.
 9. If the link drops, the agent reconnects with backoff. The controller marks a silent machine offline.
 10. Removing a machine names what goes and asks for a yes. Its key is revoked.
@@ -93,7 +93,7 @@ The Machines screen and the Add machine wizard follow design system v1 ([ux-rule
 | Machines, empty | "No machines yet." and the **Add machine** action | UX-6, UX-4 |
 | Machine detail | Facts, backends with their reason when not usable, settings, running jobs, the install command again | UX-25, UX-22, UX-61 |
 | Machine detail, When it works | The mode (Automatic, Always, Paused), the Pause on battery switch, the CPU cap (25, 50, 75, 100%), the power source, and the reason when the machine takes no new job. Each control saves at once. A pause from the tray shows with its end and a Resume | UX-13, UX-22, UX-38, UX-58 |
-| Machines, list column Takes jobs | The word Taking jobs, Paused, On battery, Quiet hours or Busy | UX-58 |
+| Machines, list column Takes jobs | The word Taking jobs, Paused, On battery or Busy | UX-58 |
 | Add machine | Wizard: pick the OS, copy the command, wait for the machine to join, Done | UX-5, UX-29, UX-30, UX-54 |
 | Waiting for join | Names what it waits for and when the code expires | UX-29, UX-6 |
 | Finishing jobs | Names each job it waits for and the time left before the drain timeout | UX-29, UX-34 |
@@ -178,7 +178,6 @@ Ported from dev-standards `claude/plugins/delivery/scripts/load.py` and `load_gu
 | Cache size cap | 20 GiB | 1 GiB to the free disk |
 | Time to finish running jobs, `drain_timeout_minutes` (one per machine) | 60 minutes | 5 minutes to 24 hours |
 | Maintenance windows | none | weekly windows, local time |
-| Quiet hours | none | weekly windows, local time, with their own budget and slots |
 | Mode | automatic | automatic, always, paused (R5.61) |
 | Pause on battery | on | on or off (R5.63) |
 | CPU cap for runners | 100% | 25, 50, 75, 100% (R5.64) |
@@ -195,7 +194,7 @@ Ported from dev-standards `claude/plugins/delivery/scripts/load.py` and `load_gu
 
 **R5.27** (M3) — During a maintenance window the machine starts no new job. Agent updates and image rebuilds for that machine are scheduled into its next window when one is set.
 
-**R5.28** (M3) — During quiet hours the machine uses its quiet budget and quiet slot count instead of the normal ones. This leaves room for the owner's own work by day. Running jobs are never cut when quiet hours start.
+**R5.28** — DROPPED (OPS51, owner decision 20 Nov: "Drop the concept"). A machine has no quiet hours, no quiet budget and no quiet slot count. The number stays so that no other requirement moves.
 
 **R5.29** (M1) — The agent keeps its caches under the cache size cap and evicts the least recently used entries first. Milestone 1 enforces the per-runner quotas of the persistent runners (caches R5.36 and R5.37, config keys `cache_tool_gib` and `cache_rust_gib`) between jobs. The machine setting `cache_cap_bytes` is stored from M1 and returned by the machine API; it does not yet change the quotas (they are the same for every runner). The pool caches of milestone 7 use the setting when they land.
 
@@ -281,9 +280,9 @@ Each requirement below targets a milestone after v0.1.0 and is **NOT YET IMPLEME
 
 ### 5.14 Laptop and desk policy (CRSP75, owner decision D51)
 
-**R5.61** (M1, built CRSP75) — **A machine has a mode.** `Automatic` (default) takes jobs, and pauses while the machine runs on battery (R5.63) and while the user has paused it from the tray with a timer ("Pause for 1 hour") or until they resume ("Pause until I resume"). `Always` takes jobs on battery too. `Paused` takes no new job and lets the running jobs finish; it never cuts one and uses the drain rules (R5.30 to R5.32: the idle check and the hold are one step). A pause from the tray holds in every mode, also `Always`. The mode, the pause and the battery switch are machine settings: the console, the tray and the CLI change the same values, so they follow each other (they reach the agent as R5.24). Quiet hours (R5.28) stay as specified. The pause timer is an absolute time set by the controller's clock; the agent compares it with its own clock.
+**R5.61** (M1, built CRSP75) — **A machine has a mode.** `Automatic` (default) takes jobs, and pauses while the machine runs on battery (R5.63) and while the user has paused it from the tray with a timer ("Pause for 1 hour") or until they resume ("Pause until I resume"). `Always` takes jobs on battery too. `Paused` takes no new job and lets the running jobs finish; it never cuts one and uses the drain rules (R5.30 to R5.32: the idle check and the hold are one step). A pause from the tray holds in every mode, also `Always`. The mode, the pause and the battery switch are machine settings: the console, the tray and the CLI change the same values, so they follow each other (they reach the agent as R5.24). The pause timer is an absolute time set by the controller's clock; the agent compares it with its own clock.
 
-**R5.62** (M1, built CRSP75) — **The machine status says whether it takes new jobs.** Machine status has `Accepting bool` and `PauseReason string`. The reason is one of `paused`, `on_battery`, `quiet_hours`, `budget`, and is empty while accepting; the names are exact because another feature reads `online && Accepting` to decide on hosted fallback. The agent reports (`AcceptingReport`, over the existing agent link, with each change, after Hello, and every 15 seconds) and the controller decides the answer the console reads (OPS29): the machine record carries one computed `taking` (`taking_jobs`, and the `reason` when not): `offline`, `stopped` (drain: Stop new jobs from the console), `mode_paused`, `tray_paused`, `on_battery` (mode Automatic, the battery switch on, the machine on battery), `busy`, `quiet_hours`, `base_image_missing` or `disk_low`, checked in that order. The controller reads its own online flag, drain state, mode, tray pause and battery switch first, because it wrote them and a report lags them; it reads the agent's report only for what the agent alone knows (`budget`, `quiet_hours`, `base_image_missing`, `disk_low`, and the power source). The agent's own `paused` and `on_battery` are not read. `accepting` and `pause_reason` stay for other features and follow the same answer (`stopped`, `mode_paused` and `tray_paused` all stay `paused`); `taking` adds offline. A machine that reported nothing accepts. A drained or draining machine is `stopped` at once, without waiting for a report. A full slot table is not a reason: the machine still accepts and the job waits for a slot. `quiet_hours` is defined and held by the scheduling gate, but nothing sets it until R5.28 is built. The scheduling gate holds new jobs with the reason (scheduling R5.68).
+**R5.62** (M1, built CRSP75) — **The machine status says whether it takes new jobs.** Machine status has `Accepting bool` and `PauseReason string`. The reason is one of `paused`, `on_battery`, `budget`, `base_image_missing` or `disk_low`, and is empty while accepting; the names are exact because another feature reads `online && Accepting` to decide on hosted fallback. The agent reports (`AcceptingReport`, over the existing agent link, with each change, after Hello, and every 15 seconds) and the controller decides the answer the console reads (OPS29): the machine record carries one computed `taking` (`taking_jobs`, and the `reason` when not): `offline`, `stopped` (drain: Stop new jobs from the console), `mode_paused`, `tray_paused`, `on_battery` (mode Automatic, the battery switch on, the machine on battery), `busy`, `base_image_missing` or `disk_low`, checked in that order. The controller reads its own online flag, drain state, mode, tray pause and battery switch first, because it wrote them and a report lags them; it reads the agent's report only for what the agent alone knows (`budget`, `base_image_missing`, `disk_low`, and the power source). The agent's own `paused` and `on_battery` are not read. `accepting` and `pause_reason` stay for other features and follow the same answer (`stopped`, `mode_paused` and `tray_paused` all stay `paused`); `taking` adds offline. A machine that reported nothing accepts. A drained or draining machine is `stopped` at once, without waiting for a report. A full slot table is not a reason: the machine still accepts and the job waits for a slot. There is no quiet-hours reason (OPS51). The scheduling gate holds new jobs with the reason (scheduling R5.68).
 
 **R5.63** (M1, built CRSP75) — **Battery detection is per OS, and unknown is mains.** Windows reads `GetSystemPowerStatus` (AC line offline with a system battery is on battery). Linux reads `/sys/class/power_supply` (a battery with no mains or USB supply online, or a lone discharging battery, is on battery; a peripheral's battery does not count). macOS reads the first line of `pmset -g batt`. A state that cannot be read, a desktop with no battery, or an unknown line status counts as on mains, so a desktop is never paused for a battery. The agent reports the power source with the Accepting report; the console shows it.
 
@@ -295,7 +294,7 @@ On the machine the file does the install and the join. Windows: the `.cmd` start
 
 The controller serves the packages of the release it was built from at `GET /api/v1/packages/{name}` (`getPackage`, public like the GitHub release, and `SHA256SUMS` at the same path). It reads the release of its own version from GitHub, keeps `SHA256SUMS` and each package in its data folder (`packages/<version>/`), and serves a package only after its SHA-256 matches `SHA256SUMS`; a name that `SHA256SUMS` does not list as an installer answers 404 (a release names its installers with the version, `crsp-windows-amd64_0.1.15.msi`, operations R5.119; a join file asks for the plain name and downloads the name `SHA256SUMS` lists) and a mismatching download is deleted and not served. The SHA-256 the file checks was taken from that `SHA256SUMS` when the file was made in the owner's session, so the download needs no trust in the controller's self-signed certificate; the join still pins the certificate fingerprint (R5.5). A development build, or a controller whose console is only on the loopback address, has no packages: `createJoinFile` answers 501 and says to copy the command. Not verified on a real Windows or macOS machine in CRSP122; a downloaded `.command` may need `chmod +x` or `sh <file>` because a browser does not set the execute bit.
 
-**R5.66** (M1, CRSP136) — **The Docker disk compact policy is a machine setting.** Each machine's settings carry the policy of caches R5.52: `docker_compact` (`auto`, `on` or `off`; `auto` is the default and means on for a Windows machine with a Docker Desktop disk file), `docker_compact_threshold_gib` (1 to 100000, default 30), `docker_compact_idle_minutes` (1 to 1440, default 30), `docker_compact_quiet_start` and `docker_compact_quiet_end` (`HH:MM`, default `01:00` and `06:00`). The API refuses anything else with 400. A change is saved at once and needs no drain, and the audit entry `machine.settings` names the change. The agent's machine report carries the Docker disk (`DockerDiskReport`: present, files, file bytes, used bytes, administrator right, time zone offset) and the machine shows it as `docker_compact_status` (enabled, the reason of the last look, file, used and reclaimable bytes, the last time and result, running). The Machine page has a Docker disk section with these settings, built from shared parts only (design-system content.md, Docker disk words), and `crsp machine settings NAME` shows and sets them from the CLI (cli R5.61).
+**R5.66** (M1, CRSP136) — **The Docker disk compact policy is a machine setting.** Each machine's settings carry the policy of caches R5.52: `docker_compact` (`auto`, `on` or `off`; `auto` is the default and means on for a Windows machine with a Docker Desktop disk file), `docker_compact_threshold_gib` (1 to 100000, default 30), `docker_compact_idle_minutes` (1 to 1440, default 30). The API refuses anything else with 400. A change is saved at once and needs no drain, and the audit entry `machine.settings` names the change. The agent's machine report carries the Docker disk (`DockerDiskReport`: present, files, file bytes, used bytes, administrator right) and the machine shows it as `docker_compact_status` (enabled, the reason of the last look, file, used and reclaimable bytes, the last time and result, running). The Machine page has a Docker disk section with these settings, built from shared parts only (design-system content.md, Docker disk words), and `crsp machine settings NAME` shows and sets them from the CLI (cli R5.61).
 
 **R5.67** (M1, built CRSP205) — **The pool survives a controller restart.** The controller keeps its machines, their key hashes, settings, join codes and open changes in `machines.json` in the data folder, written at once when access changes and at most every 2 seconds for a routine change, and again when the controller stops. A restart therefore keeps every key: the controller's own agent and every other agent connect again with the key they hold, and none is told "this machine was removed from the pool" (that message is only for a machine that was removed). Every machine reads as offline until its session opens. A pool file that cannot be read stops the controller at start; it is never replaced by an empty pool. Only hashes are stored (R6.2).
 
@@ -358,7 +357,7 @@ The machine key travels as connection metadata on every call after join.
 - `machines`: id, name, os, arch, facts JSON, backends JSON, state, last_seen, created_at.
 - `machine_keys`: machine_id, key hash, created_at, revoked_at.
 - `join_codes`: code hash, created_by, expires_at, used_at, machine_id.
-- `machine_settings`: machine_id, budgets, slots, allowed backends, cache cap, drain timeout, windows JSON, quiet hours JSON.
+- `machine_settings`: machine_id, budgets, slots, allowed backends, cache cap, drain timeout, windows JSON.
 - `machine_load`: machine_id, sampled_at, memory_pct, cpu_pct (24 hours, R6.8).
 
 **Certificate.** The controller makes its own certificate at first run and keeps its private key in the OS secret store. The install command carries its fingerprint.
@@ -413,7 +412,7 @@ Every test below is planned and NOT YET IMPLEMENTED. Paths are where the tests w
 | R5.25 | internal/machines/settings_test.go | planned |
 | R5.26 | internal/machines/drain_test.go | planned |
 | R5.27 | internal/machines/windows_test.go | planned |
-| R5.28 | internal/machines/quiet_hours_test.go | planned |
+| R5.28 | dropped (OPS51) | none |
 | R5.29 | internal/runnercache/runnercache_test.go TestEvictionOrderOldestFirstUntilItFits, TestNeverEvictsWhileARunnerIsBusy; internal/hooks/hooks_test.go TestJobDoneEvictsOldestOverQuota | built for the runner quotas; planned (M7) for the machine setting |
 | R5.30 | internal/machines/drain_test.go | planned; internal/machines/settings_survive_test.go TestSettingChangedWhileADrainWaitsIsNotUndone, TestFactsSyncDoesNotRevertARename (RES6) |
 | R5.31 | internal/machines/drain_test.go | planned |

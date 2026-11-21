@@ -30,6 +30,8 @@ type trayBackend struct {
 	Drain   machineDrainer
 	Console string // http(s)://host:port of the console
 	Links   LinkIssuer
+	// Digest returns the newest weekly insights digest file, "" when none (ci-run-insights R5.38); nil is none.
+	Digest func() string
 }
 
 func (b trayBackend) response(ctx context.Context, st update.Status) tray.Response {
@@ -38,8 +40,15 @@ func (b trayBackend) response(ctx context.Context, st update.Status) tray.Respon
 		State: tray.StateHealthy, Running: len(st.RunningJobs), Version: st.Current, AutoUpdate: &on,
 		LatestVersion: st.Latest, ReleaseURL: st.ReleaseURL, UpdateAvailable: st.Available, UpdateState: string(st.State),
 		LogDir: tray.LogDir(), Stage: stageInfo(st.Stage),
-		Policy: b.policy(ctx), RunnerProblems: b.runnerProblems(ctx),
+		Policy: b.policy(ctx), RunnerProblems: b.runnerProblems(ctx), DigestPath: b.digestPath(),
 	}
+}
+
+func (b trayBackend) digestPath() string {
+	if b.Digest == nil {
+		return ""
+	}
+	return b.Digest()
 }
 
 func stageInfo(s *update.Stage) *tray.StageInfo {

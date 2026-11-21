@@ -557,7 +557,7 @@ func TestRepositoryListPagesThrough1000Repositories(t *testing.T) { // R6.11
 	}
 	seen := map[string]bool{}
 	cursor, pages := "", 0
-	for {
+	for pages < 20 { // the cursor must end well before this
 		path := "/api/v1/github/repositories?limit=100"
 		if cursor != "" {
 			path += "&cursor=" + url.QueryEscape(cursor)
@@ -589,9 +589,6 @@ func TestRepositoryListPagesThrough1000Repositories(t *testing.T) { // R6.11
 			break
 		}
 		cursor = page.NextCursor
-		if pages > 20 {
-			t.Fatal("the cursor does not end")
-		}
 	}
 	if len(seen) != n || pages != 11 {
 		t.Fatalf("%d repositories over %d pages, want %d over 11", len(seen), pages, n)

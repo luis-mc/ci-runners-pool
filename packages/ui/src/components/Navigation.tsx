@@ -138,11 +138,18 @@ export function handleNavigationKey(
   const down = e.key === 'ArrowDown' || e.key === 'j';
   const up = e.key === 'ArrowUp' || e.key === 'k';
   if (!down && !up) return false;
-  const target = e.target instanceof HTMLElement ? e.target : null;
+  // An Element, not an HTMLElement: the target may be an SVG shape (an icon inside a button), whose stop is its parent.
+  const target = e.target instanceof Element ? e.target : null;
   const letter = e.key === 'j' || e.key === 'k';
   if (letter && isTextEntry(target)) return false;
-  if (!letter && target && ownsVerticalArrows(target)) return false;
-  const from = target && target !== document.body ? target : null;
+  if (!letter && target instanceof HTMLElement && ownsVerticalArrows(target))
+    return false;
+  const from =
+    target && target !== document.body
+      ? target instanceof HTMLElement
+        ? target
+        : (target.closest<HTMLElement>(STOPS) ?? target)
+      : null;
   const to = nextStop(from, down ? 1 : -1, root);
   e.preventDefault();
   if (to) to.focus();

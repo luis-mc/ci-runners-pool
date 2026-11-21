@@ -17,6 +17,15 @@
       },
       "digest": "be29422eadcccf7222bf678d772f44cc8c155e8934af77b09ffbce92eaa64183",
       "implementation": null
+    },
+    "v3": {
+      "approved": {
+        "by": "owner",
+        "date": "2026-11-20",
+        "evidence": "chat, 20 Nov 2026: Approve as is"
+      },
+      "digest": "48b89fa99697ff69cb35245360a6eb664f7add2bbd004d7b9d9193ccd4898196",
+      "implementation": null
     }
   }
 }

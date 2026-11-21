@@ -12,6 +12,7 @@ import (
 	"github.com/luis-mc/ci-runners-shared-pool/internal/agent"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/audit"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/caches"
+	agentv1 "github.com/luis-mc/ci-runners-shared-pool/internal/gen/agent/v1"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/machines"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/runnercache"
 )
@@ -143,7 +144,18 @@ func TestWipeWaitsForTheRunningJobThenEmptiesTheFolder(t *testing.T) {
 	c := startController(t)
 	rec := &recAudit{}
 	cs := caches.New(caches.Options{Machines: c.Svc, Audit: rec})
-	c.Svc.SetHooks(machines.Hooks{OnHello: cs.OnHello, OnMessage: cs.OnMessage})
+	// Every "waiting" report is one poll of the agent's wiper: count them, so the
+	// test waits for polls instead of for the clock.
+	polls := make(chan struct{}, 1024)
+	c.Svc.SetHooks(machines.Hooks{OnHello: cs.OnHello, OnMessage: func(ctx context.Context, id string, m *agentv1.SessionRequest, reply func(*agentv1.SessionResponse)) bool {
+		if st := m.GetCacheWipeStatus(); st != nil && st.GetState() == "waiting" {
+			select {
+			case polls <- struct{}{}:
+			default:
+			}
+		}
+		return cs.OnMessage(ctx, id, m, reply)
+	}})
 	ctx := context.Background()
 	code, _ := c.Svc.CreateJoinCode(ctx, "owner", 0)
 	cfg := fastConfig(t, c, code.Code)
@@ -197,7 +209,14 @@ func TestWipeWaitsForTheRunningJobThenEmptiesTheFolder(t *testing.T) {
 		l, _ := cs.List(ctx, "", caches.KindTool)
 		return len(l) == 1 && len(l[0].WaitingFor) == 1
 	})
-	time.Sleep(150 * time.Millisecond)
+	// Three more polls of the waiting wipe pass while the job runs.
+	for i := 0; i < 3; i++ {
+		select {
+		case <-polls:
+		case <-time.After(15 * time.Second):
+			t.Fatal("the waiting wipe did not poll again")
+		}
+	}
 	if _, err := os.Stat(filepath.Join(runnercache.DirsFor(folder).Tools, "node")); err != nil {
 		t.Fatal("a running job's cache was cut")
 	}

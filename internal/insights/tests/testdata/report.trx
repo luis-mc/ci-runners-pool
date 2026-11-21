@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="1" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Results>
+    <UnitTestResult testName="App.Tests.CalcTests.Adds" outcome="Passed" duration="00:00:00.0123456"/>
+    <UnitTestResult testName="App.Tests.CalcTests.Divides" outcome="Failed" duration="00:00:02.5"/>
+    <UnitTestResult testName="App.Tests.CalcTests.Later" outcome="NotExecuted" duration="00:00:00"/>
+  </Results>
+  <ResultSummary outcome="Failed"><Counters total="3" executed="2" passed="1" failed="1"/></ResultSummary>
+</TestRun>

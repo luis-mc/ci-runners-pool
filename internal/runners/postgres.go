@@ -3,6 +3,8 @@ package runners
 import (
 	"context"
 	"crypto/rand"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -91,19 +93,27 @@ type DBSpec struct {
 	Roles    []string // declared NOLOGIN roles
 }
 
-// DBAccess is what the job needs to connect. Password is secret.
+// DBAccess is what the job needs to connect. Password is secret. Role is the
+// repository's shared owner role (R5.97): the job runs as the login but
+// `SET ROLE`s to it at connect, through PGOPTIONS, so what it creates is owned
+// by the role every runner of the repository shares.
 type DBAccess struct {
 	Host, Port, User, Database, Password string
+	Role                                 string
 }
 
 // DBEnv returns the job's settings in a stable order.
 func (a DBAccess) DBEnv() [][2]string {
 	u := url.URL{Scheme: "postgres", User: url.UserPassword(a.User, a.Password),
 		Host: a.Host + ":" + a.Port, Path: "/" + a.Database}
-	return [][2]string{
+	kv := [][2]string{
 		{"DATABASE_URL", u.String()}, {"PGHOST", a.Host}, {"PGPORT", a.Port},
 		{"PGUSER", a.User}, {"PGPASSWORD", a.Password}, {"PGDATABASE", a.Database},
 	}
+	if a.Role != "" {
+		kv = append(kv, [2]string{"PGOPTIONS", "-c role=" + a.Role})
+	}
+	return kv
 }
 
 // DBEnvFile is the text of db.env (KEY=value lines). It holds a secret: the
@@ -168,6 +178,29 @@ func LoginName(runnerID string) string {
 	}
 	return s
 }
+
+// OwnerRole is the shared owner role of a repository (R5.97): `crsp_`, the
+// repository as owner_name in lowercase letters, digits and underscore, and
+// `_owner`, at most 63. A name that would be longer is cut and ends with 8 hex
+// digits of the full repository name, so two long names stay apart.
+func OwnerRole(repo string) string {
+	var b strings.Builder
+	for _, c := range strings.ToLower(repo) {
+		if (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') {
+			b.WriteRune(c)
+		} else {
+			b.WriteByte('_')
+		}
+	}
+	s := b.String()
+	if len(s) > 52 {
+		h := sha256.Sum256([]byte(strings.ToLower(repo)))
+		s = s[:43] + "_" + hex.EncodeToString(h[:4])
+	}
+	return "crsp_" + s + "_owner"
+}
+
+const ownerLike = `crsp\_%\_owner`
 
 const pwAlphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 
@@ -350,10 +383,37 @@ func (p *Postgres) Provision(ctx context.Context, s DBSpec) (DBAccess, error) {
 	if s.CreateDB {
 		createdb = "CREATEDB"
 	}
+	owner := OwnerRole(s.Repo)
+	ownerDB := "NOCREATEDB"
+	if s.CreateDB {
+		ownerDB = "CREATEDB"
+	}
+	// The shared owner role comes first: NOLOGIN, CREATEROLE (the jobs make the
+	// app roles), CREATEDB only with the repository setting. A rerun alters it.
 	var sql strings.Builder
+	fmt.Fprintf(&sql, "DO $b$ BEGIN IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = %s) THEN CREATE ROLE %s NOLOGIN CREATEROLE %s; ELSE ALTER ROLE %s NOLOGIN CREATEROLE %s; END IF; END $b$;\n",
+		lit(owner), owner, ownerDB, owner, ownerDB)
 	fmt.Fprintf(&sql, "DO $b$ BEGIN IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = %s) THEN CREATE ROLE %s LOGIN PASSWORD %s %s; ELSE ALTER ROLE %s LOGIN PASSWORD %s %s; END IF; END $b$;\n",
 		lit(login), login, lit(pw), createdb, login, lit(pw), createdb)
+	// Every login of the repository is a member: it inherits the role's rights
+	// and may SET ROLE to it.
+	fmt.Fprintf(&sql, "GRANT %s TO %s WITH INHERIT TRUE, SET TRUE;\n", owner, login)
+	isNew, err := p.psql(ctx, "check login", "SELECT 1 FROM pg_roles WHERE rolname = "+lit(login)+";")
+	if err != nil {
+		return DBAccess{}, err
+	}
 	if _, err := p.psql(ctx, "create login", sql.String()); err != nil {
+		return DBAccess{}, err
+	}
+	// A new login of a repository that has one already gets that login's
+	// attributes, settings and memberships (R5.97); then the setting every
+	// login needs, on each provision.
+	var more0 strings.Builder
+	if isNew != "1" {
+		more0.WriteString(copySiblingSQL(login, owner))
+	}
+	more0.WriteString(selfGrantSQL(login))
+	if _, err := p.psql(ctx, "login settings", more0.String()); err != nil {
 		return DBAccess{}, err
 	}
 	have, err := p.psql(ctx, "check database", "SELECT 1 FROM pg_database WHERE datname = "+lit(login)+";")
@@ -362,14 +422,22 @@ func (p *Postgres) Provision(ctx context.Context, s DBSpec) (DBAccess, error) {
 	}
 	var more strings.Builder
 	if have != "1" {
-		fmt.Fprintf(&more, "CREATE DATABASE %s OWNER %s;\n", login, login)
+		fmt.Fprintf(&more, "CREATE DATABASE %s OWNER %s;\n", login, owner)
 	}
-	// Only the owner connects: no other runner's login can.
+	// An older build made the database owned by the login: the shared role owns it.
+	fmt.Fprintf(&more, "ALTER DATABASE %s OWNER TO %s;\n", login, owner)
+	// Leftover databases of any login of this repository (a test helper that
+	// created one as the bare login) go to the shared role, so any runner can
+	// drop them.
+	more.WriteString(leftoverDBSQL(owner))
+	// Only the repository's logins connect (through the role): no other
+	// repository's login can.
 	fmt.Fprintf(&more, "REVOKE ALL ON DATABASE %s FROM PUBLIC;\n", login)
 	roles := append([]string(nil), s.Roles...)
 	sort.Strings(roles)
 	for _, r := range roles {
 		fmt.Fprintf(&more, "DO $b$ BEGIN IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = %s) THEN CREATE ROLE %s NOLOGIN; END IF; END $b$;\n", lit(r), r)
+		fmt.Fprintf(&more, "GRANT %s TO %s WITH ADMIN OPTION;\n", r, owner)
 		fmt.Fprintf(&more, "GRANT %s TO %s WITH ADMIN OPTION;\n", r, login)
 	}
 	if _, err := p.psql(ctx, "create database and roles", more.String()); err != nil {
@@ -383,13 +451,87 @@ func (p *Postgres) Provision(ctx context.Context, s DBSpec) (DBAccess, error) {
 		}
 	}
 	ctr, _, _ := p.names()
-	return DBAccess{Host: ctr, Port: fmt.Sprint(PostgresPort), User: login, Database: login, Password: pw}, nil
+	return DBAccess{Host: ctr, Port: fmt.Sprint(PostgresPort), User: login, Database: login, Password: pw, Role: owner}, nil
+}
+
+// SelfGrantSetting is the role setting every runner login carries (R5.97).
+// With CREATEROLE, PostgreSQL 16 gives the creator only ADMIN on a role it
+// makes; this makes the creator a member WITH SET and INHERIT, so
+// `SET LOCAL ROLE <new role>` works. ALTER ROLE ... SET applies at login (the
+// shared owner role cannot log in), and it stays in force after SET ROLE.
+const SelfGrantSetting = "set, inherit"
+
+// selfGrantSQL sets createrole_self_grant on the login for all databases. It
+// is idempotent: a rerun sets the same value.
+func selfGrantSQL(login string) string {
+	return fmt.Sprintf("ALTER ROLE %s SET createrole_self_grant = %s;\n", login, lit(SelfGrantSetting))
+}
+
+// copySiblingSQL copies, from another login that is a member of the same
+// owner role, the role attributes, the role settings (pg_db_role_setting) and
+// the memberships to the new login. SUPERUSER, REPLICATION and BYPASSRLS are
+// never copied (they are set off). Another login is never a membership: the
+// shared owner role is the only shared one, and Postgres refuses a cycle.
+func copySiblingSQL(login, owner string) string {
+	return fmt.Sprintf(`DO $b$
+DECLARE sib oid; sibname name; a pg_roles%%ROWTYPE; s record; m record;
+BEGIN
+  SELECT u.oid, u.rolname INTO sib, sibname FROM pg_auth_members am
+    JOIN pg_roles o ON o.oid = am.roleid JOIN pg_roles u ON u.oid = am.member
+    WHERE o.rolname = %s AND u.rolcanlogin AND u.rolname <> %s AND u.rolname LIKE 'r\_%%'
+    ORDER BY u.rolname LIMIT 1;
+  IF sib IS NULL THEN RETURN; END IF;
+  SELECT * INTO a FROM pg_roles WHERE oid = sib;
+  EXECUTE format('ALTER ROLE %%I NOSUPERUSER NOREPLICATION NOBYPASSRLS %%s %%s %%s CONNECTION LIMIT %%s',
+    %s,
+    CASE WHEN a.rolcreatedb THEN 'CREATEDB' ELSE 'NOCREATEDB' END,
+    CASE WHEN a.rolcreaterole THEN 'CREATEROLE' ELSE 'NOCREATEROLE' END,
+    CASE WHEN a.rolinherit THEN 'INHERIT' ELSE 'NOINHERIT' END,
+    a.rolconnlimit);
+  FOR s IN SELECT c.setdatabase, split_part(c.cfg, '=', 1) AS k, substr(c.cfg, strpos(c.cfg, '=') + 1) AS v
+      FROM (SELECT setdatabase, unnest(setconfig) AS cfg FROM pg_db_role_setting WHERE setrole = sib) c LOOP
+    IF s.setdatabase = 0 THEN
+      EXECUTE format('ALTER ROLE %%I SET %%I TO %%L', %s, s.k, s.v);
+    ELSE
+      EXECUTE format('ALTER ROLE %%I IN DATABASE %%I SET %%I TO %%L', %s,
+        (SELECT datname FROM pg_database WHERE oid = s.setdatabase), s.k, s.v);
+    END IF;
+  END LOOP;
+  FOR m IN SELECT g.rolname, am.admin_option, am.inherit_option, am.set_option
+      FROM pg_auth_members am JOIN pg_roles g ON g.oid = am.roleid
+      WHERE am.member = sib AND NOT g.rolcanlogin AND g.rolname <> %s LOOP
+    EXECUTE format('GRANT %%I TO %%I WITH ADMIN %%s, INHERIT %%s, SET %%s', m.rolname, %s,
+      m.admin_option, m.inherit_option, m.set_option);
+  END LOOP;
+END $b$;
+`, lit(owner), lit(login), lit(login), lit(login), lit(login), lit(owner), lit(login))
+}
+
+// leftoverDBSQL gives every database owned by a login of the repository to the
+// shared owner role.
+func leftoverDBSQL(owner string) string {
+	return fmt.Sprintf(`DO $b$ DECLARE d record; BEGIN
+  FOR d IN SELECT db.datname FROM pg_database db
+      JOIN pg_roles u ON u.oid = db.datdba AND u.rolcanlogin
+      JOIN pg_auth_members am ON am.member = u.oid
+      JOIN pg_roles o ON o.oid = am.roleid AND o.rolname = %s LOOP
+    EXECUTE format('ALTER DATABASE %%I OWNER TO %%I', d.datname, %s);
+  END LOOP;
+END $b$;
+`, lit(owner), lit(owner))
 }
 
 // Remove drops a runner's database and login and its stored password. The
-// declared roles stay: they belong to the repository, not the runner.
+// declared roles stay: they belong to the repository, not the runner. When it
+// was the last login of its repository, the shared owner role goes too, with
+// the databases it still owns (R5.97).
 func (p *Postgres) Remove(ctx context.Context, runnerID string) error {
 	login := LoginName(runnerID)
+	owner, err := p.psql(ctx, "find owner role", fmt.Sprintf(
+		"SELECT r.rolname FROM pg_auth_members m JOIN pg_roles r ON r.oid = m.roleid JOIN pg_roles u ON u.oid = m.member WHERE u.rolname = %s AND r.rolname LIKE %s ORDER BY 1 LIMIT 1;", lit(login), lit(ownerLike)))
+	if err != nil {
+		return err
+	}
 	sql := fmt.Sprintf("DROP DATABASE IF EXISTS %s WITH (FORCE);\nDROP ROLE IF EXISTS %s;\n", login, login)
 	if _, err := p.psql(ctx, "remove login", sql); err != nil {
 		return err
@@ -397,5 +539,84 @@ func (p *Postgres) Remove(ctx context.Context, runnerID string) error {
 	if err := p.Secrets.Delete(ctx, p.loginKey(login)); err != nil {
 		return fmt.Errorf("secret store: %w", err)
 	}
-	return nil
+	if owner == "" || ValidateRole(owner) != nil {
+		return nil
+	}
+	return p.dropOwnerIfLast(ctx, owner)
+}
+
+// dropOwnerIfLast drops the owner role when no login is a member of it.
+func (p *Postgres) dropOwnerIfLast(ctx context.Context, owner string) error {
+	n, err := p.psql(ctx, "count logins of owner role", fmt.Sprintf(
+		"SELECT count(*) FROM pg_auth_members m JOIN pg_roles r ON r.oid = m.roleid JOIN pg_roles u ON u.oid = m.member WHERE r.rolname = %s AND u.rolcanlogin;", lit(owner)))
+	if err != nil {
+		return err
+	}
+	if n != "0" {
+		return nil
+	}
+	dbs, err := p.psql(ctx, "list databases of owner role", fmt.Sprintf(
+		"SELECT datname FROM pg_database WHERE datdba = (SELECT oid FROM pg_roles WHERE rolname = %s);", lit(owner)))
+	if err != nil {
+		return err
+	}
+	var sql strings.Builder
+	for _, d := range strings.Fields(dbs) {
+		if ValidateRole(d) == nil { // test worker databases: lowercase names only
+			fmt.Fprintf(&sql, "DROP DATABASE IF EXISTS %s WITH (FORCE);\n", d)
+		}
+	}
+	fmt.Fprintf(&sql, "DROP OWNED BY %s;\nDROP ROLE IF EXISTS %s;\n", owner, owner)
+	_, err = p.psql(ctx, "drop owner role", sql.String())
+	return err
+}
+
+// Login is a Postgres login the server holds: its name, the owner role it is
+// a member of ("" for one made before R5.97), and what the doctor compares
+// between the logins of one repository (R5.97, doctor R5.59).
+type Login struct {
+	Name, OwnerRole string
+	SelfGrant       bool     // createrole_self_grant has both set and inherit
+	Attrs           string   // role attributes, as a stable text
+	Members         []string // other roles it is a member of, sorted
+}
+
+// Logins lists the `r_*` login roles on the server (doctor R5.59). One line
+// each: name|owner|selfgrant|attrs|members, members separated by commas.
+func (p *Postgres) Logins(ctx context.Context) ([]Login, error) {
+	out, err := p.psql(ctx, "list logins", `SELECT u.rolname || '|' ||
+  coalesce((SELECT r.rolname FROM pg_auth_members m JOIN pg_roles r ON r.oid = m.roleid WHERE m.member = u.oid AND r.rolname LIKE `+lit(ownerLike)+` LIMIT 1), '') || '|' ||
+  coalesce((SELECT bool_and(position(w IN lower(cfg)) > 0) FROM pg_db_role_setting s, unnest(s.setconfig) cfg, unnest(ARRAY['set','inherit']) w WHERE s.setrole = u.oid AND s.setdatabase = 0 AND cfg LIKE 'createrole\_self\_grant=%'), false) || '|' ||
+  concat_ws(',', CASE WHEN u.rolcreatedb THEN 'createdb' END, CASE WHEN u.rolcreaterole THEN 'createrole' END, CASE WHEN u.rolinherit THEN 'inherit' END, CASE WHEN u.rolsuper THEN 'superuser' END, CASE WHEN u.rolreplication THEN 'replication' END, CASE WHEN u.rolbypassrls THEN 'bypassrls' END) || '|' ||
+  coalesce((SELECT string_agg(g.rolname, ',' ORDER BY g.rolname) FROM pg_auth_members m JOIN pg_roles g ON g.oid = m.roleid WHERE m.member = u.oid), '')
+  FROM pg_roles u WHERE u.rolcanlogin AND u.rolname LIKE 'r\_%' ORDER BY 1;`)
+	if err != nil {
+		return nil, err
+	}
+	var ls []Login
+	for _, line := range strings.Split(out, "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+		f := strings.Split(line, "|")
+		for len(f) < 5 {
+			f = append(f, "")
+		}
+		l := Login{Name: f[0], OwnerRole: f[1], SelfGrant: f[2] == "t" || f[2] == "true", Attrs: f[3]}
+		if f[4] != "" {
+			l.Members = strings.Split(f[4], ",")
+		}
+		ls = append(ls, l)
+	}
+	return ls, nil
+}
+
+// RemoveLogin removes a login named by Logins, as Remove does for a runner.
+// The doctor never calls it on its own (doctor R5.7, R5.59).
+func (p *Postgres) RemoveLogin(ctx context.Context, login string) error {
+	if !strings.HasPrefix(login, "r_") || ValidateRole(login) != nil {
+		return fmt.Errorf("%w: %q is not a runner login", ErrRoleName, login)
+	}
+	return p.Remove(ctx, strings.TrimPrefix(login, "r_"))
 }

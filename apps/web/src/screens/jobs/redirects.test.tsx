@@ -20,20 +20,56 @@ describe('the old Jobs addresses', () => {
     expect(await screen.findByText(/No jobs yet/)).toBeTruthy();
   });
 
-  it('shows every tab of the section', async () => {
+  it('shows the six tabs and opens on the Overview', async () => {
     renderApp(jobsApi(), '/jobs');
-    await screen.findByText('Nothing is waiting. Every job has a slot.');
+    await screen.findByRole('region', { name: 'Needs you' });
     const names = screen.getAllByRole('tab').map((t) => t.textContent);
     expect(names).toEqual([
-      'Queue',
-      'Running',
+      'Overview',
+      'Live',
       'Done',
-      'By repository',
-      'By machine',
-      'By runner',
-      'By runner type',
-      'By job type',
+      'Run elsewhere',
+      'Run insights',
       'Charts',
     ]);
+    expect(
+      screen.getByRole('tab', { name: 'Overview' }).getAttribute('aria-selected'),
+    ).toBe('true');
+  });
+
+  it('sends the old Queue address, with its filter, to Live', async () => {
+    renderApp(jobsApi(), '/jobs?repository=octo%2Fapp');
+    await screen.findByText('No run matches this filter.');
+    expect(screen.getByRole('tab', { name: 'Live' }).getAttribute('aria-selected')).toBe(
+      'true',
+    );
+    expect(
+      screen.getByRole('button', { name: 'Queue' }).getAttribute('aria-pressed'),
+    ).toBe('true');
+  });
+
+  it('sends the old Running address to Live with the Running filter', async () => {
+    renderApp(jobsApi(), '/jobs/running');
+    await screen.findByText('No run is in progress.');
+    expect(
+      screen.getByRole('button', { name: 'Running' }).getAttribute('aria-pressed'),
+    ).toBe('true');
+  });
+
+  it.each([
+    ['/jobs/repository', 'Repository'],
+    ['/jobs/runner-type', 'Runner type'],
+    ['/jobs/job-type', 'Job type'],
+    ['/jobs/runner', 'Runner'],
+    ['/jobs/machine', 'Machine'],
+  ])('sends %s to Done grouped by %s', async (path, word) => {
+    renderApp(jobsApi(), path);
+    await screen.findByRole('group', { name: 'Group by' });
+    expect(screen.getByRole('tab', { name: 'Done' }).getAttribute('aria-selected')).toBe(
+      'true',
+    );
+    expect(screen.getByRole('button', { name: word }).getAttribute('aria-pressed')).toBe(
+      'true',
+    );
   });
 });

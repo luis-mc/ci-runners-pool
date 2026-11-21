@@ -41,7 +41,7 @@ func TestNewestFirstAndFilters(t *testing.T) {
 	// Paging by cursor visits every row once.
 	var seen []string
 	cur := ""
-	for {
+	for page := 0; page < 10; page++ { // 5 rows at 2 per page end within 3 pages
 		p, err := l.List(ctx, Filter{Limit: 2, Cursor: cur})
 		if err != nil {
 			t.Fatal(err)

@@ -8,6 +8,8 @@ import { consoleRoutes, NOT_FOUND_URL } from './routes';
 import { fixmeFor } from './ux-fixme';
 import {
   MODES,
+  frames,
+  headingShown,
   measureEverywhere,
   openRoute,
   stickyEverywhere,
@@ -73,24 +75,21 @@ const TEXT_STATES: ScreenState[] = ['data', 'stress'];
 const EMPTY_CHECKS: Measure[] = ['wrapped', 'wordBroken', 'wordsGlued'];
 
 for (const route of routes) {
-  test(`ux layout: ${route.pattern}`, async ({ page }) => {
-    const why = fixmeFor('layout', route.pattern, 'data');
-    test.fixme(why !== undefined, why ?? '');
-    const found: string[] = [];
-    for (const mode of MODES) {
+  for (const mode of MODES) {
+    test(`ux layout: ${route.pattern} (${mode})`, async ({ page }) => {
+      const why = fixmeFor('layout', route.pattern, 'data');
+      test.fixme(why !== undefined, why ?? '');
       await openRoute(page, route, { mode });
+      await headingShown(page);
       const problems = await measureDomLayout(page, {
         known: [],
         spaceVar: '--ds-space-',
-        ready: async () => {
-          await page.waitForTimeout(30);
-        },
+        ready: () => frames(page),
       });
       const { unknown } = judgeLayout(`${route.pattern} ${mode}`, problems, []);
-      found.push(...unknown);
-    }
-    expect(found).toEqual([]);
-  });
+      expect(unknown).toEqual([]);
+    });
+  }
 
   for (const check of CHECKS) {
     for (const state of check.states) {
@@ -143,20 +142,22 @@ for (const route of routes) {
 // N5 (RES21): a frame with no key-hint bar (the setup page) has no `--ds-keyhints-height`; the bar still sticks.
 // A short window makes the page scroll, so the walk has something to judge.
 for (const url of ['/setup', '/update']) {
-  test(`ux stickyWalk: ${url} in a short window`, async ({ page }) => {
-    const why = fixmeFor('stickyWalk', `${url} short`, 'data');
-    test.fixme(why !== undefined, why ?? '');
-    const found: string[] = [];
-    for (const mode of MODES) {
-      await openRoute(page, { url, signedOut: false }, { mode });
-      for (const w of TEXT_WIDTHS) {
+  for (const mode of MODES) {
+    for (const w of TEXT_WIDTHS) {
+      test(`ux stickyWalk: ${url} in a short window (${mode}, ${w.width}px)`, async ({
+        page,
+      }) => {
+        const why = fixmeFor('stickyWalk', `${url} short`, 'data');
+        test.fixme(why !== undefined, why ?? '');
+        await openRoute(page, { url, signedOut: false }, { mode });
+        await headingShown(page);
         await page.setViewportSize({ width: w.width, height: 320 });
-        await page.waitForTimeout(30);
-        for (const line of await stickyWalk(page))
-          found.push(`${url} ${mode} ${w.width}x320: ${line}`);
-      }
-      await page.unrouteAll({ behavior: 'ignoreErrors' });
+        await frames(page);
+        const found = (await stickyWalk(page)).map(
+          (line) => `${url} ${mode} ${w.width}x320: ${line}`,
+        );
+        expect(found).toEqual([]);
+      });
     }
-    expect(found).toEqual([]);
-  });
+  }
 }
