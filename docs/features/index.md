@@ -51,7 +51,7 @@
 | [Operations](operations/spec.md) | controller, agent, tray, cli, web-console | operations, install, security, runners | building | 0.1.0 | 2026-11-20 |
 | [Runners and isolation backends](runners/spec.md) | controller, agent, web-console, cli | runners, isolation, security, machines, ui | building | 0.1.0 | 2026-11-20 |
 | [Scheduling, slots and load budget](scheduling/spec.md) | controller, agent, cli, web-console | scheduling, machines, runners, github, observability | building | 0.1.0 | 2026-11-18 |
-| [Web console](web-console/spec.md) | web-console, controller | ui, security, github | building | 0.1.0 | 2026-11-18 |
+| [Web console](web-console/spec.md) | web-console, controller | ui, security, github | building | 0.1.0 | 2026-11-21 |
 
 ### tray
 
@@ -77,7 +77,7 @@
 | [Operations](operations/spec.md) | controller, agent, tray, cli, web-console | operations, install, security, runners | building | 0.1.0 | 2026-11-20 |
 | [Runners and isolation backends](runners/spec.md) | controller, agent, web-console, cli | runners, isolation, security, machines, ui | building | 0.1.0 | 2026-11-20 |
 | [Scheduling, slots and load budget](scheduling/spec.md) | controller, agent, cli, web-console | scheduling, machines, runners, github, observability | building | 0.1.0 | 2026-11-18 |
-| [Web console](web-console/spec.md) | web-console, controller | ui, security, github | building | 0.1.0 | 2026-11-18 |
+| [Web console](web-console/spec.md) | web-console, controller | ui, security, github | building | 0.1.0 | 2026-11-21 |
 
 ## By topic
 
@@ -97,7 +97,7 @@
 | [Doctor](doctor/spec.md) | controller, agent, web-console, cli | observability, operations, machines, runners, github | building | 0.1.0 | 2026-11-14 |
 | [GitHub integration](github-integration/spec.md) | controller, web-console, cli | github, security, runners, install | building | 0.1.0 | 2026-11-20 |
 | [Scheduling, slots and load budget](scheduling/spec.md) | controller, agent, cli, web-console | scheduling, machines, runners, github, observability | building | 0.1.0 | 2026-11-18 |
-| [Web console](web-console/spec.md) | web-console, controller | ui, security, github | building | 0.1.0 | 2026-11-18 |
+| [Web console](web-console/spec.md) | web-console, controller | ui, security, github | building | 0.1.0 | 2026-11-21 |
 
 ### install
 
@@ -190,7 +190,7 @@
 | [Operations](operations/spec.md) | controller, agent, tray, cli, web-console | operations, install, security, runners | building | 0.1.0 | 2026-11-20 |
 | [Runners and isolation backends](runners/spec.md) | controller, agent, web-console, cli | runners, isolation, security, machines, ui | building | 0.1.0 | 2026-11-20 |
 | [Tray](tray/spec.md) | tray, cli | ui, install, operations, security | building | 0.1.0 | 2026-11-17 |
-| [Web console](web-console/spec.md) | web-console, controller | ui, security, github | building | 0.1.0 | 2026-11-18 |
+| [Web console](web-console/spec.md) | web-console, controller | ui, security, github | building | 0.1.0 | 2026-11-21 |
 
 ### ui
 
@@ -203,7 +203,7 @@
 | [Observability](observability/spec.md) | controller, agent, web-console, cli | observability, scheduling, machines, runners, security, operations, ui | building | 0.1.0 | 2026-11-20 |
 | [Runners and isolation backends](runners/spec.md) | controller, agent, web-console, cli | runners, isolation, security, machines, ui | building | 0.1.0 | 2026-11-20 |
 | [Tray](tray/spec.md) | tray, cli | ui, install, operations, security | building | 0.1.0 | 2026-11-17 |
-| [Web console](web-console/spec.md) | web-console, controller | ui, security, github | building | 0.1.0 | 2026-11-18 |
+| [Web console](web-console/spec.md) | web-console, controller | ui, security, github | building | 0.1.0 | 2026-11-21 |
 
 ## By status
 
@@ -229,7 +229,7 @@
 | [Runners and isolation backends](runners/spec.md) | controller, agent, web-console, cli | runners, isolation, security, machines, ui | building | 0.1.0 | 2026-11-20 |
 | [Scheduling, slots and load budget](scheduling/spec.md) | controller, agent, cli, web-console | scheduling, machines, runners, github, observability | building | 0.1.0 | 2026-11-18 |
 | [Tray](tray/spec.md) | tray, cli | ui, install, operations, security | building | 0.1.0 | 2026-11-17 |
-| [Web console](web-console/spec.md) | web-console, controller | ui, security, github | building | 0.1.0 | 2026-11-18 |
+| [Web console](web-console/spec.md) | web-console, controller | ui, security, github | building | 0.1.0 | 2026-11-21 |
 
 ## Gaps
 
