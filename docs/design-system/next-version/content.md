@@ -893,7 +893,7 @@ The words of the small update page the tray opens (tray R5.43, web-console R5.96
 | Running jobs are safe. | Line under the progress bar while the update works. |
 | Hide | Closes the window while the update goes on. It stops nothing. |
 | Downloading, Waiting for jobs, Installing, Restarting | The work steps, in the order the service goes through them. |
-| Downloading {n}%, Waiting for running jobs to end, Installing {n}%, Restarting the service | The live line of the current step. |
+| Downloading {n}%, Waiting for running jobs to end, Installing {n}%, Waiting for another installer, Restarting the service | The live line of the current step. |
 | The service is restarting. This page waits for it. | Note while the service is down for the install. |
 | Updated to {version}. | The Done message. |
 | Close | The primary on Done, and the left button after a failure. |
