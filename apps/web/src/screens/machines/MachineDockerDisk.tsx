@@ -18,6 +18,7 @@ import {
 import { unwrap, useClient, type Schemas } from '../../api/api';
 import { useCommand } from '../../api/hooks';
 import { useSession } from '../../auth/session';
+import { CompactNow } from './CompactNow';
 
 type Machine = Schemas['Machine'];
 type Settings = Schemas['MachineSettingsUpdate'];
@@ -176,6 +177,7 @@ export function MachineDockerDiskSection({
         {change.error ? (
           <Message tone="problem">Could not save. {change.error}</Message>
         ) : null}
+        <CompactNow m={m} onStarted={onChanged} />
         {st?.enabled && st.disk_present && !st.can_compact ? (
           <Cluster>
             <Button

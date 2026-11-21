@@ -15,6 +15,7 @@ type memStore struct {
 	runners map[string]Record
 	plans   map[string]Plan
 	events  []string
+	svcErr  error // SetRunnerService fails with it
 }
 
 func newMemStore() *memStore {
@@ -94,6 +95,9 @@ func (m *memStore) SetRunnerHygiene(_ context.Context, id string, h Hygiene) err
 }
 
 func (m *memStore) SetRunnerService(_ context.Context, id, svc, acct string) error {
+	if m.svcErr != nil {
+		return m.svcErr
+	}
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	r := m.runners[id]

@@ -146,6 +146,72 @@ function RemoveLeftovers({
   );
 }
 
+/** The Remove button of a half-registered runner (doctor R5.50): a GitHub runner no machine runs, or a runner record
+ * GitHub does not list. It asks first (UX-9, UX-62); the server reads GitHub and the records again before it removes. */
+function RemoveRegistration({
+  finding,
+  onRemoved,
+}: {
+  finding: Finding;
+  onRemoved: (check: string) => void;
+}) {
+  const client = useClient();
+  const session = useSession();
+  const admin = session.can('admin');
+  const action = finding.action;
+  const ask = useQuestion(
+    async () => {
+      if (!action?.args) return;
+      await unwrap(
+        client.POST('/api/v1/doctor/registration-fixes', {
+          params: { query: { confirm: true } },
+          body: {
+            action: action.id === 'remove_runner_record' ? 'remove_runner_record' : 'remove_github_runner',
+            args: action.args,
+          },
+        }),
+      );
+    },
+    () => onRemoved(finding.check),
+  );
+  const isRecord = action?.id === 'remove_runner_record';
+  const name = action?.args?.name ?? finding.subject.name;
+  return (
+    <Stack gap="tight">
+      <Button
+        onPress={() =>
+          ask.ask([
+            isRecord
+              ? `The record of runner ${name} in crsp, and its service and folder on the machine`
+              : `The registration of runner ${name} on GitHub`,
+          ])
+        }
+        busy={ask.busy}
+        busyLabel="Removing"
+        disabled={!admin}
+        reason={!admin ? session.whyNot('admin') : undefined}
+      >
+        {action?.label ?? 'Remove'}
+      </Button>
+      <Ask
+        title={isRecord ? `Remove the record of ${name}?` : `Remove ${name} from GitHub?`}
+        intro={
+          isRecord
+            ? 'GitHub does not list this runner, so it cannot take jobs. Its record is removed from crsp.'
+            : 'No machine runs this runner. Only this registration is removed from GitHub.'
+        }
+        action="Remove"
+        busyLabel="Removing"
+        q={ask.question}
+        busy={ask.busy}
+        error={ask.error}
+        onCancel={ask.cancel}
+        onConfirm={() => void ask.confirm()}
+      />
+    </Stack>
+  );
+}
+
 /** The one-click fix of `runner.logon` (runners R5.89, doctor R5.45): the agent gives the account the right to log
  * on as a service again and starts the service. It is the call the Problem banner makes. */
 function StartRunnerService({ machineId }: { machineId: string }) {
@@ -318,6 +384,12 @@ export function DoctorScreen() {
               onRemoved={(m) =>
                 void start.run({ machines: [m], checks: ['machine.runner_leftovers'] })
               }
+            />
+          ) : null}
+          {(f.action?.id === 'remove_github_runner' || f.action?.id === 'remove_runner_record') && f.action.args ? (
+            <RemoveRegistration
+              finding={f}
+              onRemoved={(check) => void start.run({ checks: [check] })}
             />
           ) : null}
           {f.fix.command ? <CodeBlock text={f.fix.command} label="Fix command" /> : null}

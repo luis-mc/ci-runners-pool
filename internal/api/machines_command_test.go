@@ -79,3 +79,16 @@ func TestRunMachineCommandNeedsADrainedMachine(t *testing.T) {
 		t.Fatalf("drained: %d %s calls %v", rec.Code, rec.Body, h.calls)
 	}
 }
+
+// caches R5.58: Compact now on a machine with no reported Docker disk file is
+// refused with 400 before anything is held, and an unknown machine is 404; the
+// route needs the admin role (roles_test covers the matrix).
+func TestStartDockerCompactRefusals(t *testing.T) {
+	mux, _, id := machinesMux(t)
+	if rec := doM(t, mux, "POST", "/api/v1/machines/"+id+"/docker-compact?confirm=true", nil); rec.Code != 409 && rec.Code != 400 {
+		t.Fatalf("no disk file: %d %s", rec.Code, rec.Body)
+	}
+	if rec := doM(t, mux, "POST", "/api/v1/machines/m_nope/docker-compact", nil); rec.Code != 404 {
+		t.Fatalf("unknown machine: %d %s", rec.Code, rec.Body)
+	}
+}

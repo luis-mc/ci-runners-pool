@@ -607,3 +607,53 @@ func mergeRepos(a, b []string) []string {
 	}
 	return out
 }
+
+// StartCompact is the owner's Compact now (caches R5.58): the same drain,
+// compact and resume as the automatic one, started by a person. Without
+// confirm it answers NeedsConfirmationError that names the size that can be
+// reclaimed and what happens to jobs; with it the compact runs in the
+// background, because it can last an hour, and the machine page shows it as
+// running. Nothing starts on an offline machine, with no disk file reported,
+// when the agent has no administrator right, or when a compact or a change
+// already holds the machine.
+func (s *Service) StartCompact(ctx context.Context, actor, id string, confirm bool) error {
+	m, err := s.o.Repo.GetMachine(ctx, id)
+	if err != nil {
+		return err
+	}
+	disk := s.DockerDisk(id)
+	switch {
+	case !m.Online:
+		return ErrOffline
+	case !disk.Reported || !disk.Present:
+		return fmt.Errorf("%w: the agent reports no Docker disk file on this machine", ErrInvalid)
+	case !disk.CanCompact:
+		return fmt.Errorf("%w: the agent has no administrator rights, which the compact needs", ErrInvalid)
+	}
+	s.compact.mu.Lock()
+	busy := s.compact.get(id).running
+	s.compact.mu.Unlock()
+	if busy {
+		return fmt.Errorf("%w: %v", ErrConflict, ErrCompactBusy)
+	}
+	if !confirm {
+		return &NeedsConfirmationError{
+			Message: "Making Docker's disk smaller drains this machine first. It starts after the running jobs end.",
+			Names: []string{
+				fmt.Sprintf("Can be reclaimed: %s (the disk file is %s, Docker uses %s)", dockercompact.FormatBytes(disk.Reclaimable()), dockercompact.FormatBytes(disk.FileBytes), dockercompact.FormatBytes(disk.UsedBytes)),
+				"New jobs wait in the queue; no job is stopped",
+				"Docker restarts, and the machine takes jobs again when it is done",
+			},
+		}
+	}
+	s.compact.mu.Lock()
+	s.compact.get(id).running = true
+	s.compact.wg.Add(1)
+	s.compact.mu.Unlock()
+	go func() {
+		defer s.compact.wg.Done()
+		// The compact outlives the request that started it.
+		_, _ = s.CompactMachine(context.WithoutCancel(ctx), actor, id)
+	}()
+	return nil
+}

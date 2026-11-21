@@ -402,13 +402,19 @@ func (e DockerCompactMode) Valid() bool {
 
 // Defines values for DoctorFindingActionId.
 const (
-	RemoveRunnerLeftovers DoctorFindingActionId = "remove_runner_leftovers"
+	DoctorFindingActionIdRemoveGithubRunner    DoctorFindingActionId = "remove_github_runner"
+	DoctorFindingActionIdRemoveRunnerLeftovers DoctorFindingActionId = "remove_runner_leftovers"
+	DoctorFindingActionIdRemoveRunnerRecord    DoctorFindingActionId = "remove_runner_record"
 )
 
 // Valid indicates whether the value is a known member of the DoctorFindingActionId enum.
 func (e DoctorFindingActionId) Valid() bool {
 	switch e {
-	case RemoveRunnerLeftovers:
+	case DoctorFindingActionIdRemoveGithubRunner:
+		return true
+	case DoctorFindingActionIdRemoveRunnerLeftovers:
+		return true
+	case DoctorFindingActionIdRemoveRunnerRecord:
 		return true
 	default:
 		return false
@@ -2257,6 +2263,24 @@ func (e RegistryStackFileChangeChange) Valid() bool {
 	}
 }
 
+// Defines values for RemoveRegistrationRequestAction.
+const (
+	RemoveRegistrationRequestActionRemoveGithubRunner RemoveRegistrationRequestAction = "remove_github_runner"
+	RemoveRegistrationRequestActionRemoveRunnerRecord RemoveRegistrationRequestAction = "remove_runner_record"
+)
+
+// Valid indicates whether the value is a known member of the RemoveRegistrationRequestAction enum.
+func (e RemoveRegistrationRequestAction) Valid() bool {
+	switch e {
+	case RemoveRegistrationRequestActionRemoveGithubRunner:
+		return true
+	case RemoveRegistrationRequestActionRemoveRunnerRecord:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for RemoveRunnerLeftoversResultResultsOutcome.
 const (
 	RemoveRunnerLeftoversResultResultsOutcomeAlreadyGone RemoveRunnerLeftoversResultResultsOutcome = "already_gone"
@@ -2755,6 +2779,27 @@ func (e RunsOnFindingKind) Valid() bool {
 	case RunsOnFindingKindNotGeneric:
 		return true
 	case RunsOnFindingKindUsesVariable:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SettingsInsightsUpdatePeriod.
+const (
+	EveryNthRun SettingsInsightsUpdatePeriod = "every_nth_run"
+	EveryRun    SettingsInsightsUpdatePeriod = "every_run"
+	Hourly      SettingsInsightsUpdatePeriod = "hourly"
+)
+
+// Valid indicates whether the value is a known member of the SettingsInsightsUpdatePeriod enum.
+func (e SettingsInsightsUpdatePeriod) Valid() bool {
+	switch e {
+	case EveryNthRun:
+		return true
+	case EveryRun:
+		return true
+	case Hourly:
 		return true
 	default:
 		return false
@@ -4102,10 +4147,12 @@ type DockerCompactStatus struct {
 
 // DoctorFinding defines model for DoctorFinding.
 type DoctorFinding struct {
-	// Action The one button the finding offers. `remove_runner_leftovers` removes `items` through POST /api/v1/machines/{machineId}/runner-leftovers/remove (the subject is the machine).
+	// Action The one button the finding offers. `remove_runner_leftovers` removes `items` through POST /api/v1/machines/{machineId}/runner-leftovers/remove (the subject is the machine). `remove_github_runner` and `remove_runner_record` send `args` through POST /api/v1/doctor/registration-fixes.
 	Action *struct {
-		Id    DoctorFindingActionId `json:"id"`
-		Label string                `json:"label"`
+		// Args What a registration action needs back (doctor R5.50).
+		Args  *RegistrationActionArgs `json:"args,omitempty"`
+		Id    DoctorFindingActionId   `json:"id"`
+		Label string                  `json:"label"`
 	} `json:"action,omitempty"`
 	Check     string    `json:"check"`
 	CheckedAt time.Time `json:"checked_at"`
@@ -4626,6 +4673,9 @@ type InsightFinding struct {
 
 	// Area ci-run-insights section 7. The screen area a finding belongs to.
 	Area InsightArea `json:"area"`
+
+	// DismissedUntil Set while the finding is hidden (owner decision D17); it shows again at this time if it is still true.
+	DismissedUntil *time.Time `json:"dismissed_until,omitempty"`
 
 	// Evidence The numbers the finding page shows; its keys depend on the kind.
 	Evidence  map[string]interface{} `json:"evidence"`
@@ -5860,6 +5910,17 @@ type RedeemSetupLinkRequest struct {
 	Code string `json:"code"`
 }
 
+// RegistrationActionArgs What a registration action needs back (doctor R5.50).
+type RegistrationActionArgs struct {
+	GithubRunnerId *int64  `json:"github_runner_id,omitempty"`
+	InstallationId *int64  `json:"installation_id,omitempty"`
+	Name           *string `json:"name,omitempty"`
+	Organization   *string `json:"organization,omitempty"`
+	Owner          *string `json:"owner,omitempty"`
+	Repo           *string `json:"repo,omitempty"`
+	RunnerId       *string `json:"runner_id,omitempty"`
+}
+
 // RegistryArch defines model for RegistryArch.
 type RegistryArch string
 
@@ -6358,6 +6419,23 @@ type RegistryWhere struct {
 
 	// WhyNot Why it is not running, in plain words.
 	WhyNot *string `json:"why_not,omitempty"`
+}
+
+// RemoveRegistrationRequest defines model for RemoveRegistrationRequest.
+type RemoveRegistrationRequest struct {
+	Action RemoveRegistrationRequestAction `json:"action"`
+
+	// Args What a registration action needs back (doctor R5.50).
+	Args RegistrationActionArgs `json:"args"`
+}
+
+// RemoveRegistrationRequestAction defines model for RemoveRegistrationRequest.Action.
+type RemoveRegistrationRequestAction string
+
+// RemoveRegistrationResult defines model for RemoveRegistrationResult.
+type RemoveRegistrationResult struct {
+	Name    string `json:"name"`
+	Removed bool   `json:"removed"`
 }
 
 // RemoveRunnerLeftoversRequest defines model for RemoveRunnerLeftoversRequest.
@@ -6909,14 +6987,23 @@ type Settings struct {
 	InsightsResourceSamplesDays *int `json:"insights_resource_samples_days,omitempty"`
 
 	// InsightsTestResultsDays ci-run-insights R5.5, R6.2. Default 90.
-	InsightsTestResultsDays    *int `json:"insights_test_results_days,omitempty"`
-	MaxEventStreams            *int `json:"max_event_streams,omitempty"`
-	RetentionAuditDays         *int `json:"retention_audit_days,omitempty"`
-	RetentionJobHistoryDays    *int `json:"retention_job_history_days,omitempty"`
-	RetentionLoadRawHours      *int `json:"retention_load_raw_hours,omitempty"`
-	RetentionLogsDays          *int `json:"retention_logs_days,omitempty"`
-	RetentionLogsMibPerMachine *int `json:"retention_logs_mib_per_machine,omitempty"`
+	InsightsTestResultsDays *int `json:"insights_test_results_days,omitempty"`
+
+	// InsightsUpdateEveryNRuns ci-run-insights R5.44. N of every_nth_run. Default 5.
+	InsightsUpdateEveryNRuns *int `json:"insights_update_every_n_runs,omitempty"`
+
+	// InsightsUpdatePeriod ci-run-insights R5.44 (owner decisions D18, D19). How often insights are re-analysed. every_run (the default) analyses after each CI run; every_nth_run after every Nth run; hourly once an hour. The cost warning recommends a slower one.
+	InsightsUpdatePeriod       *SettingsInsightsUpdatePeriod `json:"insights_update_period,omitempty"`
+	MaxEventStreams            *int                          `json:"max_event_streams,omitempty"`
+	RetentionAuditDays         *int                          `json:"retention_audit_days,omitempty"`
+	RetentionJobHistoryDays    *int                          `json:"retention_job_history_days,omitempty"`
+	RetentionLoadRawHours      *int                          `json:"retention_load_raw_hours,omitempty"`
+	RetentionLogsDays          *int                          `json:"retention_logs_days,omitempty"`
+	RetentionLogsMibPerMachine *int                          `json:"retention_logs_mib_per_machine,omitempty"`
 }
+
+// SettingsInsightsUpdatePeriod ci-run-insights R5.44 (owner decisions D18, D19). How often insights are re-analysed. every_run (the default) analyses after each CI run; every_nth_run after every Nth run; hourly once an hour. The cost warning recommends a slower one.
+type SettingsInsightsUpdatePeriod string
 
 // SetupState defines model for SetupState.
 type SetupState struct {
@@ -7633,6 +7720,12 @@ type ListDoctorFindingsParams struct {
 	Group    *string   `form:"group,omitempty" json:"group,omitempty"`
 }
 
+// RemoveRegistrationParams defines parameters for RemoveRegistration.
+type RemoveRegistrationParams struct {
+	// Confirm The yes to a question card that named what goes (UX-62).
+	Confirm *Confirm `form:"confirm,omitempty" json:"confirm,omitempty"`
+}
+
 // StreamEventsParams defines parameters for StreamEvents.
 type StreamEventsParams struct {
 	LastEventID *string `json:"Last-Event-ID,omitempty"`
@@ -7868,6 +7961,12 @@ type RemoveMachineParams struct {
 	Confirm *Confirm `form:"confirm,omitempty" json:"confirm,omitempty"`
 }
 
+// StartDockerCompactParams defines parameters for StartDockerCompact.
+type StartDockerCompactParams struct {
+	// Confirm The yes to a question card that named what goes (UX-62).
+	Confirm *Confirm `form:"confirm,omitempty" json:"confirm,omitempty"`
+}
+
 // GetMachineLoadParams defines parameters for GetMachineLoad.
 type GetMachineLoadParams struct {
 	From *From `form:"from,omitempty" json:"from,omitempty"`
@@ -8036,6 +8135,9 @@ type SetAppWebhookJSONRequestBody = AppWebhookUpdate
 
 // ExchangeCliTokenJSONRequestBody defines body for ExchangeCliToken for application/json ContentType.
 type ExchangeCliTokenJSONRequestBody = ExchangeCliTokenRequest
+
+// RemoveRegistrationJSONRequestBody defines body for RemoveRegistration for application/json ContentType.
+type RemoveRegistrationJSONRequestBody = RemoveRegistrationRequest
 
 // RunDoctorJSONRequestBody defines body for RunDoctor for application/json ContentType.
 type RunDoctorJSONRequestBody = DoctorScope
@@ -8240,6 +8342,9 @@ type ServerInterface interface {
 	// ListDoctorFindings The latest finding per check and subject
 	// (GET /api/v1/doctor/findings)
 	ListDoctorFindings(w http.ResponseWriter, r *http.Request, params ListDoctorFindingsParams)
+	// RemoveRegistration Remove one half of a half-registered runner
+	// (POST /api/v1/doctor/registration-fixes)
+	RemoveRegistration(w http.ResponseWriter, r *http.Request, params RemoveRegistrationParams)
 	// RunDoctor Run the doctor now
 	// (POST /api/v1/doctor/runs)
 	RunDoctor(w http.ResponseWriter, r *http.Request)
@@ -8315,6 +8420,9 @@ type ServerInterface interface {
 	// GetInsightFinding One finding with its evidence
 	// (GET /api/v1/insights/findings/{findingId})
 	GetInsightFinding(w http.ResponseWriter, r *http.Request, findingId FindingId)
+	// DismissInsightFinding Hide a finding for 7 days
+	// (POST /api/v1/insights/findings/{findingId}/dismiss)
+	DismissInsightFinding(w http.ResponseWriter, r *http.Request, findingId FindingId)
 	// CreateInsightPlan Make the plan of a setup change (nothing changes yet)
 	// (POST /api/v1/insights/findings/{findingId}/plans)
 	CreateInsightPlan(w http.ResponseWriter, r *http.Request, findingId FindingId)
@@ -8399,6 +8507,9 @@ type ServerInterface interface {
 	// RunMachineCommand Run one command on a drained machine (host maintenance)
 	// (POST /api/v1/machines/{machineId}/command)
 	RunMachineCommand(w http.ResponseWriter, r *http.Request, machineId MachineId)
+	// StartDockerCompact Make Docker's disk file smaller now
+	// (POST /api/v1/machines/{machineId}/docker-compact)
+	StartDockerCompact(w http.ResponseWriter, r *http.Request, machineId MachineId, params StartDockerCompactParams)
 	// DrainMachine Stop new jobs on a machine; running jobs finish
 	// (POST /api/v1/machines/{machineId}/drain)
 	DrainMachine(w http.ResponseWriter, r *http.Request, machineId MachineId)
@@ -9318,6 +9429,39 @@ func (siw *ServerInterfaceWrapper) ListDoctorFindings(w http.ResponseWriter, r *
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.ListDoctorFindings(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RemoveRegistration operation middleware
+func (siw *ServerInterfaceWrapper) RemoveRegistration(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params RemoveRegistrationParams
+
+	// ------------- Optional query parameter "confirm" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "confirm", r.URL.Query(), &params.Confirm, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "confirm"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "confirm", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RemoveRegistration(w, r, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -10388,6 +10532,32 @@ func (siw *ServerInterfaceWrapper) GetInsightFinding(w http.ResponseWriter, r *h
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetInsightFinding(w, r, findingId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DismissInsightFinding operation middleware
+func (siw *ServerInterfaceWrapper) DismissInsightFinding(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "findingId" -------------
+	var findingId FindingId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "findingId", r.PathValue("findingId"), &findingId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "findingId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DismissInsightFinding(w, r, findingId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -11570,6 +11740,48 @@ func (siw *ServerInterfaceWrapper) RunMachineCommand(w http.ResponseWriter, r *h
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.RunMachineCommand(w, r, machineId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// StartDockerCompact operation middleware
+func (siw *ServerInterfaceWrapper) StartDockerCompact(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "machineId" -------------
+	var machineId MachineId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "machineId", r.PathValue("machineId"), &machineId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "machineId", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params StartDockerCompactParams
+
+	// ------------- Optional query parameter "confirm" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "confirm", r.URL.Query(), &params.Confirm, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "confirm"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "confirm", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.StartDockerCompact(w, r, machineId, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -14491,6 +14703,8 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodPatch+" "+options.BaseURL+"/api/v1/machines/{machineId}", wrapper.UpdateMachine)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/machines/{machineId}/drain", wrapper.DrainMachine)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/machines/{machineId}/command", wrapper.RunMachineCommand)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/doctor/registration-fixes", wrapper.RemoveRegistration)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/machines/{machineId}/docker-compact", wrapper.StartDockerCompact)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/machines/{machineId}/runner-leftovers/remove", wrapper.RemoveRunnerLeftovers)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/machines/{machineId}/resume", wrapper.ResumeMachine)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/machines/{machineId}/pool-size-check", wrapper.CheckMachinePoolSize)
@@ -14600,6 +14814,7 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/webhooks/github", wrapper.ReceiveGithubWebhook)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/insights/findings", wrapper.ListInsightFindings)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/insights/findings/{findingId}", wrapper.GetInsightFinding)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/insights/findings/{findingId}/dismiss", wrapper.DismissInsightFinding)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/insights/findings/{findingId}/plans", wrapper.CreateInsightPlan)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/insights/plans/{planId}", wrapper.GetInsightPlan)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/insights/plans/{planId}/start", wrapper.StartInsightPlan)
@@ -15507,6 +15722,46 @@ type ListDoctorFindingsdefaultJSONResponse struct {
 }
 
 func (response ListDoctorFindingsdefaultJSONResponse) VisitListDoctorFindingsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RemoveRegistrationRequestObject struct {
+	Params RemoveRegistrationParams
+	Body   *RemoveRegistrationJSONRequestBody
+}
+
+type RemoveRegistrationResponseObject interface {
+	VisitRemoveRegistrationResponse(w http.ResponseWriter) error
+}
+
+type RemoveRegistration200JSONResponse RemoveRegistrationResult
+
+func (response RemoveRegistration200JSONResponse) VisitRemoveRegistrationResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RemoveRegistrationdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response RemoveRegistrationdefaultJSONResponse) VisitRemoveRegistrationResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
@@ -16669,6 +16924,45 @@ func (response GetInsightFindingdefaultJSONResponse) VisitGetInsightFindingRespo
 	return err
 }
 
+type DismissInsightFindingRequestObject struct {
+	FindingId FindingId `json:"findingId"`
+}
+
+type DismissInsightFindingResponseObject interface {
+	VisitDismissInsightFindingResponse(w http.ResponseWriter) error
+}
+
+type DismissInsightFinding200JSONResponse InsightFinding
+
+func (response DismissInsightFinding200JSONResponse) VisitDismissInsightFindingResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DismissInsightFindingdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response DismissInsightFindingdefaultJSONResponse) VisitDismissInsightFindingResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type CreateInsightPlanRequestObject struct {
 	FindingId FindingId `json:"findingId"`
 }
@@ -17775,6 +18069,48 @@ type RunMachineCommanddefaultJSONResponse struct {
 }
 
 func (response RunMachineCommanddefaultJSONResponse) VisitRunMachineCommandResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type StartDockerCompactRequestObject struct {
+	MachineId MachineId `json:"machineId"`
+	Params    StartDockerCompactParams
+}
+
+type StartDockerCompactResponseObject interface {
+	VisitStartDockerCompactResponse(w http.ResponseWriter) error
+}
+
+type StartDockerCompact202JSONResponse struct {
+	Started bool `json:"started"`
+}
+
+func (response StartDockerCompact202JSONResponse) VisitStartDockerCompactResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(202)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type StartDockerCompactdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response StartDockerCompactdefaultJSONResponse) VisitStartDockerCompactResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
@@ -21833,6 +22169,9 @@ type StrictServerInterface interface {
 	// ListDoctorFindings The latest finding per check and subject
 	// (GET /api/v1/doctor/findings)
 	ListDoctorFindings(ctx context.Context, request ListDoctorFindingsRequestObject) (ListDoctorFindingsResponseObject, error)
+	// RemoveRegistration Remove one half of a half-registered runner
+	// (POST /api/v1/doctor/registration-fixes)
+	RemoveRegistration(ctx context.Context, request RemoveRegistrationRequestObject) (RemoveRegistrationResponseObject, error)
 	// RunDoctor Run the doctor now
 	// (POST /api/v1/doctor/runs)
 	RunDoctor(ctx context.Context, request RunDoctorRequestObject) (RunDoctorResponseObject, error)
@@ -21908,6 +22247,9 @@ type StrictServerInterface interface {
 	// GetInsightFinding One finding with its evidence
 	// (GET /api/v1/insights/findings/{findingId})
 	GetInsightFinding(ctx context.Context, request GetInsightFindingRequestObject) (GetInsightFindingResponseObject, error)
+	// DismissInsightFinding Hide a finding for 7 days
+	// (POST /api/v1/insights/findings/{findingId}/dismiss)
+	DismissInsightFinding(ctx context.Context, request DismissInsightFindingRequestObject) (DismissInsightFindingResponseObject, error)
 	// CreateInsightPlan Make the plan of a setup change (nothing changes yet)
 	// (POST /api/v1/insights/findings/{findingId}/plans)
 	CreateInsightPlan(ctx context.Context, request CreateInsightPlanRequestObject) (CreateInsightPlanResponseObject, error)
@@ -21992,6 +22334,9 @@ type StrictServerInterface interface {
 	// RunMachineCommand Run one command on a drained machine (host maintenance)
 	// (POST /api/v1/machines/{machineId}/command)
 	RunMachineCommand(ctx context.Context, request RunMachineCommandRequestObject) (RunMachineCommandResponseObject, error)
+	// StartDockerCompact Make Docker's disk file smaller now
+	// (POST /api/v1/machines/{machineId}/docker-compact)
+	StartDockerCompact(ctx context.Context, request StartDockerCompactRequestObject) (StartDockerCompactResponseObject, error)
 	// DrainMachine Stop new jobs on a machine; running jobs finish
 	// (POST /api/v1/machines/{machineId}/drain)
 	DrainMachine(ctx context.Context, request DrainMachineRequestObject) (DrainMachineResponseObject, error)
@@ -22940,6 +23285,39 @@ func (sh *strictHandler) ListDoctorFindings(w http.ResponseWriter, r *http.Reque
 	}
 }
 
+// RemoveRegistration operation middleware
+func (sh *strictHandler) RemoveRegistration(w http.ResponseWriter, r *http.Request, params RemoveRegistrationParams) {
+	var request RemoveRegistrationRequestObject
+
+	request.Params = params
+
+	var body RemoveRegistrationJSONRequestBody
+	if err := runtime.BindJSONBody(r, &body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.RemoveRegistration(ctx, request.(RemoveRegistrationRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "RemoveRegistration")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(RemoveRegistrationResponseObject); ok {
+		if err := validResponse.VisitRemoveRegistrationResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // RunDoctor operation middleware
 func (sh *strictHandler) RunDoctor(w http.ResponseWriter, r *http.Request) {
 	var request RunDoctorRequestObject
@@ -23599,6 +23977,32 @@ func (sh *strictHandler) GetInsightFinding(w http.ResponseWriter, r *http.Reques
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(GetInsightFindingResponseObject); ok {
 		if err := validResponse.VisitGetInsightFindingResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// DismissInsightFinding operation middleware
+func (sh *strictHandler) DismissInsightFinding(w http.ResponseWriter, r *http.Request, findingId FindingId) {
+	var request DismissInsightFindingRequestObject
+
+	request.FindingId = findingId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.DismissInsightFinding(ctx, request.(DismissInsightFindingRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DismissInsightFinding")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(DismissInsightFindingResponseObject); ok {
+		if err := validResponse.VisitDismissInsightFindingResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
@@ -24363,6 +24767,33 @@ func (sh *strictHandler) RunMachineCommand(w http.ResponseWriter, r *http.Reques
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(RunMachineCommandResponseObject); ok {
 		if err := validResponse.VisitRunMachineCommandResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// StartDockerCompact operation middleware
+func (sh *strictHandler) StartDockerCompact(w http.ResponseWriter, r *http.Request, machineId MachineId, params StartDockerCompactParams) {
+	var request StartDockerCompactRequestObject
+
+	request.MachineId = machineId
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.StartDockerCompact(ctx, request.(StartDockerCompactRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "StartDockerCompact")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(StartDockerCompactResponseObject); ok {
+		if err := validResponse.VisitStartDockerCompactResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

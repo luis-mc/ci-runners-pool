@@ -959,6 +959,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/doctor/registration-fixes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Remove one half of a half-registered runner
+         * @description doctor R5.50, runners R5.94. `remove_github_runner` deletes a GitHub runner with the pool's name prefix that no local record owns; `remove_runner_record` removes the local record (and its service, account and folder when the machine answers) of a runner GitHub does not list. The server reads GitHub and the records again and refuses when the state changed. Without `confirm=true` it answers 409 needs_confirmation naming what goes.
+         */
+        post: operations["removeRegistration"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/machines/{machineId}/docker-compact": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Make Docker's disk file smaller now
+         * @description caches R5.58. The owner starts the compact the policy would start later: the machine is drained (new jobs wait, running jobs finish), Docker's disk file is made smaller, and the machine takes jobs again. Without `confirm=true` it answers 409 needs_confirmation naming the size that can be reclaimed and what happens to jobs. With it the compact starts in the background and answers 202; the machine's `docker_compact_status` shows it running and then its result. Refused with 400 when the agent reports no disk file or has no administrator rights, 409 when the machine is offline or a compact or a change already holds it.
+         */
+        post: operations["startDockerCompact"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/machines/{machineId}/runner-leftovers/remove": {
         parameters: {
             query?: never;
@@ -2841,6 +2881,26 @@ export interface paths {
         get: operations["getInsightFinding"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/insights/findings/{findingId}/dismiss": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Hide a finding for 7 days
+         * @description ci-run-insights R5.8 (owner decision D17). The finding leaves the Do next list and the counts for 7 days and comes back if it is still true. It is never deleted or closed by this call. 404 when there is no such finding, 409 when it is resolved.
+         */
+        post: operations["dismissInsightFinding"];
         delete?: never;
         options?: never;
         head?: never;
@@ -5249,6 +5309,27 @@ export interface components {
             /** @description Why it is not owned, in words for people. */
             why: string;
         };
+        /** @description What a registration action needs back (doctor R5.50). */
+        RegistrationActionArgs: {
+            runner_id?: string;
+            /** Format: int64 */
+            github_runner_id?: number;
+            name?: string;
+            /** Format: int64 */
+            installation_id?: number;
+            owner?: string;
+            repo?: string;
+            organization?: string;
+        };
+        RemoveRegistrationRequest: {
+            /** @enum {string} */
+            action: "remove_github_runner" | "remove_runner_record";
+            args: components["schemas"]["RegistrationActionArgs"];
+        };
+        RemoveRegistrationResult: {
+            removed: boolean;
+            name: string;
+        };
         RemoveRunnerLeftoversRequest: {
             items: {
                 kind: components["schemas"]["RunnerLeftoverKind"];
@@ -5304,11 +5385,12 @@ export interface components {
             needs_admin: boolean;
             /** @description The things the finding lists, for example the runner leftovers of a machine (doctor R5.48). */
             items?: components["schemas"]["RunnerLeftover"][];
-            /** @description The one button the finding offers. `remove_runner_leftovers` removes `items` through POST /api/v1/machines/{machineId}/runner-leftovers/remove (the subject is the machine). */
+            /** @description The one button the finding offers. `remove_runner_leftovers` removes `items` through POST /api/v1/machines/{machineId}/runner-leftovers/remove (the subject is the machine). `remove_github_runner` and `remove_runner_record` send `args` through POST /api/v1/doctor/registration-fixes. */
             action?: {
                 /** @enum {string} */
-                id: "remove_runner_leftovers";
+                id: "remove_runner_leftovers" | "remove_github_runner" | "remove_runner_record";
                 label: string;
+                args?: components["schemas"]["RegistrationActionArgs"];
             };
             milestone: number;
             /** Format: date-time */
@@ -5363,6 +5445,13 @@ export interface components {
             insights_hold_cap_seconds?: number;
             /** @description ci-run-insights R5.31. Name pattern of the guard report artifact. Default test-guardrails*. */
             insights_guardrail_artifact?: string;
+            /**
+             * @description ci-run-insights R5.44 (owner decisions D18, D19). How often insights are re-analysed. every_run (the default) analyses after each CI run; every_nth_run after every Nth run; hourly once an hour. The cost warning recommends a slower one.
+             * @enum {string}
+             */
+            insights_update_period?: "every_run" | "every_nth_run" | "hourly";
+            /** @description ci-run-insights R5.44. N of every_nth_run. Default 5. */
+            insights_update_every_n_runs?: number;
             /** @description operations R5.15. On by default. When on, a newer stable release installs by itself after a drain. When off, the console Review step asks first. */
             auto_update?: boolean;
         };
@@ -6279,6 +6368,11 @@ export interface components {
             last_seen: string;
             /** Format: date-time */
             resolved_at?: string;
+            /**
+             * Format: date-time
+             * @description Set while the finding is hidden (owner decision D17); it shows again at this time if it is still true.
+             */
+            dismissed_until?: string;
         };
         InsightFindingList: {
             items: components["schemas"]["InsightFinding"][];
@@ -7958,6 +8052,62 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HostCommandResult"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    removeRegistration: {
+        parameters: {
+            query?: {
+                /** @description The yes to a question card that named what goes (UX-62). */
+                confirm?: components["parameters"]["Confirm"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RemoveRegistrationRequest"];
+            };
+        };
+        responses: {
+            /** @description Removed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RemoveRegistrationResult"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    startDockerCompact: {
+        parameters: {
+            query?: {
+                /** @description The yes to a question card that named what goes (UX-62). */
+                confirm?: components["parameters"]["Confirm"];
+            };
+            header?: never;
+            path: {
+                machineId: components["parameters"]["MachineId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The compact has started. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        started: boolean;
+                    };
                 };
             };
             default: components["responses"]["Error"];
@@ -10580,6 +10730,29 @@ export interface operations {
         requestBody?: never;
         responses: {
             /** @description The finding. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InsightFinding"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    dismissInsightFinding: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                findingId: components["parameters"]["FindingId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The finding, with when it shows again. */
             200: {
                 headers: {
                     [name: string]: unknown;

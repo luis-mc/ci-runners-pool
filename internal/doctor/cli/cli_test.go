@@ -157,9 +157,10 @@ func TestItemsAreListedAndCarried(t *testing.T) {
 	}
 	f.Items = &items
 	f.Action = &struct {
-		Id    gen.DoctorFindingActionId `json:"id"`
-		Label string                    `json:"label"`
-	}{Id: gen.RemoveRunnerLeftovers, Label: "Remove"}
+		Args  *gen.RegistrationActionArgs `json:"args,omitempty"`
+		Id    gen.DoctorFindingActionId   `json:"id"`
+		Label string                      `json:"label"`
+	}{Id: gen.DoctorFindingActionIdRemoveRunnerLeftovers, Label: "Remove"}
 	run := runWith(gen.SeverityFail, f)
 	var buf bytes.Buffer
 	Text(&buf, run, "warn")

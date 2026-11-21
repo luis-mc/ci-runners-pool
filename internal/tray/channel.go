@@ -81,6 +81,10 @@ type Response struct {
 	// start after the agent gave their account the logon right again and
 	// tried once more (runners R5.89). An older service leaves it out.
 	RunnerProblems []RunnerProblem `json:"runner_problems,omitempty"`
+
+	// DigestPath is the newest weekly CI insights digest, a draft file on the controller's disk (ci-run-insights
+	// R5.38). It is "" until one is written; an older service leaves it out.
+	DigestPath string `json:"digest_path,omitempty"`
 }
 
 // RunnerProblem is one runner service that did not start.
@@ -179,6 +183,7 @@ func statusFrom(r Response) Status {
 	}
 	out.Update.Stage = r.Stage
 	out.RunnerProblems = r.RunnerProblems
+	out.DigestPath = r.DigestPath
 	if p := r.Policy; p != nil {
 		out.Policy = MachinePolicy{
 			Known: true, Mode: p.Mode, Accepting: p.Accepting, PauseReason: p.PauseReason, OnBattery: p.OnBattery,

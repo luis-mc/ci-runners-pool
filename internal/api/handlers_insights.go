@@ -40,6 +40,7 @@ const (
 // InsightsArea holds the services of the insights routes. Every field may be nil.
 type InsightsArea struct {
 	Findings   insights.FindingStore
+	Dismiss    insights.Dismisser // hides a finding for 7 days (D17)
 	Plans      actions.Planner
 	Waits      waits.Reader
 	Timeline   timeline.Builder
@@ -168,6 +169,39 @@ func insightFinding(f insights.StoredFinding) gen.InsightFinding {
 	return out
 }
 
+// withDismissed adds the time a hidden finding shows again; a time that has passed says nothing.
+func withDismissed(out gen.InsightFinding, f insights.StoredFinding, now time.Time) gen.InsightFinding {
+	if f.DismissedUntil.After(now) {
+		out.DismissedUntil = tptr(f.DismissedUntil.UTC())
+	}
+	return out
+}
+
+// DismissInsightFinding implements POST /api/v1/insights/findings/{findingId}/dismiss (D17): hide for 7 days.
+func (s *server) DismissInsightFinding(ctx context.Context, req gen.DismissInsightFindingRequestObject) (gen.DismissInsightFindingResponseObject, error) {
+	fail := func(f insightFail) (gen.DismissInsightFindingResponseObject, error) {
+		return gen.DismissInsightFindingdefaultJSONResponse{StatusCode: f.status, Body: f.body}, nil
+	}
+	a, ok := s.insights(func(a *InsightsArea) bool { return a.Dismiss != nil && a.Findings != nil })
+	if !ok {
+		return fail(insightNotBuilt())
+	}
+	if _, err := a.Dismiss.Dismiss(ctx, req.FindingId, a.now()); err != nil {
+		switch {
+		case errors.Is(err, insights.ErrNotFound):
+			return fail(insightMissing("no such finding"))
+		case errors.Is(err, insights.ErrResolved):
+			return fail(insightConflict(err.Error()))
+		}
+		return fail(s.insightErr("dismissInsightFinding", err))
+	}
+	f, err := a.Findings.Get(ctx, req.FindingId)
+	if err != nil {
+		return fail(s.insightErr("dismissInsightFinding", err))
+	}
+	return gen.DismissInsightFinding200JSONResponse(withDismissed(insightFinding(f), f, a.now())), nil
+}
+
 // ListInsightFindings implements GET /api/v1/insights/findings (R5.11).
 func (s *server) ListInsightFindings(ctx context.Context, req gen.ListInsightFindingsRequestObject) (gen.ListInsightFindingsResponseObject, error) {
 	fail := func(f insightFail) (gen.ListInsightFindingsResponseObject, error) {
@@ -250,7 +284,7 @@ func (s *server) GetInsightFinding(ctx context.Context, req gen.GetInsightFindin
 		}
 		return fail(s.insightErr("getInsightFinding", err))
 	}
-	return gen.GetInsightFinding200JSONResponse(insightFinding(f)), nil
+	return gen.GetInsightFinding200JSONResponse(withDismissed(insightFinding(f), f, a.now())), nil
 }
 
 // ErrInsightNotFound is what a store returns when a finding or plan id is not there. The wiring maps its

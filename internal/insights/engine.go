@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"sync"
 	"time"
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/redact"
@@ -53,6 +54,12 @@ type engine struct {
 	log       *slog.Logger
 	redactor  *redact.Redactor
 	onPass    func(PassStats)
+	meter     Meter
+	period    func() Period
+
+	mu       sync.Mutex
+	finished int           // CI runs finished since the last pass
+	kick     chan struct{} // a finished run, wakes Run
 }
 
 // Option configures NewEngine.
@@ -73,10 +80,19 @@ func WithLogger(l *slog.Logger) Option {
 // WithPassHook sets a callback run after every analyser pass, with its stats (the doctor's feed, R6.3).
 func WithPassHook(f func(PassStats)) Option { return func(e *engine) { e.onPass = f } }
 
+// WithMeter measures every RunOnce (average CPU, peak memory, store size on disk). Over a limit the engine opens
+// the KindCost warning finding that recommends a slower update period (owner decisions D18, D19).
+func WithMeter(m Meter) Option { return func(e *engine) { e.meter = m } }
+
+// WithPeriod sets where the update period is read from, at every decision, so a change in Settings takes
+// effect at once. The default is every finished CI run.
+func WithPeriod(f func() Period) Option { return func(e *engine) { e.period = f } }
+
 // NewEngine returns the Engine over the analysers. runs may be nil (no run log).
 func NewEngine(analysers []Analyser, store FindingStore, runs RunLog, opts ...Option) Engine {
 	e := &engine{analysers: analysers, store: store, runs: runs, clock: SystemClock{},
-		log: slog.Default(), redactor: redact.New()}
+		log: slog.Default(), redactor: redact.New(), kick: make(chan struct{}, 1),
+		period: func() Period { return Period{Mode: ModeEveryRun} }}
 	for _, o := range opts {
 		o(e)
 	}
@@ -88,6 +104,10 @@ func NewEngine(analysers []Analyser, store FindingStore, runs RunLog, opts ...Op
 func (e *engine) RunOnce(ctx context.Context, now time.Time) error {
 	now = now.UTC()
 	w := Window{From: now.Add(-WindowLength), To: now}
+	var end func() Usage
+	if e.meter != nil {
+		end = e.meter.Begin()
+	}
 	var errs []error
 	for _, a := range e.analysers {
 		if ctx.Err() != nil {
@@ -98,7 +118,26 @@ func (e *engine) RunOnce(ctx context.Context, now time.Time) error {
 			errs = append(errs, err)
 		}
 	}
+	if end != nil {
+		if err := e.reportCost(ctx, end(), now); err != nil {
+			errs = append(errs, err)
+		}
+	}
 	return errors.Join(errs...)
+}
+
+// reportCost opens, refreshes or resolves the cost warning from one measured pass (D18, D19). A failed
+// store write is logged and returned; the analysers' findings are not touched.
+func (e *engine) reportCost(ctx context.Context, u Usage, now time.Time) error {
+	var found []Finding
+	if f, over := CostFinding(u, e.period()); over {
+		found = append(found, f)
+		e.log.Warn("insights: analysis over its budget", "cpuPercent", round1(u.CPUPercent), "peakRamBytes", u.PeakRAMBytes, "storeBytes", u.StoreBytes)
+	}
+	if _, err := e.store.Sync(ctx, []Kind{KindCost}, found, now); err != nil {
+		return fmt.Errorf("cost: %s", e.safe(err))
+	}
+	return nil
 }
 
 func (e *engine) pass(ctx context.Context, a Analyser, w Window, now time.Time) (err error) {
@@ -167,14 +206,59 @@ func ownedOnly(a Analyser, found []Finding) []Finding {
 
 func (e *engine) safe(err error) string { return e.redactor.Redact(err.Error()) }
 
-// Run calls RunOnce at once and then every Interval until ctx ends. A failed pass never stops the loop.
+// Trigger tells the engine that a CI run finished (a job completed webhook, D18). It never blocks. Whether a
+// pass starts now depends on the update period: every run, every Nth run, or only on the hourly timer.
+func (e *engine) Trigger() {
+	e.mu.Lock()
+	e.finished++
+	e.mu.Unlock()
+	select {
+	case e.kick <- struct{}{}:
+	default:
+	}
+}
+
+// Triggerer is an Engine that can be told a CI run finished.
+type Triggerer interface {
+	Trigger()
+}
+
+// Run calls RunOnce at once, then after finished CI runs and on the timer as the update period says, until ctx
+// ends. A failed pass never stops the loop. A pass never overlaps another: runs that finish during a pass are
+// counted and decided after it.
 func (e *engine) Run(ctx context.Context) error {
+	last := e.clock.Now()
+	e.mu.Lock()
+	e.finished = 0
+	e.mu.Unlock()
+	_ = e.RunOnce(ctx, last)
+	tick := e.clock.After(Interval)
 	for {
-		_ = e.RunOnce(ctx, e.clock.Now())
+		fromTimer := false
 		select {
 		case <-ctx.Done():
 			return nil
-		case <-e.clock.After(Interval):
+		case <-e.kick:
+		case <-tick:
+			fromTimer = true
+		}
+		now := e.clock.Now()
+		e.mu.Lock()
+		n := e.finished
+		e.mu.Unlock()
+		if !e.period().Due(n, now.Sub(last), fromTimer, false) {
+			if fromTimer {
+				tick = e.clock.After(Interval)
+			}
+			continue
+		}
+		e.mu.Lock()
+		e.finished = 0
+		e.mu.Unlock()
+		_ = e.RunOnce(ctx, now)
+		last = e.clock.Now()
+		if fromTimer {
+			tick = e.clock.After(Interval)
 		}
 	}
 }

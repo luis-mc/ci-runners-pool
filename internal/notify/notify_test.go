@@ -133,15 +133,34 @@ func TestCreateEmailKeepsPasswordOnlyInSecretStore(t *testing.T) {
 	}
 }
 
-func TestValidation(t *testing.T) { // R5.19 and friends
+type validationCase struct {
+	name string
+	who  Caller
+	in   Input
+	want string
+}
+
+// runValidation creates each case on a loopback-refusing env and checks the refusal leaves nothing behind.
+func runValidation(t *testing.T, cases []validationCase) {
+	t.Helper()
 	e := newEnv(t, func(c *Config) { c.AllowLoopback = false })
 	ctx := context.Background()
-	cases := []struct {
-		name string
-		who  Caller
-		in   Input
-		want string
-	}{
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			_, err := e.svc.Create(ctx, tc.who, tc.in)
+			mustInvalid(t, err, tc.want)
+		})
+	}
+	if rows, _ := e.db.ListNotificationChannels(ctx); len(rows) != 0 {
+		t.Fatalf("a refused request left %d channels", len(rows))
+	}
+	if len(e.sec.Keys()) != 0 {
+		t.Fatalf("a refused request left secrets: %v", e.sec.Keys())
+	}
+}
+
+func TestValidationWebhook(t *testing.T) { // R5.19: webhook address, secret, events, name
+	runValidation(t, []validationCase{
 		{"http webhook", owner, webhookInput("http://hooks.example.com/x"), "must use https"},
 		{"credentials in the URL", owner, webhookInput("https://u:p@hooks.example.com/x"), "must not carry a user name"},
 		{"no host", owner, webhookInput("https:///x"), "https URL"},
@@ -155,6 +174,11 @@ func TestValidation(t *testing.T) { // R5.19 and friends
 		{"unknown event", owner, func() Input { i := webhookInput("https://hooks.example.com/x"); i.Events = []string{"nope"}; return i }(), "Unknown event"},
 		{"bad severity", owner, func() Input { i := webhookInput("https://hooks.example.com/x"); i.MinSeverity = "loud"; return i }(), "lowest severity"},
 		{"no name", owner, func() Input { i := webhookInput("https://hooks.example.com/x"); i.Name = " "; return i }(), "Write a name"},
+	})
+}
+
+func TestValidationEmail(t *testing.T) { // R5.19: email address, mail server, kind
+	runValidation(t, []validationCase{
 		{"bad address", alice, func() Input { i := emailInput(25); i.Address = "not-an-address"; return i }(), "email address"},
 		{"display name", alice, func() Input { i := emailInput(25); i.Address = "Alice <a@example.com>"; return i }(), "email address"},
 		{"header injection", alice, func() Input { i := emailInput(25); i.Address = "a@example.com\r\nBcc: x@y.z"; return i }(), "email address"},
@@ -164,19 +188,7 @@ func TestValidation(t *testing.T) { // R5.19 and friends
 		{"smtp host with a path", alice, func() Input { i := emailInput(25); i.SMTP.Host = "smtp.example.com/x"; return i }(), "host name"},
 		{"password without user", alice, func() Input { i := emailInput(25); i.SMTP.Host = "smtp.example.com"; i.SMTP.Username = ""; return i }(), "user name"},
 		{"unknown kind", owner, Input{Kind: "sms", Name: "x", Events: []string{"disk.low"}}, "email, webhook or desktop"},
-	}
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			_, err := e.svc.Create(ctx, tc.who, tc.in)
-			mustInvalid(t, err, tc.want)
-		})
-	}
-	if rows, _ := e.db.ListNotificationChannels(ctx); len(rows) != 0 {
-		t.Fatalf("a refused request left %d channels", len(rows))
-	}
-	if len(e.sec.Keys()) != 0 {
-		t.Fatalf("a refused request left secrets: %v", e.sec.Keys())
-	}
+	})
 }
 
 func TestScopes(t *testing.T) { // R5.7, R5.9

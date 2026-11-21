@@ -2,7 +2,9 @@ package runners
 
 import (
 	"context"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backend"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/github"
@@ -63,5 +65,24 @@ func TestListViewReconcilesAgainstGitHubAndAgent(t *testing.T) { // UX-19
 	r.gh.runners = []github.Runner{{ID: 5, Name: rec.Name, Status: "online"}}
 	if g, err := r.svc.GetView(ctx, rec.ID); err != nil || g.State != Idle {
 		t.Fatalf("%+v %v", g, err)
+	}
+}
+
+// TestTruthShowsTheSessionWaitAsAWait: after a hard restart GitHub holds the
+// old session for a few minutes; the runner shows the reason, never a failure
+// (runners R5.95).
+func TestTruthShowsTheSessionWaitAsAWait(t *testing.T) {
+	until := time.Date(2026, 11, 20, 10, 7, 0, 0, time.UTC)
+	r := Record{State: Idle, Kind: "persistent"}
+	gh := &github.Runner{Status: "offline"}
+	st, why := Truth(r, Facts{GitHubKnown: true, GitHub: gh, ServiceKnown: true,
+		Service: &backend.Found{Running: true, SessionRefused: true, SessionWaitUntil: until}})
+	if st == Failed || st == Stopped || why != "Waiting for GitHub to release the old session, until 10:07:00Z" {
+		t.Fatalf("state %q reason %q", st, why)
+	}
+	st, why = Truth(r, Facts{GitHubKnown: true, GitHub: gh, ServiceKnown: true,
+		Service: &backend.Found{Running: true, SessionRefused: true}})
+	if st != Offline || !strings.Contains(why, "after the wait window") {
+		t.Fatalf("past the window: %q %q", st, why)
 	}
 }

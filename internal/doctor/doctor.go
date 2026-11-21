@@ -99,13 +99,33 @@ type Item struct {
 // Action is the one button a finding offers. The doctor only names it; the
 // console runs it on a screen with its own confirm (UX-52, R5.48).
 type Action struct {
-	// ID is remove_runner_leftovers.
+	// ID is remove_runner_leftovers, remove_github_runner or remove_runner_record.
 	ID    string `json:"id"`
 	Label string `json:"label"`
+	// Args are what the call of the button needs back, for the two registration
+	// actions (R5.50). The server checks them again before it removes anything.
+	Args *ActionArgs `json:"args,omitempty"`
+}
+
+// ActionArgs names the one registration an action removes: a GitHub runner no
+// local record owns (remove_github_runner), or a local record GitHub does not
+// list (remove_runner_record, RunnerID).
+type ActionArgs struct {
+	RunnerID       string `json:"runner_id,omitempty"`
+	GitHubRunnerID int64  `json:"github_runner_id,omitempty"`
+	Name           string `json:"name,omitempty"`
+	InstallationID int64  `json:"installation_id,omitempty"`
+	Owner          string `json:"owner,omitempty"`
+	Repo           string `json:"repo,omitempty"`
+	Organization   string `json:"organization,omitempty"`
 }
 
 // Action IDs.
-const ActionRemoveRunnerLeftovers = "remove_runner_leftovers"
+const (
+	ActionRemoveRunnerLeftovers = "remove_runner_leftovers"
+	ActionRemoveGitHubRunner    = "remove_github_runner"
+	ActionRemoveRunnerRecord    = "remove_runner_record"
+)
 
 // Finding is one result for one check and subject (R5.2).
 type Finding struct {

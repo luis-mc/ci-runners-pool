@@ -226,3 +226,44 @@ func TestRunnerInfoOnJob(t *testing.T) {
 func jobsdataJob(id int64) jobsdata.Job {
 	return jobsdata.Job{ID: id, Repository: "o/r", RunID: 1, Attempt: 1}
 }
+
+type fakeDismiss struct {
+	err error
+	id  int64
+	at  time.Time
+}
+
+func (d *fakeDismiss) Dismiss(_ context.Context, id int64, now time.Time) (time.Time, error) {
+	d.id, d.at = id, now
+	return now.Add(insights.DismissFor), d.err
+}
+
+// D17: dismissing is an admin change, hides for 7 days and answers the finding with when it shows again.
+func TestDismissRoute(t *testing.T) {
+	fixed := time.Date(2026, 11, 20, 12, 0, 0, 0, time.UTC)
+	ff := &fakeFindings{items: []insights.StoredFinding{{ID: 7, Finding: insights.Finding{Kind: insights.KindWaitHold, Scope: insights.ScopePool,
+		Area: insights.AreaWaits, Title: "t", Fix: "f"}, FirstSeen: fixed, LastSeen: fixed, DismissedUntil: fixed.Add(insights.DismissFor)}}}
+	dm := &fakeDismiss{}
+	area := &InsightsArea{Findings: ff, Dismiss: dm, Now: func() time.Time { return fixed }}
+	if rec := do(insightsMux(auth.RoleViewer, area), "POST", "/api/v1/insights/findings/7/dismiss", ""); rec.Code != 403 {
+		t.Errorf("a viewer dismissed: %d", rec.Code)
+	}
+	rec := do(insightsMux(auth.RoleAdmin, area), "POST", "/api/v1/insights/findings/7/dismiss", "")
+	if rec.Code != 200 || dm.id != 7 || !dm.at.Equal(fixed) {
+		t.Fatalf("admin dismiss: %d %s (%d %v)", rec.Code, rec.Body, dm.id, dm.at)
+	}
+	if got := insightBody(t, rec)["dismissed_until"]; got != "2026-11-27T12:00:00Z" {
+		t.Errorf("dismissed_until = %v", got)
+	}
+	dm.err = insights.ErrNotFound
+	if rec := do(insightsMux(auth.RoleAdmin, area), "POST", "/api/v1/insights/findings/8/dismiss", ""); rec.Code != 404 {
+		t.Errorf("unknown: %d", rec.Code)
+	}
+	dm.err = insights.ErrResolved
+	if rec := do(insightsMux(auth.RoleAdmin, area), "POST", "/api/v1/insights/findings/7/dismiss", ""); rec.Code != 409 {
+		t.Errorf("resolved: %d", rec.Code)
+	}
+	if rec := do(insightsMux(auth.RoleAdmin, &InsightsArea{}), "POST", "/api/v1/insights/findings/7/dismiss", ""); rec.Code != 501 {
+		t.Errorf("not wired: %d", rec.Code)
+	}
+}

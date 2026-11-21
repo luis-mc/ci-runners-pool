@@ -28,7 +28,7 @@ var otherAreaAuth = map[string]string{
 	"listInsightFindings": authUser, "getInsightFinding": authUser, "getInsightPlan": authUser, "getInsightSummary": authUser,
 	"getWaitSplit": authUser, "getPoolTimeline": authUser, "getPoolSizing": authUser, "listTestInsights": authUser,
 	"listGuardrailStatus": authUser, "listInsightDigests": authUser, "getRunSavings": authUser, "listWorkflowChecks": authUser,
-	"getJobResources": authUser, "createInsightPlan": authAdmin, "startInsightPlan": authAdmin,
+	"getJobResources": authUser, "createInsightPlan": authAdmin, "startInsightPlan": authAdmin, "dismissInsightFinding": authAdmin,
 	// The pool image registry (REG10 contract, docs/features/registry).
 	"getRegistryOverview": authUser, "listRegistryImages": authUser, "getRegistryImage": authUser, "compareRegistryImage": authUser,
 	"getRegistryBudgets": authUser, "getRegistryStoreSettings": authUser, "getRegistryReplacePlan": authUser,
@@ -58,7 +58,7 @@ var otherAreaAuth = map[string]string{
 	"updateQueueSettings": authAdmin, "putEnvSet": authAdmin, "deleteEnvSet": authAdmin, "getRegistrySettings": authAdmin,
 	"putRegistryLogin": authAdmin, "deleteRegistryLogin": authAdmin, "putRegistryCaBundle": authAdmin, "deleteRegistryCaBundle": authAdmin,
 
-	"restoreBackup": authOwner, "runMachineCommand": authOwner, "removeRunnerLeftovers": authAdmin, "updateSettings": authOwner,
+	"restoreBackup": authOwner, "runMachineCommand": authOwner, "removeRunnerLeftovers": authAdmin, "removeRegistration": authAdmin, "startDockerCompact": authAdmin, "updateSettings": authOwner,
 }
 
 // roleFor returns the role an operation needs (public, user, admin or owner).

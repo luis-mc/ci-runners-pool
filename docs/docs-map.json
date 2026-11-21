@@ -22,6 +22,9 @@
     "apps/web/src/screens/registry/**": [
       "docs/features/registry/spec.md"
     ],
+    "apps/web/src/screens/settings/InsightsUpdate*": [
+      "docs/features/ci-run-insights/spec.md"
+    ],
     "cmd/crsp/**": [
       "docs/features/cli/spec.md"
     ],
@@ -216,6 +219,9 @@
     "internal/store/migrations/00030_ci_insights.sql": [
       "docs/features/ci-run-insights/spec.md"
     ],
+    "internal/store/migrations/00031_insight_dismiss.sql": [
+      "docs/features/ci-run-insights/spec.md"
+    ],
     "internal/store/queries/image_builds.sql": [
       "docs/features/registry/spec.md"
     ],
@@ -236,6 +242,9 @@
     ],
     "internal/tray/**": [
       "docs/features/tray/spec.md"
+    ],
+    "internal/tray/menu*.go": [
+      "docs/features/ci-run-insights/spec.md"
     ],
     "internal/trial/**": [
       "docs/features/github-integration/spec.md"

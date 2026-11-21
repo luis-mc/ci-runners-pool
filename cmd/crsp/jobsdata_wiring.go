@@ -51,7 +51,8 @@ type machineNames = machineSource
 func newJobsWiring(ctx context.Context, logger *slog.Logger, st jobsdata.Store, gh *github.REST, rs repos.Store, now func() time.Time) *jobsWiring {
 	lookup := &repoLookup{store: rs}
 	rec := ingest.New(ingest.Config{Writer: st, Reader: st, Forecast: jobForecaster(st, now),
-		Graphs: workflowSource{gh: gh, repos: lookup}, Repos: lookup.id, Now: now, Log: logger, Context: ctx})
+		Graphs: workflowSource{gh: gh, repos: lookup}, Repos: lookup.id, Now: now, Log: logger, Context: ctx,
+		OnJobCompleted: insightsBridge.Trigger})
 	return &jobsWiring{rec: rec, worker: ingest.NewWorker(jobsIngestQueue, logger), log: logger, ctx: ctx}
 }
 

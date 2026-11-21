@@ -1422,6 +1422,71 @@ paths:
                 $ref: '#/components/schemas/HostCommandResult'
         default:
           $ref: '#/components/responses/Error'
+  /api/v1/doctor/registration-fixes:
+    post:
+      operationId: removeRegistration
+      tags: [doctor]
+      summary: Remove one half of a half-registered runner
+      description: >-
+        doctor R5.50, runners R5.94. `remove_github_runner` deletes a GitHub
+        runner with the pool's name prefix that no local record owns;
+        `remove_runner_record` removes the local record (and its service, account
+        and folder when the machine answers) of a runner GitHub does not list.
+        The server reads GitHub and the records again and refuses when the state
+        changed. Without `confirm=true` it answers 409 needs_confirmation naming
+        what goes.
+      x-auth: admin
+      x-rate-limit: 30/minute/user
+      parameters:
+        - $ref: '#/components/parameters/Confirm'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RemoveRegistrationRequest'
+      responses:
+        '200':
+          description: Removed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RemoveRegistrationResult'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/machines/{machineId}/docker-compact:
+    post:
+      operationId: startDockerCompact
+      tags: [machines]
+      summary: Make Docker's disk file smaller now
+      description: >-
+        caches R5.58. The owner starts the compact the policy would start later:
+        the machine is drained (new jobs wait, running jobs finish), Docker's disk
+        file is made smaller, and the machine takes jobs again. Without
+        `confirm=true` it answers 409 needs_confirmation naming the size that can
+        be reclaimed and what happens to jobs. With it the compact starts in the
+        background and answers 202; the machine's `docker_compact_status` shows
+        it running and then its result. Refused with 400 when the agent reports no
+        disk file or has no administrator rights, 409 when the machine is offline
+        or a compact or a change already holds it.
+      x-auth: admin
+      x-rate-limit: 10/minute/user
+      parameters:
+        - $ref: '#/components/parameters/MachineId'
+        - $ref: '#/components/parameters/Confirm'
+      responses:
+        '202':
+          description: The compact has started.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [started]
+                properties:
+                  started:
+                    type: boolean
+        default:
+          $ref: '#/components/responses/Error'
   /api/v1/machines/{machineId}/runner-leftovers/remove:
     post:
       operationId: removeRunnerLeftovers
@@ -4268,6 +4333,27 @@ paths:
       responses:
         '200':
           description: The finding.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InsightFinding'
+        default:
+          $ref: '#/components/responses/Error'
+  /api/v1/insights/findings/{findingId}/dismiss:
+    post:
+      operationId: dismissInsightFinding
+      x-cli: none
+      x-cli-reason: 'Later: the insights commands come in their own task (cli open question 7).'
+      tags: [insights]
+      summary: Hide a finding for 7 days
+      description: ci-run-insights R5.8 (owner decision D17). The finding leaves the Do next list and the counts for 7 days and comes back if it is still true. It is never deleted or closed by this call. 404 when there is no such finding, 409 when it is resolved.
+      x-auth: admin
+      x-rate-limit: 60/minute/user
+      parameters:
+        - $ref: '#/components/parameters/FindingId'
+      responses:
+        '200':
+          description: The finding, with when it shows again.
           content:
             application/json:
               schema:
@@ -8491,6 +8577,43 @@ components:
         why:
           type: string
           description: Why it is not owned, in words for people.
+    RegistrationActionArgs:
+      type: object
+      description: What a registration action needs back (doctor R5.50).
+      properties:
+        runner_id:
+          type: string
+        github_runner_id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        installation_id:
+          type: integer
+          format: int64
+        owner:
+          type: string
+        repo:
+          type: string
+        organization:
+          type: string
+    RemoveRegistrationRequest:
+      type: object
+      required: [action, args]
+      properties:
+        action:
+          type: string
+          enum: [remove_github_runner, remove_runner_record]
+        args:
+          $ref: '#/components/schemas/RegistrationActionArgs'
+    RemoveRegistrationResult:
+      type: object
+      required: [removed, name]
+      properties:
+        removed:
+          type: boolean
+        name:
+          type: string
     RemoveRunnerLeftoversRequest:
       type: object
       required: [items]
@@ -8572,14 +8695,16 @@ components:
             $ref: '#/components/schemas/RunnerLeftover'
         action:
           type: object
-          description: The one button the finding offers. `remove_runner_leftovers` removes `items` through POST /api/v1/machines/{machineId}/runner-leftovers/remove (the subject is the machine).
+          description: The one button the finding offers. `remove_runner_leftovers` removes `items` through POST /api/v1/machines/{machineId}/runner-leftovers/remove (the subject is the machine). `remove_github_runner` and `remove_runner_record` send `args` through POST /api/v1/doctor/registration-fixes.
           required: [id, label]
           properties:
             id:
               type: string
-              enum: [remove_runner_leftovers]
+              enum: [remove_runner_leftovers, remove_github_runner, remove_runner_record]
             label:
               type: string
+            args:
+              $ref: '#/components/schemas/RegistrationActionArgs'
         milestone:
           type: integer
         checked_at:
@@ -8686,6 +8811,15 @@ components:
           type: string
           maxLength: 100
           description: ci-run-insights R5.31. Name pattern of the guard report artifact. Default test-guardrails*.
+        insights_update_period:
+          type: string
+          enum: [every_run, every_nth_run, hourly]
+          description: ci-run-insights R5.44 (owner decisions D18, D19). How often insights are re-analysed. every_run (the default) analyses after each CI run; every_nth_run after every Nth run; hourly once an hour. The cost warning recommends a slower one.
+        insights_update_every_n_runs:
+          type: integer
+          minimum: 2
+          maximum: 50
+          description: ci-run-insights R5.44. N of every_nth_run. Default 5.
         auto_update:
           type: boolean
           description: operations R5.15. On by default. When on, a newer stable release installs by itself after a drain. When off, the console Review step asks first.
@@ -10057,6 +10191,10 @@ components:
         first_seen: { type: string, format: date-time }
         last_seen: { type: string, format: date-time }
         resolved_at: { type: string, format: date-time }
+        dismissed_until:
+          type: string
+          format: date-time
+          description: Set while the finding is hidden (owner decision D17); it shows again at this time if it is still true.
     InsightFindingList:
       type: object
       required: [items, total]
