@@ -7,7 +7,7 @@ status: proposed
 version: 0.1.0
 owner: owner
 type: reference
-code: ["internal/insights/**", "internal/jobsdata/reconcile/**", "internal/agent/jobsample/**", "internal/github/rest_insights*.go", "internal/doctor/checks/workflows*.go", "internal/agentlink/insights*.go", "internal/agent/jobsample*.go", "cmd/crsp/insights*wiring.go", "internal/store/insights*.go", "internal/store/queries/insights_*.sql", "internal/store/migrations/00030_ci_insights.sql", "internal/api/handlers_insights*.go", "apps/web/src/screens/insights/**"]
+code: ["internal/insights/**", "internal/jobsdata/reconcile/**", "internal/agent/jobsample/**", "internal/github/rest_insights*.go", "internal/doctor/checks/workflows*.go", "internal/agentlink/insights*.go", "internal/agent/jobsample*.go", "cmd/crsp/insights*wiring.go", "internal/store/insights*.go", "internal/store/queries/insights_*.sql", "internal/store/migrations/00030_ci_insights.sql", "internal/store/migrations/00031_insight_dismiss.sql", "internal/tray/menu*.go", "apps/web/src/screens/settings/InsightsUpdate*", "internal/api/handlers_insights*.go", "apps/web/src/screens/insights/**"]
 design_system: [UX-4, UX-6, UX-11, UX-14, UX-17, UX-18, UX-19, UX-25, UX-28, UX-29, UX-30, UX-33, UX-38, UX-41, UX-49, UX-52, UX-53, UX-54, UX-58, UX-62, UX-71, UX-72]
 last_verified: 2026-11-20
 artifact:
@@ -47,7 +47,7 @@ crsp already sees every CI job of the repositories it watches: the jobs its own 
 - No auto-resize, no auto-merge, no change to the pool without the owner's yes (owner decision 20 Nov).
 - No static scan of test source files (that is the dev-standards guard's job); crsp reads test reports, logs and workflow files only.
 - No upload anywhere: the digest is a local file, never sent (observability R6.7).
-- Findings cannot be dismissed (as registry R5.45): one goes away when its condition ends.
+- A finding is never deleted or closed by hand: one goes away when its condition ends. The owner can hide it for 7 days; it comes back if it is still true (R5.8, owner decision D17).
 
 ## 3. How it works
 
@@ -61,7 +61,7 @@ flowchart LR
   tr --> an
   res --> an
   wf[(workflow_checks, guardrail_reports)] --> an
-  an[Analysers every 15 min] --> fs[(insight_findings)]
+  an[Analysers after each CI run, and on a timer] --> fs[(insight_findings)]
   fs --> api[API /api/v1/insights] --> web[Console: Do next, Waits, Timeline, Tests, Guardrails, Pool size, Repository, Run, Job]
   fs --> doc[Doctor: workflow checks]
   fs --> dig[Weekly digest file]
@@ -71,15 +71,15 @@ flowchart LR
 1. **Collect.** For every job crsp sees, the ingest already stores runs, jobs, steps and slot times (observability R5.35). The collector adds, in the background and within a share of the GitHub rate budget: the job's steps when no webhook gave them, the job's real state when its row looks stale, its log, the run's test report and guardrail report artifacts, and the workflow file at the head commit (already fetched for `needs`).
 2. **Store.** Logs and reports go through the redactor first and land in the CI data folder on the owner's machine, with a retention limit and a size cap per repository (owner decision D4). Parsed test results, checks and samples go to the main database.
 3. **Measure.** Each agent samples CPU and memory per running job and sends the samples over the agent link.
-4. **Analyse.** Analysers run every 15 minutes over the last 7 days (28 days for trends). Each one writes findings: what is wrong, the fix in words, the evidence and the minutes it would save a week.
+4. **Analyse.** Analysers run after each CI run (a job reaching done, from its webhook) and on a 15 minute timer, over the last 7 days (14 days for flaky tests, 28 days for trends). Each pass is measured (R5.45); the owner can choose a slower period in Settings (R5.44). Each one writes findings: what is wrong, the fix in words, the evidence and the minutes it would save a week.
 5. **Rank and show.** Findings across projects form one Do next list, ranked by minutes saved a week. Each screen shows the findings that belong to it; the Overview shows only a count and a link.
 6. **Act.** A finding whose fix is a crsp setup change offers an action: a plan the owner reviews, then the work, then Done. A finding whose fix is in a repository says what to change there.
-7. **Resolve.** When an analyser no longer sees a finding's condition over a full window, the finding is resolved. Nobody dismisses it.
-8. **Digest.** Once a week crsp writes a local digest file with the top 3 findings and what changed.
+7. **Resolve.** When an analyser no longer sees a finding's condition over a full window, the finding is resolved. A hidden finding (R5.8) that is still true comes back after 7 days; one that is not is resolved like any other.
+8. **Digest.** Every Monday at 08:00 Europe/Lisbon crsp writes a local digest file, a draft that is never sent, with the top 3 findings and what changed. The tray menu links to it (R5.38).
 
 ## 4. Screens and states
 
-Screens follow design system v2: UX rules, components and content words. New words go to `next-version` content first (section 11).
+Screens follow design system v3: UX rules, components and content words. New words go to `next-version` content first (section 11).
 
 ### 4.1 Jobs, Charts area
 
@@ -89,7 +89,7 @@ The Charts tab (web-console 4.6) gets a segment row (component 12) under its tit
 
 **Do next (idea 1).** One table (component 15, design system UX-25, UX-72): what to do, project (or "the pool"), area, about how many minutes a week it saves, since when, and the row action *Open*. Ranked by minutes saved; a tie goes to the older finding. A guardrail finding names its guardrail ("G2"). A folded section (component 47) holds the latest weekly digest as text. Empty: "Nothing to do. crsp found no waste in the last 7 days." (design system UX-6). Not enough data (under 50 finished jobs in the window): "Not enough finished jobs yet to rank anything. crsp needs a few days of CI." (design system UX-6).
 
-**Finding page (`#/jobs/charts/do-next/<id>`).** One headline in words (design system UX-3), the fix in plain words, a copyable snippet where the fix is a workflow change (component 39), the evidence as a table and, where it helps, a chart (design system UX-41), the minutes saved labelled "estimate" with how it was counted, first and last seen (design system UX-53). A finding whose fix changes the crsp setup has one primary, *Review the change*, in the action bar (component 48, design system UX-4, UX-71); it opens the wizard of 4.7. A finding whose fix is in a repository has no change primary. *Open the workflow on GitHub* comes back once the finding carries the repository address from the API (the web console holds no absolute address, guard `no-hardcoded-addresses`; CRSP208 left it out). No dismiss button exists (registry R5.45).
+**Finding page (`#/jobs/charts/do-next/<id>`).** One headline in words (design system UX-3), the fix in plain words, a copyable snippet where the fix is a workflow change (component 39), the evidence as a table and, where it helps, a chart (design system UX-41), the minutes saved labelled "estimate" with how it was counted, first and last seen (design system UX-53). A finding whose fix changes the crsp setup has one primary, *Review the change*, in the action bar (component 48, design system UX-4, UX-71); it opens the wizard of 4.7. A finding whose fix is in a repository has no change primary. *Open the workflow on GitHub* comes back once the finding carries the repository address from the API (the web console holds no absolute address, guard `no-hardcoded-addresses`; CRSP208 left it out). A secondary action *Hide for 7 days* (busy word Hiding) hides the finding from Do next and the counts; the page then says "Hidden until {time}. It comes back then if it is still true." and the button is disabled with that reason (design system UX-38). A resolved finding has no such button (R5.8).
 
 **Waits (idea 11).** A Trend chart (component 52) of wait, hold and run per day, stacked, with a table view (design system UX-17, UX-41); a table per repository and per job key: jobs, median and p95 of wait, hold and run, and holds over the cap with their reason in words (design system UX-29). Range 7, 14 or 30 days, named (design system UX-33).
 
@@ -134,6 +134,8 @@ Workflow checks show as Doctor findings in an area Workflows, with the fix (doct
 
 A pane **CI data** in the Data tab: a switch "Keep CI logs and test reports" (on by default, owner decision D4; design system UX-22), days to keep (number keypad, component 37), size per repository, and the space used now per repository as a table. The tab's one Save sends them (design system UX-71).
 
+A pane **CI run insights** in the same tab: a one-choice list *Update period* (*After every CI run*, the default; *After every few CI runs*; *Once an hour*) and, for the middle choice, a number *Runs between updates* (2 to 50, default 5). Only the owner changes it. It is saved with the tab's one Save (R5.44; design system UX-22, UX-71).
+
 ### 4.10 States
 
 Every new screen has loading, empty, could not load (with Try again; design system UX-28) and live. A list waits on GitHub's limit with "Waiting for GitHub's hourly limit until {time}; {n} jobs not read yet." (design system UX-29). A screen keeps its h1 in every state (design system UX-17).
@@ -160,7 +162,7 @@ Requirement IDs are this spec's own. "Idea n" is the owner's list of 20 Nov 2026
 
 **R5.7** — **Shape.** A finding has: kind (section 7), scope (`repo` or `pool`), repository, subject (what it is about: a job key, a label set, a workflow file, a test), title in plain words, fix in plain words, optional snippet, evidence (JSON with the numbers the screens show), minutes saved a week (an estimate), guardrail (G1 to G7 or none), action kind (none when the fix is outside crsp), first seen, last seen, resolved at.
 
-**R5.8** — **No dismiss; resolve by condition.** No API, CLI or screen dismisses or hides a finding. An analyser run over a full window that no longer reports a finding sets its `resolved_at`. The same condition seen again later opens a new finding; the resolved one is kept for the retention (R6.2) as history.
+**R5.8** — **Resolve by condition; hide for 7 days.** Nothing deletes or closes a finding by hand: the `FindingStore` has no such method. An analyser run over a full window that no longer reports a finding sets its `resolved_at`. An admin can hide an open finding with `dismissInsightFinding` (owner decision D17): it leaves the Do next list and the counts for 7 days (`insight_findings.hidden_until`) and is back after that if it is still true. The engine keeps refreshing a hidden finding, so "still true" needs no second check; a hidden finding whose condition ends is resolved as usual, and a resolved one cannot be hidden (409). The same condition seen again later opens a new finding; the resolved one is kept for the retention (R6.2) as history.
 
 **R5.9** — **Minutes saved a week.** Every kind states how it counts minutes (section 7, Minutes table). The figure is the minutes of the last 7 days the fix would have removed, rounded to whole minutes, and is labelled "estimate". A finding that saves no time (G4, G5) has 0 and ranks by guardrail order after the others.
 
@@ -247,7 +249,7 @@ Requirement IDs are this spec's own. "Idea n" is the owner's list of 20 Nov 2026
 
 **R5.34** — **Test times.** Per test and job key: runs, median and p95 duration, failures over the window. A test over its G1 limit (unit 10 s, integration 60 s, end-to-end 2 min; the kind is read from the job and file names, else unit) is marked. The slowest tests of a repository with 5 min or more a week give a `test.slow` finding.
 
-**R5.35** — **Flaky.** A test is flaky when, for the same job key and the same head commit, it has different results across attempts, or it passed after a retry inside one job. Each flaky test gives a `test.flaky` finding with the runs that prove it; minutes are the re-run time it caused.
+**R5.35** — **Flaky.** Over the last 14 days (owner decision D21; the other test findings keep 7), a test is flaky when, for the same job key and the same head commit, it has different results across attempts, or it passed after a retry inside one job. Each flaky test gives a `test.flaky` finding with the runs that prove it; minutes are the re-run time it caused.
 
 **R5.36** — **Duplicated.** The same test id run in two or more job keys of one run (not a matrix of the same job) gives a `test.duplicate` finding with the minutes of the extra runs.
 
@@ -255,7 +257,7 @@ Requirement IDs are this spec's own. "Idea n" is the owner's list of 20 Nov 2026
 
 ### Weekly digest (idea 10)
 
-**R5.38** — **Local digest.** Every Monday at 07:00 local time crsp writes `<data dir>/ci-data/digests/<YYYY>-W<ww>.md`: the top 3 open findings by minutes saved with their fixes, findings opened and resolved in the week, guardrail changes per repository, and the week's totals of wait, hold and run. It is never sent. `listInsightDigests` returns the last 12 with their text; the Do next segment shows the latest (4.1). The last 52 files are kept.
+**R5.38** — **Local digest.** Every Monday at 08:00 Europe/Lisbon time (owner decision D18; the zone is built into the program, so a machine without a zone database writes at the same moment) crsp writes `<data dir>/ci-data/digests/<YYYY>-W<ww>.md`: the top 3 open findings by minutes saved with their fixes, findings opened and resolved in the week, guardrail changes per repository, and the week's totals of wait, hold and run. It is a draft file and is never sent. `listInsightDigests` returns the last 12 with their text; the Do next segment shows the latest (4.1). The last 52 files are kept. The tray menu shows *Open weekly digest* when a digest file exists and opens it (tray status field `digest_path`).
 
 ### Job page faults (item 17)
 
@@ -267,7 +269,11 @@ Requirement IDs are this spec's own. "Idea n" is the owner's list of 20 Nov 2026
 
 ### Interfaces
 
-**R5.42** — **API.** Read routes are viewer role (`user`): `listInsightFindings`, `getInsightFinding`, `getInsightSummary`, `getWaitSplit`, `getPoolTimeline`, `getPoolSizing`, `listTestInsights`, `listGuardrailStatus`, `listInsightDigests`, `getRunSavings`, `listWorkflowChecks`, `getJobResources`, `getInsightPlan`. Changes are admin: `createInsightPlan`, `startInsightPlan`. The contract is `packages/contract/openapi.yaml`.
+**R5.42** — **API.** Read routes are viewer role (`user`): `listInsightFindings`, `getInsightFinding`, `getInsightSummary`, `getWaitSplit`, `getPoolTimeline`, `getPoolSizing`, `listTestInsights`, `listGuardrailStatus`, `listInsightDigests`, `getRunSavings`, `listWorkflowChecks`, `getJobResources`, `getInsightPlan`. Changes are admin: `createInsightPlan`, `startInsightPlan`, `dismissInsightFinding`. The contract is `packages/contract/openapi.yaml`.
+
+**R5.44** — **When insights update (owner decisions D18, D19).** Analysers run again after each CI run: the job ingest tells the engine when a job first reaches done (`Trigger`), and the engine starts a pass at once; runs that finish during a pass are counted and decided after it, so passes never overlap. The 15 minute timer stays as a safety net. The *update period* (settings `insights_update_period`: `every_run`, the default, `every_nth_run`, `hourly`; and `insights_update_every_n_runs`, 2 to 50, default 5) says how often: `every_run` runs after each finished run and on the timer; `every_nth_run` after every Nth finished run and, as a safety net, once an hour; `hourly` only on an hourly timer. The engine reads the setting at every decision, so a change takes effect without a restart.
+
+**R5.45** — **The analysis measures itself (owner decisions D18, D19).** Every pass is measured: the average CPU over the pass (percent of one core, the whole process, so an upper bound), the peak memory of the process during the pass, and the size on disk of the insights store (the CI data folder and the database file with its log). Over 5 percent CPU, 300 MB memory or 1 GB disk, the engine opens a pool-scope finding of kind `insights.cost` (area pool, 0 minutes) that names what is over and recommends a slower update period: after every 5th CI run, or once an hour; when the period is already once an hour, it recommends keeping less CI data or a bigger machine. The owner chooses the period in Settings (4.9); nothing changes by itself (R6.6). A pass back under all three limits resolves the finding.
 
 **R5.43** — **Doctor.** The doctor reads `workflow_checks` and shows the failing checks as findings in an area Workflows, one per repository and check ID (doctor feature, R5.2 shape).
 
@@ -289,7 +295,7 @@ Requirement IDs are this spec's own. "Idea n" is the owner's list of 20 Nov 2026
 
 Whichever of a time or a size limit is reached first applies; the oldest goes first. A typical repository of 2,000 jobs a week keeps about 0.6 GiB of gzipped logs for 30 days and about 40 MiB of database rows.
 
-**R6.3** — **CPU cost of analysis.** Analysers run every 15 min, one at a time, on the last window only (incremental where the kind allows). On a controller with 20,000 jobs a week the analysis uses under 2 percent of one CPU core averaged over an hour, and one pass of any analyser ends within 30 s; a pass over that is logged and shown to the doctor. Parsers stream: under 64 MiB of memory per file. The analysis never runs inside a scheduler transaction and never delays a slot.
+**R6.3** — **CPU cost of analysis.** Analysers run after each CI run and every 15 min (R5.44), one at a time, on the last window only (incremental where the kind allows). On a controller with 20,000 jobs a week the analysis uses under 2 percent of one CPU core averaged over an hour, and one pass of any analyser ends within 30 s; a pass over that is logged and shown to the doctor. Parsers stream: under 64 MiB of memory per file. The analysis never runs inside a scheduler transaction and never delays a slot.
 
 **R6.4** — **Agent cost.** Sampling (R5.19) uses under 0.5 percent of one CPU core per machine and under 1 KiB/s on the agent link per running job.
 
@@ -342,11 +348,13 @@ Whichever of a time or a size limit is reached first applies; the oldest goes fi
 | `workflow.timeout`, `workflow.retry`, `workflow.matrix_axis`, `workflow.step_order`, `workflow.cache`, `workflow.slow_tests_on_pr` | repo | workflows | R5.30 | none |
 | `guardrail.g1` to `guardrail.g7` | repo | guardrails | 0, except G1 (minutes of tests over the limit) | none |
 | `test.slow`, `test.flaky`, `test.duplicate`, `test.no_assertions` | repo | tests | R5.34 to R5.37 | none |
+| `insights.cost` | pool | pool | 0 (a warning about the analysis itself, R5.45) | none |
 
 A subject is the stable key of a finding inside its kind; the store keeps one open finding per (kind, scope, repository, subject).
 
 ### The contract (CIX8)
 
+- Migration `internal/store/migrations/00031_insight_dismiss.sql` (CIX23, D17): `insight_findings.hidden_until`.
 - Migration `internal/store/migrations/00030_ci_insights.sql`: `insight_findings`, `insight_analyser_runs`, `insight_plans`, `ci_job_logs`, `ci_report_files`, `test_results`, `job_resource_samples`, `job_resource_summary`, `workflow_checks`, `guardrail_reports`, `insight_digests`, and the job columns `runner_origin`, `runner_group`, `runner_labels`, `steps_source`, `checked_at`. Numbers 00022 to 00029 stay reserved for the registry wave.
 - Queries in `internal/store/queries/insights_*.sql`, one file per family; sqlc writes `internal/store/sqlcgen/insights_*.sql.go`.
 - API: `/api/v1/insights/*`, `/api/v1/runs/{runId}/savings`, `/api/v1/repositories/{repositoryId}/workflow-checks`, `/api/v1/jobs/{jobId}/resources`; new optional fields on `Job` and `Settings`. Handlers in `internal/api/handlers_insights.go` (CIX21); a service not wired answers 501.
@@ -383,7 +391,7 @@ Every row is planned; the paths are where each test will live (wave CIX).
 | R5.5 | internal/settings/settings_test.go TestInsightsRanges; apps/web/src/screens/settings/CiData.test.tsx |
 | R5.6 | internal/insights/collect/retention_test.go TestDaysThenSizeCapOldestFirst, TestMissingFileDoesNotStopPrune |
 | R5.7 | internal/store/insights_test.go TestFindingRoundTrip |
-| R5.8 | internal/insights/engine_test.go TestResolvedWhenConditionEnds, TestFailedRunResolvesNothing, TestNoDismissRoute |
+| R5.8 | internal/insights/engine_test.go TestResolvedWhenConditionEnds, TestFailedRunResolvesNothing, TestNoDismissRoute; internal/store/insights_test.go TestDismissHidesForSevenDays; internal/api/handlers_insights_test.go TestDismissRoute; apps/web/src/screens/insights/Finding.test.tsx |
 | R5.9 | internal/insights/engine_test.go TestMinutesRoundedAndLabelled |
 | R5.10 | planned: internal/insights/actions/actions_test.go TestNothingChangesBeforeStart, TestStartWritesAuditPerChange; apps/web/src/screens/insights/ActionWizard.test.tsx |
 | R5.11 | internal/insights/rank_test.go TestRankByMinutesThenAge, TestRankZeroMinutesByGuardrail, internal/store/insights_test.go TestListRankFilterPage; apps/web/src/screens/insights/DoNext.test.tsx |
@@ -410,15 +418,17 @@ Every row is planned; the paths are where each test will live (wave CIX).
 | R5.32 | internal/insights/guardrails/status_test.go TestOwnChecksAndSources |
 | R5.33 | internal/insights/tests/parsers_test.go TestEachFormatFromFixture |
 | R5.34 | internal/insights/tests/times_test.go TestOverG1Limit |
-| R5.35 | internal/insights/tests/flaky_test.go TestSameCommitDifferentResult |
+| R5.35 | internal/insights/tests/flaky_test.go TestSameCommitDifferentResult, internal/insights/tests/service_test.go TestFlakyWindowIs14Days |
 | R5.36 | internal/insights/tests/duplicate_test.go TestSameIdTwoJobs |
 | R5.37 | internal/insights/tests/assertions_test.go TestZeroOnlyWhenReported |
-| R5.38 | internal/insights/digest/digest_test.go TestWeeklyFileTopThree, TestNextRunMonday0700, TestKeepsLast52 |
+| R5.38 | internal/insights/digest/digest_test.go TestWeeklyFileTopThree, TestNextRunMonday0800, TestNextRunLisbon, TestKeepsLast52; internal/tray/menu_test.go TestDigestItemOnlyWithAFile; cmd/crsp/insights_wiring_test.go TestLatestDigest |
 | R5.39 | internal/jobsdata/reconcile/origin_test.go TestCrspOtherHosted; apps/web/src/screens/jobs/JobPage.test.tsx; internal/jobsdata/ingest/origin_test.go TestOnRunnerRecordsOrigin; internal/store/insights_jobs_test.go TestIntegrationSetRunnerOriginKeepsStored; internal/github/rest_insights_jobs_test.go TestRESTJobReadsRunnerAndSteps; internal/api/handlers_insights_test.go TestRunnerInfoOnJob |
 | R5.40 | internal/jobsdata/reconcile/steps_test.go TestStepsByRESTOnce, TestWatchReadsAtMostEveryMinute; internal/jobsdata/ingest/origin_test.go TestOnStepsMarksSourceEvents; internal/store/insights_jobs_test.go TestIntegrationApplyKeepsEventSteps |
 | R5.41 | internal/jobsdata/reconcile/stale_test.go TestStaleQueuedBecomesDone, TestGoneBecomesLost; internal/store/insights_jobs_test.go TestIntegrationApplyDoneAndOrigin, TestIntegrationMarkLost, TestIntegrationCompletedRunListedWhenFresh |
 | R5.42 | internal/api/handlers_insights_test.go TestRolesAndShapes, TestWaitSplitHoldCapAndRanges, TestTimelineSpan, TestUnwiredServiceAnswers501 |
 | R5.43 | internal/doctor/checks/workflows_test.go TestWorkflowFindings, TestWorkflowFindingsWithoutSource |
+| R5.44 | internal/insights/engine_cost_test.go TestPeriodDue, TestFinishedRunStartsAPass, TestEveryNthRunWaitsForN, TestHourlyIgnoresFinishedRuns; internal/jobsdata/ingest/recorder_test.go TestOnJobCompletedCallsOnceAtDone; internal/settings/settings_test.go TestInsightsUpdatePeriod; cmd/crsp/insights_wiring_test.go TestBridgeForwardsFinishedRuns, TestPeriodOfSettings; apps/web/src/screens/settings/InsightsUpdate.test.tsx |
+| R5.45 | internal/insights/engine_cost_test.go TestCostWarningOpensAndResolves, TestCostAdviceFollowsThePeriod, TestProcessMeterMeasuresAPass; cmd/crsp/insights_wiring_test.go TestNewInsightsEngineMeasuresEachPass |
 | R6.1 | internal/insights/collect/budget_test.go TestQuarterShareAndOrder, TestCollectorWaitsForTheShare; internal/github/rest_insights_test.go TestInsightsCallsAreBackground |
 | R6.2 | internal/insights/collect/retention_test.go TestDefaultsFloorsCeilings |
 | R6.3 | internal/insights/engine_bench_test.go BenchmarkPass20kJobs, internal/insights/engine_test.go TestRunSchedule |
@@ -435,7 +445,9 @@ Every row is planned; the paths are where each test will live (wave CIX).
 |---|---|---|---|
 | D1 | Build which ideas, when? | All 16 ideas and the Job page faults, one wave, one release (owner) | 2026-11-20 |
 | D2 | May crsp store CI logs and reports? | Yes, on the owner's machines only, redacted, with retention and a size cap per repository (owner decision D4; observability R5.38 reworded) | 2026-11-20 |
-| D3 | Can a finding be dismissed? | No; it goes away when its condition ends, like registry R5.45 (owner) | 2026-11-20 |
+| D3 | Can a finding be dismissed? | Changed by owner decision D17 (20 Nov): an admin can hide it for 7 days and it comes back if it is still true; nothing closes or deletes it by hand (R5.8) | 2026-11-20 |
+| D8 | When do insights update, and what may they cost? | After each CI run and on a timer; a pass over 5% CPU, 300 MB or 1 GB shows a warning with a slower period to choose (owner decisions D18, D19; R5.44, R5.45) | 2026-11-20 |
+| D9 | When is the weekly digest written, and how long is the flaky window? | Monday 08:00 Europe/Lisbon, a draft file the tray links to; 14 days for flaky tests (owner decisions D18, D21; R5.38, R5.35) | 2026-11-20 |
 | D4 | May crsp change the pool to follow its advice? | Only as an action the owner reviews and an admin starts (Review, work, Done); no auto-resize, no auto-merge (owner) | 2026-11-20 |
 | D5 | Where does Do next live? | Jobs, Charts area; the Overview shows a count and a link (owner, UX-52) | 2026-11-20 |
 | D6 | How is the wait after a change estimated? | Allen-Cunneen G/G/c with Sakasegawa's waiting probability, shown as an estimate with its inputs | 2026-11-20 |

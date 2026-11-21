@@ -18,6 +18,9 @@ const (
 	maxRows      = 500000
 	slowPerRepo  = 5
 	defaultLimit = 50
+	// FlakyWindow is how far back flaky tests are looked for: 14 days, wider than the 7 day window of the other
+	// kinds, because the same commit seldom gives two results within a week (owner decision D21, R5.35).
+	FlakyWindow = 14 * 24 * time.Hour
 )
 
 // Service is the tests analyser (insights.Analyser) and the reader of the Tests segment (Reader).
@@ -100,16 +103,32 @@ func (s *Service) Analyse(ctx context.Context, w insights.Window) ([]insights.Fi
 	}
 	var out []insights.Finding
 	for _, id := range sortedIDs(repos) {
-		rows, err := s.load(ctx, id, w)
+		wide := insights.Window{From: w.To.Add(-FlakyWindow), To: w.To}
+		if w.From.Before(wide.From) {
+			wide.From = w.From
+		}
+		all, err := s.load(ctx, id, wide)
 		if err != nil {
 			return nil, err
 		}
-		out = append(out, s.findings(id, repos[id], rows)...)
+		out = append(out, s.findings(id, repos[id], inWindow(all, w), all)...)
 	}
 	return out, nil
 }
 
-func (s *Service) findings(repoID int64, repo string, rows []Row) []insights.Finding {
+// inWindow keeps the rows finished in w; a row with no finish time is kept (unknown is never "old").
+func inWindow(rows []Row, w insights.Window) []Row {
+	out := make([]Row, 0, len(rows))
+	for _, r := range rows {
+		if r.FinishedAt.IsZero() || !r.FinishedAt.Before(w.From) && r.FinishedAt.Before(w.To) {
+			out = append(out, r)
+		}
+	}
+	return out
+}
+
+// findings builds the findings of one repository: rows is the 7 day window, flakyRows the 14 day one (D21).
+func (s *Service) findings(repoID int64, repo string, rows, flakyRows []Row) []insights.Finding {
 	base := func(k insights.Kind, subject, title, fix string, mins int, ev any) insights.Finding {
 		b, _ := json.Marshal(ev)
 		return insights.Finding{Kind: k, Scope: insights.ScopeRepo, RepositoryID: repoID, Repository: repo,
@@ -126,7 +145,7 @@ func (s *Service) findings(repoID int64, repo string, rows []Row) []insights.Fin
 			map[string]any{"testId": t.TestID, "runs": t.Runs, "weeklySeconds": int(t.WeeklyTotal.Seconds()),
 				"slowestSeconds": t.Slowest.Seconds(), "kind": t.Kind, "file": t.File}))
 	}
-	for _, f := range FlakyTests(rows) {
+	for _, f := range FlakyTests(flakyRows) {
 		out = append(out, base(insights.KindTestFlaky, f.TestID,
 			fmt.Sprintf("Test %q is flaky: same commit, different result", f.Name),
 			"Fix the test so it gives one result for one commit (shared state, time, order, network). Do not add retries.",
@@ -163,6 +182,9 @@ func (s *Service) Tests(ctx context.Context, v View, repositoryID int64, days, l
 			return nil, 0, "", false, fmt.Errorf("bad cursor")
 		}
 		off = n
+	}
+	if min := int(FlakyWindow / (24 * time.Hour)); v == Flaky && days < min {
+		days = min // the flaky window is 14 days whatever range the page asked for (D21)
 	}
 	now := s.now()
 	w := insights.Window{From: now.AddDate(0, 0, -days), To: now}

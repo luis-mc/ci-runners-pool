@@ -45,6 +45,9 @@ type Settings struct {
 	InsightsResourceSamplesDays    int
 	InsightsHoldCapSeconds         int
 	InsightsGuardrailArtifact      string
+	// InsightsUpdatePeriod is how often insights are re-analysed: every_run, every_nth_run or hourly (D18, D19).
+	InsightsUpdatePeriod       string
+	InsightsUpdateEveryNthRuns int
 }
 
 // Patch is a partial change. A nil field is left alone.
@@ -67,6 +70,8 @@ type Patch struct {
 	InsightsResourceSamplesDays    *int
 	InsightsHoldCapSeconds         *int
 	InsightsGuardrailArtifact      *string
+	InsightsUpdatePeriod           *string
+	InsightsUpdateEveryNthRuns     *int
 }
 
 // Defaults are the owner's defaults (observability R6.8, operations R5.21).
@@ -89,6 +94,13 @@ var Defaults = Settings{
 	InsightsResourceSamplesDays:    7,
 	InsightsHoldCapSeconds:         120,
 	InsightsGuardrailArtifact:      "test-guardrails*",
+	InsightsUpdatePeriod:           "every_run",
+	InsightsUpdateEveryNthRuns:     5,
+}
+
+// validUpdatePeriod says whether v is one of the update periods of CI run insights (D18, D19).
+func validUpdatePeriod(v string) bool {
+	return v == "every_run" || v == "every_nth_run" || v == "hourly"
 }
 
 // MaxGuardrailArtifactLen is the longest guard report name pattern (openapi maxLength).
@@ -113,6 +125,7 @@ var Ranges = map[string]Range{
 	"insights_test_results_days":          {14, 400},
 	"insights_resource_samples_days":      {1, 30},
 	"insights_hold_cap_seconds":           {30, 900},
+	"insights_update_every_n_runs":        {2, 50},
 }
 
 // RangeError lists every refused value with its allowed range.
@@ -157,6 +170,11 @@ func (s *Service) Get(ctx context.Context) (Settings, error) {
 			var v string
 			if json.Unmarshal([]byte(r.Value), &v) == nil && validGuardrailArtifact(v) {
 				out.InsightsGuardrailArtifact = v
+			}
+		case "insights_update_period":
+			var v string
+			if json.Unmarshal([]byte(r.Value), &v) == nil && validUpdatePeriod(v) {
+				out.InsightsUpdatePeriod = v
 			}
 		case "backup_time_local":
 			var v string
@@ -209,6 +227,8 @@ func intField(s *Settings, key string) *int {
 		return &s.InsightsResourceSamplesDays
 	case "insights_hold_cap_seconds":
 		return &s.InsightsHoldCapSeconds
+	case "insights_update_every_n_runs":
+		return &s.InsightsUpdateEveryNthRuns
 	}
 	return nil
 }
@@ -237,6 +257,7 @@ func (s *Service) Update(ctx context.Context, actor audit.Actor, p Patch) (Setti
 		"insights_test_results_days":          p.InsightsTestResultsDays,
 		"insights_resource_samples_days":      p.InsightsResourceSamplesDays,
 		"insights_hold_cap_seconds":           p.InsightsHoldCapSeconds,
+		"insights_update_every_n_runs":        p.InsightsUpdateEveryNthRuns,
 	}
 	var problems []string
 	changes := map[string]any{}
@@ -290,6 +311,18 @@ func (s *Service) Update(ctx context.Context, actor audit.Actor, p Patch) (Setti
 			changes["insights_guardrail_artifact"] = before.InsightsGuardrailArtifact + " -> " + v
 			b, _ := json.Marshal(v)
 			writes["insights_guardrail_artifact"] = string(b)
+		}
+	}
+	if p.InsightsUpdatePeriod != nil {
+		v := *p.InsightsUpdatePeriod
+		switch {
+		case !validUpdatePeriod(v):
+			problems = append(problems, "insights_update_period must be every_run, every_nth_run or hourly")
+		case v != before.InsightsUpdatePeriod:
+			after.InsightsUpdatePeriod = v
+			changes["insights_update_period"] = before.InsightsUpdatePeriod + " -> " + v
+			b, _ := json.Marshal(v)
+			writes["insights_update_period"] = string(b)
 		}
 	}
 	target := audit.Target{Type: "settings", ID: "controller"}

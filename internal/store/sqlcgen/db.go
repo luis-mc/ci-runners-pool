@@ -159,6 +159,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.deleteWorkflowChecksBeforeStmt, err = db.PrepareContext(ctx, deleteWorkflowChecksBefore); err != nil {
 		return nil, fmt.Errorf("error preparing query DeleteWorkflowChecksBefore: %w", err)
 	}
+	if q.dismissInsightFindingStmt, err = db.PrepareContext(ctx, dismissInsightFinding); err != nil {
+		return nil, fmt.Errorf("error preparing query DismissInsightFinding: %w", err)
+	}
 	if q.endSessionStmt, err = db.PrepareContext(ctx, endSession); err != nil {
 		return nil, fmt.Errorf("error preparing query EndSession: %w", err)
 	}
@@ -1299,6 +1302,11 @@ func (q *Queries) Close() error {
 	if q.deleteWorkflowChecksBeforeStmt != nil {
 		if cerr := q.deleteWorkflowChecksBeforeStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing deleteWorkflowChecksBeforeStmt: %w", cerr)
+		}
+	}
+	if q.dismissInsightFindingStmt != nil {
+		if cerr := q.dismissInsightFindingStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing dismissInsightFindingStmt: %w", cerr)
 		}
 	}
 	if q.endSessionStmt != nil {
@@ -2905,6 +2913,7 @@ type Queries struct {
 	deleteUserStmt                              *sql.Stmt
 	deleteWebhookDeliveriesBeforeStmt           *sql.Stmt
 	deleteWorkflowChecksBeforeStmt              *sql.Stmt
+	dismissInsightFindingStmt                   *sql.Stmt
 	endSessionStmt                              *sql.Stmt
 	endUserSessionsStmt                         *sql.Stmt
 	enqueueJobStmt                              *sql.Stmt
@@ -3260,6 +3269,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		deleteUserStmt:                              q.deleteUserStmt,
 		deleteWebhookDeliveriesBeforeStmt:           q.deleteWebhookDeliveriesBeforeStmt,
 		deleteWorkflowChecksBeforeStmt:              q.deleteWorkflowChecksBeforeStmt,
+		dismissInsightFindingStmt:                   q.dismissInsightFindingStmt,
 		endSessionStmt:                              q.endSessionStmt,
 		endUserSessionsStmt:                         q.endUserSessionsStmt,
 		enqueueJobStmt:                              q.enqueueJobStmt,

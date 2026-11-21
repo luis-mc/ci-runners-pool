@@ -11,7 +11,7 @@ import (
 
 const countOpenInsightFindings = `-- name: CountOpenInsightFindings :one
 SELECT COUNT(*) AS findings, CAST(COALESCE(SUM(minutes_saved_week), 0) AS INTEGER) AS minutes
-FROM insight_findings WHERE resolved_at = ''
+FROM insight_findings WHERE resolved_at = '' AND hidden_until <= ?1
 `
 
 type CountOpenInsightFindingsRow struct {
@@ -19,8 +19,8 @@ type CountOpenInsightFindingsRow struct {
 	Minutes  int64
 }
 
-func (q *Queries) CountOpenInsightFindings(ctx context.Context) (CountOpenInsightFindingsRow, error) {
-	row := q.queryRow(ctx, q.countOpenInsightFindingsStmt, countOpenInsightFindings)
+func (q *Queries) CountOpenInsightFindings(ctx context.Context, now string) (CountOpenInsightFindingsRow, error) {
+	row := q.queryRow(ctx, q.countOpenInsightFindingsStmt, countOpenInsightFindings, now)
 	var i CountOpenInsightFindingsRow
 	err := row.Scan(&i.Findings, &i.Minutes)
 	return i, err
@@ -28,20 +28,26 @@ func (q *Queries) CountOpenInsightFindings(ctx context.Context) (CountOpenInsigh
 
 const countOpenInsightFindingsFiltered = `-- name: CountOpenInsightFindingsFiltered :one
 SELECT COUNT(*) FROM insight_findings
-WHERE resolved_at = ''
-  AND (?1 = 0 OR repository_id = ?1)
-  AND (?2 = '' OR area = ?2)
-  AND (?3 = '' OR guardrail = ?3)
+WHERE resolved_at = '' AND hidden_until <= ?1
+  AND (?2 = 0 OR repository_id = ?2)
+  AND (?3 = '' OR area = ?3)
+  AND (?4 = '' OR guardrail = ?4)
 `
 
 type CountOpenInsightFindingsFilteredParams struct {
+	Now          string
 	RepositoryID interface{}
 	Area         interface{}
 	Guardrail    interface{}
 }
 
 func (q *Queries) CountOpenInsightFindingsFiltered(ctx context.Context, arg CountOpenInsightFindingsFilteredParams) (int64, error) {
-	row := q.queryRow(ctx, q.countOpenInsightFindingsFilteredStmt, countOpenInsightFindingsFiltered, arg.RepositoryID, arg.Area, arg.Guardrail)
+	row := q.queryRow(ctx, q.countOpenInsightFindingsFilteredStmt, countOpenInsightFindingsFiltered,
+		arg.Now,
+		arg.RepositoryID,
+		arg.Area,
+		arg.Guardrail,
+	)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -83,6 +89,24 @@ DELETE FROM insight_findings WHERE resolved_at != '' AND resolved_at < ?
 
 func (q *Queries) DeleteResolvedInsightFindingsBefore(ctx context.Context, resolvedAt string) (int64, error) {
 	result, err := q.exec(ctx, q.deleteResolvedInsightFindingsBeforeStmt, deleteResolvedInsightFindingsBefore, resolvedAt)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const dismissInsightFinding = `-- name: DismissInsightFinding :execrows
+UPDATE insight_findings SET hidden_until = ?1 WHERE id = ?2 AND resolved_at = ''
+`
+
+type DismissInsightFindingParams struct {
+	HiddenUntil string
+	ID          int64
+}
+
+// CIX23 (D17): hide one open finding until a time; it shows again after that.
+func (q *Queries) DismissInsightFinding(ctx context.Context, arg DismissInsightFindingParams) (int64, error) {
+	result, err := q.exec(ctx, q.dismissInsightFindingStmt, dismissInsightFinding, arg.HiddenUntil, arg.ID)
 	if err != nil {
 		return 0, err
 	}
@@ -131,7 +155,7 @@ func (q *Queries) GetInsightDigest(ctx context.Context, week string) (InsightDig
 }
 
 const getInsightFinding = `-- name: GetInsightFinding :one
-SELECT id, kind, scope, repository_id, repository, subject, area, title, fix, snippet, evidence, minutes_saved_week, guardrail, action_kind, first_seen, last_seen, resolved_at FROM insight_findings WHERE id = ?
+SELECT id, kind, scope, repository_id, repository, subject, area, title, fix, snippet, evidence, minutes_saved_week, guardrail, action_kind, first_seen, last_seen, resolved_at, hidden_until FROM insight_findings WHERE id = ?
 `
 
 func (q *Queries) GetInsightFinding(ctx context.Context, id int64) (InsightFinding, error) {
@@ -155,6 +179,7 @@ func (q *Queries) GetInsightFinding(ctx context.Context, id int64) (InsightFindi
 		&i.FirstSeen,
 		&i.LastSeen,
 		&i.ResolvedAt,
+		&i.HiddenUntil,
 	)
 	return i, err
 }
@@ -183,7 +208,7 @@ func (q *Queries) GetInsightPlan(ctx context.Context, id string) (InsightPlan, e
 
 const getOpenInsightFinding = `-- name: GetOpenInsightFinding :one
 
-SELECT id, kind, scope, repository_id, repository, subject, area, title, fix, snippet, evidence, minutes_saved_week, guardrail, action_kind, first_seen, last_seen, resolved_at FROM insight_findings
+SELECT id, kind, scope, repository_id, repository, subject, area, title, fix, snippet, evidence, minutes_saved_week, guardrail, action_kind, first_seen, last_seen, resolved_at, hidden_until FROM insight_findings
 WHERE kind = ? AND scope = ? AND repository_id = ? AND subject = ? AND resolved_at = ''
 `
 
@@ -196,7 +221,7 @@ type GetOpenInsightFindingParams struct {
 
 // CI run insights findings, analyser runs, plans and digests (CIX8 contract, docs/features/ci-run-insights
 // R5.7 to R5.11, R5.38). The engine (internal/insights) upserts open findings and resolves the ones a full,
-// successful window no longer reports. There is no dismiss query (R5.8).
+// successful window no longer reports. A finding is dismissed for 7 days at most (D17, hidden_until).
 func (q *Queries) GetOpenInsightFinding(ctx context.Context, arg GetOpenInsightFindingParams) (InsightFinding, error) {
 	row := q.queryRow(ctx, q.getOpenInsightFindingStmt, getOpenInsightFinding,
 		arg.Kind,
@@ -223,6 +248,7 @@ func (q *Queries) GetOpenInsightFinding(ctx context.Context, arg GetOpenInsightF
 		&i.FirstSeen,
 		&i.LastSeen,
 		&i.ResolvedAt,
+		&i.HiddenUntil,
 	)
 	return i, err
 }
@@ -401,7 +427,7 @@ func (q *Queries) ListInsightDigests(ctx context.Context, limit int64) ([]Insigh
 }
 
 const listInsightFindingsOpenedBetween = `-- name: ListInsightFindingsOpenedBetween :many
-SELECT id, kind, scope, repository_id, repository, subject, area, title, fix, snippet, evidence, minutes_saved_week, guardrail, action_kind, first_seen, last_seen, resolved_at FROM insight_findings WHERE first_seen >= ?1 AND first_seen < ?2
+SELECT id, kind, scope, repository_id, repository, subject, area, title, fix, snippet, evidence, minutes_saved_week, guardrail, action_kind, first_seen, last_seen, resolved_at, hidden_until FROM insight_findings WHERE first_seen >= ?1 AND first_seen < ?2
 ORDER BY minutes_saved_week DESC, first_seen ASC, id ASC
 `
 
@@ -437,6 +463,7 @@ func (q *Queries) ListInsightFindingsOpenedBetween(ctx context.Context, arg List
 			&i.FirstSeen,
 			&i.LastSeen,
 			&i.ResolvedAt,
+			&i.HiddenUntil,
 		); err != nil {
 			return nil, err
 		}
@@ -452,7 +479,7 @@ func (q *Queries) ListInsightFindingsOpenedBetween(ctx context.Context, arg List
 }
 
 const listInsightFindingsResolvedBetween = `-- name: ListInsightFindingsResolvedBetween :many
-SELECT id, kind, scope, repository_id, repository, subject, area, title, fix, snippet, evidence, minutes_saved_week, guardrail, action_kind, first_seen, last_seen, resolved_at FROM insight_findings WHERE resolved_at != '' AND resolved_at >= ?1 AND resolved_at < ?2
+SELECT id, kind, scope, repository_id, repository, subject, area, title, fix, snippet, evidence, minutes_saved_week, guardrail, action_kind, first_seen, last_seen, resolved_at, hidden_until FROM insight_findings WHERE resolved_at != '' AND resolved_at >= ?1 AND resolved_at < ?2
 ORDER BY minutes_saved_week DESC, resolved_at ASC, id ASC
 `
 
@@ -488,6 +515,7 @@ func (q *Queries) ListInsightFindingsResolvedBetween(ctx context.Context, arg Li
 			&i.FirstSeen,
 			&i.LastSeen,
 			&i.ResolvedAt,
+			&i.HiddenUntil,
 		); err != nil {
 			return nil, err
 		}
@@ -503,18 +531,19 @@ func (q *Queries) ListInsightFindingsResolvedBetween(ctx context.Context, arg Li
 }
 
 const listOpenInsightFindings = `-- name: ListOpenInsightFindings :many
-SELECT id, kind, scope, repository_id, repository, subject, area, title, fix, snippet, evidence, minutes_saved_week, guardrail, action_kind, first_seen, last_seen, resolved_at FROM insight_findings
-WHERE resolved_at = ''
-  AND (?1 = 0 OR repository_id = ?1)
-  AND (?2 = '' OR area = ?2)
-  AND (?3 = '' OR guardrail = ?3)
+SELECT id, kind, scope, repository_id, repository, subject, area, title, fix, snippet, evidence, minutes_saved_week, guardrail, action_kind, first_seen, last_seen, resolved_at, hidden_until FROM insight_findings
+WHERE resolved_at = '' AND hidden_until <= ?1
+  AND (?2 = 0 OR repository_id = ?2)
+  AND (?3 = '' OR area = ?3)
+  AND (?4 = '' OR guardrail = ?4)
 ORDER BY minutes_saved_week DESC,
          CASE WHEN minutes_saved_week = 0 THEN COALESCE(NULLIF(guardrail, ''), 'H') ELSE '' END ASC,
          first_seen ASC, id ASC
-LIMIT ?5 OFFSET ?4
+LIMIT ?6 OFFSET ?5
 `
 
 type ListOpenInsightFindingsParams struct {
+	Now          string
 	RepositoryID interface{}
 	Area         interface{}
 	Guardrail    interface{}
@@ -524,6 +553,7 @@ type ListOpenInsightFindingsParams struct {
 
 func (q *Queries) ListOpenInsightFindings(ctx context.Context, arg ListOpenInsightFindingsParams) ([]InsightFinding, error) {
 	rows, err := q.query(ctx, q.listOpenInsightFindingsStmt, listOpenInsightFindings,
+		arg.Now,
 		arg.RepositoryID,
 		arg.Area,
 		arg.Guardrail,
@@ -555,6 +585,7 @@ func (q *Queries) ListOpenInsightFindings(ctx context.Context, arg ListOpenInsig
 			&i.FirstSeen,
 			&i.LastSeen,
 			&i.ResolvedAt,
+			&i.HiddenUntil,
 		); err != nil {
 			return nil, err
 		}
@@ -571,7 +602,7 @@ func (q *Queries) ListOpenInsightFindings(ctx context.Context, arg ListOpenInsig
 
 const listResolvedInsightFindings = `-- name: ListResolvedInsightFindings :many
 
-SELECT id, kind, scope, repository_id, repository, subject, area, title, fix, snippet, evidence, minutes_saved_week, guardrail, action_kind, first_seen, last_seen, resolved_at FROM insight_findings
+SELECT id, kind, scope, repository_id, repository, subject, area, title, fix, snippet, evidence, minutes_saved_week, guardrail, action_kind, first_seen, last_seen, resolved_at, hidden_until FROM insight_findings
 WHERE resolved_at != ''
   AND (?1 = 0 OR repository_id = ?1)
   AND (?2 = '' OR area = ?2)
@@ -588,7 +619,7 @@ type ListResolvedInsightFindingsParams struct {
 	Lim          int64
 }
 
-// CIX11 additions (engine, Do next list, digest). Still no dismiss query (R5.8).
+// CIX11 additions (engine, Do next list, digest).
 func (q *Queries) ListResolvedInsightFindings(ctx context.Context, arg ListResolvedInsightFindingsParams) ([]InsightFinding, error) {
 	rows, err := q.query(ctx, q.listResolvedInsightFindingsStmt, listResolvedInsightFindings,
 		arg.RepositoryID,
@@ -622,6 +653,7 @@ func (q *Queries) ListResolvedInsightFindings(ctx context.Context, arg ListResol
 			&i.FirstSeen,
 			&i.LastSeen,
 			&i.ResolvedAt,
+			&i.HiddenUntil,
 		); err != nil {
 			return nil, err
 		}

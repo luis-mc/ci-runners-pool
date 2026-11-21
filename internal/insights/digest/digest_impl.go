@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strings"
 	"time"
+	_ "time/tzdata" // Europe/Lisbon without a zone database on the machine
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/insights"
 )
@@ -49,13 +50,29 @@ func weekStart(t time.Time) time.Time {
 	return time.Date(y, m, day-d, 0, 0, 0, 0, t.Location())
 }
 
-// NextRun returns the next Monday 07:00 strictly after t, in t's location (R5.38).
+// Hour is the hour of Monday the digest is written (owner decision D18: 08:00), in the zone ZoneName.
+const Hour = 8
+
+// ZoneName is the zone the digest schedule is kept in (owner decision D18), whatever zone the machine is in.
+const ZoneName = "Europe/Lisbon"
+
+// Location is Europe/Lisbon. The zone data is built into the program, so a machine without a zone database
+// still writes at 08:00 Lisbon time.
+func Location() *time.Location {
+	loc, err := time.LoadLocation(ZoneName)
+	if err != nil {
+		return time.UTC
+	}
+	return loc
+}
+
+// NextRun returns the next Monday 08:00 strictly after t, in t's location (R5.38).
 func NextRun(t time.Time) time.Time {
 	s := weekStart(t)
 	y, m, d := s.Date()
-	run := time.Date(y, m, d, 7, 0, 0, 0, t.Location())
+	run := time.Date(y, m, d, Hour, 0, 0, 0, t.Location())
 	if !run.After(t) {
-		run = time.Date(y, m, d+7, 7, 0, 0, 0, t.Location())
+		run = time.Date(y, m, d+7, Hour, 0, 0, 0, t.Location())
 	}
 	return run
 }
@@ -289,7 +306,7 @@ func oneLine(s string) string {
 // Clock is the schedule's time source (the engine's Clock).
 type Clock = insights.Clock
 
-// Run writes the digest at every Monday 07:00 of now's location until ctx ends. A failed write is passed to
+// Run writes the digest at every Monday 08:00 of loc (use Location()) until ctx ends. A failed write is passed to
 // onErr and the schedule goes on.
 func Run(ctx context.Context, w Writer, c Clock, loc *time.Location, onErr func(error)) {
 	for {

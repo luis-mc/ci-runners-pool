@@ -28,7 +28,7 @@ var otherAreaAuth = map[string]string{
 	"listInsightFindings": authUser, "getInsightFinding": authUser, "getInsightPlan": authUser, "getInsightSummary": authUser,
 	"getWaitSplit": authUser, "getPoolTimeline": authUser, "getPoolSizing": authUser, "listTestInsights": authUser,
 	"listGuardrailStatus": authUser, "listInsightDigests": authUser, "getRunSavings": authUser, "listWorkflowChecks": authUser,
-	"getJobResources": authUser, "createInsightPlan": authAdmin, "startInsightPlan": authAdmin,
+	"getJobResources": authUser, "createInsightPlan": authAdmin, "startInsightPlan": authAdmin, "dismissInsightFinding": authAdmin,
 	// The pool image registry (REG10 contract, docs/features/registry).
 	"getRegistryOverview": authUser, "listRegistryImages": authUser, "getRegistryImage": authUser, "compareRegistryImage": authUser,
 	"getRegistryBudgets": authUser, "getRegistryStoreSettings": authUser, "getRegistryReplacePlan": authUser,

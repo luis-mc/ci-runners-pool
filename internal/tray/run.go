@@ -172,7 +172,7 @@ func loop(o Options, smoke bool, hold time.Duration, updated bool) int {
 		}
 		open, check, upd, restart := sys[IDOpen], sys[IDCheck], sys[IDUpdate], sys[IDRestart]
 		logs, gh, login, quit := sys[IDLogs], sys[IDGitHub], sys[IDLogin], sys[IDQuit]
-		status, doctor := sys[IDStatus], sys[IDDoctor]
+		status, doctor, digest := sys[IDStatus], sys[IDDoctor], sys[IDDigest]
 		modeAuto, modeAlw := sys[IDModeAuto], sys[IDModeAlw]
 		pauseHour, pauseTill, resume := sys[IDPauseHour], sys[IDPauseTill], sys[IDResume]
 
@@ -226,6 +226,8 @@ func loop(o Options, smoke bool, hold time.Duration, updated bool) int {
 					go func() { _ = opener.OpenPage(ctx, JobsPath) }()
 				case <-doctor.ClickedCh:
 					go func() { _ = opener.OpenPage(ctx, DoctorPath) }()
+				case <-digest.ClickedCh:
+					go func() { _ = opener.OpenDigest(current().DigestPath) }()
 				case <-restart.ClickedCh:
 					go func() { _ = opener.OpenReview(ctx, ReviewRestartPath) }()
 				case <-modeAuto.ClickedCh:

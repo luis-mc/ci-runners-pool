@@ -249,7 +249,8 @@ func runController() error {
 	console := consoleURL(localAddr)
 	startTrayChannel(ctx, logger, trayBackend{
 		Updates: um, Drain: machineDrainer{svc: mr.Service}, Console: console,
-		Links: setupOrConsole{auth: ctl.Auth, console: console, next: authLinks{svc: ctl.Auth, console: console}},
+		Links:  setupOrConsole{auth: ctl.Auth, console: console, next: authLinks{svc: ctl.Auth, console: console}},
+		Digest: func() string { return latestDigest(cfg.DataDir) },
 	})
 
 	// The pull-through mirror of upstream bases, under its own route prefix (registry R5.63).

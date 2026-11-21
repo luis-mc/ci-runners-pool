@@ -2791,6 +2791,27 @@ func (e RunsOnFindingKind) Valid() bool {
 	}
 }
 
+// Defines values for SettingsInsightsUpdatePeriod.
+const (
+	EveryNthRun SettingsInsightsUpdatePeriod = "every_nth_run"
+	EveryRun    SettingsInsightsUpdatePeriod = "every_run"
+	Hourly      SettingsInsightsUpdatePeriod = "hourly"
+)
+
+// Valid indicates whether the value is a known member of the SettingsInsightsUpdatePeriod enum.
+func (e SettingsInsightsUpdatePeriod) Valid() bool {
+	switch e {
+	case EveryNthRun:
+		return true
+	case EveryRun:
+		return true
+	case Hourly:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for SetupStateStepsConnectGithub.
 const (
 	SetupStateStepsConnectGithubDone SetupStateStepsConnectGithub = "done"
@@ -4661,6 +4682,9 @@ type InsightFinding struct {
 
 	// Area ci-run-insights section 7. The screen area a finding belongs to.
 	Area InsightArea `json:"area"`
+
+	// DismissedUntil Set while the finding is hidden (owner decision D17); it shows again at this time if it is still true.
+	DismissedUntil *time.Time `json:"dismissed_until,omitempty"`
 
 	// Evidence The numbers the finding page shows; its keys depend on the kind.
 	Evidence  map[string]interface{} `json:"evidence"`
@@ -6984,14 +7008,23 @@ type Settings struct {
 	InsightsResourceSamplesDays *int `json:"insights_resource_samples_days,omitempty"`
 
 	// InsightsTestResultsDays ci-run-insights R5.5, R6.2. Default 90.
-	InsightsTestResultsDays    *int `json:"insights_test_results_days,omitempty"`
-	MaxEventStreams            *int `json:"max_event_streams,omitempty"`
-	RetentionAuditDays         *int `json:"retention_audit_days,omitempty"`
-	RetentionJobHistoryDays    *int `json:"retention_job_history_days,omitempty"`
-	RetentionLoadRawHours      *int `json:"retention_load_raw_hours,omitempty"`
-	RetentionLogsDays          *int `json:"retention_logs_days,omitempty"`
-	RetentionLogsMibPerMachine *int `json:"retention_logs_mib_per_machine,omitempty"`
+	InsightsTestResultsDays *int `json:"insights_test_results_days,omitempty"`
+
+	// InsightsUpdateEveryNRuns ci-run-insights R5.44. N of every_nth_run. Default 5.
+	InsightsUpdateEveryNRuns *int `json:"insights_update_every_n_runs,omitempty"`
+
+	// InsightsUpdatePeriod ci-run-insights R5.44 (owner decisions D18, D19). How often insights are re-analysed. every_run (the default) analyses after each CI run; every_nth_run after every Nth run; hourly once an hour. The cost warning recommends a slower one.
+	InsightsUpdatePeriod       *SettingsInsightsUpdatePeriod `json:"insights_update_period,omitempty"`
+	MaxEventStreams            *int                          `json:"max_event_streams,omitempty"`
+	RetentionAuditDays         *int                          `json:"retention_audit_days,omitempty"`
+	RetentionJobHistoryDays    *int                          `json:"retention_job_history_days,omitempty"`
+	RetentionLoadRawHours      *int                          `json:"retention_load_raw_hours,omitempty"`
+	RetentionLogsDays          *int                          `json:"retention_logs_days,omitempty"`
+	RetentionLogsMibPerMachine *int                          `json:"retention_logs_mib_per_machine,omitempty"`
 }
+
+// SettingsInsightsUpdatePeriod ci-run-insights R5.44 (owner decisions D18, D19). How often insights are re-analysed. every_run (the default) analyses after each CI run; every_nth_run after every Nth run; hourly once an hour. The cost warning recommends a slower one.
+type SettingsInsightsUpdatePeriod string
 
 // SetupState defines model for SetupState.
 type SetupState struct {
@@ -8408,6 +8441,9 @@ type ServerInterface interface {
 	// GetInsightFinding One finding with its evidence
 	// (GET /api/v1/insights/findings/{findingId})
 	GetInsightFinding(w http.ResponseWriter, r *http.Request, findingId FindingId)
+	// DismissInsightFinding Hide a finding for 7 days
+	// (POST /api/v1/insights/findings/{findingId}/dismiss)
+	DismissInsightFinding(w http.ResponseWriter, r *http.Request, findingId FindingId)
 	// CreateInsightPlan Make the plan of a setup change (nothing changes yet)
 	// (POST /api/v1/insights/findings/{findingId}/plans)
 	CreateInsightPlan(w http.ResponseWriter, r *http.Request, findingId FindingId)
@@ -10517,6 +10553,32 @@ func (siw *ServerInterfaceWrapper) GetInsightFinding(w http.ResponseWriter, r *h
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetInsightFinding(w, r, findingId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DismissInsightFinding operation middleware
+func (siw *ServerInterfaceWrapper) DismissInsightFinding(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "findingId" -------------
+	var findingId FindingId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "findingId", r.PathValue("findingId"), &findingId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "integer", Format: "int64", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "findingId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DismissInsightFinding(w, r, findingId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -14773,6 +14835,7 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/webhooks/github", wrapper.ReceiveGithubWebhook)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/insights/findings", wrapper.ListInsightFindings)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/insights/findings/{findingId}", wrapper.GetInsightFinding)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/insights/findings/{findingId}/dismiss", wrapper.DismissInsightFinding)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/insights/findings/{findingId}/plans", wrapper.CreateInsightPlan)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/api/v1/insights/plans/{planId}", wrapper.GetInsightPlan)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/api/v1/insights/plans/{planId}/start", wrapper.StartInsightPlan)
@@ -16871,6 +16934,45 @@ type GetInsightFindingdefaultJSONResponse struct {
 }
 
 func (response GetInsightFindingdefaultJSONResponse) VisitGetInsightFindingResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DismissInsightFindingRequestObject struct {
+	FindingId FindingId `json:"findingId"`
+}
+
+type DismissInsightFindingResponseObject interface {
+	VisitDismissInsightFindingResponse(w http.ResponseWriter) error
+}
+
+type DismissInsightFinding200JSONResponse InsightFinding
+
+func (response DismissInsightFinding200JSONResponse) VisitDismissInsightFindingResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DismissInsightFindingdefaultJSONResponse struct {
+	Body       ErrorEnvelope
+	StatusCode int
+}
+
+func (response DismissInsightFindingdefaultJSONResponse) VisitDismissInsightFindingResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
@@ -22166,6 +22268,9 @@ type StrictServerInterface interface {
 	// GetInsightFinding One finding with its evidence
 	// (GET /api/v1/insights/findings/{findingId})
 	GetInsightFinding(ctx context.Context, request GetInsightFindingRequestObject) (GetInsightFindingResponseObject, error)
+	// DismissInsightFinding Hide a finding for 7 days
+	// (POST /api/v1/insights/findings/{findingId}/dismiss)
+	DismissInsightFinding(ctx context.Context, request DismissInsightFindingRequestObject) (DismissInsightFindingResponseObject, error)
 	// CreateInsightPlan Make the plan of a setup change (nothing changes yet)
 	// (POST /api/v1/insights/findings/{findingId}/plans)
 	CreateInsightPlan(ctx context.Context, request CreateInsightPlanRequestObject) (CreateInsightPlanResponseObject, error)
@@ -23893,6 +23998,32 @@ func (sh *strictHandler) GetInsightFinding(w http.ResponseWriter, r *http.Reques
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(GetInsightFindingResponseObject); ok {
 		if err := validResponse.VisitGetInsightFindingResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// DismissInsightFinding operation middleware
+func (sh *strictHandler) DismissInsightFinding(w http.ResponseWriter, r *http.Request, findingId FindingId) {
+	var request DismissInsightFindingRequestObject
+
+	request.FindingId = findingId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.DismissInsightFinding(ctx, request.(DismissInsightFindingRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DismissInsightFinding")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(DismissInsightFindingResponseObject); ok {
+		if err := validResponse.VisitDismissInsightFindingResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

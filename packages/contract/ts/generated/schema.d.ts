@@ -2887,6 +2887,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/insights/findings/{findingId}/dismiss": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Hide a finding for 7 days
+         * @description ci-run-insights R5.8 (owner decision D17). The finding leaves the Do next list and the counts for 7 days and comes back if it is still true. It is never deleted or closed by this call. 404 when there is no such finding, 409 when it is resolved.
+         */
+        post: operations["dismissInsightFinding"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/insights/findings/{findingId}/plans": {
         parameters: {
             query?: never;
@@ -5433,6 +5453,13 @@ export interface components {
             insights_hold_cap_seconds?: number;
             /** @description ci-run-insights R5.31. Name pattern of the guard report artifact. Default test-guardrails*. */
             insights_guardrail_artifact?: string;
+            /**
+             * @description ci-run-insights R5.44 (owner decisions D18, D19). How often insights are re-analysed. every_run (the default) analyses after each CI run; every_nth_run after every Nth run; hourly once an hour. The cost warning recommends a slower one.
+             * @enum {string}
+             */
+            insights_update_period?: "every_run" | "every_nth_run" | "hourly";
+            /** @description ci-run-insights R5.44. N of every_nth_run. Default 5. */
+            insights_update_every_n_runs?: number;
             /** @description operations R5.15. On by default. When on, a newer stable release installs by itself after a drain. When off, the console Review step asks first. */
             auto_update?: boolean;
         };
@@ -6349,6 +6376,11 @@ export interface components {
             last_seen: string;
             /** Format: date-time */
             resolved_at?: string;
+            /**
+             * Format: date-time
+             * @description Set while the finding is hidden (owner decision D17); it shows again at this time if it is still true.
+             */
+            dismissed_until?: string;
         };
         InsightFindingList: {
             items: components["schemas"]["InsightFinding"][];
@@ -10706,6 +10738,29 @@ export interface operations {
         requestBody?: never;
         responses: {
             /** @description The finding. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InsightFinding"];
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    dismissInsightFinding: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                findingId: components["parameters"]["FindingId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The finding, with when it shows again. */
             200: {
                 headers: {
                     [name: string]: unknown;

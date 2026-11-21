@@ -62,9 +62,9 @@ func sf(id int64, mins int, title string) insights.StoredFinding {
 	return insights.StoredFinding{ID: id, Finding: insights.Finding{Title: title, Fix: "fix " + title, MinutesSavedWeek: mins, Repository: "acme/api"}}
 }
 
-var monday = time.Date(2026, 11, 23, 7, 0, 0, 0, time.UTC)
+var monday = time.Date(2026, 11, 23, 8, 0, 0, 0, time.UTC)
 
-// R5.38: Monday 07:00 writes <data dir>/ci-data/digests/<YYYY>-W<ww>.md with the top 3 findings.
+// R5.38: Monday 08:00 writes <data dir>/ci-data/digests/<YYYY>-W<ww>.md with the top 3 findings.
 func TestWeeklyFileTopThree(t *testing.T) {
 	dir := t.TempDir()
 	ff := &fakeFind{
@@ -109,14 +109,14 @@ func TestWeeklyFileTopThree(t *testing.T) {
 	}
 }
 
-// R5.38: next run is the next Monday 07:00 in the local zone.
-func TestNextRunMonday0700(t *testing.T) {
+// R5.38: next run is the next Monday 08:00 in the zone it is given.
+func TestNextRunMonday0800(t *testing.T) {
 	loc := time.FixedZone("x", 3600)
 	cases := []struct{ in, want time.Time }{
-		{time.Date(2026, 11, 23, 6, 59, 0, 0, loc), time.Date(2026, 11, 23, 7, 0, 0, 0, loc)},
-		{time.Date(2026, 11, 23, 7, 0, 0, 0, loc), time.Date(2026, 11, 30, 7, 0, 0, 0, loc)},
-		{time.Date(2026, 11, 22, 23, 0, 0, 0, loc), time.Date(2026, 11, 23, 7, 0, 0, 0, loc)}, // Sunday
-		{time.Date(2026, 11, 25, 12, 0, 0, 0, loc), time.Date(2026, 11, 30, 7, 0, 0, 0, loc)},
+		{time.Date(2026, 11, 23, 7, 59, 0, 0, loc), time.Date(2026, 11, 23, 8, 0, 0, 0, loc)},
+		{time.Date(2026, 11, 23, 8, 0, 0, 0, loc), time.Date(2026, 11, 30, 8, 0, 0, 0, loc)},
+		{time.Date(2026, 11, 22, 23, 0, 0, 0, loc), time.Date(2026, 11, 23, 8, 0, 0, 0, loc)}, // Sunday
+		{time.Date(2026, 11, 25, 12, 0, 0, 0, loc), time.Date(2026, 11, 30, 8, 0, 0, 0, loc)},
 	}
 	for _, c := range cases {
 		if got := NextRun(c.in); !got.Equal(c.want) {
@@ -176,7 +176,7 @@ func (r *recWriter) Write(_ context.Context, now time.Time) (Digest, error) {
 	return Digest{}, r.err
 }
 
-// R5.38, R6.8: Run waits until Monday 07:00, writes, and a failed write does not stop the schedule.
+// R5.38, R6.8: Run waits until Monday 08:00, writes, and a failed write does not stop the schedule.
 func TestRunSchedule(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	c := &fakeClock{now: time.Date(2026, 11, 20, 12, 0, 0, 0, time.UTC), ch: make(chan time.Time, 1)}
@@ -197,5 +197,21 @@ func TestRunSchedule(t *testing.T) {
 	}
 	if c.waits[0] != monday.Sub(c.now) {
 		t.Fatalf("waits %v", c.waits)
+	}
+}
+
+// D18: the schedule is Monday 08:00 Europe/Lisbon, in winter (UTC+0) and in summer time (UTC+1).
+func TestNextRunLisbon(t *testing.T) {
+	loc := Location()
+	if loc.String() != "Europe/Lisbon" {
+		t.Fatalf("zone = %v", loc)
+	}
+	winter := NextRun(time.Date(2026, 11, 20, 12, 0, 0, 0, loc))
+	if want := time.Date(2026, 11, 23, 8, 0, 0, 0, time.UTC); !winter.Equal(want) {
+		t.Errorf("winter = %v want %v", winter, want)
+	}
+	summer := NextRun(time.Date(2026, 7, 8, 12, 0, 0, 0, loc))
+	if want := time.Date(2026, 7, 13, 7, 0, 0, 0, time.UTC); !summer.Equal(want) {
+		t.Errorf("summer = %v want %v (08:00 Lisbon summer time is 07:00 UTC)", summer, want)
 	}
 }

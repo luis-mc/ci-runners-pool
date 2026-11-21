@@ -256,6 +256,7 @@ The words of the tray menu (tray R5.1, R5.42; owner decision D10, TRAY3). No ent
 |---|---|
 | Open console | The tray entry that opens the console, signed in. |
 | Open Doctor | The tray entry that opens the console Doctor page. |
+| Open weekly digest | The tray entry that opens the newest weekly CI run insights digest, a draft file on this machine (feature ci-run-insights R5.38; CIX23). Shown only when a digest was written. |
 | Pause | The tray submenu. Its items are "for 1 hour" and "until I resume". |
 | Paused until {time} - Resume now | The tray entry in place of Pause while a timed pause holds. {time} is hours and minutes. Pressing it resumes. |
 | Paused - Resume now | The same entry for a pause with no end. |
@@ -1281,3 +1282,19 @@ Run insights is a tab of Jobs, placed before Charts. Estimates always say *estim
 | Repository page, panes | CI checks, Guardrails, Job slots |
 | Repository page, CI checks | ✓ pass, ✕ fix, – skipped; columns Status, Rule, Job, Line, Fix; "Checked {time}." |
 | Repository page, Job slots | No advice: the limit of this repository did not hold jobs back while slots were free. |
+
+## Run insights follow-up words (CIX23, owner decisions D17 to D21 of 20 Nov 2026)
+
+| Where | Words |
+|---|---|
+| Finding, secondary action | Hide for 7 days. Busy word: Hiding. After it, disabled with the reason "This finding is hidden for now." |
+| Finding, after hiding | Hidden until {time}. It comes back then if it is still true. |
+| Finding, hiding failed | Could not hide this finding. {reason} |
+| Settings, Data, section | CI run insights |
+| Settings, Data, period field | Update period. Help: How often crsp looks at your CI again. A slower period uses less CPU, memory and disk. |
+| Settings, Data, period choices | After every CI run, After every few CI runs, Once an hour |
+| Settings, Data, number field | Runs between updates ({n} runs, 2 to 50), shown only for After every few CI runs |
+| Settings, Data, saved | CI run insights saved. |
+| Settings, Data, refused | Runs between updates must be from 2 to 50. |
+| Do next, cost warning, title | Analysing CI runs costs more than it should: {what is over, such as CPU 6.2% (limit 5%), memory 320 MB (limit 300 MB), disk 1.10 GB (limit 1 GB)} |
+| Do next, cost warning, fix | Choose a slower update period in Settings: analyse after every 5th CI run, or once an hour. (After every few CI runs: once an hour. Already once an hour: Lower the days or the size of the CI data kept in Settings, or ask for a bigger machine.) |

@@ -288,3 +288,59 @@ func TestDigestStoreRoundTrip(t *testing.T) {
 		t.Fatal("delete")
 	}
 }
+
+// D17: a dismissed finding leaves the list and the count for 7 days and is back after that; the engine keeps
+// refreshing it meanwhile; a finding that is no longer true is resolved as usual while hidden.
+func TestDismissHidesForSevenDays(t *testing.T) {
+	s := openTemp(t)
+	fs := s.InsightFindings()
+	ctx := context.Background()
+	kinds := []insights.Kind{insights.KindWaitHold}
+	now := time.Now().UTC().Truncate(time.Second)
+	if _, err := fs.Sync(ctx, kinds, []insights.Finding{fnd(insights.KindWaitHold, "hidden", 30), fnd(insights.KindWaitHold, "back", 20),
+		fnd(insights.KindWaitHold, "visible", 10)}, now); err != nil {
+		t.Fatal(err)
+	}
+	items, _, _, _ := fs.List(ctx, insights.Filter{})
+	id := map[string]int64{}
+	for _, it := range items {
+		id[it.Subject] = it.ID
+	}
+	until, err := fs.Dismiss(ctx, id["hidden"], now)
+	if err != nil || !until.Equal(now.Add(7*24*time.Hour)) {
+		t.Fatalf("until = %v, %v", until, err)
+	}
+	// "back" was dismissed 8 days ago: its 7 days are over.
+	if _, err := fs.Dismiss(ctx, id["back"], now.Add(-8*24*time.Hour)); err != nil {
+		t.Fatal(err)
+	}
+	items, total, _, _ := fs.List(ctx, insights.Filter{})
+	if total != 2 || len(items) != 2 || items[0].Subject != "back" || items[1].Subject != "visible" {
+		t.Fatalf("list = %d %+v", total, items)
+	}
+	if sum, _ := fs.Summary(ctx); sum.Open != 2 || sum.MinutesSavedWeek != 30 {
+		t.Fatalf("summary = %+v", sum)
+	}
+	got, _ := fs.Get(ctx, id["hidden"])
+	if !got.DismissedUntil.Equal(until) {
+		t.Errorf("dismissed until = %v", got.DismissedUntil)
+	}
+	// Seen again: still hidden, still one row, refreshed.
+	if _, err := fs.Sync(ctx, kinds, []insights.Finding{fnd(insights.KindWaitHold, "hidden", 31), fnd(insights.KindWaitHold, "back", 20),
+		fnd(insights.KindWaitHold, "visible", 10)}, now.Add(time.Hour)); err != nil {
+		t.Fatal(err)
+	}
+	if _, total, _, _ := fs.List(ctx, insights.Filter{}); total != 2 {
+		t.Fatalf("a hidden finding came back before its time: %d", total)
+	}
+	// No longer true: resolved while hidden.
+	if _, err := fs.Sync(ctx, kinds, []insights.Finding{fnd(insights.KindWaitHold, "back", 20), fnd(insights.KindWaitHold, "visible", 10)}, now.Add(2*time.Hour)); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := fs.Dismiss(ctx, id["hidden"], now); err != insights.ErrResolved {
+		t.Errorf("dismiss a resolved finding = %v", err)
+	}
+	if _, err := fs.Dismiss(ctx, 9999, now); err != insights.ErrNotFound {
+		t.Errorf("dismiss an unknown finding = %v", err)
+	}
+}
