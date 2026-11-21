@@ -26,15 +26,6 @@
       },
       "digest": "48b89fa99697ff69cb35245360a6eb664f7add2bbd004d7b9d9193ccd4898196",
       "implementation": null
-    },
-    "v4": {
-      "approved": {
-        "by": "owner",
-        "date": "2026-11-20",
-        "evidence": "chat, 20 Nov 2026: consider approved v4 now, and keep moving forward to send features live (look D57)"
-      },
-      "digest": "c152db450762fd280f555694bb27809b6e7d90dca497bf71ab60392e707dea67",
-      "implementation": null
     }
   }
 }
