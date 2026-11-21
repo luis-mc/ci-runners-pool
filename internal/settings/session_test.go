@@ -10,7 +10,7 @@ import (
 func TestSessionWaitDefaultsSavesAndRefuses(t *testing.T) {
 	ctx := context.Background()
 	s, _ := setup(t)
-	if got, err := s.GetSessionWait(ctx); err != nil || got != 3*time.Minute {
+	if got, err := s.GetSessionWait(ctx); err != nil || got != 6*time.Minute {
 		t.Fatalf("%v %v", got, err)
 	}
 	if err := s.UpdateSessionWait(ctx, owner, 5); err != nil {

@@ -403,13 +403,19 @@ func (e DockerCompactMode) Valid() bool {
 
 // Defines values for DoctorFindingActionId.
 const (
-	RemoveRunnerLeftovers DoctorFindingActionId = "remove_runner_leftovers"
+	DoctorFindingActionIdRemoveGithubRunner    DoctorFindingActionId = "remove_github_runner"
+	DoctorFindingActionIdRemoveRunnerLeftovers DoctorFindingActionId = "remove_runner_leftovers"
+	DoctorFindingActionIdRemoveRunnerRecord    DoctorFindingActionId = "remove_runner_record"
 )
 
 // Valid indicates whether the value is a known member of the DoctorFindingActionId enum.
 func (e DoctorFindingActionId) Valid() bool {
 	switch e {
-	case RemoveRunnerLeftovers:
+	case DoctorFindingActionIdRemoveGithubRunner:
+		return true
+	case DoctorFindingActionIdRemoveRunnerLeftovers:
+		return true
+	case DoctorFindingActionIdRemoveRunnerRecord:
 		return true
 	default:
 		return false
@@ -2264,6 +2270,24 @@ func (e RegistryStackFileChangeChange) Valid() bool {
 	}
 }
 
+// Defines values for RemoveRegistrationRequestAction.
+const (
+	RemoveRegistrationRequestActionRemoveGithubRunner RemoveRegistrationRequestAction = "remove_github_runner"
+	RemoveRegistrationRequestActionRemoveRunnerRecord RemoveRegistrationRequestAction = "remove_runner_record"
+)
+
+// Valid indicates whether the value is a known member of the RemoveRegistrationRequestAction enum.
+func (e RemoveRegistrationRequestAction) Valid() bool {
+	switch e {
+	case RemoveRegistrationRequestActionRemoveGithubRunner:
+		return true
+	case RemoveRegistrationRequestActionRemoveRunnerRecord:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for RemoveRunnerLeftoversResultResultsOutcome.
 const (
 	RemoveRunnerLeftoversResultResultsOutcomeAlreadyGone RemoveRunnerLeftoversResultResultsOutcome = "already_gone"
@@ -4112,10 +4136,12 @@ type DockerCompactStatus struct {
 
 // DoctorFinding defines model for DoctorFinding.
 type DoctorFinding struct {
-	// Action The one button the finding offers. `remove_runner_leftovers` removes `items` through POST /api/v1/machines/{machineId}/runner-leftovers/remove (the subject is the machine).
+	// Action The one button the finding offers. `remove_runner_leftovers` removes `items` through POST /api/v1/machines/{machineId}/runner-leftovers/remove (the subject is the machine). `remove_github_runner` and `remove_runner_record` send `args` through POST /api/v1/doctor/registration-fixes.
 	Action *struct {
-		Id    DoctorFindingActionId `json:"id"`
-		Label string                `json:"label"`
+		// Args What a registration action needs back (doctor R5.50).
+		Args  *RegistrationActionArgs `json:"args,omitempty"`
+		Id    DoctorFindingActionId   `json:"id"`
+		Label string                  `json:"label"`
 	} `json:"action,omitempty"`
 	Check     string    `json:"check"`
 	CheckedAt time.Time `json:"checked_at"`
@@ -5882,6 +5908,17 @@ type RedeemSetupLinkRequest struct {
 	Code string `json:"code"`
 }
 
+// RegistrationActionArgs What a registration action needs back (doctor R5.50).
+type RegistrationActionArgs struct {
+	GithubRunnerId *int64  `json:"github_runner_id,omitempty"`
+	InstallationId *int64  `json:"installation_id,omitempty"`
+	Name           *string `json:"name,omitempty"`
+	Organization   *string `json:"organization,omitempty"`
+	Owner          *string `json:"owner,omitempty"`
+	Repo           *string `json:"repo,omitempty"`
+	RunnerId       *string `json:"runner_id,omitempty"`
+}
+
 // RegistryArch defines model for RegistryArch.
 type RegistryArch string
 
@@ -6380,6 +6417,23 @@ type RegistryWhere struct {
 
 	// WhyNot Why it is not running, in plain words.
 	WhyNot *string `json:"why_not,omitempty"`
+}
+
+// RemoveRegistrationRequest defines model for RemoveRegistrationRequest.
+type RemoveRegistrationRequest struct {
+	Action RemoveRegistrationRequestAction `json:"action"`
+
+	// Args What a registration action needs back (doctor R5.50).
+	Args RegistrationActionArgs `json:"args"`
+}
+
+// RemoveRegistrationRequestAction defines model for RemoveRegistrationRequest.Action.
+type RemoveRegistrationRequestAction string
+
+// RemoveRegistrationResult defines model for RemoveRegistrationResult.
+type RemoveRegistrationResult struct {
+	Name    string `json:"name"`
+	Removed bool   `json:"removed"`
 }
 
 // RemoveRunnerLeftoversRequest defines model for RemoveRunnerLeftoversRequest.
@@ -7655,6 +7709,12 @@ type ListDoctorFindingsParams struct {
 	Group    *string   `form:"group,omitempty" json:"group,omitempty"`
 }
 
+// RemoveRegistrationParams defines parameters for RemoveRegistration.
+type RemoveRegistrationParams struct {
+	// Confirm The yes to a question card that named what goes (UX-62).
+	Confirm *Confirm `form:"confirm,omitempty" json:"confirm,omitempty"`
+}
+
 // StreamEventsParams defines parameters for StreamEvents.
 type StreamEventsParams struct {
 	LastEventID *string `json:"Last-Event-ID,omitempty"`
@@ -7890,6 +7950,12 @@ type RemoveMachineParams struct {
 	Confirm *Confirm `form:"confirm,omitempty" json:"confirm,omitempty"`
 }
 
+// StartDockerCompactParams defines parameters for StartDockerCompact.
+type StartDockerCompactParams struct {
+	// Confirm The yes to a question card that named what goes (UX-62).
+	Confirm *Confirm `form:"confirm,omitempty" json:"confirm,omitempty"`
+}
+
 // GetMachineLoadParams defines parameters for GetMachineLoad.
 type GetMachineLoadParams struct {
 	From *From `form:"from,omitempty" json:"from,omitempty"`
@@ -8058,6 +8124,9 @@ type SetAppWebhookJSONRequestBody = AppWebhookUpdate
 
 // ExchangeCliTokenJSONRequestBody defines body for ExchangeCliToken for application/json ContentType.
 type ExchangeCliTokenJSONRequestBody = ExchangeCliTokenRequest
+
+// RemoveRegistrationJSONRequestBody defines body for RemoveRegistration for application/json ContentType.
+type RemoveRegistrationJSONRequestBody = RemoveRegistrationRequest
 
 // RunDoctorJSONRequestBody defines body for RunDoctor for application/json ContentType.
 type RunDoctorJSONRequestBody = DoctorScope
@@ -8467,6 +8536,24 @@ type ClientInterface interface {
 	//
 	// Corresponds with GET /api/v1/doctor/findings (the `ListDoctorFindings` operationId).
 	ListDoctorFindings(ctx context.Context, params *ListDoctorFindingsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// RemoveRegistrationWithBody Remove one half of a half-registered runner
+	//
+	// doctor R5.50, runners R5.94. `remove_github_runner` deletes a GitHub runner with the pool's name prefix that no local record owns; `remove_runner_record` removes the local record (and its service, account and folder when the machine answers) of a runner GitHub does not list. The server reads GitHub and the records again and refuses when the state changed. Without `confirm=true` it answers 409 needs_confirmation naming what goes.
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with POST /api/v1/doctor/registration-fixes (the `RemoveRegistration` operationId).
+	RemoveRegistrationWithBody(ctx context.Context, params *RemoveRegistrationParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// RemoveRegistration Remove one half of a half-registered runner
+	//
+	// doctor R5.50, runners R5.94. `remove_github_runner` deletes a GitHub runner with the pool's name prefix that no local record owns; `remove_runner_record` removes the local record (and its service, account and folder when the machine answers) of a runner GitHub does not list. The server reads GitHub and the records again and refuses when the state changed. Without `confirm=true` it answers 409 needs_confirmation naming what goes.
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with POST /api/v1/doctor/registration-fixes (the `RemoveRegistration` operationId).
+	RemoveRegistration(ctx context.Context, params *RemoveRegistrationParams, body RemoveRegistrationJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// RunDoctorWithBody Run the doctor now
 	//
@@ -8936,6 +9023,13 @@ type ClientInterface interface {
 	//
 	// Corresponds with POST /api/v1/machines/{machineId}/command (the `RunMachineCommand` operationId).
 	RunMachineCommand(ctx context.Context, machineId MachineId, body RunMachineCommandJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// StartDockerCompact Make Docker's disk file smaller now
+	//
+	// caches R5.58. The owner starts the compact the policy would start later: the machine is drained (new jobs wait, running jobs finish), Docker's disk file is made smaller, and the machine takes jobs again. Without `confirm=true` it answers 409 needs_confirmation naming the size that can be reclaimed and what happens to jobs. With it the compact starts in the background and answers 202; the machine's `docker_compact_status` shows it running and then its result. Refused with 400 when the agent reports no disk file or has no administrator rights, 409 when the machine is offline or a compact or a change already holds it.
+	//
+	// Corresponds with POST /api/v1/machines/{machineId}/docker-compact (the `StartDockerCompact` operationId).
+	StartDockerCompact(ctx context.Context, machineId MachineId, params *StartDockerCompactParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// DrainMachineWithBody Stop new jobs on a machine; running jobs finish
 	//
@@ -10484,6 +10578,44 @@ func (c *Client) ListDoctorFindings(ctx context.Context, params *ListDoctorFindi
 	return c.Client.Do(req)
 }
 
+// RemoveRegistrationWithBody Remove one half of a half-registered runner
+//
+// doctor R5.50, runners R5.94. `remove_github_runner` deletes a GitHub runner with the pool's name prefix that no local record owns; `remove_runner_record` removes the local record (and its service, account and folder when the machine answers) of a runner GitHub does not list. The server reads GitHub and the records again and refuses when the state changed. Without `confirm=true` it answers 409 needs_confirmation naming what goes.
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with POST /api/v1/doctor/registration-fixes (the `RemoveRegistration` operationId).
+func (c *Client) RemoveRegistrationWithBody(ctx context.Context, params *RemoveRegistrationParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewRemoveRegistrationRequestWithBody(c.Server, params, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// RemoveRegistration Remove one half of a half-registered runner
+//
+// doctor R5.50, runners R5.94. `remove_github_runner` deletes a GitHub runner with the pool's name prefix that no local record owns; `remove_runner_record` removes the local record (and its service, account and folder when the machine answers) of a runner GitHub does not list. The server reads GitHub and the records again and refuses when the state changed. Without `confirm=true` it answers 409 needs_confirmation naming what goes.
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with POST /api/v1/doctor/registration-fixes (the `RemoveRegistration` operationId).
+func (c *Client) RemoveRegistration(ctx context.Context, params *RemoveRegistrationParams, body RemoveRegistrationJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewRemoveRegistrationRequest(c.Server, params, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 // RunDoctorWithBody Run the doctor now
 //
 // doctor 7.1. Progress comes on the event stream.
@@ -11573,6 +11705,23 @@ func (c *Client) RunMachineCommandWithBody(ctx context.Context, machineId Machin
 // Corresponds with POST /api/v1/machines/{machineId}/command (the `RunMachineCommand` operationId).
 func (c *Client) RunMachineCommand(ctx context.Context, machineId MachineId, body RunMachineCommandJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewRunMachineCommandRequest(c.Server, machineId, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// StartDockerCompact Make Docker's disk file smaller now
+//
+// caches R5.58. The owner starts the compact the policy would start later: the machine is drained (new jobs wait, running jobs finish), Docker's disk file is made smaller, and the machine takes jobs again. Without `confirm=true` it answers 409 needs_confirmation naming the size that can be reclaimed and what happens to jobs. With it the compact starts in the background and answers 202; the machine's `docker_compact_status` shows it running and then its result. Refused with 400 when the agent reports no disk file or has no administrator rights, 409 when the machine is offline or a compact or a change already holds it.
+//
+// Corresponds with POST /api/v1/machines/{machineId}/docker-compact (the `StartDockerCompact` operationId).
+func (c *Client) StartDockerCompact(ctx context.Context, machineId MachineId, params *StartDockerCompactParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewStartDockerCompactRequest(c.Server, machineId, params)
 	if err != nil {
 		return nil, err
 	}
@@ -15009,6 +15158,73 @@ func NewListDoctorFindingsRequest(server string, params *ListDoctorFindingsParam
 	return req, nil
 }
 
+// NewRemoveRegistrationRequest calls the generic RemoveRegistration builder with application/json body
+func NewRemoveRegistrationRequest(server string, params *RemoveRegistrationParams, body RemoveRegistrationJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewRemoveRegistrationRequestWithBody(server, params, "application/json", bodyReader)
+}
+
+// NewRemoveRegistrationRequestWithBody constructs an http.Request for the RemoveRegistration method, with any body, and a specified content type
+func NewRemoveRegistrationRequestWithBody(server string, params *RemoveRegistrationParams, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/doctor/registration-fixes")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.Confirm != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "confirm", *params.Confirm, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "boolean", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
 // NewRunDoctorRequest calls the generic RunDoctor builder with application/json body
 func NewRunDoctorRequest(server string, body RunDoctorJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
@@ -18047,6 +18263,67 @@ func NewRunMachineCommandRequestWithBody(server string, machineId MachineId, con
 	}
 
 	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewStartDockerCompactRequest constructs an http.Request for the StartDockerCompact method
+func NewStartDockerCompactRequest(server string, machineId MachineId, params *StartDockerCompactParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "machineId", machineId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/machines/%s/docker-compact", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.Confirm != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "confirm", *params.Confirm, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "boolean", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
 
 	return req, nil
 }
@@ -22707,6 +22984,24 @@ type ClientWithResponsesInterface interface {
 	// Corresponds with GET /api/v1/doctor/findings (the `ListDoctorFindings` operationId).
 	ListDoctorFindingsWithResponse(ctx context.Context, params *ListDoctorFindingsParams, reqEditors ...RequestEditorFn) (*ListDoctorFindingsResponse, error)
 
+	// RemoveRegistrationWithBodyWithResponse Remove one half of a half-registered runner
+	//
+	// doctor R5.50, runners R5.94. `remove_github_runner` deletes a GitHub runner with the pool's name prefix that no local record owns; `remove_runner_record` removes the local record (and its service, account and folder when the machine answers) of a runner GitHub does not list. The server reads GitHub and the records again and refuses when the state changed. Without `confirm=true` it answers 409 needs_confirmation naming what goes.
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /api/v1/doctor/registration-fixes (the `RemoveRegistration` operationId).
+	RemoveRegistrationWithBodyWithResponse(ctx context.Context, params *RemoveRegistrationParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*RemoveRegistrationResponse, error)
+
+	// RemoveRegistrationWithResponse Remove one half of a half-registered runner
+	//
+	// doctor R5.50, runners R5.94. `remove_github_runner` deletes a GitHub runner with the pool's name prefix that no local record owns; `remove_runner_record` removes the local record (and its service, account and folder when the machine answers) of a runner GitHub does not list. The server reads GitHub and the records again and refuses when the state changed. Without `confirm=true` it answers 409 needs_confirmation naming what goes.
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /api/v1/doctor/registration-fixes (the `RemoveRegistration` operationId).
+	RemoveRegistrationWithResponse(ctx context.Context, params *RemoveRegistrationParams, body RemoveRegistrationJSONRequestBody, reqEditors ...RequestEditorFn) (*RemoveRegistrationResponse, error)
+
 	// RunDoctorWithBodyWithResponse Run the doctor now
 	//
 	// doctor 7.1. Progress comes on the event stream.
@@ -23261,6 +23556,15 @@ type ClientWithResponsesInterface interface {
 	//
 	// Corresponds with POST /api/v1/machines/{machineId}/command (the `RunMachineCommand` operationId).
 	RunMachineCommandWithResponse(ctx context.Context, machineId MachineId, body RunMachineCommandJSONRequestBody, reqEditors ...RequestEditorFn) (*RunMachineCommandResponse, error)
+
+	// StartDockerCompactWithResponse Make Docker's disk file smaller now
+	//
+	// caches R5.58. The owner starts the compact the policy would start later: the machine is drained (new jobs wait, running jobs finish), Docker's disk file is made smaller, and the machine takes jobs again. Without `confirm=true` it answers 409 needs_confirmation naming the size that can be reclaimed and what happens to jobs. With it the compact starts in the background and answers 202; the machine's `docker_compact_status` shows it running and then its result. Refused with 400 when the agent reports no disk file or has no administrator rights, 409 when the machine is offline or a compact or a change already holds it.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /api/v1/machines/{machineId}/docker-compact (the `StartDockerCompact` operationId).
+	StartDockerCompactWithResponse(ctx context.Context, machineId MachineId, params *StartDockerCompactParams, reqEditors ...RequestEditorFn) (*StartDockerCompactResponse, error)
 
 	// DrainMachineWithBodyWithResponse Stop new jobs on a machine; running jobs finish
 	//
@@ -25537,6 +25841,54 @@ func (r ListDoctorFindingsResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r ListDoctorFindingsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type RemoveRegistrationResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *RemoveRegistrationResult
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r RemoveRegistrationResponse) GetJSON200() *RemoveRegistrationResult {
+	return r.JSON200
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r RemoveRegistrationResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r RemoveRegistrationResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r RemoveRegistrationResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r RemoveRegistrationResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r RemoveRegistrationResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -28124,6 +28476,58 @@ func (r RunMachineCommandResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r RunMachineCommandResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type StartDockerCompactResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON202 the response for an HTTP 202 `application/json` response
+	JSON202 *struct {
+		Started bool `json:"started"`
+	}
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON202 returns the response for an HTTP 202 `application/json` response
+func (r StartDockerCompactResponse) GetJSON202() *struct {
+	Started bool `json:"started"`
+} {
+	return r.JSON202
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r StartDockerCompactResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r StartDockerCompactResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r StartDockerCompactResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r StartDockerCompactResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r StartDockerCompactResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -33433,6 +33837,36 @@ func (c *ClientWithResponses) ListDoctorFindingsWithResponse(ctx context.Context
 	return ParseListDoctorFindingsResponse(rsp)
 }
 
+// RemoveRegistrationWithBodyWithResponse Remove one half of a half-registered runner
+//
+// doctor R5.50, runners R5.94. `remove_github_runner` deletes a GitHub runner with the pool's name prefix that no local record owns; `remove_runner_record` removes the local record (and its service, account and folder when the machine answers) of a runner GitHub does not list. The server reads GitHub and the records again and refuses when the state changed. Without `confirm=true` it answers 409 needs_confirmation naming what goes.
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /api/v1/doctor/registration-fixes (the `RemoveRegistration` operationId).
+func (c *ClientWithResponses) RemoveRegistrationWithBodyWithResponse(ctx context.Context, params *RemoveRegistrationParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*RemoveRegistrationResponse, error) {
+	rsp, err := c.RemoveRegistrationWithBody(ctx, params, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseRemoveRegistrationResponse(rsp)
+}
+
+// RemoveRegistrationWithResponse Remove one half of a half-registered runner
+//
+// doctor R5.50, runners R5.94. `remove_github_runner` deletes a GitHub runner with the pool's name prefix that no local record owns; `remove_runner_record` removes the local record (and its service, account and folder when the machine answers) of a runner GitHub does not list. The server reads GitHub and the records again and refuses when the state changed. Without `confirm=true` it answers 409 needs_confirmation naming what goes.
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /api/v1/doctor/registration-fixes (the `RemoveRegistration` operationId).
+func (c *ClientWithResponses) RemoveRegistrationWithResponse(ctx context.Context, params *RemoveRegistrationParams, body RemoveRegistrationJSONRequestBody, reqEditors ...RequestEditorFn) (*RemoveRegistrationResponse, error) {
+	rsp, err := c.RemoveRegistration(ctx, params, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseRemoveRegistrationResponse(rsp)
+}
+
 // RunDoctorWithBodyWithResponse Run the doctor now
 //
 // doctor 7.1. Progress comes on the event stream.
@@ -34364,6 +34798,21 @@ func (c *ClientWithResponses) RunMachineCommandWithResponse(ctx context.Context,
 		return nil, err
 	}
 	return ParseRunMachineCommandResponse(rsp)
+}
+
+// StartDockerCompactWithResponse Make Docker's disk file smaller now
+//
+// caches R5.58. The owner starts the compact the policy would start later: the machine is drained (new jobs wait, running jobs finish), Docker's disk file is made smaller, and the machine takes jobs again. Without `confirm=true` it answers 409 needs_confirmation naming the size that can be reclaimed and what happens to jobs. With it the compact starts in the background and answers 202; the machine's `docker_compact_status` shows it running and then its result. Refused with 400 when the agent reports no disk file or has no administrator rights, 409 when the machine is offline or a compact or a change already holds it.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /api/v1/machines/{machineId}/docker-compact (the `StartDockerCompact` operationId).
+func (c *ClientWithResponses) StartDockerCompactWithResponse(ctx context.Context, machineId MachineId, params *StartDockerCompactParams, reqEditors ...RequestEditorFn) (*StartDockerCompactResponse, error) {
+	rsp, err := c.StartDockerCompact(ctx, machineId, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseStartDockerCompactResponse(rsp)
 }
 
 // DrainMachineWithBodyWithResponse Stop new jobs on a machine; running jobs finish
@@ -37135,6 +37584,39 @@ func ParseListDoctorFindingsResponse(rsp *http.Response) (*ListDoctorFindingsRes
 	return response, nil
 }
 
+// ParseRemoveRegistrationResponse parses an HTTP response from a RemoveRegistrationWithResponse call
+func ParseRemoveRegistrationResponse(rsp *http.Response) (*RemoveRegistrationResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &RemoveRegistrationResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest RemoveRegistrationResult
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParseRunDoctorResponse parses an HTTP response from a RunDoctorWithResponse call
 func ParseRunDoctorResponse(rsp *http.Response) (*RunDoctorResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -38968,6 +39450,41 @@ func ParseRunMachineCommandResponse(rsp *http.Response) (*RunMachineCommandRespo
 			return nil, err
 		}
 		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseStartDockerCompactResponse parses an HTTP response from a StartDockerCompactWithResponse call
+func ParseStartDockerCompactResponse(rsp *http.Response) (*StartDockerCompactResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &StartDockerCompactResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 202:
+		var dest struct {
+			Started bool `json:"started"`
+		}
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON202 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
 		var dest Error

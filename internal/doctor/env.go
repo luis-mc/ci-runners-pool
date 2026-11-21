@@ -226,6 +226,9 @@ type Runner struct {
 	// ToolCache is what the agent saw in the runner's tool cache; nil when it
 	// did not look (R5.35).
 	ToolCache *ToolCacheProbe
+	// CacheWrite is what the agent saw when it tried to write the shared tool
+	// folders as the runner's own user; nil when it did not look (caches R5.57).
+	CacheWrite *CacheWriteProbe
 	// SymlinkWanted is true when the machine or label setting asks for the
 	// symbolic link right for this runner (runners R5.14). Symlink is what the
 	// agent read; nil when it did not look (R5.42).
@@ -276,6 +279,21 @@ func SymlinkProbeFrom(known, canLink, developerMode bool, errText string) *Symli
 		return &SymlinkProbe{Err: errText}
 	}
 	return &SymlinkProbe{Held: canLink && !developerMode, DeveloperMode: developerMode}
+}
+
+// CacheWriteProbe is the result of trying to create a file in each shared tool
+// folder (cargo-target, cargo-home, rustup-home, xwin, ...) as the runner's own
+// user. Root and Group are the shared tools folder and the group that owns it.
+type CacheWriteProbe struct {
+	Root  string
+	Group string
+	Dirs  []CacheDirProbe
+}
+
+// CacheDirProbe is one folder tried; Err is empty when the runner could write.
+type CacheDirProbe struct {
+	Dir string
+	Err string
 }
 
 // ToolCacheProbe is what the agent found in a runner's tool cache (_work/_tool
@@ -483,13 +501,13 @@ type VMSource interface {
 }
 
 // PostgresLogin is a Postgres login of a pool's server and the shared owner
-// role it belongs to (runners R5.94).
+// role it belongs to (runners R5.97).
 type PostgresLogin struct {
 	Name, OwnerRole string
 }
 
 // PostgresSource lists the runner logins of the pool's Postgres server
-// (doctor R5.50). Read only; removing one is a separate action.
+// (doctor R5.59). Read only; removing one is a separate action.
 type PostgresSource interface {
 	PostgresLogins(ctx context.Context) ([]PostgresLogin, error)
 }

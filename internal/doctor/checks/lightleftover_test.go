@@ -35,7 +35,7 @@ func (p pgSource) PostgresLogins(context.Context) ([]doctor.PostgresLogin, error
 	return p.logins, p.err
 }
 
-func TestRunnerPostgresLogins(t *testing.T) { // OPS53, doctor R5.50
+func TestRunnerPostgresLogins(t *testing.T) { // OPS53, doctor R5.59
 	f := &fleet{runners: []doctor.Runner{{ID: "r1", Name: "crsp-box-1"}, {ID: "Runner-2", Name: "crsp-box-2"}}}
 	src := pgSource{logins: []doctor.PostgresLogin{
 		{Name: "r_r1", OwnerRole: "crsp_o_a_owner"}, {Name: "r_runner_2", OwnerRole: "crsp_o_a_owner"},

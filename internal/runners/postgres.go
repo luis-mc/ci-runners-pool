@@ -94,7 +94,7 @@ type DBSpec struct {
 }
 
 // DBAccess is what the job needs to connect. Password is secret. Role is the
-// repository's shared owner role (R5.94): the job runs as the login but
+// repository's shared owner role (R5.97): the job runs as the login but
 // `SET ROLE`s to it at connect, through PGOPTIONS, so what it creates is owned
 // by the role every runner of the repository shares.
 type DBAccess struct {
@@ -179,7 +179,7 @@ func LoginName(runnerID string) string {
 	return s
 }
 
-// OwnerRole is the shared owner role of a repository (R5.94): `crsp_`, the
+// OwnerRole is the shared owner role of a repository (R5.97): `crsp_`, the
 // repository as owner_name in lowercase letters, digits and underscore, and
 // `_owner`, at most 63. A name that would be longer is cut and ends with 8 hex
 // digits of the full repository name, so two long names stay apart.
@@ -438,7 +438,7 @@ func (p *Postgres) Provision(ctx context.Context, s DBSpec) (DBAccess, error) {
 // Remove drops a runner's database and login and its stored password. The
 // declared roles stay: they belong to the repository, not the runner. When it
 // was the last login of its repository, the shared owner role goes too, with
-// the databases it still owns (R5.94).
+// the databases it still owns (R5.97).
 func (p *Postgres) Remove(ctx context.Context, runnerID string) error {
 	login := LoginName(runnerID)
 	owner, err := p.psql(ctx, "find owner role", fmt.Sprintf(
@@ -486,12 +486,12 @@ func (p *Postgres) dropOwnerIfLast(ctx context.Context, owner string) error {
 }
 
 // Login is a Postgres login the server holds: its name and the owner role it
-// is a member of ("" for one made before R5.94).
+// is a member of ("" for one made before R5.97).
 type Login struct {
 	Name, OwnerRole string
 }
 
-// Logins lists the `r_*` login roles on the server (doctor R5.50).
+// Logins lists the `r_*` login roles on the server (doctor R5.59).
 func (p *Postgres) Logins(ctx context.Context) ([]Login, error) {
 	out, err := p.psql(ctx, "list logins", "SELECT u.rolname || ' ' || coalesce((SELECT r.rolname FROM pg_auth_members m JOIN pg_roles r ON r.oid = m.roleid WHERE m.member = u.oid AND r.rolname LIKE "+lit(ownerLike)+" LIMIT 1), '') FROM pg_roles u WHERE u.rolcanlogin AND u.rolname LIKE 'r\\_%' ORDER BY 1;")
 	if err != nil {
@@ -513,7 +513,7 @@ func (p *Postgres) Logins(ctx context.Context) ([]Login, error) {
 }
 
 // RemoveLogin removes a login named by Logins, as Remove does for a runner.
-// The doctor never calls it on its own (doctor R5.7, R5.50).
+// The doctor never calls it on its own (doctor R5.7, R5.59).
 func (p *Postgres) RemoveLogin(ctx context.Context, login string) error {
 	if !strings.HasPrefix(login, "r_") || ValidateRole(login) != nil {
 		return fmt.Errorf("%w: %q is not a runner login", ErrRoleName, login)

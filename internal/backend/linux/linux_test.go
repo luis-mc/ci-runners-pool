@@ -14,6 +14,7 @@ import (
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backend/persistent"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backend/sys"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backend/sys/sysfake"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/runnercache"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/runners"
 )
 
@@ -539,5 +540,41 @@ func TestEnvCarriesTheVMImageMirror(t *testing.T) { // OPS37
 	}
 	if env := string(started(t).fs.Files["/var/lib/crsp/runners/box-1/.env"]); strings.Contains(env, "CRSP_VM_IMAGE_MIRROR") {
 		t.Errorf("default adds the variable:\n%s", env)
+	}
+}
+
+// Caches R5.57: a second runner of the repository gets its own build folder and
+// the repository's group, and the shared folders get group and default ACLs,
+// so it never meets `Permission denied` on what the first runner made.
+func TestSecondRunnerSharesToolFoldersByGroup(t *testing.T) {
+	r := newRig()
+	st := runnercache.SharedTools{Root: "/var/lib/crsp/tools/r1", Group: runnercache.RepoGroup("r1")}
+	for _, name := range []string{"box-1", "box-2"} {
+		spec := r.spec()
+		spec.Name, spec.SharedTools = name, st
+		if _, err := r.b.Start(context.Background(), spec, backend.StartConfig{Registration: "T"}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	texts := strings.Join(r.cmd.Texts(), "\n")
+	for _, want := range []string{
+		"groupadd --system crsp-repo-r1",
+		"usermod -aG crsp-repo-r1 crsp-box-1",
+		"usermod -aG crsp-repo-r1 crsp-box-2",
+		"/var/lib/crsp/tools/r1/cargo-target/box-1",
+		"/var/lib/crsp/tools/r1/cargo-target/box-2",
+		"setfacl -R -d -m g:crsp-repo-r1:rwX /var/lib/crsp/tools/r1",
+	} {
+		if !strings.Contains(texts, want) {
+			t.Errorf("missing %q in:\n%s", want, texts)
+		}
+	}
+	unit, err := r.fs.ReadFile(r.b.unitPath(persistent.ServiceName("https://github.com/luis-mc/demo", "box-2")))
+	if err != nil || !strings.Contains(string(unit), "ReadWritePaths=/var/lib/crsp/runners/box-2 /var/lib/crsp/tools/r1") {
+		t.Errorf("the unit must allow writes to the shared folder: %v\n%s", err, unit)
+	}
+	envText, _ := r.fs.ReadFile("/var/lib/crsp/runners/box-2/.env")
+	if !strings.Contains(string(envText), "CARGO_TARGET_DIR=/var/lib/crsp/tools/r1/cargo-target/box-2") {
+		t.Errorf("each runner has its own build folder:\n%s", envText)
 	}
 }

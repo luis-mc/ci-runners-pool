@@ -28,6 +28,13 @@ type Service struct {
 	Audit    Auditor
 	// PoolName is the one pool label a runner may carry.
 	PoolName string
+	// SharedToolsRoot is the folder on a machine that holds the shared tool
+	// folders of each repository (caches R5.57). Empty takes the default of
+	// the machine's OS (DefaultSharedToolsRoot).
+	SharedToolsRoot string
+	// NoSharedTools keeps every runner's own folders (the CRSP_NO_SHARED_TOOLS
+	// environment value, caches R5.57).
+	NoSharedTools bool
 	// CacheQuota is the declared cache sizing every new runner gets (runners
 	// R5.39); a zero value takes the defaults.
 	CacheQuota runnercache.Quota
@@ -676,7 +683,7 @@ func (s *Service) addRunner(ctx context.Context, a AddSpec, actor string) error 
 	}
 	spec := backend.RunnerSpec{ID: id, Name: a.Name, OS: a.OS, Arch: a.Arch, Labels: a.Labels, GitHubURL: t.URL, Group: t.Group,
 		RunnerVersion: pin.Version, RunnerSHA256: pin.SHA256, WindowsSymlinkRight: a.OS == "windows" && a.Symlink, CacheQuota: s.CacheQuota, MaxParallel: a.MaxParallel, KeepDependencies: a.KeepDependencies,
-		Container: a.Backend == string(backend.Docker)}
+		Container: a.Backend == string(backend.Docker), SharedTools: s.sharedTools(a, t)}
 	// Names GitHub already knows before the add: only a registration that the
 	// add itself made is removed when it fails.
 	before, listErr := s.GitHub.ListRunners(ctx, t.InstallationID, t.Scope)
@@ -689,14 +696,34 @@ func (s *Service) addRunner(ctx context.Context, a AddSpec, actor string) error 
 		}
 		return fail(s.withRegistrationCleanup(ctx, t, a.Name, before, listErr, err))
 	}
+	// The runner is registered on GitHub now. A local record that cannot be
+	// written would leave a GitHub runner no machine knows (runners R5.94), so
+	// any failure from here removes the registration, the service and the
+	// folder again.
 	if err := s.Store.SetRunnerService(ctx, id, h.Ref, AccountName(a.Name, nil)); err != nil {
-		return err
+		return fail(s.rollbackRegistered(ctx, t, a, id, h.Ref, err))
 	}
 	if err := s.Store.SetRunnerState(ctx, id, Idle, "registered"); err != nil {
-		return err
+		return fail(s.rollbackRegistered(ctx, t, a, id, h.Ref, err))
 	}
 	s.audit(ctx, actor, "runner.add", a.MachineID, id, a.Name)
 	return nil
+}
+
+// rollbackRegistered undoes a registration whose local record could not be
+// finished: a remove token deregisters the runner and the agent removes its
+// service, account and folder. The error says what was cleaned up and what is
+// left behind, never one without the other.
+func (s *Service) rollbackRegistered(ctx context.Context, t Target, a AddSpec, id, ref string, cause error) error {
+	ctx = context.WithoutCancel(ctx)
+	token, err := s.GitHub.CreateRemoveToken(ctx, t.InstallationID, t.Scope)
+	if err != nil {
+		return fmt.Errorf("%w. Left behind: GitHub registration %s (no remove token: %s); remove it in the Doctor", cause, a.Name, err.Error())
+	}
+	if err := s.Agent.RemoveRunner(ctx, a.MachineID, RemoveRequest{RunnerID: id, ServiceName: ref, RemoveToken: token}); err != nil {
+		return fmt.Errorf("%w. Left behind: GitHub registration %s and its files (%s); remove it in the Doctor", cause, a.Name, err.Error())
+	}
+	return fmt.Errorf("%w. Cleaned up: GitHub registration %s", cause, a.Name)
 }
 
 // withRegistrationCleanup removes the GitHub registration a failed add left
@@ -999,4 +1026,35 @@ func (s *Service) progress(p Plan) {
 	if s.OnProgress != nil {
 		s.OnProgress(p)
 	}
+}
+
+// DefaultSharedToolsRoot is where the shared tool folders live on a machine of
+// the given OS. macOS has none: its runners keep their own folders.
+func DefaultSharedToolsRoot(os string) string {
+	switch os {
+	case "linux":
+		return "/var/lib/crsp/tools"
+	case "windows":
+		return `C:\ProgramData\crsp\tools`
+	}
+	return ""
+}
+
+// sharedTools is the shared tool folders of the runner's repository, with the
+// group of its runner users (caches R5.57). Off when switched off, when the OS
+// has none, or when the runner is not tied to one repository.
+func (s *Service) sharedTools(a AddSpec, _ Target) runnercache.SharedTools {
+	root := s.SharedToolsRoot
+	if root == "" {
+		root = DefaultSharedToolsRoot(a.OS)
+	}
+	if s.NoSharedTools || root == "" || a.Scope.Kind != "repository" || a.Scope.RepositoryID == 0 {
+		return runnercache.SharedTools{}
+	}
+	id := fmt.Sprint(a.Scope.RepositoryID)
+	sep, group := "/", runnercache.RepoGroup(id)
+	if a.OS == "windows" {
+		sep, group = `\`, RunnersGroup // every Windows runner account is in it (runners R5.14)
+	}
+	return runnercache.SharedTools{Root: strings.TrimRight(root, `/\`) + sep + id, Group: group}
 }

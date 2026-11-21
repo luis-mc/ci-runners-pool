@@ -231,7 +231,7 @@ func TestDbEnvMasksSecrets(t *testing.T) {
 	}
 }
 
-func TestOwnerRoleName(t *testing.T) { // OPS53, R5.94
+func TestOwnerRoleName(t *testing.T) { // OPS53, R5.97
 	if got := OwnerRole("Luis-MC/ci-runners"); got != "crsp_luis_mc_ci_runners_owner" {
 		t.Errorf("name %q", got)
 	}
@@ -241,7 +241,7 @@ func TestOwnerRoleName(t *testing.T) { // OPS53, R5.94
 	}
 }
 
-func TestRunnersOfOneRepoShareOwnerRole(t *testing.T) { // OPS53, R5.94
+func TestRunnersOfOneRepoShareOwnerRole(t *testing.T) { // OPS53, R5.97
 	ctx := context.Background()
 	p, f, _ := newPG(t)
 	var acc [2]DBAccess
@@ -283,7 +283,7 @@ func TestRunnersOfOneRepoShareOwnerRole(t *testing.T) { // OPS53, R5.94
 	}
 }
 
-func TestRemovingLastRunnerDropsOwnerRole(t *testing.T) { // OPS53, R5.94
+func TestRemovingLastRunnerDropsOwnerRole(t *testing.T) { // OPS53, R5.97
 	ctx := context.Background()
 	p, f, _ := newPG(t)
 	for _, id := range []string{"r1", "r2"} {
@@ -322,7 +322,7 @@ func TestRemovingLastRunnerDropsOwnerRole(t *testing.T) { // OPS53, R5.94
 	}
 }
 
-func TestLoginsListedAndRemovedByName(t *testing.T) { // OPS53, doctor R5.50
+func TestLoginsListedAndRemovedByName(t *testing.T) { // OPS53, doctor R5.59
 	ctx := context.Background()
 	p, f, _ := newPG(t)
 	f.answers = map[string]string{"FROM pg_roles u WHERE u.rolcanlogin": "r_r1 crsp_o_a_owner\nr_old\n"}

@@ -85,6 +85,10 @@ type Report struct {
 	Steps []string `json:"steps"`
 	// Error is empty when everything worked.
 	Error string `json:"error,omitempty"`
+	// KVMBefore and KVMAfter say whether /dev/kvm was in the Docker VM before
+	// the compact and again after the restart (caches R5.58).
+	KVMBefore bool `json:"kvm_before"`
+	KVMAfter  bool `json:"kvm_after"`
 	// DockerRunning says whether `docker info` answered at the end.
 	DockerRunning bool `json:"docker_running"`
 	lines         []string
