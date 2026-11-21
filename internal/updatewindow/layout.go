@@ -241,6 +241,9 @@ func SampleViews() []View {
 			snap.Stage = sampleStage("downloading", 42)
 		case StateWaiting:
 			snap.Stage = sampleStage("waiting_for_jobs", -1)
+		case StateWaitingInstaller:
+			snap.Stage = sampleStage("waiting_installer", -1)
+			snap.Stage.WaitingFor = "ComiclexHome-0.1.11712-x64-with-a-very-long-installer-file-name"
 		case StateInstalling:
 			snap.Stage = sampleStage("installing", 60)
 		case StateRestarting:
