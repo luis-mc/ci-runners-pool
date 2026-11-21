@@ -26,7 +26,7 @@ func writeFile(t *testing.T, name string, data []byte) string {
 	return p
 }
 
-// OPS60, runners R5.99: only a Linux ELF of the image's arch is copied.
+// OPS60, runners R5.100: only a Linux ELF of the image's arch is copied.
 func TestCheckLinuxBinary(t *testing.T) {
 	cases := []struct {
 		name string

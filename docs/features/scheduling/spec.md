@@ -293,6 +293,12 @@ Source paths are in github.com/luis-mc/dev-standards, under `claude/plugins/deli
 
 **R5.75** (OPS55) — **A hold never reaches the job timeout.** Time a job spends in the job-started hook counts against its `timeout-minutes`. The hook's maximum wait is therefore at most `slots.MaxHoldMin` (10 minutes, a third of the 30-minute guideline `slots.JobTimeoutMin`, doctor `workflow.timeout`): a longer setting, flag or environment value is cut to it when the hook reads it, and the default is 10. When the wait ends the rule of R5.20 decides: `fail` exits 1 with the log line that names what the job waited for, so the job fails early and can be re-run, and `run` lets it go on without a slot. A job is never left to time out inside the hook. With R5.73 the hold is a safety net for a slot taken by something else (light or heavy jobs, a warm runner), not the normal path.
 
+**R5.76** (OPS58, owner decision 21 Nov: "Watch, hold, warn"; source: 21 Nov 04:30, a PC at 96% memory with jobs already running, over its 85% budget) — **Load is watched while jobs run, and a start is held while it is over budget.** The agent's sampler (machines R5.16) keeps its own poll while any job holds a slot; no second thread. While memory or CPU is over the machine's budget (R5.45), no new job starts, even when a slot number is free: the agent gate holds with the pause reason `budget` and the controller gate holds with the wait reason `load_over_budget`, whose line names the exceeded figures (R5.45) and, in the hook's own line, the top processes (R5.46). A job that already holds a slot is **never stopped, paused or killed**, and asking again under the same load still answers go (R5.12). Built (OPS58: the hold itself was built in R5.13, R5.22 and machines R5.62; this requirement pins it with a test while a job runs).
+
+**R5.77** (OPS58) — **A machine over its budget with jobs running shows a warning.** The controller's load watch (`machines.Service.watchLoad`, fed by every load report) raises a load warning at the first report that is over budget while at least one job holds a slot. The warning shows in the existing channel for machine state, the doctor check `machine.load.budget` (doctor R5.61): the finding names the machine, the measured memory and CPU, the budget and the running jobs, and says that running jobs are not stopped. The warning is also on the machine view (`View.LoadWarning`). A machine over budget with no job running holds new starts (R5.76) but raises no warning; the 10-minute rule of the check still covers it. Built (OPS58).
+
+**R5.78** (OPS58) — **A load warning clears only after a steady period under budget.** The warning clears when every load report for `machines.LoadClearAfter` (60 s, about four reports at the 15 s step of R5.43) is at or under the budget; one report over the budget restarts the period. The hold of R5.76 is not delayed by this: starts resume at the first poll under budget, only the warning waits. Built (OPS58). Tests use a fake clock and no sleeps.
+
 ## 6. Non-functional requirements
 
 **R6.1** — With a free slot and a machine under budget, the job-started hook returns within 2 s. No measurement sleeps. M1. Built. Source: `load.py` `measure_now`.
@@ -470,6 +476,9 @@ A test with a path in backticks exists; one marked planned is NOT YET IMPLEMENTE
 | R5.73 | `internal/runners/slotcap_test.go` TestPlanAddRefusesMoreRunnersThanSlots, TestPeakCountsPoolPlusBusiestRepositoryAndSkipsRegistrationsAndFailed; `internal/doctor/checks/runnerslots_test.go` TestRunnerSlotsWarns |
 | R5.74 | `internal/scheduler/facts_test.go` (the go fact carries `queued_at` and `slot_at`) |
 | R5.75 | `internal/scheduler/slots/slots_test.go` TestHoldIsCutBelowTheJobTimeout |
+| R5.76 | `internal/scheduler/gate_test.go` TestOverBudgetHoldsNewStartWhileAJobRuns; `internal/agent/gate_test.go` (budget reason) | new |
+| R5.77 | `internal/doctor/checks/checks_test.go` TestLoadBudgetWarnsWhileJobsRun | new |
+| R5.78 | `internal/machines/loadwatch_test.go` TestLoadWatchRaisesAndClearsWithoutFlapping, TestOverBudgetIsStrictAndIgnoresUnknown | new |
 | R6.1 | `internal/hooks/hooks_test.go` TestQuietGateUnderTwoSeconds | `test_load.py` Cache `test_no_sleep_and_delta_from_saved_raw` |
 | R6.2 | `internal/scheduler/gate_test.go` TestTwoTakersNeverShareASlot | `test_machine.py` Slots `test_race_two_processes_never_share_one_slot` |
 | R6.3 | `internal/scheduler/guard_test.go` TestQueriesHaveDeadline | new |

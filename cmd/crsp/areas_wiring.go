@@ -227,7 +227,11 @@ func buildController(ctx context.Context, d controllerDeps) (*controller, error)
 		reg = registry.Platform(realDeps(nil, secretRedactor.Redact, secretRedactor.Add), runnerIDSource(logger, d.DB))
 	}
 	// Every change to a runner record is told to the live view, so the console list moves without a reload.
-	rstore := runners.NotifyStore{Store: runners.NewMemStore(), OnChange: func(r runners.Record, gone bool) {
+	durableRunners, err := runners.OpenDurableStore(ctx, d.DB.RunnerPersister())
+	if err != nil {
+		return nil, err
+	}
+	rstore := runners.NotifyStore{Store: durableRunners, OnChange: func(r runners.Record, gone bool) {
 		if b := api.RunnerEventJSON(r, gone); b != nil {
 			hub.Publish(events.RunnerState, b)
 		}

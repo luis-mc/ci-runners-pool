@@ -30,6 +30,9 @@ type View struct {
 	// RunnerServices are the runner services of the machine as its agent last
 	// left them (runners R5.89); empty for an offline machine.
 	RunnerServices []RunnerService
+	// LoadWarning is set while the machine is over its load budget with jobs
+	// running (scheduling R5.77); nil otherwise.
+	LoadWarning *LoadWarning
 }
 
 // BackendView is a detected backend and whether the user allowed it (R5.12).
@@ -97,6 +100,7 @@ func (s *Service) view(ctx context.Context, m Machine) (View, error) {
 		v.SlotsUsed = l.SlotsUsed
 	}
 	v.RunningJobs = append([]JobRef(nil), s.running[m.ID]...)
+	v.LoadWarning = s.loadWarningLocked(m.ID)
 	s.mu.Unlock()
 	if c, ok, err := s.o.Repo.OpenChange(ctx, m.ID); err != nil {
 		return View{}, err

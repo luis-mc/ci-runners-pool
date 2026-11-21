@@ -145,6 +145,11 @@ type Machine struct {
 	BudgetMemoryPct, BudgetCPUPct int
 	// OverBudgetSince is when the load went over the budget and stayed; zero when under it.
 	OverBudgetSince time.Time
+	// LoadWarnSince is when the machine went over its budget with jobs running
+	// and the controller's load watch raised its warning; zero when none (scheduling R5.77).
+	LoadWarnSince time.Time
+	// RunningJobs name the jobs that hold a slot ("repo job").
+	RunningJobs []string
 	// DiskFreeBytes and DiskTotalBytes describe the work volume; nil when unknown.
 	DiskFreeBytes, DiskTotalBytes *int64
 	// PauseReason is why the machine takes no new jobs ("disk_low", "paused",
@@ -166,6 +171,10 @@ type Machine struct {
 	// DockerCompact is the Docker disk compact policy and what the agent
 	// reported; nil when the machine has no Docker disk file to compact.
 	DockerCompact *DockerCompact
+	// ResetSigns say why the machine's settings or runners may have gone back
+	// to the defaults: a rejoin, default settings after chosen ones, runner
+	// records of a machine that is not in the pool (machine.reset, R5.61).
+	ResetSigns []string
 }
 
 // DockerCompact is what the machine.docker.compact check reads (caches R5.51 to R5.54).
@@ -237,6 +246,9 @@ type Runner struct {
 	// CacheWrite is what the agent saw when it tried to write the shared tool
 	// folders as the runner's own user; nil when it did not look (caches R5.57).
 	CacheWrite *CacheWriteProbe
+	// Tools is what the agent saw of the common tools on the runner's PATH as
+	// its service sees it; nil when it did not look (doctor R5.63).
+	Tools *ToolsProbe
 	// SymlinkWanted is true when the machine or label setting asks for the
 	// symbolic link right for this runner (runners R5.14). Symlink is what the
 	// agent read; nil when it did not look (R5.42).
@@ -287,6 +299,20 @@ func SymlinkProbeFrom(known, canLink, developerMode bool, errText string) *Symli
 		return &SymlinkProbe{Err: errText}
 	}
 	return &SymlinkProbe{Held: canLink && !developerMode, DeveloperMode: developerMode}
+}
+
+// ToolsProbe is the common tools found on one runner's PATH. Err is set when
+// the agent could not run the probe; the check then skips the runner.
+type ToolsProbe struct {
+	Err   string
+	Tools []ToolProbe
+}
+
+// ToolProbe is one tool: found or not, and the first line of its version output.
+type ToolProbe struct {
+	Name    string
+	Found   bool
+	Version string
 }
 
 // CacheWriteProbe is the result of trying to create a file in each shared tool

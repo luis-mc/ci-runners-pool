@@ -430,7 +430,7 @@ function MachineBody({ m, onChanged }: { m: Machine; onChanged: () => void }) {
           void save.run();
         }}
       >
-        <Stack gap="loose">
+        <Stack>
           <ErrorSummary errors={errors} />
           <Section title="Backends">
             <Stack gap="tight">

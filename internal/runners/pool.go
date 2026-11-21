@@ -86,7 +86,7 @@ func (s *Service) addPoolRunner(ctx context.Context, a AddSpec, version, actor s
 		s.audit(ctx, actor, "runner.pool_sync_failed", a.MachineID, rec.ID, err.Error())
 	}
 	// The step ends with the real outcome of this runner's registrations (OPS60,
-	// R5.100): one that failed fails the step with its reason, so Add runners
+	// R5.101): one that failed fails the step with its reason, so Add runners
 	// never says "added" for a runner that is Failed. The runner stays in the
 	// list as Failed; the owner removes it.
 	if all, err := s.Store.ListRunners(ctx, Filter{}); err == nil {
@@ -183,7 +183,7 @@ func (s *Service) SyncPoolRegistrations(ctx context.Context, actor string) error
 			if _, ok := have[k]; ok {
 				// A failed registration stays: the pool runner shows Failed with the
 				// reason, and only the owner removes it. It is never removed or
-				// retried by the reconcile (OPS60, R5.100): each retry of a failed
+				// retried by the reconcile (OPS60, R5.101): each retry of a failed
 				// image build costs minutes and hid the reason.
 				continue
 			}

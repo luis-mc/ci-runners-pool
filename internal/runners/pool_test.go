@@ -316,7 +316,7 @@ func (f *fakeAudit) has(action string) bool {
 	return false
 }
 
-// OPS60, runners R5.100: a registration whose build failed stays, with its
+// OPS60, runners R5.101: a registration whose build failed stays, with its
 // reason, in the list as Failed. A later sync neither removes nor retries it.
 func TestFailedPoolRegistrationStaysVisibleAndIsNotRetried(t *testing.T) {
 	ctx := context.Background()

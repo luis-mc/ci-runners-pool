@@ -180,3 +180,17 @@ func TestStepBeforeInstallValidateStopsTheAgentAndSetsTheFlag(t *testing.T) {
 		}
 	}
 }
+
+// OPS59: an upgrade never removes the data folder (machines, keys, database): the package authors no
+// RemoveFolder or RemoveFile, and the only deletion is the RemoveData action, which an upgrade never runs.
+func TestMSINeverRemovesTheDataFolderOnUpgrade(t *testing.T) {
+	s := wxs(t)
+	for _, el := range []string{"<RemoveFolder", "<RemoveFile"} {
+		if strings.Contains(s, el) {
+			t.Errorf("%s would delete data the pool keeps between versions", el)
+		}
+	}
+	if !strings.Contains(s, "NOT UPGRADINGPRODUCTCODE") {
+		t.Error("RemoveData must not run on an upgrade: it needs NOT UPGRADINGPRODUCTCODE")
+	}
+}

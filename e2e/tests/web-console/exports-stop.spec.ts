@@ -222,7 +222,7 @@ test('Add runners: Linux on a Windows machine is planned and added to the pool',
   expect(mock.count('POST', '/api/v1/runner-plans')).toBe(1);
 });
 
-// OPS60 (runners R5.99, R5.100; core UX-30): a runner whose image build failed never ends at "The runners are added".
+// OPS60 (runners R5.100, R5.101; core UX-30): a runner whose image build failed never ends at "The runners are added".
 test('Add runners: a failed runner ends at Done with its reason and a next step', async ({
   page,
 }) => {

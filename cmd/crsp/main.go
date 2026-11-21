@@ -169,7 +169,7 @@ func runController() error {
 	listen := &listenaddr.Service{Settings: ops.Settings, Source: listenaddr.SystemSource{}, Getenv: os.Getenv, Agent: cfg.AgentAddr}
 
 	idle := &idleHook{}
-	mr, err := startMachines(ctx, cfg, logger, idle, audit.New(db), poolDefaults(ops.Settings))
+	mr, err := startMachines(ctx, cfg, logger, idle, audit.New(db), db, poolDefaults(ops.Settings))
 	if err != nil {
 		return err
 	}
