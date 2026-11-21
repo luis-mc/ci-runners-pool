@@ -84,6 +84,12 @@ for (const route of routes) {
       const problems = await measureDomLayout(page, {
         known: [],
         spaceVar: '--ds-space-',
+        sectionGapVar: '--ds-space-6',
+        focusVars: {
+          width: '--ds-focus-width',
+          offset: '--ds-focus-offset',
+          glow: '--ds-glow-focus',
+        },
         ready: () => frames(page),
       });
       const { unknown } = judgeLayout(`${route.pattern} ${mode}`, problems, []);
