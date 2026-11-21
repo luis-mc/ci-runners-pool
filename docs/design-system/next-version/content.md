@@ -1325,12 +1325,17 @@ The words of the Help page and of the ? beside a term (LOOK44, owner pick I of 2
 | Word | Where and meaning |
 |---|---|
 | Help | The seventh area of the menu and the page title. |
-| How crsp runs your jobs, and what its words mean. | Lead of Help (LOOK47). |
+| One picture, then the questions people ask. Each card names its box. | Lead of Help (LOOK48; replaces *How crsp runs your jobs, and what its words mean.*). |
 | How a job gets run | Pane of the picture on Help and on the first-run Overview. |
 | On GitHub / In your pool | The two groups of the picture. |
-| 7 parts. Press a part to jump to its question. | Quiet line under the picture. |
+| 1 to 3 happen on GitHub. 4 to 7 happen in your pool. | Quiet line under the picture (LOOK48; replaces *7 parts. Press a part to jump to its question.*). |
+| 2 waiting / none waiting / {n} of {m} busy | Examples in the Queue and Slot boxes. The other boxes show a repository, `#{run}, {event}`, `{job} + labels`, a runner name and a machine name, or their short meaning when nothing is known. |
 | Repository, Run, Job, Queue, Slot, Runner, Machine | The seven parts. Their lines: a GitHub project; one start of a workflow; asks for a runner; waits for a slot; room for one job; does the work; your computer. |
-| Questions | Pane with every question card at once (no steps, no Back, Next or Start again since LOOK47). |
+| Questions, in the order a job meets them | Pane with every question card at once, ordered by box (no steps, no Back, Next or Start again since LOOK47; title since LOOK48). |
+| Box {n}: {Name} | Badge on every card, with the numbered circle; a link to that box in the picture (LOOK48). |
+| {n} of {m} slots busy | Text of the slots picture on the slot card. |
+| Memory {n}% of {b}% / CPU {n}% of {b}% | Text of the load budget picture; {b} is the machine's own budget. |
+| first one takes the free slot / Runner type. Linux or Windows is the OS. / the tray icon, bottom right of the PC | Words inside the card pictures. |
 | What does shared mean? / What are a run and a job? / What are labels? / What does Run elsewhere mean? | Cards about GitHub, first in the grid. |
 | Why is my job waiting? / What is a slot? / What is the load budget? / What is the queue? / What is a runner type? | Cards about the pool, second in the grid. |
 | What is the Doctor? / What is the tray app? / What are images and caches? | Cards about looking after the pool, last in the grid. |
