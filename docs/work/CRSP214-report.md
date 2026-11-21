@@ -11,4 +11,6 @@ Branch `CRSP214-web-e2e-test-guardrails-2`, from `origin/CRSP208-release-48`.
 
 ## Status
 - Web suites touched: pass. Guardrails, prettier, eslint, tsc: clean.
-- E2E gate (DL-88): see below.
+- E2E gate (DL-88), 20.4 min: 3211 passed, 2 skipped, 3 failed:
+  `ux wordBroken: /jobs/insights` (data, stress, empty): "Guardrails" broken over lines at 1300 px.
+- Proof it is not this change: the same 3 fail with the unchanged `ux-guards.ts` and `ux-routes.spec.ts` of the release head (`git checkout HEAD~1 -- ...`, 18 passed, same 3 failed). Left as is; no check weakened. Owner: the Insights Guardrails screen (RELEASE-48).
