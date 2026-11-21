@@ -1,4 +1,5 @@
 // Machines (web-console 4.4, R5.22): list, detail, budget, slots, drain, resume, remove.
+import { HelpTerm } from '../help/HelpTerm';
 import {
   Button,
   Chips,
@@ -400,7 +401,16 @@ function MachineBody({ m, onChanged }: { m: Machine; onChanged: () => void }) {
           items={[
             { name: 'State', value: <Status kind={state.kind} word={state.word} /> },
             { name: 'Last seen', value: formatPast(m.last_seen_at) },
-            { name: 'Slots in use', value: `${m.slots_used} of ${m.settings.job_slots}` },
+            {
+              name: 'Slots in use',
+              value: `${m.slots_used} of ${m.settings.job_slots}`,
+              help: <HelpTerm term="slot" />,
+            },
+            {
+              name: 'Load budget',
+              value: `memory ${formatPercent(m.settings.budget_memory_pct)}, CPU ${formatPercent(m.settings.budget_cpu_pct)}`,
+              help: <HelpTerm term="budget" />,
+            },
             ...(f?.cpu_model
               ? [{ name: 'CPU', value: `${f.cpu_model}, ${f.cores ?? '?'} cores` }]
               : []),

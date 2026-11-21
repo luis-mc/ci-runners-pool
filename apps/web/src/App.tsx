@@ -18,6 +18,7 @@ import type { EventSourceFactory } from './live/store';
 import { AppShell } from './shell/Shell';
 import { FaultBoundary } from './screens/common';
 import { DoctorScreen } from './screens/doctor/Doctor';
+import { HelpScreen } from './screens/help/Help';
 import { jobsRoutes } from './screens/jobs/routes';
 import { MOVED, MovedTo } from './screens/pool/redirects';
 import { PoolLayout } from './screens/pool/PoolLayout';
@@ -201,6 +202,7 @@ export function App({
                   <Route key={from} path={from} element={<MovedTo to={to} />} />
                 ))}
                 <Route path="doctor" element={<DoctorScreen />} />
+                <Route path="help" element={<HelpScreen />} />
                 <Route path="settings/updates/review" element={<UpdateReviewPage />} />
                 <Route path="settings" element={<SettingsLayout />}>
                   <Route index element={<Navigate to="access" replace />} />

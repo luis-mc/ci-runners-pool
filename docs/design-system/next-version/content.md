@@ -912,7 +912,7 @@ The words of the native update window on Windows (tray R5.46 to R5.49). The step
 
 ## Shared Pool and Jobs words
 
-The words of the six-item menu, Shared Pool and the Jobs sub-sections (owner decisions D24, D29, D31 to D34, LOOK31). "Runners" stays "runners" (D29).
+The words of the seven-item menu, Shared Pool and the Jobs sub-sections (owner decisions D24, D29, D31 to D34, LOOK31). "Runners" stays "runners" (D29).
 
 | Word | Where and meaning |
 |---|---|
@@ -926,8 +926,9 @@ The words of the six-item menu, Shared Pool and the Jobs sub-sections (owner dec
 | Add a machine first. | Reason on a step or button that cannot start yet. |
 | {n} machines, {m} runners, {k} busy | The pool totals above the runner list and on the summary. |
 | Runners serve every repository that uses the pool. | The one line on Add runners, in place of the Repository question. |
-| How crsp works: the Pool has Machines, and each machine has Runners. Repositories use the pool. Start in Shared Pool. | The first-run strip on the Overview. |
-| Hide this | Button that hides the strip for good in this browser. |
+| How a job gets run | The first-run pane of the Overview: the picture of Help (component 64), replacing the old *How crsp works* strip (LOOK44). |
+| Open Help | Button of that pane that opens Help. |
+| Hide this | Button that hides the pane for good in this browser. |
 | Showing the last 100 finished jobs. | Note above the finished jobs when more exist. |
 | See all | Button that pages in the earlier finished jobs. |
 | Done, failed and the averages count the last 200 finished jobs. | Quiet line under a grouped Jobs table. |
@@ -1254,3 +1255,37 @@ Run insights is a tab of Jobs, placed before Charts. Estimates always say *estim
 | Repository page, panes | CI checks, Guardrails, Job slots |
 | Repository page, CI checks | ✓ pass, ✕ fix, – skipped; columns Status, Rule, Job, Line, Fix; "Checked {time}." |
 | Repository page, Job slots | No advice: the limit of this repository did not hold jobs back while slots were free. |
+
+## Help words
+
+The words of the Help page and of the ? beside a term (LOOK44, owner pick I of 20 Nov, D57). English only. *Slot* is a shown word. *Runner type* is the word for persistent or ephemeral; Linux or Windows is the system, never the type.
+
+| Word | Where and meaning |
+|---|---|
+| Help | The seventh area of the menu and the page title. |
+| How crsp runs your jobs, one step at a time. | Lead of Help. |
+| How a job gets run | Pane of the picture on Help and on the first-run Overview. |
+| On GitHub / In your pool | The two groups of the picture. |
+| Steps | Name of the stepper list. |
+| On GitHub / In your pool / Looking after the pool | The three steps of Help. |
+| Next / Back / Start again | The buttons of the stepper pane. Next is the primary; on the last step it says *Start again*. |
+| Parts 1 to 3 happen on GitHub. A push starts a run, and each job of the run asks for a runner by its labels. | Line of step 1. |
+| Parts 4 to 7 happen in your pool. crsp queues the job, waits for a free slot on a machine, and a runner there does the work. | Line of step 2. |
+| The Doctor, the tray app and the images and caches keep the pool working. | Line of step 3. |
+| 7 parts. Press a part to see its step. | Quiet line under the picture. |
+| Repository, Run, Job, Queue, Slot, Runner, Machine | The seven parts. Their lines: a GitHub project; one start of a workflow; asks for a runner; waits for a slot; room for one job; does the work; your computer. |
+| Questions | Pane of the question cards of the current step. |
+| What does shared mean? / What are a run and a job? / What are labels? / What does Run elsewhere mean? | Cards of step 1. |
+| Why is my job waiting? / What is a slot? / What is the load budget? / What is the queue? / What is a runner type? | Cards of step 2. |
+| What is the Doctor? / What is the tray app? / What are images and caches? | Cards of step 3. |
+| Slot | Room for one job at a time on a machine. |
+| Pool size makes slots: you set memory and CPUs on Pool size, and crsp turns that into slots, the number of jobs that run at once. | The sentence of the slot card and of the ? on Slots. |
+| Load budget | The most memory and CPU a machine may use for jobs. Over it, new jobs wait. The card shows each machine's own budget (`memory 70%, CPU 55%`), read from the API. |
+| {n} of {m} slots in use | The slots of each machine on the slot card. |
+| Runner type | Persistent keeps its tools and caches. Ephemeral is fresh for every job. |
+| Run elsewhere | Another runner runs the job, not your pool, for example a GitHub-hosted runner. |
+| No machine yet. Add a machine to see its slots. / ... its load budget. | The card when the pool has no machine. |
+| What does {term} mean? | Name of the ? button. {term} is Slots, Load budget, Queue, Runner type or Run elsewhere. |
+| More about this in Help | The link in the ? answer. |
+| Open Pool size / Open Jobs / Open the Doctor / Open Images and caches | Links on the cards. |
+| Load budget | Fact row on the machine page: `memory {n}%, CPU {m}%`. |
