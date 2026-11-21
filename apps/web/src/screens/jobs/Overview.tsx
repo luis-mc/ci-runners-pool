@@ -86,7 +86,7 @@ function Overview() {
                   linkName="Open the jobs that wait now"
                 />
                 <StatTile
-                  label="Wait, slow end"
+                  label="Wait slow end (p90)"
                   {...(last.waitP90 === undefined
                     ? {}
                     : { value: formatDuration(Math.round(last.waitP90)) })}
@@ -167,7 +167,7 @@ function Overview() {
                     )}
                   </Load>
                 </Card>
-                <Card title="Failed" to="/jobs/done?state=done">
+                <Card title="Failed jobs" to="/jobs/done?state=done">
                   <Text>
                     {last.jobs === 0
                       ? 'No finished jobs in the last 7 days.'

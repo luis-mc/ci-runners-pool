@@ -620,9 +620,9 @@ A field's width caps its box, never its name and help: a lone field's name and h
 - **Keyboard and screen reader:** the tile is one tab stop; Enter opens its link. The sparkline is hidden from assistive technology; the tile says the same in words: *Waiting now: 3 jobs, up 2 against the previous 7 days, worse. Oldest 4 min.* (UX-17). The focus ring is the shared one (UX-17).
 - **Phone (360, 393 px):** two tiles per row, equal width, row gap `--ds-space-3`; the label and the change line wrap (UX-72), the value never wraps and the unit goes under it only when it does not fit; a tile never gets narrower than 160 px. Four tiles make two rows, never one long column.
 - **Looks:** the tiles sit in the card grid (component 8) above every other card.
-- **Source:** `packages/ui/src/components/StatTile.tsx` (`StatTile`), `packages/ui/src/components.css` (to be built; the apps do not follow this yet).
+- **Source:** `packages/ui/src/components/StatTile.tsx` (`StatTile`, `StatGrid`), `packages/ui/src/components.css` (built in LOOK41; the Jobs Overview uses it).
 - **Rules:** UX-75, UX-52, UX-58, UX-17, UX-41, UX-16, CORE-2, CORE-7.
-- **Guard:** `packages/ui/src/components/parts.test.tsx` (to be written with the part).
+- **Guard:** `packages/ui/src/components/overview-parts.test.tsx`.
 
 ## 59. Ranked findings list
 
@@ -634,9 +634,9 @@ A field's width caps its box, never its name and help: a lone field's name and h
 - **Keyboard and screen reader:** Down and Up move through the items (UX-57); Tab reaches the fold, the link and *Dismiss* of the item in that order. A screen reader reads the rank, the title, the minutes, the confidence word and the fix as the item's name, in that order (*1 of 3: …, about 40 minutes a week, likely*). *Dismiss* names its finding (`Dismiss: Add one runner…`) and moves focus to the next item; the change is announced (*Dismissed. Restore*) in the polite live region.
 - **Phone (360, 393 px):** each item is a card with the same lines in the same place (UX-72): rank and title, then minutes and confidence word on one line, then the fix, then the fold and the link, each a full-width 44 px target. The title wraps; it is never cut.
 - **Looks:** no table: the item is a row of words, not columns (UX-25).
-- **Source:** `packages/ui/src/components/FindingList.tsx` (`FindingList`, variant `strip` or `full`), `packages/ui/src/components.css` (to be built; the apps do not follow this yet).
+- **Source:** `packages/ui/src/components/FindingList.tsx` (`FindingList`, the `strip` variant, built in LOOK41; the `full` variant with Dismiss stays as the Run insights table), `packages/ui/src/components.css`.
 - **Rules:** UX-76, UX-52, UX-58, UX-57, UX-70, UX-17, UX-72, CORE-3, CORE-4, CORE-5.
-- **Guard:** `packages/ui/src/components/parts.test.tsx` (to be written with the part).
+- **Guard:** `packages/ui/src/components/overview-parts.test.tsx`.
 
 ## 60. Bar list
 
@@ -647,9 +647,9 @@ A field's width caps its box, never its name and help: a lone field's name and h
 - **Keyboard and screen reader:** each row is one tab stop; Down and Up move through the rows (UX-57); Enter opens the list. A row reads *repo-a: 212 minutes, 124 jobs. Open the 124 jobs.* The bars are hidden from assistive technology; the table under *Show as table* is the text equivalent.
 - **Phone (360, 393 px):** the label sits above its bar (the bar fills the row width), the value to the right of the label; the label wraps and never cuts (UX-72); rows are at least `--ds-target-min` high.
 - **Looks:** a card body, never a bordered box inside a box.
-- **Source:** `packages/ui/src/components/BarList.tsx` (`BarList`), `packages/ui/src/components.css` (to be built; the apps do not follow this yet).
+- **Source:** `packages/ui/src/components/BarList.tsx` (`BarList`), `packages/ui/src/components.css` (built in LOOK41; one value a row, the two-segment bar and *Show as table* come with the stacked mode).
 - **Rules:** UX-41, UX-17, UX-52, UX-57, UX-58, UX-72, UX-16, CORE-2, CORE-4.
-- **Guard:** `packages/ui/src/components/Viz.test.tsx` (to be written with the part).
+- **Guard:** `packages/ui/src/components/overview-parts.test.tsx`.
 
 ## 61. Runner timeline
 
@@ -688,6 +688,18 @@ A field's width caps its box, never its name and help: a lone field's name and h
 - **Source:** `packages/ui/src/components/Charts.tsx` (`TrendChart`, `mode="stacked"`), `packages/ui/src/components.css` (to be built; the apps do not follow this yet).
 - **Rules:** UX-41, UX-17, UX-18, UX-52, UX-58, UX-16.
 - **Guard:** `packages/ui/src/components/Viz.test.tsx` (to be written with the mode).
+
+## 64. Search table
+
+- **Used for:** the one list of the Jobs section (Live, Done, Run elsewhere) and any later list that has a search, a state filter and a panel of details (owner decision of 20 Nov 2026, option 11 of CRSP211; feature ci-run-insights).
+- **Anatomy:** one list toolbar (component 11) above one table (component 15). In the toolbar, in this order: the search box (component 21), the state filter as a segmented choice (component 12: *All*, *Queue*, *Running*, *Done*), the page's other choices, a short count, and at the end the **details button**: an icon button with the panel-right icon (a box with a bar at its right) named *Show details* (*Hide details* while the panel is open) by its `aria-label` and its tooltip. The button opens a **details panel** at the right of the table with the full information of the chosen row: a title, *Close details*, and the facts (component 8) the page passes. The chosen row is marked (`aria-current`); the first row is chosen until another is pressed or reached with the keyboard. The page gives the rows, the columns (component 15), what a row says in words for the search, and what its details show; it draws nothing itself. **The search** is the one of option 9: free words match any text of a row; `repo:`, `state:`, `runner:`, `branch:` and `job:` narrow one field; every word must match. The search is kept in the address (`q`). One list shows waiting rows first, then running rows, then the latest finished rows.
+- **States:** *panel closed* (default); *panel open*; *no match* (*Nothing matches. Clear the search or choose All.*, or the page's own words when the filter holds nothing); *loading*; *failed* (component 19).
+- **Keyboard and screen reader:** focus starts in the search box when the page opens (the first act on a list is to search). Down, Up, `j` and `k` move through every control and every row in page order (UX-57; `j` and `k` type in the box); the target may be an SVG icon, so the movement reads the focus from the nearest control. Enter opens the row; Escape in the panel closes it and returns focus to the details button. The panel is a landmark named *Details: {row}*; the button is a toggle (`aria-pressed`).
+- **Phone (360, 393 px):** the panel is a sheet fixed to the bottom of the screen, at most 72 per cent of its height, scrollable, with *Close details* in its first line (UX-43); the table keeps its cards (UX-49).
+- **Looks:** the toolbar is one row at 1300 px; the panel is one bordered box of the width of a form field and a half; the chosen row has a primary outline.
+- **Source:** `packages/ui/src/components/SearchTable.tsx` (`SearchTable`, `parseSearch`, `matchesSearch`), `packages/ui/src/components/Table.tsx` (`current`, `onSelect`), `packages/ui/src/components.css`.
+- **Rules:** UX-31, UX-57, UX-43, UX-72, UX-74, UX-49, CORE-1, CORE-2, CORE-4.
+- **Guard:** `packages/ui/src/components/SearchTable.test.tsx`, `e2e/tests/web-console/jobs-doctor.spec.ts`, `e2e/tests/web-console/ux-keyboard.spec.ts`.
 
 ## How to add a component
 

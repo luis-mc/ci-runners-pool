@@ -22,5 +22,4 @@ This draft is a full, project-neutral starter design system. It holds UX rules, 
 The changes of this version that the apps still have to build. One line per change, `- C<n>: what the apps must do`. Empty for a new version.
 - C16: build the pane frame, reverse-video selection, key-hint bar and the six themes with their Settings choice (LOOK2).
 - C148: change the table text of every list to the new UX-72: wrap, break, ellipsis plus tooltip and tap to expand (cell full-text, component 62); retire the `rowHeights` guard (LOOK40).
-- C149: rebuild Jobs as six tabs, Overview first, Group by on Done, Run elsewhere as a tab (UX-74, UX-75).
-- C150: build the stat tile, ranked findings list, bar list, runner timeline, cell full-text and the stacked trend chart (components 58 to 63), with the Jobs redesign words (C151).
+- C150: build the runner timeline, cell full-text and the stacked trend chart (components 61 to 63); the stat tile, ranked findings strip and bar list are built (LOOK41).

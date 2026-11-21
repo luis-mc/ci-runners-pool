@@ -814,29 +814,38 @@ function JobsListTab({ tab }: { tab: Tab }) {
         allLabel={null}
       />
       {!elsewhere ? <ViewSwitch view={view} onChange={set} /> : null}
-      {tab === 'done' ? (
-        <Segmented
-          label="Range"
-          options={RANGES}
-          value={days}
-          onChange={(v) => {
-            change((n) => n.set('days', v || String(KEPT_DAYS)));
-            setShown(DONE_STEP);
-          }}
-          allLabel={null}
-        />
-      ) : null}
-      {tab === 'done' ? (
-        <Segmented<GroupBy>
-          label="Group by"
-          options={GROUPS}
-          value={group ?? ''}
-          onChange={(v) => change((n) => (v ? n.set('group', v) : n.delete('group')))}
-          allLabel="None"
-        />
-      ) : null}
     </>
   );
+
+  // Done adds its own choices, in a bar of their own so the bar of the list stays one row: the range of the finished
+  // work, and one Group by choice in place of the five By tabs (UX-74).
+  const doneBar =
+    tab === 'done' ? (
+      <ListToolbar
+        label="Done"
+        filters={
+          <>
+            <Segmented
+              label="Range"
+              options={RANGES}
+              value={days}
+              onChange={(v) => {
+                change((n) => n.set('days', v || String(KEPT_DAYS)));
+                setShown(DONE_STEP);
+              }}
+              allLabel={null}
+            />
+            <Segmented<GroupBy>
+              label="Group by"
+              options={GROUPS}
+              value={group ?? ''}
+              onChange={(v) => change((n) => (v ? n.set('group', v) : n.delete('group')))}
+              allLabel="None"
+            />
+          </>
+        }
+      />
+    ) : null;
 
   const caption = `${TITLES[state]} ${unit}`;
   const below = (
@@ -876,19 +885,10 @@ function JobsListTab({ tab }: { tab: Tab }) {
   const state1 = state === 'all' ? undefined : KIND_OF[state];
 
   const body = () => {
-    if (group)
-      return (
-        <>
-          <ListToolbar label="Group by" filters={filters} />
-          <GroupTab by={group} />
-        </>
-      );
+    if (group) return <GroupTab by={group} />;
     if (f.unknown)
       return (
-        <>
-          <ListToolbar label="Jobs" filters={filters} />
-          <Empty title="This repository is not on the list of repositories, so no run belongs to it." />
-        </>
+        <Empty title="This repository is not on the list of repositories, so no run belongs to it." />
       );
     if (!f.ready) return null;
     return (
@@ -986,7 +986,8 @@ function JobsListTab({ tab }: { tab: Tab }) {
     <>
       <Stack>
         <FilterNote note={f.note} to={f.clearTo} />
-        <Text tone="muted">{HINTS[state][view]}</Text>
+        {doneBar}
+        {group ? null : <Text tone="muted">{HINTS[state][view]}</Text>}
         {body()}
       </Stack>
       <ActionBar

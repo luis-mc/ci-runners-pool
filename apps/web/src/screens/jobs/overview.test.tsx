@@ -69,7 +69,7 @@ describe('the Overview', () => {
     const waiting = await screen.findByRole('link', { name: /^Waiting now: 1 job/ });
     expect(waiting.getAttribute('href')).toBe('/jobs/live?state=queued');
     expect(
-      screen.getByRole('link', { name: /^Wait, slow end: 3 min, up 2 min/ }),
+      screen.getByRole('link', { name: /^Wait slow end \(p90\): 3 min, up 2 min/ }),
     ).toBeTruthy();
     expect(screen.getByRole('link', { name: /^Jobs that passed: 70%/ })).toBeTruthy();
     expect(screen.getByRole('link', { name: /^Pool busy/ })).toBeTruthy();
