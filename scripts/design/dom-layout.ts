@@ -72,7 +72,11 @@ export interface DomLayoutOptions {
   /** The custom property of the gap between the sections of a page, for example `--ds-space-6` (rule 9, off when unset). */
   readonly sectionGapVar?: string;
   /** The custom properties of the focus ring: its width, its offset and its glow (a box-shadow list), for rule 9. */
-  readonly focusVars?: { readonly width: string; readonly offset: string; readonly glow: string };
+  readonly focusVars?: {
+    readonly width: string;
+    readonly offset: string;
+    readonly glow: string;
+  };
   readonly known?: readonly KnownLayoutBreach[];
   /** Runs before each width is measured (wait for the page to be at rest). */
   readonly ready?: () => Promise<void>;
