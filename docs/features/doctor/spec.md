@@ -211,6 +211,8 @@ States:
 
 **R5.49** (M1, Built CIX18; ci-run-insights R5.29, R5.30, R5.43) — **Workflows area: workflow file checks.** Six checks, `workflow.timeout`, `workflow.retry`, `workflow.matrix_axis`, `workflow.step_order`, `workflow.cache` and `workflow.slow_tests_on_pr`, read the results crsp stored for the latest default-branch commit it checked (`workflow_checks`). Each gives one finding per repository: `warn` listing every failing job with file and line and the fix; `ok` with the number of jobs checked; `skip` when nothing was stored yet, a file could not be read, or the controller has no store. The doctor only reads; the checks run when crsp sees a new head commit, not in the doctor run. They belong to the `workflow` filter group.
 
+**R5.50** (M1, Built in part OPS53: the check and `runners.Postgres.Logins`/`RemoveLogin`; runners R5.94; NOT YET IMPLEMENTED: the agent link that reads the logins into `Env.Postgres`, the remove route and the console button) — **`runner.postgres_logins`: a Postgres login that no runner uses.** The check reads the runner logins (`r_*`) of the pool's Postgres server and the runners the controller owns, and gives one `warn` finding for each login that is not the login of any runner (`r_` and the runner id, runners R5.54), for example a leftover `r_<id>` of a runner removed while the server was down. The finding names the login, says which shared owner role it belongs to (or that an older build made it), and says that nothing was removed. The fix offers the removal as an action; it runs only when the owner presses it, through the same call that removes a runner's login, never from the doctor itself (R5.7). `ok` when every login belongs to a runner; `skip` when no Postgres server is read or it cannot be reached. It belongs to the `runner` group.
+
 ## 6. Non-functional requirements
 
 **R6.1** — Speed: a full run over 10 machines, 50 runners and 100 repositories ends within 60 s. Each check has a timeout: default 10 s, ceiling 60 s. A quick run ends within 10 s. NOT YET IMPLEMENTED.
@@ -520,6 +522,7 @@ Rows that name a file without "planned" are built (CRSP23). Planned rows are NOT
 | R5.47 | internal/doctor/checks/runnerkind_test.go TestRepoEphemeralCapacity |
 | R5.48 | internal/leftovers/leftovers_test.go (owned and not owned, the 84-character service name, the account check, refused paths, refused owned, partial failure, no change during a scan); internal/agent/leftovers_test.go (scan and remove over the link); internal/agentlink (leftovers); internal/machines (leftovers); internal/api/machines_leftovers_test.go; internal/doctor/checks (machine.runner_leftovers); apps/web/src/screens/doctor/Doctor.test.tsx (the finding, the question card, Remove); e2e/tests/design-layout.spec.ts (Doctor with runner leftovers at 360, 393 and 1300 px) |
 | R5.49 | internal/doctor/checks/workflows_test.go TestWorkflowFindings, TestWorkflowFindingsWithoutSource (CIX18) |
+| R5.50 | internal/doctor/checks/lightleftover_test.go TestRunnerPostgresLogins; internal/runners/postgres_test.go TestLoginsListedAndRemovedByName |
 
 ## 10. Decisions
 
