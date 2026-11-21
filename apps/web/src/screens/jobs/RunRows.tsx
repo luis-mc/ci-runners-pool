@@ -116,7 +116,8 @@ export function runColumns(kind: RunKind, _now: number): Column<RunRow>[] {
     sort: (r) => (r.jobsDone ?? 0) / Math.max(1, r.jobsTotal ?? 1),
     secondary: true,
   };
-  // All states in one list (the unified list, 20 Nov 2026): when it starts, ends or ended, and what it waits for.
+  // All states in one list (the unified list, 20 Nov 2026): when it starts, ends or ended, and what it waits for. The
+  // event is in the details panel, so the columns fit one line at 1300 px.
   if (kind === 'all')
     return [
       repo,
@@ -124,7 +125,6 @@ export function runColumns(kind: RunKind, _now: number): Column<RunRow>[] {
       runNumber,
       branch,
       commit,
-      event,
       doneOf,
       {
         id: 'when',

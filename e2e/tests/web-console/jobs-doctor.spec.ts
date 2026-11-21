@@ -201,15 +201,27 @@ test('Jobs: Down, Up, j and k move from the search box through the controls to t
   const rows = page.locator('table.ds-table tbody tr[data-list-row]');
   await expect(rows.first()).toBeVisible();
   // The box, the State choices, the Runs and Jobs choice, the details button, then the rows.
-  for (let i = 0; i < 4; i++) await page.keyboard.press('ArrowDown');
+  for (let i = 0; i < 7; i++) await page.keyboard.press('ArrowDown');
   await expect(page.getByRole('button', { name: 'Show details' })).toBeFocused();
-  await page.keyboard.press('j');
-  await page.keyboard.press('j');
-  await expect(rows.first().locator('a, button').first()).toBeFocused();
-  await page.keyboard.press('k');
-  await expect(rows.first()).toBeFocused();
-  await page.keyboard.press('ArrowUp');
-  await expect(page.getByRole('button', { name: 'Show details' })).toBeFocused();
+  // After the button come the sortable heads of the table, then each row and its own controls: the keys walk them all.
+  const walk = async (key: string, until: () => Promise<boolean>) => {
+    for (let i = 0; i < 20 && !(await until()); i++) await page.keyboard.press(key);
+    expect(await until()).toBe(true);
+  };
+  const rowIndex = () =>
+    page.evaluate(() =>
+      [...document.querySelectorAll('tbody tr[data-list-row]')].findIndex(
+        (r) => r === document.activeElement,
+      ),
+    );
+  await walk('j', async () => (await rowIndex()) === 0);
+  await walk('j', async () => (await rowIndex()) === 1);
+  await walk('k', async () => (await rowIndex()) === 0);
+  await walk('ArrowUp', async () =>
+    page
+      .getByRole('button', { name: 'Show details' })
+      .evaluate((e) => e === document.activeElement),
+  );
 });
 
 test('Jobs: Show details opens the panel of the chosen row, Hide details closes it', async ({

@@ -264,7 +264,6 @@ export function jobColumns(kind: ColumnsKind, now: number): Column<Job>[] {
       repo,
       job,
       branch,
-      where,
       {
         id: 'when',
         header: 'When',
@@ -634,7 +633,8 @@ function JobsListTab({ tab }: { tab: Tab }) {
   const rawGroup = params.get('group');
   const group =
     tab === 'done' ? GROUPS.find((g) => g.value === rawGroup)?.value : undefined;
-  const q = params.get('q') ?? '';
+  // The words are kept in the page, not in the address: an address that changes at every key draws the page again.
+  const [q, setQuery] = useState(params.get('q') ?? '');
   const mine = (items: Job[], s: Exclude<StateFilter, 'all'>): Job[] =>
     elsewhere
       ? items.filter(runsElsewhere)
@@ -800,7 +800,6 @@ function JobsListTab({ tab }: { tab: Tab }) {
     (r) => r.state === 'done',
   ).length;
 
-  const setQuery = (v: string) => change((n) => (v ? n.set('q', v) : n.delete('q')));
   const filters = (
     <>
       <Segmented<StateFilter>

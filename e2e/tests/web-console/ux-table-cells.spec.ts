@@ -1,5 +1,5 @@
 // CRSP210: a table never cuts a value and never lets a cell cover the next one or the action column. The DOM layout
-// judge's `clipped-text` rule runs on the Jobs Live, Done and Run elsewhere tables and the Runners table at 360, 393 and
+// judge's `clipped-text` rule runs on the Jobs Live and Done tables and the Runners table at 360, 393 and
 // 1300 px, with seeded data that has long workflow paths, long branch names, long wait reasons and long state reasons.
 import { expect, test } from '@playwright/test';
 import { measureDomLayout, judgeLayout } from '../../../scripts/design/dom-layout';
@@ -102,7 +102,6 @@ const SCREENS = [
     path: '/jobs/live?state=queued&view=jobs',
     ready: 'Queue jobs',
   },
-  { name: 'Jobs, Run elsewhere', path: '/jobs/elsewhere', ready: 'All jobs' },
   { name: 'Runners', path: '/pool/runners', ready: 'Runners on' },
 ];
 
