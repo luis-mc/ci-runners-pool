@@ -3326,7 +3326,7 @@ export interface components {
          * @description observability R5.5.
          * @enum {string}
          */
-        WaitReason: "free_slot" | "load_over_budget" | "no_runner_with_labels" | "repository_parallel_limit" | "machine_drained" | "quiet_hours" | "load_not_measured" | "paused" | "on_battery" | "unknown";
+        WaitReason: "free_slot" | "load_over_budget" | "no_runner_with_labels" | "repository_parallel_limit" | "machine_drained" | "load_not_measured" | "paused" | "on_battery" | "unknown";
         /** @enum {string} */
         Severity: "ok" | "info" | "skip" | "warn" | "fail";
         /** @enum {string} */
@@ -4367,10 +4367,6 @@ export interface components {
             docker_compact_threshold_gib?: number;
             /** @description How many minutes no job may run or wait for the machine's runners. 0 takes 30 (caches R5.51 to R5.54). */
             docker_compact_idle_minutes?: number;
-            /** @description Start of the quiet-hours window, in the machine's local time, as HH:MM. Empty takes 01:00 (caches R5.51 to R5.54). */
-            docker_compact_quiet_start?: string;
-            /** @description End of the quiet-hours window, in the machine's local time, as HH:MM. Empty takes 06:00. */
-            docker_compact_quiet_end?: string;
         };
         /**
          * @description The automatic compact of Docker's disk file. auto (default) is on for a Windows machine with a Docker Desktop disk file and off elsewhere (caches R5.51 to R5.54).
@@ -4381,7 +4377,7 @@ export interface components {
         DockerCompactStatus: {
             /** @description The policy is on for this machine. */
             enabled: boolean;
-            /** @description Why the last look did not compact, or `run`. One of off, offline, not_active, no_report, no_admin, below_threshold, outside_quiet_hours, busy, not_idle_long_enough, done_today, already_running, change_open. */
+            /** @description Why the last look did not compact, or `run`. One of off, offline, not_active, no_report, no_admin, below_threshold, busy, not_idle_long_enough, done_today, already_running, change_open. */
             reason?: string;
             running: boolean;
             /** @description The agent found a Docker Desktop disk file. */
@@ -4413,15 +4409,15 @@ export interface components {
          * @description Why a machine takes no new job (machines R5.62). Other features read these exact names.
          * @enum {string}
          */
-        PauseReason: "paused" | "on_battery" | "quiet_hours" | "budget" | "base_image_missing";
+        PauseReason: "paused" | "on_battery" | "budget" | "base_image_missing";
         /** @description The one computed answer to "does this machine take new jobs" (machines R5.62, OPS29). The console state, the Now line, its note and the Stop or Resume button all read it. The controller decides from its own online flag, drain state, mode, tray pause and battery switch first, and from the agent's report only for what the agent alone knows. */
         MachineTaking: {
             taking_jobs: boolean;
             /**
-             * @description Why not, absent while taking. offline; stopped (Stop new jobs from the console); mode_paused (mode Paused); tray_paused (a pause from the tray); on_battery (Automatic with the battery pause on); busy (load over the budget); quiet_hours; base_image_missing; disk_low.
+             * @description Why not, absent while taking. offline; stopped (Stop new jobs from the console); mode_paused (mode Paused); tray_paused (a pause from the tray); on_battery (Automatic with the battery pause on); busy (load over the budget); base_image_missing; disk_low.
              * @enum {string}
              */
-            reason?: "offline" | "stopped" | "mode_paused" | "tray_paused" | "on_battery" | "busy" | "quiet_hours" | "base_image_missing" | "disk_low";
+            reason?: "offline" | "stopped" | "mode_paused" | "tray_paused" | "on_battery" | "busy" | "base_image_missing" | "disk_low";
         };
         /**
          * @description What the agent did with the CPU cap. not_supported is macOS (machines R5.64). applying is the wait until the agent reports the result for the chosen percent.
@@ -4539,10 +4535,6 @@ export interface components {
             docker_compact_threshold_gib?: number;
             /** @description How many minutes no job may run or wait for the machine's runners. 0 takes 30 (caches R5.51 to R5.54). */
             docker_compact_idle_minutes?: number;
-            /** @description Start of the quiet-hours window, in the machine's local time, as HH:MM. Empty takes 01:00 (caches R5.51 to R5.54). */
-            docker_compact_quiet_start?: string;
-            /** @description End of the quiet-hours window, in the machine's local time, as HH:MM. Empty takes 06:00. */
-            docker_compact_quiet_end?: string;
             /**
              * @description A pause from the tray or the console. one_hour pauses for an hour from now, until_resumed holds until none is sent, none ends a pause (machines R5.61).
              * @enum {string}

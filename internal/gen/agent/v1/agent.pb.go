@@ -6731,12 +6731,9 @@ type DockerDiskReport struct {
 	UsedKnown bool  `protobuf:"varint,4,opt,name=used_known,json=usedKnown,proto3" json:"used_known,omitempty"`
 	UsedBytes int64 `protobuf:"varint,5,opt,name=used_bytes,json=usedBytes,proto3" json:"used_bytes,omitempty"`
 	// True when the agent has the administrator rights the compact needs.
-	CanCompact bool `protobuf:"varint,6,opt,name=can_compact,json=canCompact,proto3" json:"can_compact,omitempty"`
-	// The offset of the machine's local time from UTC, in seconds, so the
-	// controller reads the quiet-hours window in the machine's own time.
-	UtcOffsetSeconds int32 `protobuf:"varint,7,opt,name=utc_offset_seconds,json=utcOffsetSeconds,proto3" json:"utc_offset_seconds,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	CanCompact    bool `protobuf:"varint,6,opt,name=can_compact,json=canCompact,proto3" json:"can_compact,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *DockerDiskReport) Reset() {
@@ -6809,13 +6806,6 @@ func (x *DockerDiskReport) GetCanCompact() bool {
 		return x.CanCompact
 	}
 	return false
-}
-
-func (x *DockerDiskReport) GetUtcOffsetSeconds() int32 {
-	if x != nil {
-		return x.UtcOffsetSeconds
-	}
-	return 0
 }
 
 // SymlinkReport is what the agent read about symbolic links. It makes a link in
@@ -7314,7 +7304,7 @@ func (x *ImageReport) GetCreatedUnixMs() int64 {
 type AcceptingReport struct {
 	state     protoimpl.MessageState `protogen:"open.v1"`
 	Accepting bool                   `protobuf:"varint,1,opt,name=accepting,proto3" json:"accepting,omitempty"`
-	// paused, on_battery, quiet_hours or budget; empty while accepting.
+	// paused, on_battery or budget; empty while accepting.
 	PauseReason string `protobuf:"bytes,2,opt,name=pause_reason,json=pauseReason,proto3" json:"pause_reason,omitempty"`
 	// Battery state the agent read; unknown counts as on mains (R5.63).
 	OnBattery    bool `protobuf:"varint,3,opt,name=on_battery,json=onBattery,proto3" json:"on_battery,omitempty"`
@@ -8448,7 +8438,7 @@ func (x *GateDecision_Go) GetSlotWaitMs() int64 {
 type GateDecision_Wait struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// free_slot, load_over_budget, repository_parallel_limit, machine_drained,
-	// quiet_hours, lost_race or unknown (observability R5.5).
+	// lost_race or unknown (observability R5.5).
 	Reasons []string `protobuf:"bytes,1,rep,name=reasons,proto3" json:"reasons,omitempty"`
 	// The reasons in words, with their figures.
 	Text          string `protobuf:"bytes,2,opt,name=text,proto3" json:"text,omitempty"`
@@ -9118,7 +9108,7 @@ const file_agent_v1_agent_proto_rawDesc = "" +
 	"\n" +
 	"logon_held\x18\x06 \x01(\bR\tlogonHeld\x12\x1c\n" +
 	"\tregranted\x18\a \x01(\bR\tregranted\x12\x18\n" +
-	"\aproblem\x18\b \x01(\tR\aproblem\"\xee\x01\n" +
+	"\aproblem\x18\b \x01(\tR\aproblem\"\xda\x01\n" +
 	"\x10DockerDiskReport\x12\x18\n" +
 	"\apresent\x18\x01 \x01(\bR\apresent\x12\x14\n" +
 	"\x05files\x18\x02 \x03(\tR\x05files\x12\x1d\n" +
@@ -9129,8 +9119,7 @@ const file_agent_v1_agent_proto_rawDesc = "" +
 	"\n" +
 	"used_bytes\x18\x05 \x01(\x03R\tusedBytes\x12\x1f\n" +
 	"\vcan_compact\x18\x06 \x01(\bR\n" +
-	"canCompact\x12,\n" +
-	"\x12utc_offset_seconds\x18\a \x01(\x05R\x10utcOffsetSeconds\"}\n" +
+	"canCompactJ\x04\b\a\x10\bR\x12utc_offset_seconds\"}\n" +
 	"\rSymlinkReport\x12\x14\n" +
 	"\x05known\x18\x01 \x01(\bR\x05known\x12\x19\n" +
 	"\bcan_link\x18\x02 \x01(\bR\acanLink\x12%\n" +

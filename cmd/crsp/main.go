@@ -181,7 +181,7 @@ func runController() error {
 	go mr.Service.RunCompactLoop(ctx, compactEvery, func(err error) { logger.Warn("docker disk compact pass", "err", err) })
 
 	um := startUpdates(ctx, cfg, logger, mr, ops.Settings, idle)
-	// A machine that is paused, on battery or in quiet hours holds new jobs with
+	// A machine that is paused or on battery holds new jobs with
 	// that reason (scheduling R5.68, machines R5.62).
 	queue := scheduler.NewEngine(db, scheduler.WithLogger(logger), scheduler.WithAccepting(func(id string) (bool, string) {
 		p := mr.Service.Policy(id)

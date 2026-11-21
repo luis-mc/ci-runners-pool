@@ -1,4 +1,4 @@
-// Where each old Settings address lives now (five tabs, owner decision D8).
+// Where each old Settings address lives now (six tabs, owner decision D8; Updates is its own tab, LOOK43).
 export const SECTIONS: Record<string, { tab: string; section?: string }> = {
   users: { tab: 'access', section: 'users' },
   app: { tab: 'access', section: 'github-app' },
@@ -9,7 +9,7 @@ export const SECTIONS: Record<string, { tab: string; section?: string }> = {
   appearance: { tab: 'console', section: 'appearance' },
   notifications: { tab: 'console', section: 'notifications' },
   network: { tab: 'console', section: 'network' },
-  updates: { tab: 'console', section: 'updates' },
+  updates: { tab: 'updates' },
   retention: { tab: 'data', section: 'retention' },
   backups: { tab: 'data', section: 'backups' },
   export: { tab: 'data', section: 'config-export' },
@@ -17,7 +17,7 @@ export const SECTIONS: Record<string, { tab: string; section?: string }> = {
 };
 
 /** The old one-page addresses that now redirect (an address named like a tab is that tab). */
-const TAB_IDS = ['access', 'repositories', 'console', 'data', 'audit'];
+const TAB_IDS = ['access', 'repositories', 'console', 'updates', 'data', 'audit'];
 
 export const OLD_SETTINGS = Object.keys(SECTIONS).filter((k) => !TAB_IDS.includes(k));
 

@@ -95,7 +95,6 @@ See decision 0003. Each backend implements one interface: prepare image, start r
 - One queue per machine across all runners and repositories, with a machine-wide slot count and the load budget. A job-started hook waits for a free slot and for the load to fall below the budget. A job-completed hook frees the slot. Dead holders are found and freed. This is the core of the product; port it from dev-standards.
 - Place jobs by label match, then by free capacity, then by cache warmth (the machine that ran this repository last has its caches).
 - Fair share between repositories, priority per repository, and a per-repository parallel limit.
-- Quiet hours: a machine can be pool-only at night and leave room for its owner's work by day.
 
 ## Caching and speed
 

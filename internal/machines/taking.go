@@ -12,7 +12,6 @@ const (
 	NotTakingTrayPaused = "tray_paused" // a pause from the tray
 	NotTakingOnBattery  = "on_battery"  // Automatic, battery pause on, on battery
 	NotTakingBusy       = "busy"        // the load is over the budget
-	NotTakingQuietHours = "quiet_hours"
 	NotTakingBaseImage  = "base_image_missing"
 	NotTakingDiskLow    = "disk_low"
 )
@@ -26,7 +25,7 @@ type Availability struct {
 // ComputeAvailability decides from what the controller itself holds (the
 // machine's online flag, its drain state, its mode, the tray pause and the
 // battery switch) and only then from what the agent alone can know (the load
-// against the budget, a missing base image, a low disk, quiet hours). The
+// against the budget, a missing base image, a low disk). The
 // agent's own "paused" and "on_battery" are not read: they lag behind a
 // setting the controller has just written, and they are what made the console
 // say Paused while the machine was online and Taking jobs after Stop (OPS29).
@@ -48,7 +47,7 @@ func ComputeAvailability(online bool, state string, set Settings, p Policy, now 
 		switch p.PauseReason {
 		case PauseReasonBudget:
 			return no(NotTakingBusy)
-		case PauseReasonQuietHours, PauseReasonBaseImage, PauseReasonDiskLow:
+		case PauseReasonBaseImage, PauseReasonDiskLow:
 			return no(p.PauseReason)
 		}
 	}

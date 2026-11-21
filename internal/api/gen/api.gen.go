@@ -1488,7 +1488,6 @@ const (
 	MachineTakingReasonModePaused       MachineTakingReason = "mode_paused"
 	MachineTakingReasonOffline          MachineTakingReason = "offline"
 	MachineTakingReasonOnBattery        MachineTakingReason = "on_battery"
-	MachineTakingReasonQuietHours       MachineTakingReason = "quiet_hours"
 	MachineTakingReasonStopped          MachineTakingReason = "stopped"
 	MachineTakingReasonTrayPaused       MachineTakingReason = "tray_paused"
 )
@@ -1507,8 +1506,6 @@ func (e MachineTakingReason) Valid() bool {
 	case MachineTakingReasonOffline:
 		return true
 	case MachineTakingReasonOnBattery:
-		return true
-	case MachineTakingReasonQuietHours:
 		return true
 	case MachineTakingReasonStopped:
 		return true
@@ -1678,7 +1675,6 @@ const (
 	PauseReasonBudget           PauseReason = "budget"
 	PauseReasonOnBattery        PauseReason = "on_battery"
 	PauseReasonPaused           PauseReason = "paused"
-	PauseReasonQuietHours       PauseReason = "quiet_hours"
 )
 
 // Valid indicates whether the value is a known member of the PauseReason enum.
@@ -1691,8 +1687,6 @@ func (e PauseReason) Valid() bool {
 	case PauseReasonOnBattery:
 		return true
 	case PauseReasonPaused:
-		return true
-	case PauseReasonQuietHours:
 		return true
 	default:
 		return false
@@ -3310,7 +3304,6 @@ const (
 	WaitReasonNoRunnerWithLabels      WaitReason = "no_runner_with_labels"
 	WaitReasonOnBattery               WaitReason = "on_battery"
 	WaitReasonPaused                  WaitReason = "paused"
-	WaitReasonQuietHours              WaitReason = "quiet_hours"
 	WaitReasonRepositoryParallelLimit WaitReason = "repository_parallel_limit"
 	WaitReasonUnknown                 WaitReason = "unknown"
 )
@@ -3331,8 +3324,6 @@ func (e WaitReason) Valid() bool {
 	case WaitReasonOnBattery:
 		return true
 	case WaitReasonPaused:
-		return true
-	case WaitReasonQuietHours:
 		return true
 	case WaitReasonRepositoryParallelLimit:
 		return true
@@ -4147,7 +4138,7 @@ type DockerCompactStatus struct {
 	// LastResult Sizes of the last compact, or why it failed.
 	LastResult *string `json:"last_result,omitempty"`
 
-	// Reason Why the last look did not compact, or `run`. One of off, offline, not_active, no_report, no_admin, below_threshold, outside_quiet_hours, busy, not_idle_long_enough, done_today, already_running, change_open.
+	// Reason Why the last look did not compact, or `run`. One of off, offline, not_active, no_report, no_admin, below_threshold, busy, not_idle_long_enough, done_today, already_running, change_open.
 	Reason           *string `json:"reason,omitempty"`
 	ReclaimableBytes *int64  `json:"reclaimable_bytes,omitempty"`
 	Running          bool    `json:"running"`
@@ -5402,12 +5393,6 @@ type MachineSettings struct {
 	// DockerCompactIdleMinutes How many minutes no job may run or wait for the machine's runners. 0 takes 30 (caches R5.51 to R5.54).
 	DockerCompactIdleMinutes *int `json:"docker_compact_idle_minutes,omitempty"`
 
-	// DockerCompactQuietEnd End of the quiet-hours window, in the machine's local time, as HH:MM. Empty takes 06:00.
-	DockerCompactQuietEnd *string `json:"docker_compact_quiet_end,omitempty"`
-
-	// DockerCompactQuietStart Start of the quiet-hours window, in the machine's local time, as HH:MM. Empty takes 01:00 (caches R5.51 to R5.54).
-	DockerCompactQuietStart *string `json:"docker_compact_quiet_start,omitempty"`
-
 	// DockerCompactThresholdGib How many GiB of Docker's disk file must be reclaimable (file size minus what Docker uses) before the compact runs. 0 takes 30 (caches R5.51 to R5.54).
 	DockerCompactThresholdGib *int                          `json:"docker_compact_threshold_gib,omitempty"`
 	DrainTimeoutMinutes       int                           `json:"drain_timeout_minutes"`
@@ -5468,12 +5453,6 @@ type MachineSettingsUpdate struct {
 	// DockerCompactIdleMinutes How many minutes no job may run or wait for the machine's runners. 0 takes 30 (caches R5.51 to R5.54).
 	DockerCompactIdleMinutes *int `json:"docker_compact_idle_minutes,omitempty"`
 
-	// DockerCompactQuietEnd End of the quiet-hours window, in the machine's local time, as HH:MM. Empty takes 06:00.
-	DockerCompactQuietEnd *string `json:"docker_compact_quiet_end,omitempty"`
-
-	// DockerCompactQuietStart Start of the quiet-hours window, in the machine's local time, as HH:MM. Empty takes 01:00 (caches R5.51 to R5.54).
-	DockerCompactQuietStart *string `json:"docker_compact_quiet_start,omitempty"`
-
 	// DockerCompactThresholdGib How many GiB of Docker's disk file must be reclaimable (file size minus what Docker uses) before the compact runs. 0 takes 30 (caches R5.51 to R5.54).
 	DockerCompactThresholdGib *int                                `json:"docker_compact_threshold_gib,omitempty"`
 	DrainTimeoutMinutes       *int                                `json:"drain_timeout_minutes,omitempty"`
@@ -5511,12 +5490,12 @@ type MachineState string
 
 // MachineTaking The one computed answer to "does this machine take new jobs" (machines R5.62, OPS29). The console state, the Now line, its note and the Stop or Resume button all read it. The controller decides from its own online flag, drain state, mode, tray pause and battery switch first, and from the agent's report only for what the agent alone knows.
 type MachineTaking struct {
-	// Reason Why not, absent while taking. offline; stopped (Stop new jobs from the console); mode_paused (mode Paused); tray_paused (a pause from the tray); on_battery (Automatic with the battery pause on); busy (load over the budget); quiet_hours; base_image_missing; disk_low.
+	// Reason Why not, absent while taking. offline; stopped (Stop new jobs from the console); mode_paused (mode Paused); tray_paused (a pause from the tray); on_battery (Automatic with the battery pause on); busy (load over the budget); base_image_missing; disk_low.
 	Reason     *MachineTakingReason `json:"reason,omitempty"`
 	TakingJobs bool                 `json:"taking_jobs"`
 }
 
-// MachineTakingReason Why not, absent while taking. offline; stopped (Stop new jobs from the console); mode_paused (mode Paused); tray_paused (a pause from the tray); on_battery (Automatic with the battery pause on); busy (load over the budget); quiet_hours; base_image_missing; disk_low.
+// MachineTakingReason Why not, absent while taking. offline; stopped (Stop new jobs from the console); mode_paused (mode Paused); tray_paused (a pause from the tray); on_battery (Automatic with the battery pause on); busy (load over the budget); base_image_missing; disk_low.
 type MachineTakingReason string
 
 // NotificationChannel One channel. No secret is returned: `secret_set` and `smtp.has_password` say only whether one is set.

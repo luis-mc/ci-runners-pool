@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -30,8 +29,6 @@ const (
 const (
 	DefaultCompactThresholdGiB = 30
 	DefaultCompactIdleMinutes  = 30
-	DefaultCompactQuietStart   = "01:00"
-	DefaultCompactQuietEnd     = "06:00"
 	// CompactMinGap is the least time between two compacts of one machine.
 	CompactMinGap = 24 * time.Hour
 	// CompactCommandTimeout bounds the helper on the agent.
@@ -48,7 +45,6 @@ const (
 	CompactSkipNoReport = "no_report"
 	CompactSkipNoAdmin  = "no_admin"
 	CompactSkipBelow    = "below_threshold"
-	CompactSkipQuiet    = "outside_quiet_hours"
 	CompactSkipBusy     = "busy"
 	CompactSkipIdle     = "not_idle_long_enough"
 	CompactSkipToday    = "done_today"
@@ -66,8 +62,6 @@ type DockerDisk struct {
 	UsedKnown  bool
 	UsedBytes  int64
 	CanCompact bool
-	// UTCOffset is the machine's local offset from UTC.
-	UTCOffset  time.Duration
 	ReportedAt time.Time
 }
 
@@ -84,8 +78,6 @@ type CompactPolicy struct {
 	Mode           string
 	ThresholdBytes int64
 	Idle           time.Duration
-	// QuietStart and QuietEnd are minutes after local midnight.
-	QuietStart, QuietEnd int
 }
 
 // EffectiveCompact fills the defaults of the compact settings.
@@ -97,15 +89,6 @@ func (s Settings) EffectiveCompact() CompactPolicy {
 	if s.CompactIdleMinutes <= 0 {
 		p.Idle = DefaultCompactIdleMinutes * time.Minute
 	}
-	start, end := s.CompactQuietStart, s.CompactQuietEnd
-	if start == "" {
-		start = DefaultCompactQuietStart
-	}
-	if end == "" {
-		end = DefaultCompactQuietEnd
-	}
-	p.QuietStart, _ = parseClock(start)
-	p.QuietEnd, _ = parseClock(end)
 	return p
 }
 
@@ -118,35 +101,6 @@ func (p CompactPolicy) Enabled(os string, d DockerDisk) bool {
 		return false
 	}
 	return os == "windows" && d.Present
-}
-
-// InQuietHours says whether the machine's local time is inside the window. A
-// window that ends before it starts crosses midnight.
-func (p CompactPolicy) InQuietHours(now time.Time, offset time.Duration) bool {
-	local := now.UTC().Add(offset)
-	min := local.Hour()*60 + local.Minute()
-	switch {
-	case p.QuietStart == p.QuietEnd:
-		return true
-	case p.QuietStart < p.QuietEnd:
-		return min >= p.QuietStart && min < p.QuietEnd
-	default:
-		return min >= p.QuietStart || min < p.QuietEnd
-	}
-}
-
-// parseClock reads "HH:MM" into minutes after midnight.
-func parseClock(s string) (int, bool) {
-	h, m, ok := strings.Cut(strings.TrimSpace(s), ":")
-	if !ok {
-		return 0, false
-	}
-	hh, err1 := strconv.Atoi(h)
-	mm, err2 := strconv.Atoi(m)
-	if err1 != nil || err2 != nil || len(h) != 2 || len(m) != 2 || hh < 0 || hh > 23 || mm < 0 || mm > 59 {
-		return 0, false
-	}
-	return hh*60 + mm, true
 }
 
 // validateCompact checks the ranges of the compact settings (caches R5.51 to R5.54).
@@ -165,14 +119,6 @@ func validateCompact(set Settings) error {
 	if set.CompactIdleMinutes < 0 || set.CompactIdleMinutes > 1440 {
 		return bad("the compact idle time is 1 minute to 24 hours")
 	}
-	for _, c := range []string{set.CompactQuietStart, set.CompactQuietEnd} {
-		if c == "" {
-			continue
-		}
-		if _, ok := parseClock(c); !ok {
-			return bad("a quiet-hours time is written HH:MM, such as 01:00")
-		}
-	}
 	return nil
 }
 
@@ -185,12 +131,6 @@ func applyCompact(set Settings, u SettingsUpdate) Settings {
 	}
 	if u.CompactIdleMinutes != nil {
 		set.CompactIdleMinutes = *u.CompactIdleMinutes
-	}
-	if u.CompactQuietStart != nil {
-		set.CompactQuietStart = *u.CompactQuietStart
-	}
-	if u.CompactQuietEnd != nil {
-		set.CompactQuietEnd = *u.CompactQuietEnd
 	}
 	return set
 }
@@ -248,8 +188,6 @@ func DecideCompact(in CompactInput) CompactDecision {
 		}
 	}
 	switch {
-	case !p.InQuietHours(in.Now, in.Disk.UTCOffset):
-		return no(CompactSkipQuiet)
 	case !in.LastAt.IsZero() && in.Now.Sub(in.LastAt) < CompactMinGap:
 		return no(CompactSkipToday)
 	case in.Running > 0 || in.Queued > 0:
@@ -370,7 +308,7 @@ func (s *Service) HandleDockerDisk(machineID string, r *agentv1.DockerDiskReport
 	}
 	d := DockerDisk{
 		Reported: true, Present: r.GetPresent(), Files: r.GetFiles(), FileBytes: r.GetFileBytes(), UsedKnown: r.GetUsedKnown(),
-		UsedBytes: r.GetUsedBytes(), CanCompact: r.GetCanCompact(), UTCOffset: time.Duration(r.GetUtcOffsetSeconds()) * time.Second, ReportedAt: s.now(),
+		UsedBytes: r.GetUsedBytes(), CanCompact: r.GetCanCompact(), ReportedAt: s.now(),
 	}
 	s.mu.Lock()
 	old := s.disks[machineID]

@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"fmt"
 	"net/http"
 	"time"
 
@@ -196,15 +195,11 @@ func settingsToAPI(st machines.Settings) gen.MachineSettings {
 	out.DockerCompact = machinesPtr(mode)
 	out.DockerCompactThresholdGib = machinesPtr(int(pol.ThresholdBytes >> 30))
 	out.DockerCompactIdleMinutes = machinesPtr(int(pol.Idle / time.Minute))
-	out.DockerCompactQuietStart = machinesPtr(clockText(pol.QuietStart))
-	out.DockerCompactQuietEnd = machinesPtr(clockText(pol.QuietEnd))
 	if !st.PauseUntil.IsZero() {
 		out.PauseUntil = machinesPtr(st.PauseUntil)
 	}
 	return out
 }
-
-func clockText(min int) string { return fmt.Sprintf("%02d:%02d", min/60, min%60) }
 
 func f32(v float64) *float32 { x := float32(v); return &x }
 
@@ -416,7 +411,6 @@ func (s *server) UpdateMachine(ctx context.Context, r gen.UpdateMachineRequestOb
 		u.CompactMode = &mode
 	}
 	u.CompactThresholdGiB, u.CompactIdleMinutes = b.DockerCompactThresholdGib, b.DockerCompactIdleMinutes
-	u.CompactQuietStart, u.CompactQuietEnd = b.DockerCompactQuietStart, b.DockerCompactQuietEnd
 	if b.CpuCapPct != nil {
 		u.CPUCapPct = machinesPtr(int(*b.CpuCapPct))
 	}

@@ -83,7 +83,7 @@ func (p MachinePolicy) UserPaused() bool {
 }
 
 // Word is the short word the header and tooltip show while the machine takes no
-// new jobs: Paused, On battery or Quiet hours. It is empty while accepting, and
+// new jobs: Paused or On battery. It is empty while accepting, and
 // for the busy case: a machine over its budget is working, not held back.
 func (p MachinePolicy) Word() string {
 	if !p.Known || p.Accepting {
@@ -94,8 +94,6 @@ func (p MachinePolicy) Word() string {
 		return "Paused"
 	case "on_battery":
 		return "On battery"
-	case "quiet_hours":
-		return "Quiet hours"
 	}
 	return ""
 }

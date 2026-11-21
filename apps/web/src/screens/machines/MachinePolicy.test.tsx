@@ -239,7 +239,6 @@ describe('One state for taking jobs', () => {
     ['tray_paused', 'Paused', /paused from the tray/, 'Stop new jobs'],
     ['on_battery', 'On battery', /while it runs on battery/, 'Stop new jobs'],
     ['busy', 'Busy', /load is over the budget/, 'Stop new jobs'],
-    ['quiet_hours', 'Quiet hours', /in quiet hours/, 'Stop new jobs'],
     ['base_image_missing', 'Needs a base image', /no runner base image/, 'Stop new jobs'],
     ['disk_low', 'Disk low', /disk is almost full/, 'Stop new jobs'],
   ] as const;

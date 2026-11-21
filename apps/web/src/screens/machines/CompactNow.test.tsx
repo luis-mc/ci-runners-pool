@@ -21,7 +21,7 @@ const windows = (status: Record<string, unknown> = {}): Schemas['Machine'] => ({
       file_bytes: 236 * GIB,
       used_bytes: 71 * GIB,
       reclaimable_bytes: 165 * GIB,
-      reason: 'outside_quiet_hours',
+      reason: 'busy',
       ...status,
     },
   }),

@@ -170,9 +170,6 @@ type Settings struct {
 	CompactMode         string
 	CompactThresholdGiB int
 	CompactIdleMinutes  int
-	// CompactQuietStart and CompactQuietEnd are HH:MM in the machine's local time.
-	CompactQuietStart string
-	CompactQuietEnd   string
 }
 
 // Machine modes (R5.61).
@@ -185,10 +182,9 @@ const (
 // Pause reasons a machine reports when it does not accept new jobs (R5.62).
 // The names are read by other features: do not rename them.
 const (
-	PauseReasonPaused     = "paused"
-	PauseReasonOnBattery  = "on_battery"
-	PauseReasonQuietHours = "quiet_hours"
-	PauseReasonBudget     = "budget"
+	PauseReasonPaused    = "paused"
+	PauseReasonOnBattery = "on_battery"
+	PauseReasonBudget    = "budget"
 	// PauseReasonBaseImage: a backend the machine may use has no runner base
 	// image (container image or VM base disk) on the machine (runners R5.74).
 	PauseReasonBaseImage   = "base_image_missing"
@@ -262,12 +258,10 @@ type SettingsUpdate struct {
 	// CPUCapPct is 25, 50, 75 or 100 (R5.64).
 	CPUCapPct *int
 	// The Docker disk compact policy (caches R5.51 to R5.54): on, off or empty for
-	// automatic; the threshold in GiB; idle minutes; quiet hours as HH:MM.
+	// automatic; the threshold in GiB; idle minutes.
 	CompactMode         *string
 	CompactThresholdGiB *int
 	CompactIdleMinutes  *int
-	CompactQuietStart   *string
-	CompactQuietEnd     *string
 	// Pause is one_hour, until_resumed or none: a pause from the tray (R5.61).
 	Pause *string
 	// ConfirmShrink is the explicit yes to a pool size below the current one
