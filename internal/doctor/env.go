@@ -31,6 +31,8 @@ type Env struct {
 	// Ephemeral says whether the pool can make an ephemeral runner; nil makes
 	// repo.ephemeral_capacity skip.
 	Ephemeral EphemeralSource
+	// Postgres is nil when no Postgres server is read; runner.postgres_logins then skips.
+	Postgres PostgresSource
 	// PoolName is the pool's name label; RunnerPrefix starts the name of every
 	// runner the product makes (default "crsp-").
 	PoolName string
@@ -478,4 +480,16 @@ type VMState struct {
 // VMSource reads the VM backend of this machine.
 type VMSource interface {
 	VM(ctx context.Context) (VMState, error)
+}
+
+// PostgresLogin is a Postgres login of a pool's server and the shared owner
+// role it belongs to (runners R5.94).
+type PostgresLogin struct {
+	Name, OwnerRole string
+}
+
+// PostgresSource lists the runner logins of the pool's Postgres server
+// (doctor R5.50). Read only; removing one is a separate action.
+type PostgresSource interface {
+	PostgresLogins(ctx context.Context) ([]PostgresLogin, error)
 }

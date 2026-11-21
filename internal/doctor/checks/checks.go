@@ -59,6 +59,7 @@ func Register(reg *doctor.Registry) {
 		doctor.NewCheck("repo.fallback", doctor.GroupRepository, M1, false, repoFallback),
 		doctor.NewCheck("repo.ephemeral_capacity", doctor.GroupRepository, M1, false, repoEphemeralCapacity),
 		doctor.NewCheck("runner.unclean", doctor.GroupRunner, M1, false, runnerUnclean),
+		doctor.NewCheck("runner.postgres_logins", doctor.GroupRunner, M1, false, runnerPostgresLogins),
 		doctor.NewCheck("runner.light_leftover", doctor.GroupRunner, M1, false, runnerLightLeftover),
 		doctor.NewCheck("repo.coverage", doctor.GroupRepository, M1, false, repoCoverage),
 		doctor.NewCheck("workflow.labels", doctor.GroupWorkflow, M1, false, workflowLabels),
