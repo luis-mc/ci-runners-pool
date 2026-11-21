@@ -16,7 +16,7 @@ import (
 func TestDefaults(t *testing.T) {
 	d := slots.Defaults()
 	if d.BudgetMemoryPct != 85 || d.BudgetCPUPct != 60 || d.JobSlots != 2 || d.LightSlots != 1 || d.HeavySlots != 1 ||
-		d.SlotMaxAgeMin != 120 || d.GateMaxWaitMin != 30 || d.GatePollSec != 15 || d.OnTimeout != "fail" || len(d.HeavyJobs) != 0 {
+		d.SlotMaxAgeMin != 120 || d.GateMaxWaitMin != 10 || d.GatePollSec != 15 || d.OnTimeout != "fail" || len(d.HeavyJobs) != 0 {
 		t.Fatalf("%+v", d)
 	}
 	want := []string{"smoke", "prune", "prune-*", "cleanup", "remove-train", "decide", "delete-*", "runners"}
@@ -93,9 +93,9 @@ func TestSettingsPrecedence(t *testing.T) {
 		t.Fatalf("machine: %+v", g)
 	}
 	env := func(k string) string {
-		return map[string]string{"CRSP_GATE_MAX_WAIT_MIN": "20", "CRSP_GATE_POLL_SEC": "7", "CRSP_GATE_ON_TIMEOUT": "fail"}[k]
+		return map[string]string{"CRSP_GATE_MAX_WAIT_MIN": "8", "CRSP_GATE_POLL_SEC": "7", "CRSP_GATE_ON_TIMEOUT": "fail"}[k]
 	}
-	if g := slots.ResolveGate(-1, -1, "", env, machine); g != (slots.GateSettings{MaxWaitMin: 20, PollSec: 7, OnTimeout: "fail"}) {
+	if g := slots.ResolveGate(-1, -1, "", env, machine); g != (slots.GateSettings{MaxWaitMin: 8, PollSec: 7, OnTimeout: "fail"}) {
 		t.Fatalf("env: %+v", g)
 	}
 	if g := slots.ResolveGate(3, 1, "run", env, machine); g != (slots.GateSettings{MaxWaitMin: 3, PollSec: 1, OnTimeout: "run"}) {
@@ -303,5 +303,21 @@ func TestTicketExpiryRule(t *testing.T) {
 	}
 	if got := slots.TicketExpiry(now.Add(-119*time.Minute-30*time.Second), now, s); !got.Equal(now.Add(30 * time.Second)) {
 		t.Fatalf("age expiry %v", got)
+	}
+}
+
+// OPS55 R5.75: the hold never reaches the job timeout; a longer setting is cut.
+func TestHoldIsCutBelowTheJobTimeout(t *testing.T) {
+	machine := slots.Defaults()
+	machine.GateMaxWaitMin = 45
+	none := func(string) string { return "" }
+	if g := slots.ResolveGate(-1, -1, "", none, machine); g.MaxWaitMin != slots.MaxHoldMin || g.MaxWaitMin >= slots.JobTimeoutMin {
+		t.Fatalf("machine value not cut: %+v", g)
+	}
+	if g := slots.ResolveGate(99, -1, "", none, machine); g.MaxWaitMin != slots.MaxHoldMin {
+		t.Fatalf("flag value not cut: %+v", g)
+	}
+	if d := slots.Defaults(); d.GateMaxWaitMin != slots.MaxHoldMin {
+		t.Fatalf("default hold %d", d.GateMaxWaitMin)
 	}
 }

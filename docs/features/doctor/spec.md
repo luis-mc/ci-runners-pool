@@ -211,6 +211,8 @@ States:
 
 **R5.49** (M1, Built CIX18; ci-run-insights R5.29, R5.30, R5.43) — **Workflows area: workflow file checks.** Six checks, `workflow.timeout`, `workflow.retry`, `workflow.matrix_axis`, `workflow.step_order`, `workflow.cache` and `workflow.slow_tests_on_pr`, read the results crsp stored for the latest default-branch commit it checked (`workflow_checks`). Each gives one finding per repository: `warn` listing every failing job with file and line and the fix; `ok` with the number of jobs checked; `skip` when nothing was stored yet, a file could not be read, or the controller has no store. The doctor only reads; the checks run when crsp sees a new head commit, not in the doctor run. They belong to the `workflow` filter group.
 
+**R5.50** (M1, OPS55; scheduling R5.73, R5.75; runners R5.94) — **`runner.slots`: runners and hold against the job slots.** For each machine with known job slots the check compares the most runners one repository can use on it (pool runners plus the repository's own) with the job slots, and the machine's gate maximum wait with the 30-minute job timeout. `ok` when the runners do not exceed the slots and the wait is below the timeout. `warn` when the runners exceed the slots: the title names the machine, the repository and both numbers, and the fix says to remove runners on the machine page until there are at most as many as slots, or raise Job slots (Pool size sets how many fit). `warn` when the stored maximum wait is not below the job timeout (the hook cuts it to 10 minutes anyway); the fix says to set Gate maximum wait to 10 minutes or less on the machine page.
+
 ## 6. Non-functional requirements
 
 **R6.1** — Speed: a full run over 10 machines, 50 runners and 100 repositories ends within 60 s. Each check has a timeout: default 10 s, ceiling 60 s. A quick run ends within 10 s. NOT YET IMPLEMENTED.
@@ -351,6 +353,7 @@ Repositories and workflows:
 | `workflow.slow_tests_on_pr` | Mutation or many-run property tests run on pull requests | warn | Run them on a schedule or on the default branch only | no | 1 |
 | `runner.labels.generic` | A runner carries a label that is not generic | warn | Remove the label; target by repository variable | no | 1 |
 | `runner.registrations` | A machine holds more than 20 runner registrations (pool runners have one hidden registration for each repository that uses the pool, runners R5.88) | warn | Remove long-lived runners from the machine, or stop using the pool for repositories that do not need them | no | 1 |
+| `runner.slots` | A machine has more runners for one repository than job slots, or its stored hold maximum wait is not below the 30-minute job timeout (scheduling R5.73, R5.75) | warn | Remove runners on the machine page, or raise Job slots; set Gate maximum wait to 10 minutes or less | no | 1 |
 | `runner.unclean` | A persistent runner whose cleanup failed, so it takes no new job (runners R5.91) | fail | Wait for the next cleanup, or fix the cause named in the finding on the machine | no | 1 |
 | `repo.ephemeral_capacity` | A public repository that is Ephemeral only uses the pool and no machine has ephemeral capacity, so its jobs would wait (github-integration R5.60) | fail | Add runners with Ephemeral, or set the repository to Any runner | no | 1 |
 
@@ -520,6 +523,7 @@ Rows that name a file without "planned" are built (CRSP23). Planned rows are NOT
 | R5.47 | internal/doctor/checks/runnerkind_test.go TestRepoEphemeralCapacity |
 | R5.48 | internal/leftovers/leftovers_test.go (owned and not owned, the 84-character service name, the account check, refused paths, refused owned, partial failure, no change during a scan); internal/agent/leftovers_test.go (scan and remove over the link); internal/agentlink (leftovers); internal/machines (leftovers); internal/api/machines_leftovers_test.go; internal/doctor/checks (machine.runner_leftovers); apps/web/src/screens/doctor/Doctor.test.tsx (the finding, the question card, Remove); e2e/tests/design-layout.spec.ts (Doctor with runner leftovers at 360, 393 and 1300 px) |
 | R5.49 | internal/doctor/checks/workflows_test.go TestWorkflowFindings, TestWorkflowFindingsWithoutSource (CIX18) |
+| R5.50 | internal/doctor/checks/runnerslots_test.go TestRunnerSlotsWarns |
 
 ## 10. Decisions
 

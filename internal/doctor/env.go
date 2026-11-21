@@ -153,6 +153,14 @@ type Machine struct {
 	Admin bool
 	// LightSlots is the machine's light slot setting (scheduling R5.1).
 	LightSlots int
+	// JobSlots is the machine's job slot setting and GateMaxWaitMin its hold
+	// limit; 0 means unknown. RunnerPeak is the most runners one repository
+	// can use on the machine (pool runners plus its own), RunnerPeakRepo the
+	// repository that has them; empty when only pool runners exist
+	// (scheduling R5.73, R5.75).
+	JobSlots, GateMaxWaitMin int
+	RunnerPeak               int
+	RunnerPeakRepo           string
 	// DockerCompact is the Docker disk compact policy and what the agent
 	// reported; nil when the machine has no Docker disk file to compact.
 	DockerCompact *DockerCompact
