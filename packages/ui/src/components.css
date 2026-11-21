@@ -2769,6 +2769,9 @@ button.ds-jobpath__box {
   position: relative;
   display: inline-block;
   vertical-align: middle;
+}
+.ds-facts dt .ds-termhelp,
+.ds-level__name .ds-termhelp {
   margin-inline-start: var(--ds-space-2);
 }
 .ds-termhelp__button {

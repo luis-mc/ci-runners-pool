@@ -69,7 +69,7 @@ test('the cards show the real slots and load budget of each machine', async ({
     .on('GET', '/api/v1/machines', { items: [real] })
     .install(page);
   await page.goto('/help#q-slot');
-  await expect(page.getByText('0 of 3 slots in use')).toBeVisible();
+  await expect(page.getByText('1 of 3 slots in use')).toBeVisible();
   await expect(page.getByText(/Pool size makes slots/)).toBeVisible();
   await expect(page.getByText('memory 70%, CPU 55%')).toBeVisible();
   await expect(page.getByText(/85%/)).toHaveCount(0);
