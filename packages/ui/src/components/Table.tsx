@@ -180,6 +180,8 @@ export function Table<T>({
   detail,
   action,
   oneLine = false,
+  current,
+  onSelect,
 }: {
   caption: string;
   /** Draws the table inside a pane with this title and the row count; leave out when the page already has one. */
@@ -207,6 +209,10 @@ export function Table<T>({
   action?: RowActionSpec<T> | undefined;
   /** Every cell is one line, cut with an ellipsis, and every row has one height (UX-72). */
   oneLine?: boolean | undefined;
+  /** The key of the row a details panel shows: it is marked (`aria-current`) so it can be told from the others. */
+  current?: string | undefined;
+  /** A row was pressed or took focus: the screen shows it in a details panel. */
+  onSelect?: ((row: T) => void) | undefined;
 }) {
   const base = useId();
   const [open, setOpen] = useState<ReadonlySet<string>>(new Set());
@@ -297,7 +303,16 @@ export function Table<T>({
                   data-list-row
                   data-selected={selected?.has(key) || undefined}
                   data-inactive={inactive?.(row) || undefined}
+                  aria-current={current === key ? 'true' : undefined}
                   tabIndex={0}
+                  onClick={onSelect ? () => onSelect(row) : undefined}
+                  onFocus={
+                    onSelect
+                      ? (e) => {
+                          if (e.target === e.currentTarget) onSelect(row);
+                        }
+                      : undefined
+                  }
                   onDoubleClick={onOpen ? () => onOpen(row) : undefined}
                   onKeyDown={
                     onOpen

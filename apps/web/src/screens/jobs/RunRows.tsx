@@ -19,7 +19,7 @@ import {
 } from './words';
 import { waitShort, waitWords, workflowFile } from './words';
 
-export type RunKind = 'queue' | 'running' | 'done';
+export type RunKind = 'queue' | 'running' | 'done' | 'all';
 
 /** The branch cut in the middle; the task id is added only when the cut hides it. Worktree: see the detail. */
 export function BranchWords({
@@ -116,6 +116,39 @@ export function runColumns(kind: RunKind, _now: number): Column<RunRow>[] {
     sort: (r) => (r.jobsDone ?? 0) / Math.max(1, r.jobsTotal ?? 1),
     secondary: true,
   };
+  // All states in one list (the unified list, 20 Nov 2026): when it starts, ends or ended, and what it waits for. The
+  // commit and event are in the details panel, so the columns fit one line at 1300 px.
+  if (kind === 'all')
+    return [
+      repo,
+      workflow,
+      runNumber,
+      branch,
+      doneOf,
+      {
+        id: 'when',
+        header: 'When',
+        cell: (r) => runWhen(r),
+        sort: (r) => r.completed_at ?? r.eta?.p50 ?? 0,
+        secondary: true,
+      },
+      {
+        id: 'now',
+        header: 'Waits for or runs',
+        cell: (r) =>
+          r.state === 'running' ? (
+            <CappedList items={r.running.map((j) => j.job_name)} max={1} />
+          ) : null,
+        title: (r) => r.running.map((j) => j.job_name).join(', '),
+        kind: 'grow',
+        long: (r) => {
+          const n = r.state === 'queued' ? r.queued[0] : undefined;
+          return n ? { full: waitWords(n), short: waitShort(n) } : null;
+        },
+        secondary: true,
+      },
+      status,
+    ];
   if (kind === 'queue')
     return [
       {
@@ -200,6 +233,16 @@ export function runColumns(kind: RunKind, _now: number): Column<RunRow>[] {
     },
     status,
   ];
+}
+
+/** When a run starts (queued), ends (running) or ended (done), in words. */
+export function runWhen(r: RunRow): string {
+  if (r.state === 'queued') {
+    const e = r.queued[0]?.queue_eta;
+    return e ? startRange(e) : 'not known';
+  }
+  if (r.state === 'running') return r.eta ? etaOne(r.eta) : 'not known';
+  return r.completed_at ? formatShortDateTime(r.completed_at) : 'not known';
 }
 
 /** Where a run row opens: the Run page of that attempt. */

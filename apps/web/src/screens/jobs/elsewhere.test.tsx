@@ -1,6 +1,6 @@
 // Run elsewhere (owner decision D7): Queue and Running list only jobs crsp can run; a job another runner runs has
 // its own filter naming the runner and labels. The API has no runner_origin filter, so the browser filters.
-import { cleanup, fireEvent, screen } from '@testing-library/react';
+import { cleanup, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 import { renderApp } from '../../testing/mock';
 import { job, jobsApi } from '../../testing/jobsData';
@@ -24,14 +24,13 @@ const queued = [
 
 describe('Run elsewhere', () => {
   it('keeps other runners out of the Queue', async () => {
-    renderApp(jobsApi({ jobs: queued }), '/jobs?view=jobs');
+    renderApp(jobsApi({ jobs: queued }), '/jobs/live?state=queued&view=jobs');
     await screen.findByText('mine');
     expect(screen.queryByText('theirs')).toBeNull();
   });
 
-  it('lists them under the filter with runner, group and labels', async () => {
-    renderApp(jobsApi({ jobs: queued }), '/jobs');
-    fireEvent.click(await screen.findByRole('button', { name: 'Run elsewhere' }));
+  it('lists them in their own tab with runner, group and labels', async () => {
+    renderApp(jobsApi({ jobs: queued }), '/jobs/elsewhere');
     await screen.findByText('theirs');
     expect(screen.queryByText('mine')).toBeNull();
     expect(
@@ -39,8 +38,16 @@ describe('Run elsewhere', () => {
     ).toBeTruthy();
   });
 
+  it('sends the old Queue address with the filter to the Run elsewhere tab', async () => {
+    renderApp(jobsApi({ jobs: queued }), '/jobs?elsewhere=1');
+    await screen.findByText('theirs');
+    expect(
+      screen.getByRole('tab', { name: 'Run elsewhere' }).getAttribute('aria-selected'),
+    ).toBe('true');
+  });
+
   it('says so when nothing runs elsewhere', async () => {
-    renderApp(jobsApi({ jobs: [] }), '/jobs?elsewhere=1');
+    renderApp(jobsApi({ jobs: [] }), '/jobs/elsewhere');
     expect(await screen.findByText('No job runs on another runner.')).toBeTruthy();
   });
 });

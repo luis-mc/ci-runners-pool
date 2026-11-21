@@ -2807,3 +2807,224 @@ button.ds-jobpath__box {
     border-radius: var(--ds-radius-3) var(--ds-radius-3) 0 0;
   }
 }
+
+/* Component 67: search table. A search bar, a state filter, one table and a details panel (owner decision 20 Nov 2026). */
+.ds-search-table {
+  display: grid;
+  gap: var(--ds-space-3);
+  min-inline-size: 0;
+}
+.ds-search-table__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--ds-space-4);
+  align-items: start;
+}
+.ds-search-table__grid[data-open] {
+  grid-template-columns: minmax(0, 1fr) minmax(
+      0,
+      calc(var(--ds-width-field-medium) * 1.4)
+    );
+}
+.ds-search-table__main {
+  display: grid;
+  gap: var(--ds-space-3);
+  min-inline-size: 0;
+}
+.ds-panel-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-inline-size: var(--ds-target-min);
+  padding-inline: var(--ds-space-2);
+}
+.ds-panel-toggle[aria-pressed='true'] {
+  color: var(--ds-color-on-primary);
+  background: var(--ds-color-primary);
+  border-color: var(--ds-color-primary);
+}
+.ds-search-table tr[aria-current='true'] {
+  outline: var(--ds-border-medium) solid var(--ds-color-primary);
+  outline-offset: calc(var(--ds-border-medium) * -1);
+}
+.ds-side {
+  display: grid;
+  gap: var(--ds-space-3);
+  min-inline-size: 0;
+  padding: var(--ds-pane-inner);
+  background: var(--ds-color-surface);
+  border: var(--ds-border-thin) solid var(--ds-color-border);
+  border-radius: var(--ds-radius-2);
+}
+.ds-side__bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ds-space-3);
+}
+.ds-side__title {
+  margin: 0;
+  min-inline-size: 0;
+  font-size: var(--ds-size-3);
+  color: var(--ds-color-primary);
+  overflow-wrap: anywhere;
+}
+.ds-side__body {
+  display: grid;
+  gap: var(--ds-space-3);
+  min-inline-size: 0;
+}
+.ds-side .ds-facts dd,
+.ds-side .ds-facts dt {
+  overflow-wrap: anywhere;
+  text-align: start;
+}
+/* Phone: the panel is a sheet at the bottom of the screen (UX-43). */
+@media (max-width: 700px) {
+  .ds-search-table__grid[data-open] {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .ds-search-table .ds-side {
+    position: fixed;
+    inset-inline: 0;
+    inset-block-end: 0;
+    z-index: var(--ds-z-overlay);
+    max-block-size: 72vh;
+    overflow: auto;
+    border-block-start-width: var(--ds-border-medium);
+    border-radius: var(--ds-radius-2) var(--ds-radius-2) 0 0;
+  }
+}
+
+/* Component 58: stat tile. */
+.ds-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--ds-space-3);
+}
+@media (max-width: 900px) {
+  .ds-stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+.ds-stat {
+  display: grid;
+  align-content: start;
+  gap: var(--ds-space-1);
+  min-inline-size: 0;
+  min-block-size: var(--ds-target-min);
+  padding: var(--ds-space-3) var(--ds-space-4);
+  color: var(--ds-color-text);
+  text-decoration: none;
+  background: var(--ds-color-surface);
+  border: var(--ds-border-thin) solid var(--ds-color-divider);
+  border-radius: var(--ds-radius-2);
+}
+a.ds-stat:hover {
+  border-color: var(--ds-color-primary);
+}
+a.ds-stat:focus-visible {
+  outline: var(--ds-border-medium) solid var(--ds-color-focus);
+  outline-offset: var(--ds-border-medium);
+}
+.ds-stat__label {
+  color: var(--ds-color-text-muted);
+  overflow-wrap: anywhere;
+}
+.ds-stat__value {
+  font-size: var(--ds-size-6);
+  font-weight: var(--ds-weight-bold);
+  line-height: var(--ds-line-height-tight);
+}
+.ds-stat__unit {
+  font-size: var(--ds-size-2);
+  font-weight: var(--ds-weight-regular);
+  color: var(--ds-color-text-muted);
+}
+.ds-stat__change {
+  overflow-wrap: anywhere;
+  color: var(--ds-color-text-muted);
+}
+.ds-stat__change[data-change='better'] {
+  color: var(--ds-color-done);
+}
+.ds-stat__change[data-change='worse'] {
+  color: var(--ds-color-needs-you);
+}
+.ds-stat__trend {
+  display: block;
+  color: var(--ds-color-note);
+}
+
+/* Component 60: bar list. */
+.ds-bars {
+  display: grid;
+  gap: var(--ds-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ds-bars__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--ds-space-1) var(--ds-space-3);
+  align-items: baseline;
+  min-block-size: var(--ds-target-min);
+  padding-block: var(--ds-space-1);
+  color: var(--ds-color-text);
+  text-decoration: none;
+}
+.ds-bars__row:hover .ds-bars__label {
+  text-decoration: underline;
+}
+.ds-bars__row:focus-visible {
+  outline: var(--ds-border-medium) solid var(--ds-color-focus);
+}
+.ds-bars__label {
+  overflow-wrap: anywhere;
+}
+.ds-bars__value {
+  color: var(--ds-color-text-muted);
+  white-space: nowrap;
+}
+.ds-bars__track {
+  grid-column: 1 / -1;
+  display: block;
+  block-size: var(--ds-space-2);
+  background: var(--ds-color-divider);
+}
+.ds-bars__bar {
+  display: block;
+  block-size: 100%;
+  background: var(--ds-color-note);
+}
+
+/* Component 59: ranked findings. */
+.ds-findings {
+  display: grid;
+  gap: var(--ds-space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ds-findings__item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--ds-space-3);
+  padding-block-end: var(--ds-space-3);
+  border-block-end: var(--ds-border-thin) solid var(--ds-color-divider);
+}
+.ds-findings__rank {
+  color: var(--ds-color-primary);
+  font-weight: var(--ds-weight-bold);
+}
+.ds-findings__text {
+  display: grid;
+  gap: var(--ds-space-1);
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+}
+.ds-findings__meta {
+  color: var(--ds-color-text-muted);
+}

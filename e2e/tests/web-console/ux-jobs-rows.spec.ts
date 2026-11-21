@@ -7,17 +7,20 @@ import { openRoute } from './ux-guards';
 import { rowActionWords } from './ux-measure-source';
 
 const SCREENS = [
-  { name: 'Queue', url: '/jobs' },
-  { name: 'Queue, jobs', url: '/jobs?view=jobs' },
-  { name: 'Running', url: '/jobs/running' },
-  { name: 'Running, jobs', url: '/jobs/running?view=jobs' },
+  { name: 'Live', url: '/jobs/live' },
+  { name: 'Live, jobs', url: '/jobs/live?view=jobs' },
+  { name: 'Queue', url: '/jobs/live?state=queued' },
+  { name: 'Queue, jobs', url: '/jobs/live?state=queued&view=jobs' },
+  { name: 'Running', url: '/jobs/live?state=running' },
+  { name: 'Running, jobs', url: '/jobs/live?state=running&view=jobs' },
   { name: 'Done', url: '/jobs/done' },
   { name: 'Done, jobs', url: '/jobs/done?view=jobs' },
-  { name: 'By repository', url: '/jobs/repository' },
-  { name: 'By machine', url: '/jobs/machine' },
-  { name: 'By runner', url: '/jobs/runner' },
-  { name: 'By runner type', url: '/jobs/runner-type' },
-  { name: 'By job type', url: '/jobs/job-type' },
+  { name: 'Run elsewhere', url: '/jobs/elsewhere' },
+  { name: 'Group by repository', url: '/jobs/done?group=repository' },
+  { name: 'Group by machine', url: '/jobs/done?group=machine' },
+  { name: 'Group by runner', url: '/jobs/done?group=runner' },
+  { name: 'Group by runner type', url: '/jobs/done?group=runner-type' },
+  { name: 'Group by job type', url: '/jobs/done?group=job-type' },
 ];
 
 /** Runs in the page: the breaches of UX-72 in every visible table, as `{ table, what }`. */

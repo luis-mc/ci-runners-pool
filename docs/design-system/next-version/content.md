@@ -1138,7 +1138,7 @@ The words of the Jobs Overview, its new tabs and parts (UX-74 to UX-77, componen
 |---|---|
 | Overview, Live, Done, Run elsewhere, Run insights, Charts | The six tabs of Jobs, in this order (D9 to D13, D20, D7, D8). Overview is first and the landing. *Live* replaces the tabs Queue and Running. |
 | Group by | Choice above the Done list, with None, Repository, Machine, Runner, Runner type, Job type. It replaces the five *By* tabs (D11). |
-| Queued, Running, No runner | Filter chips of Live; the queued jobs come first, then the running ones. |
+| All, Queue, Running, Done | The one state filter of the list of Live, Done and Run elsewhere (LOOK41, owner decision of 20 Nov 2026; it replaces the chips *Queued, Running, No runner*). |
 | Waiting now | KPI tile: how many jobs wait, with the oldest wait as its second line. |
 | Wait slow end (p90) | KPI tile: the wait that 9 in 10 jobs stay under. Hint: *9 in 10 jobs wait less than this.* |
 | Jobs that passed | KPI tile: the share of finished jobs that passed, with the flaky count. |
@@ -1166,6 +1166,28 @@ The words of the Jobs Overview, its new tabs and parts (UX-74 to UX-77, componen
 | Open the jobs that wait now | Link of the Waiting now tile. |
 | Loading | Value area of a tile that is loading. |
 | Run elsewhere | Tab: jobs GitHub gave to a runner that is not crsp; each row names that runner and its state follows GitHub (D7). |
+
+## Jobs list words (LOOK41, owner decision of 20 Nov 2026; feature ci-run-insights)
+
+The words of the one search list of Live, Done and Run elsewhere (component 67) and of the Overview built from it.
+
+| Word | Where and meaning |
+|---|---|
+| State | Name of the state filter (All, Queue, Running, Done). |
+| Search jobs, Search runs, Search run elsewhere | Names of the search box. Placeholder: *Search, or repo: state: runner: branch: job:*. |
+| repo:, state:, runner:, branch:, job: | Search words that narrow one field; a plain word matches any text of a row. |
+| Show details, Hide details | Name and tooltip of the details button (an icon button); *Hide details* while the panel is open. |
+| Details: {row}, Close details | Name of the details panel and its close button. |
+| Nothing matches. Clear the search or choose All. | Empty list after a search or a state choice. |
+| Waits for or runs | Column of the All list: the wait reason of a waiting run, the job a running run does. |
+| When | Column of the All list: when a run starts, ends or ended. |
+| Starts, Ends, Finished | Fact names of a run in the details panel: by state. |
+| Runner type | The word for persistent against ephemeral runners (owner rule); never *kind* in text a user sees. |
+| Open run, Open job | The button of the details panel that opens the page; the row action keeps its words (UX-72). |
+| Wait slow end (p90) | Overview tile (see Jobs redesign words). |
+| Failed jobs | Overview card: how many of the finished jobs of the last 7 days failed; it opens the finished jobs. |
+| Each number is compared with the 7 days before. | Line under the Overview cards. |
+| Showing {n} of {m} finished {runs or jobs} in the last {days} days. | Note under the list when it holds finished rows. |
 
 ## Runner leftover words
 
