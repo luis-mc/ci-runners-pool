@@ -102,7 +102,7 @@ func (b *Backend) PrepareImage(ctx context.Context, spec backend.ImageSpec) (bac
 		if b.cfg.Assets == nil {
 			return backend.ImageRef{}, fmt.Errorf("no Dockerfile is set to build image %s", key)
 		}
-		dir, err := b.stageBuild(key)
+		dir, err := b.stageBuild(ctx, key, normArch(spec.Arch))
 		if err != nil {
 			return backend.ImageRef{}, err
 		}

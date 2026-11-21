@@ -17,6 +17,7 @@ import (
 	"github.com/luis-mc/ci-runners-shared-pool/images"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backend"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backend/sys"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/config"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/registry/builds"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/runners"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/secrets"
@@ -57,6 +58,11 @@ type Config struct {
 	KVM bool
 	// CrspHostPath is the agent's linux binary for the read-only mount.
 	CrspHostPath string
+	// LinuxCrsp gives the crsp binary the Linux image copies, for arch
+	// ("amd64" or "arm64"), when CrspHostPath is empty (OPS60, registry R5.82).
+	// DefaultConfig sets it; nil means the agent's own file, which is still
+	// checked to be a Linux ELF of that arch.
+	LinuxCrsp func(ctx context.Context, arch string) (string, error)
 	// VMImageMirror is CRSP_VM_IMAGE_MIRROR: passed to every job so `crsp vm`
 	// downloads from the mirror (operations R5.96). New takes it from the
 	// deps' addresses when empty.
@@ -577,6 +583,10 @@ func (b *Backend) limitsFor(r backend.RunnerSpec) Limits {
 	return l
 }
 
+// ProductVersion is the version of this crsp build; main sets it at start. The
+// Linux image build fetches the Linux crsp of this same version (OPS60).
+var ProductVersion = "dev"
+
 // DefaultConfig is the production layout of the Linux container backend: the
 // base image comes from the image files embedded in the binary, written to a
 // build folder and built on the machine on first use (runners R5.33). Limits
@@ -601,6 +611,12 @@ func DefaultConfig() Config {
 		OpenSecrets: func(ctx context.Context) (secrets.Store, error) {
 			return secrets.Open(ctx, filepath.Join(root, "crsp"))
 		},
+	}
+	cfg.LinuxCrsp = func(ctx context.Context, arch string) (string, error) {
+		return LinuxCrspSource{
+			Version: ProductVersion,
+			DataDir: config.DefaultPaths(runtime.GOOS, os.Getenv).DataDir,
+		}.Resolve(ctx, arch)
 	}
 	// On Linux the agent is a linux binary and is the one the containers mount
 	// (runners R5.48). Elsewhere the container engine cannot see the agent's
