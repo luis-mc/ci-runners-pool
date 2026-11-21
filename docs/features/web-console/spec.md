@@ -293,15 +293,15 @@ Settings hold configuration only (UX-52). Settings has six tabs (CRSP159, owner 
 
 ### 4.10 Help
 
-- **Purpose:** explain how a job gets run, in plain words, and what the terms of the console mean (LOOK44, owner pick I).
+- **Purpose:** explain how a job gets run, in plain words, and what the terms of the console mean (LOOK44; layout G, no wizard, LOOK47, owner decision 21 Nov 2026, D58).
 - **Data:** the machine list (`listMachines`), for each machine's real slots and load budget; the rest is fixed text.
-- **Shows:** the page header; a pane *How a job gets run* with the stepper (component 65: *On GitHub*, *In your pool*, *Looking after the pool*), the job path (component 64) with the parts of the step lit, and one line for the step; a pane *Questions* with the question cards of the step (UX-10, UX-51). The slot card says *Pool size makes slots*: you set memory and CPUs on Pool size, and crsp turns that into slots, the number of jobs that run at once. The slot and load budget cards list each machine with its own numbers, never a fixed 85% or 60%. *Runner type* is the word for persistent or ephemeral. The last step explains the Doctor, the tray app and images and caches. English only.
-- **Actions:** Back and Next (the one primary; *Start again* on the last step), a part of the picture or a step to go to it. Nothing changes any data, so there is no Review or Done step. A later step is grey until the tour has been there; an address that ends in a card (`/help#q-slot`) opens its step.
+- **Shows:** the page header; a pane *How a job gets run* with the job path (component 64), the picture of the first-run Overview, and one quiet line; below it a pane *Questions* with every question card in one grid, all visible at once, in the order of the story: GitHub (*What does shared mean?*, *What are a run and a job?*, *What are labels?*, *What does Run elsewhere mean?*), the pool (*Why is my job waiting?*, *What is a slot?*, *What is the load budget?*, *What is the queue?*, *What is a runner type?*) and looking after the pool (*What is the Doctor?*, *What is the tray app?*, *What are images and caches?*) (UX-10, UX-51; CORE-1, CORE-5). The slot card says *Pool size makes slots*: you set memory and CPUs on Pool size, and crsp turns that into slots, the number of jobs that run at once. The slot and load budget cards list each machine with its own numbers, never a fixed 85% or 60%. *Runner type* is the word for persistent or ephemeral. English only.
+- **Actions:** pressing a part of the picture scrolls to the card of that part; an address that ends in a card (`/help#q-slot`) brings it into view. No wizard: no Back, Next or Start again, no step bar and no locked part; nothing on the page changes data, so there is no primary button.
 - **In the console:** a ? (component 66) beside *Slots*, *Load budget*, *Queue*, *Runner type* and *Run elsewhere* opens a short answer with a link to the same card (`/help#q-slot`, `#q-budget`, `#q-queue`, `#q-runner-type`, `#q-elsewhere`).
 - **Keyboard:** Down, Up, `j` and `k` move between the controls, the boxes of the picture included (UX-57).
 - **States:** loading and could not load for the machine numbers (the cards still read); no machine (*No machine yet. Add a machine to see its slots.*).
-- **Components:** 1, 4 (step bar), 7, 8, 64, 65, 66.
-- **Rules:** CORE-1 to CORE-7, UX-4, UX-10, UX-43, UX-51, UX-54, UX-57, UX-72.
+- **Components:** 1, 7, 8, 64, 66.
+- **Rules:** CORE-1 to CORE-7, UX-4, UX-10, UX-43, UX-51, UX-57, UX-72.
 
 ## 5. Functional requirements
 

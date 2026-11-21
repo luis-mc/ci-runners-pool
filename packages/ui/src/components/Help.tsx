@@ -1,6 +1,6 @@
-// Components 64, 65, 66 (LOOK44): the Help page parts. Job path: the parts a job passes through, in order. Stepper: the
-// step bar of a read-only tour (the same look as the wizard's step bar). Term help: the ? next to a word that opens a
-// short answer and a link to the same card on the Help page. Pages pass data only (UX-2, UX-54).
+// Components 64 and 66 (LOOK44, LOOK47): the Help page parts. Job path: the parts a job passes through, in order.
+// Term help: the ? next to a word that opens a short answer and a link to the same card on the Help page. Pages pass
+// data only (UX-2, UX-54).
 import { useId, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { usePopoverDismiss } from './Popover';
@@ -22,8 +22,8 @@ export interface JobPathGroup {
 
 /**
  * Component 64. The parts of a job's way as numbered boxes in two framed groups (On GitHub, In your pool), left to
- * right on a wide screen and top to bottom on a phone. With `onSelect` each box is a button; the lit parts are the
- * ones of the current step. Without it the picture is read only (the first-run Overview).
+ * right on a wide screen and top to bottom on a phone. With `onSelect` each box is a button; a lit part has the
+ * selection fill. Without it the picture is read only (the first-run Overview).
  */
 export function JobPath({
   label,
@@ -64,7 +64,7 @@ export function JobPath({
                       <button
                         type="button"
                         className="ds-jobpath__box"
-                        aria-pressed={Boolean(on)}
+                        aria-pressed={lit ? Boolean(on) : undefined}
                         onClick={() => onSelect(p.id)}
                       >
                         {inner}
@@ -78,48 +78,6 @@ export function JobPath({
           </ol>
         </li>
       ))}
-    </ol>
-  );
-}
-
-/**
- * Component 65. A step bar for a read-only tour. A step up to `reached` can be pressed; a later step is grey and not
- * pressable until the tour has got there. The current step is marked. Nothing here starts work, so there is no Stop.
- */
-export function Stepper({
-  label,
-  steps,
-  current,
-  reached,
-  onStep,
-}: {
-  label: string;
-  steps: readonly string[];
-  current: number;
-  reached: number;
-  onStep: (index: number) => void;
-}) {
-  return (
-    <ol className="ds-steps" aria-label={label} data-layout-group>
-      {steps.map((name, i) => {
-        const standing = i === current ? 'now' : i <= reached ? 'done' : 'later';
-        return (
-          <li key={name} className="ds-steps__item" data-standing={standing}>
-            <button
-              type="button"
-              className="ds-steps__button"
-              aria-current={standing === 'now' ? 'step' : undefined}
-              disabled={standing === 'later'}
-              onClick={() => onStep(i)}
-            >
-              <span className="ds-steps__n" aria-hidden="true">
-                {standing === 'done' ? '✓' : i + 1}
-              </span>{' '}
-              {name}
-            </button>
-          </li>
-        );
-      })}
     </ol>
   );
 }
