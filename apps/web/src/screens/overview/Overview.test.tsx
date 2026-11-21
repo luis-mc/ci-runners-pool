@@ -163,7 +163,12 @@ describe('Overview (R5.20)', () => {
     renderApp(signedIn(), '/');
     await screen.findByRole('region', { name: 'build-1' });
     const main = screen.getByRole('main');
-    expect(within(main).queryAllByRole('button')).toHaveLength(0);
+    // The ? beside a term explains a word; it is not a command.
+    expect(
+      within(main)
+        .queryAllByRole('button')
+        .filter((b) => !b.hasAttribute('data-term-help')),
+    ).toHaveLength(0);
   });
 
   it('puts every section in a pane (UX-10)', async () => {

@@ -53,11 +53,25 @@ const binary = process.env.E2E_BINARY ?? `bin/crsp${exe}`;
 
 export default defineConfig({
   testDir: './e2e/tests',
-  reporter: 'line',
+  // CRSP209: `line` stays for the log; the JSON file holds every test's time (CI uploads it
+  // as the artifact ci-run-times and scripts/ci/e2e_shards.py reads it to weigh the files).
+  // PLAYWRIGHT_JSON_OUTPUT_NAME names the file, so two runs in one job do not overwrite each other.
+  reporter: [
+    ['line'],
+    [
+      'json',
+      {
+        outputFile:
+          process.env.PLAYWRIGHT_JSON_OUTPUT_NAME ?? 'test-results/playwright-times.json',
+      },
+    ],
+  ],
   outputDir: 'test-results/artifacts',
   // 11.3: a flaky spec is quarantined and fixed, never retried until green.
   // Retries stay 0 for the gating specs; do not raise this to make CI pass.
   retries: 0,
+  // CRSP201: 4 workers in CI (the runner has 4 cores); locally Playwright picks half the cores.
+  ...(process.env.CI ? { workers: 4 } : {}),
   forbidOnly: !!process.env.CI,
   use: { baseURL: `http://127.0.0.1:${port}` },
   webServer: {

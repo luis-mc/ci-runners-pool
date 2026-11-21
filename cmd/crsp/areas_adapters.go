@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/addresses"
+	"strconv"
 	"strings"
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/auth"
@@ -331,13 +332,16 @@ func (f doctorFleet) Machines(ctx context.Context) ([]doctor.Machine, error) {
 		return nil, err
 	}
 	out := make([]doctor.Machine, 0, len(views))
+	allRunners, _ := f.runners.ListRunners(ctx, runners.Filter{})
 	for _, v := range views {
 		m := doctor.Machine{
 			ID: v.Machine.ID, Name: v.Machine.Name, OS: v.Machine.OS, Online: v.Machine.Online,
 			LastSeen: v.Machine.LastSeen, State: v.Settings.State,
 			BudgetMemoryPct: v.Settings.BudgetMemoryPct, BudgetCPUPct: v.Settings.BudgetCPUPct,
 			LightSlots: v.Settings.LightSlots, PauseReason: v.Machine.PauseReason,
+			JobSlots: v.Settings.JobSlots, GateMaxWaitMin: v.Settings.GateMaxWaitMinutes,
 		}
+		m.RunnerPeak, m.RunnerPeakRepo = f.runnerPeak(ctx, v.Machine.ID, allRunners)
 		if m.State == "" {
 			m.State = v.Machine.State
 		}
@@ -355,6 +359,23 @@ func (f doctorFleet) Machines(ctx context.Context) ([]doctor.Machine, error) {
 		out = append(out, m)
 	}
 	return out, nil
+}
+
+// runnerPeak is the most runners one repository can use on a machine and the
+// repository's name (scheduling R5.73).
+func (f doctorFleet) runnerPeak(ctx context.Context, machineID string, rs []runners.Record) (int, string) {
+	n, key := runners.Peak(rs, machineID)
+	if key == "" {
+		return n, ""
+	}
+	for _, r := range rs {
+		if r.MachineID == machineID && !runners.IsPoolRunner(r) && r.Scope.Kind == "repository" && key == "repo:"+strconv.FormatInt(r.Scope.RepositoryID, 10) {
+			if repo, err := f.repos.GetRepository(ctx, r.Scope.RepositoryID); err == nil {
+				return n, repo.Owner + "/" + repo.Name
+			}
+		}
+	}
+	return n, strings.TrimPrefix(key, "org:")
 }
 
 var _ doctor.UncleanLister = doctorFleet{}

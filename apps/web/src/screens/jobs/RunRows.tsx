@@ -2,7 +2,6 @@
 // Open run goes straight to the Run page (OPS43), as Open job goes to the Job page.
 import {
   CappedList,
-  Cut,
   ShortText,
   Status,
   TextLink,
@@ -18,9 +17,9 @@ import {
   startRange,
   taskIdOf,
 } from './words';
-import { waitWords } from './words';
+import { waitShort, waitWords, workflowFile } from './words';
 
-export type RunKind = 'queue' | 'running' | 'done';
+export type RunKind = 'queue' | 'running' | 'done' | 'all';
 
 /** The branch cut in the middle; the task id is added only when the cut hides it. Worktree: see the detail. */
 export function BranchWords({
@@ -55,19 +54,23 @@ export function runColumns(kind: RunKind, _now: number): Column<RunRow>[] {
     kind: 'grow',
     grow: 2,
   };
+  // The file name only: the full path is the hover text and the title of the Run page (UX-72, CRSP210).
   const workflow: Column<RunRow> = {
     id: 'workflow',
     header: 'Workflow',
-    cell: (r) => (
-      <Cut tail={` #${r.id}${r.attempt > 1 ? `, attempt ${r.attempt}` : ''}`}>
-        <TextLink to={runPath(r)}>{r.workflow}</TextLink>
-      </Cut>
-    ),
+    cell: (r) => <TextLink to={runPath(r)}>{workflowFile(r.workflow)}</TextLink>,
     kind: 'grow',
     grow: 2,
-    title: (r) =>
-      `${r.workflow} #${r.id}${r.attempt > 1 ? `, attempt ${r.attempt}` : ''}`,
+    title: (r) => r.workflow,
     sort: (r) => r.workflow,
+  };
+  // The run number in its own column, whole, so it never sits outside its cell (CRSP210).
+  const runNumber: Column<RunRow> = {
+    id: 'run',
+    header: 'Run',
+    cell: (r) => `#${r.id}${r.attempt > 1 ? `, attempt ${r.attempt}` : ''}`,
+    sort: (r) => r.id,
+    kind: 'fit',
   };
   const branch: Column<RunRow> = {
     id: 'branch',
@@ -113,6 +116,39 @@ export function runColumns(kind: RunKind, _now: number): Column<RunRow>[] {
     sort: (r) => (r.jobsDone ?? 0) / Math.max(1, r.jobsTotal ?? 1),
     secondary: true,
   };
+  // All states in one list (the unified list, 20 Nov 2026): when it starts, ends or ended, and what it waits for. The
+  // commit and event are in the details panel, so the columns fit one line at 1300 px.
+  if (kind === 'all')
+    return [
+      repo,
+      workflow,
+      runNumber,
+      branch,
+      doneOf,
+      {
+        id: 'when',
+        header: 'When',
+        cell: (r) => runWhen(r),
+        sort: (r) => r.completed_at ?? r.eta?.p50 ?? 0,
+        secondary: true,
+      },
+      {
+        id: 'now',
+        header: 'Waits for or runs',
+        cell: (r) =>
+          r.state === 'running' ? (
+            <CappedList items={r.running.map((j) => j.job_name)} max={1} />
+          ) : null,
+        title: (r) => r.running.map((j) => j.job_name).join(', '),
+        kind: 'grow',
+        long: (r) => {
+          const n = r.state === 'queued' ? r.queued[0] : undefined;
+          return n ? { full: waitWords(n), short: waitShort(n) } : null;
+        },
+        secondary: true,
+      },
+      status,
+    ];
   if (kind === 'queue')
     return [
       {
@@ -123,6 +159,7 @@ export function runColumns(kind: RunKind, _now: number): Column<RunRow>[] {
       },
       repo,
       workflow,
+      runNumber,
       branch,
       commit,
       event,
@@ -142,7 +179,7 @@ export function runColumns(kind: RunKind, _now: number): Column<RunRow>[] {
         kind: 'grow',
         long: (r) => {
           const n = r.queued[0];
-          return n ? { full: waitWords(n) } : null;
+          return n ? { full: waitWords(n), short: waitShort(n) } : null;
         },
         secondary: true,
       },
@@ -151,6 +188,7 @@ export function runColumns(kind: RunKind, _now: number): Column<RunRow>[] {
     return [
       repo,
       workflow,
+      runNumber,
       branch,
       commit,
       event,
@@ -181,6 +219,7 @@ export function runColumns(kind: RunKind, _now: number): Column<RunRow>[] {
     },
     repo,
     workflow,
+    runNumber,
     branch,
     commit,
     event,
@@ -194,6 +233,16 @@ export function runColumns(kind: RunKind, _now: number): Column<RunRow>[] {
     },
     status,
   ];
+}
+
+/** When a run starts (queued), ends (running) or ended (done), in words. */
+export function runWhen(r: RunRow): string {
+  if (r.state === 'queued') {
+    const e = r.queued[0]?.queue_eta;
+    return e ? startRange(e) : 'not known';
+  }
+  if (r.state === 'running') return r.eta ? etaOne(r.eta) : 'not known';
+  return r.completed_at ? formatShortDateTime(r.completed_at) : 'not known';
 }
 
 /** Where a run row opens: the Run page of that attempt. */

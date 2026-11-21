@@ -43,6 +43,7 @@ import { TabForm, useTabPart } from './TabForm';
 import { SECTIONS, settingsPath } from './sections';
 import { AccessForCiSettings } from './AccessForCi';
 import { AuditLogSettings, ConfigExportSettings } from './AuditLog';
+import { InsightsUpdateSettings } from './InsightsUpdate';
 import { BudgetsSettings } from './Budgets';
 import { NotificationsSettings } from './Notifications';
 import { PublicRepositoriesSettings } from './PublicRepositoriesSettings';
@@ -52,12 +53,13 @@ import { WebhooksSettings } from './Webhooks';
 
 type User = Schemas['User'];
 
-// Five tabs (owner decision D8). Each old section is a pane inside its tab, in this order; `SECTIONS` says where
+// Six tabs (owner decision D8; Updates after Console, LOOK43). Each old section is a pane inside its tab, in this order; `SECTIONS` says where
 // an old address now lives, so a link or bookmark to /settings/<old> lands on the right tab and section.
 const TABS = [
   { id: 'access', label: 'Access' },
   { id: 'repositories', label: 'Repositories' },
   { id: 'console', label: 'Console' },
+  { id: 'updates', label: 'Updates' },
   { id: 'data', label: 'Data' },
   { id: 'audit', label: 'Audit log' },
 ];
@@ -132,6 +134,9 @@ export function RepositoriesTab() {
 }
 
 export function ConsoleTab() {
+  const { hash } = useLocation();
+  // The Updates pane used to be the last section of this tab: its old anchor goes to its own tab.
+  if (hash === '#updates') return <Navigate to="/settings/updates" replace />;
   return (
     <TabForm>
       <At id="appearance">
@@ -143,6 +148,13 @@ export function ConsoleTab() {
       <At id="network">
         <NetworkSettings />
       </At>
+    </TabForm>
+  );
+}
+
+export function UpdatesTab() {
+  return (
+    <TabForm>
       <At id="updates">
         <UpdatesSettings />
       </At>
@@ -155,6 +167,9 @@ export function DataTab() {
     <TabForm>
       <At id="retention">
         <RetentionSettings />
+      </At>
+      <At id="insights-update">
+        <InsightsUpdateSettings />
       </At>
       <At id="backups">
         <BackupsSettings />

@@ -154,6 +154,9 @@ type Comparison struct {
 	KeepDaysDefault int
 }
 
+// KeepDaysDefault is the days an old image is kept when a plan names none.
+func (s *Service) KeepDaysDefault(ctx context.Context) int { return s.keepDaysDefault(ctx) }
+
 func (s *Service) keepDaysDefault(ctx context.Context) int {
 	if s.cfg.Settings != nil {
 		if st, err := s.cfg.Settings.Settings(ctx); err == nil {

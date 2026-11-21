@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/audit"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/insights/collect"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/jobsdata"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/store"
 )
@@ -32,6 +33,22 @@ type Retention struct {
 	Now      func() time.Time
 	// Interval is the time between runs; one hour when zero (R5.32).
 	Interval time.Duration
+	// CIData prune the CI data of ci-run-insights (R5.6, R6.2): the stored logs and report files, and
+	// whatever else the insights keep with their own days (test results, resource samples). Each gets the
+	// limits of the settings; a failure of one does not stop the others.
+	CIData []collect.Retention
+}
+
+// CIDataLimits are the insights limits in st (ci-run-insights R5.5).
+func CIDataLimits(st Settings) collect.Limits {
+	day := 24 * time.Hour
+	return collect.Limits{
+		Keep:                st.InsightsKeepCIData,
+		Days:                time.Duration(st.InsightsCIDataDays) * day,
+		BytesPerRepository:  int64(st.InsightsCIDataMiBPerRepository) << 20,
+		TestResultsDays:     time.Duration(st.InsightsTestResultsDays) * day,
+		ResourceSamplesDays: time.Duration(st.InsightsResourceSamplesDays) * day,
+	}
 }
 
 // RunOnce applies every limit once. It carries on after one step fails and
@@ -65,6 +82,11 @@ func (r *Retention) RunOnce(ctx context.Context) error {
 	}
 	if err := PruneLogs(filepath.Join(r.DataDir, LogsDir), t.Add(-time.Duration(st.RetentionLogsDays)*day), int64(st.RetentionLogsMiBPerMachine)<<20); err != nil {
 		errs = append(errs, err)
+	}
+	for _, p := range r.CIData {
+		if _, _, err := p.Prune(ctx, t, CIDataLimits(st)); err != nil {
+			errs = append(errs, err)
+		}
 	}
 	return errors.Join(errs...)
 }

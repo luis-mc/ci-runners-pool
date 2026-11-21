@@ -1,12 +1,13 @@
-// The "How crsp works" strip (D33, LOOK31): Pool -> Machines -> Runners, and repositories use the pool.
+// The first-run picture of how a job gets run (D33, LOOK31, LOOK44): the Help picture and an Open Help button.
 // It shows on first run only, until the pool has a machine, a runner and a repository, and the user can dismiss it.
-import { Button, Message, TextLink } from '@crsp/ui';
+import { Button, LinkButton, Section } from '@crsp/ui';
 import { useState } from 'react';
 import { unwrap, useClient } from '../../api/api';
 import { useLoad } from '../../api/hooks';
 import { useMachines } from '../../api/machines';
 import { useVersion } from '../../live/LiveProvider';
 import { allRepositories } from '../repositories/plans';
+import { JobPathPicture } from '../help/JobPathPicture';
 
 export const STRIP_STORE_NAME = 'crsp.howItWorks.dismissed';
 
@@ -53,25 +54,27 @@ export function HowCrspWorks() {
   )
     return null;
   return (
-    <Message
-      tone="note"
-      action={
-        <Button
-          onPress={() => {
-            setDismissed(true);
-            try {
-              window.localStorage.setItem(STRIP_STORE_NAME, '1');
-            } catch {
-              // The strip stays hidden for this visit only.
-            }
-          }}
-        >
-          Hide this
-        </Button>
+    <Section
+      title="How a job gets run"
+      actions={
+        <>
+          <LinkButton to="/help">Open Help</LinkButton>
+          <Button
+            onPress={() => {
+              setDismissed(true);
+              try {
+                window.localStorage.setItem(STRIP_STORE_NAME, '1');
+              } catch {
+                // The picture stays hidden for this visit only.
+              }
+            }}
+          >
+            Hide this
+          </Button>
+        </>
       }
     >
-      How crsp works: the Pool has Machines, and each machine has Runners. Repositories
-      use the pool. Start in <TextLink to="/pool">Shared Pool</TextLink>.
-    </Message>
+      <JobPathPicture />
+    </Section>
   );
 }

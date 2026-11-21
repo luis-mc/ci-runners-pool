@@ -126,7 +126,8 @@ func TestUpdateDrainerWaitsForTheRunningJobAndNeverCutsIt(t *testing.T) {
 	if err := d.BeginDrain(context.Background(), update.KindUpdate, "follow-controller"); err != nil {
 		t.Fatal(err)
 	}
-	time.Sleep(60 * time.Millisecond)
+	// The first poll held the gate and found the job: no install yet.
+	waitFor(t, "the drain holds the gate", func() bool { return g.State() != machines.StateActive })
 	select {
 	case <-idled:
 		t.Fatal("installed while a job ran")
@@ -150,10 +151,7 @@ func TestUpdateDrainerWaitsForTheRunningJobAndNeverCutsIt(t *testing.T) {
 	d2 := &agent.UpdateDrainer{Gate: g2, Poll: 5 * time.Millisecond, OnIdle: func(context.Context, update.Kind) error { return update.ErrNotIdle }}
 	g2.Start("j3", job, "persistent")
 	_ = d2.BeginDrain(context.Background(), update.KindUpdate, "x")
-	time.Sleep(30 * time.Millisecond)
-	if g2.State() == machines.StateActive {
-		t.Fatal("the gate must hold during the drain")
-	}
+	waitFor(t, "the gate to hold during the drain", func() bool { return g2.State() != machines.StateActive })
 	_ = d2.CancelDrain(context.Background(), "x")
 	if g2.State() != machines.StateActive {
 		t.Fatalf("state %s", g2.State())

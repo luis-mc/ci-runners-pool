@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"strconv"
+
+	"github.com/luis-mc/ci-runners-shared-pool/internal/update"
 )
 
 // The native update window (TRAY5 D12, D14): the tray copies its signed binary to a temp folder
@@ -35,10 +37,21 @@ func UpdateWindowArgs(mode, from, to string, x, y int, hasAt bool) []string {
 	return args
 }
 
-// WindowMode is review when no update runs and live when one does or just ended.
+// WindowMode is review when no update runs and live when one does or just ended. A done stage
+// is live only when it is this update: when a release newer than the stage's version is known,
+// the stage is a leftover of an earlier update and the window offers the newer release.
 func WindowMode(st Status) string {
-	if st.Update.Updating() || (st.Update.Stage != nil && st.Update.Stage.Name == "done") {
+	if st.Update.Updating() {
 		return "live"
+	}
+	if g := st.Update.Stage; g != nil && g.Name == "done" {
+		done := g.Version
+		if done == "" {
+			done = st.Version
+		}
+		if st.Update.Latest == "" || done == "" || !update.Newer(done, st.Update.Latest) {
+			return "live"
+		}
 	}
 	return "review"
 }

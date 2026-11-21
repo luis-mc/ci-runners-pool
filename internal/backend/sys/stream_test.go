@@ -20,7 +20,17 @@ func TestRunStreamGivesLines(t *testing.T) {
 	if err != nil || res.ExitCode != 3 {
 		t.Fatalf("%v %+v", err, res)
 	}
-	if strings.Join(got, "|") != "one|two|three|err" && strings.Join(got, "|") != "err|one|two|three" {
+	// The two pipes are read at the same time, so "err" can arrive anywhere
+	// between the output lines; each stream keeps its own order.
+	var out, errs []string
+	for _, l := range got {
+		if l == "err" {
+			errs = append(errs, l)
+		} else {
+			out = append(out, l)
+		}
+	}
+	if strings.Join(out, "|") != "one|two|three" || len(errs) != 1 {
 		t.Fatalf("lines %q", got)
 	}
 	if res.Stdout != "one\ntwo\rthree\n" || res.Stderr != "err\n" {

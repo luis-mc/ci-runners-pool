@@ -29,6 +29,7 @@ type Plan struct {
 	HealthURL     string        `json:"health_url"`
 	HealthTimeout time.Duration `json:"health_timeout"`
 	Dir           string        `json:"dir"` // work folder: lock, log, result, failures
+	Attempt       string        `json:"attempt,omitempty"`
 }
 
 // Env is what the helper uses from the machine; tests replace it.
@@ -74,13 +75,14 @@ func msiOK(code int) bool { return code == 0 || code == 3010 || code == 1641 }
 func RunPlan(ctx context.Context, p Plan, env Env) error {
 	env.fill()
 	err := runPlan(ctx, p, &env)
-	res := Result{OK: err == nil, Kind: p.Kind, From: p.From, To: p.To, At: env.Now()}
+	res := Result{OK: err == nil, Kind: p.Kind, From: p.From, To: p.To, At: env.Now(), Attempt: p.Attempt}
 	stage := Stage{Name: StageDone, Percent: 100, Version: p.To, At: env.Now()}
 	if err != nil {
 		stage = Stage{Name: StageFailed, Percent: -1, Version: p.To, Error: err.Error(), LogPath: filepath.Join(p.Dir, LogFile), FailedAt: StageInstalling, At: env.Now()}
 	}
 	if prev, ok := ReadStage(p.Dir); ok {
 		stage.StartedBy = prev.StartedBy
+		stage.Attempt, stage.AttemptKind, stage.AttemptStarted = prev.Attempt, prev.AttemptKind, prev.AttemptStarted
 	}
 	defer func() { _ = WriteStage(p.Dir, stage) }()
 	if err != nil {
@@ -102,6 +104,7 @@ func runPlan(ctx context.Context, p Plan, env *Env) error {
 	first := Stage{Name: StageInstalling, Percent: -1, Version: p.To, At: env.Now()}
 	if prev, ok := ReadStage(p.Dir); ok {
 		first.StartedBy = prev.StartedBy
+		first.Attempt, first.AttemptKind, first.AttemptStarted = prev.Attempt, prev.AttemptKind, prev.AttemptStarted
 	}
 	_ = WriteStage(p.Dir, first)
 	want := p.To

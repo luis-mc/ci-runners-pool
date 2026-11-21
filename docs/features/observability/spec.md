@@ -49,7 +49,7 @@ The owner and the admins of a pool see what the pool is doing right now, what it
 **Non-goals.**
 
 - No telemetry, analytics or hosted error tracker (stack profile, section 14, `STACKSPEC 10.1`). Errors go to local logs, crash files and the doctor.
-- No copy of the job's own step logs. GitHub keeps those; the history links to them.
+- No copy of the job's own step logs in the job history; the history links to GitHub. CI run insights may keep a redacted copy on the owner's machines (R5.38, owner decision D4 of 20 Nov 2026).
 - No metrics export (Prometheus, OpenTelemetry) in these milestones.
 - Notifications (email, webhook, desktop) are a separate feature (milestone 8).
 - The doctor's checks are a separate feature. This spec only feeds it crash files and log health.
@@ -132,7 +132,7 @@ Milestone numbers are those of the product brief.
 
 **R5.4** — (M1) The web console keeps one live store fed by the stream. The Overview, the running-jobs strip and every running state read that store (design system UX-19, UX-34).
 
-**R5.5** — (M1) Every queued job carries one wait reason from a fixed list: free slot, load over budget, no online runner with the labels, repository parallel limit, machine drained, quiet hours, load not measured (scheduling R5.22, decision D53), unknown. The reason names the machine, the numbers or the labels. "No runner with the labels" is raised once the job has waited 2 minutes (setting) and no online runner carries all its labels (ported from `warn_queued_jobs` in dev-standards `ci_watch.py`). The overview also returns `waiting`: each queued job with its reason in words (scheduling R5.48, CRSP76).
+**R5.5** — (M1) Every queued job carries one wait reason from a fixed list: free slot, load over budget, no online runner with the labels, repository parallel limit, machine drained, load not measured (scheduling R5.22, decision D53), unknown. The reason names the machine, the numbers or the labels. "No runner with the labels" is raised once the job has waited 2 minutes (setting) and no online runner carries all its labels (ported from `warn_queued_jobs` in dev-standards `ci_watch.py`). The overview also returns `waiting`: each queued job with its reason in words (scheduling R5.48, CRSP76).
 
 **R5.6** — (M1) Relative times ("4 min ago") read one shared clock that pauses while the page is hidden and catches up when shown (design system UX-53). Statuses use the word, glyph and colour set (design system UX-58).
 
@@ -164,7 +164,7 @@ Owner decisions of 2026-11-18 (RES15 review). Web screens: `web-console` section
 
 **R5.37** (OPS34, decisions 1, 2) — **Retention.** Job rows (with their runs and attempts) are kept 90 days, step rows 30 days, daily summaries 400 days (R6.8). Rows leave in that order: the daily summary of a job key is written before its raw rows are deleted. The Done list shows 25 rows, *Show more* adds 25 up to 100 per page, and older rows are reached by filter and time range, within the retention. This replaces the "last 100 finished jobs" rule of the earlier Jobs screen (web-console D34).
 
-**R5.38** (OPS34) — **Privacy.** Stored: repository, workflow file name, job name, matrix values, step names, branch name, commit sha, pull request number, timings, runner and machine names. Never stored: logs, environment values, secrets, commit messages, actor email. Step and job names are shown as text and never as markup. Everything stays on the owner's machines (R6.7).
+**R5.38** (OPS34; reworded by CIX7, owner decision D4 of 20 Nov 2026) — **Privacy.** Stored: repository, workflow file name, job name, matrix values, step names, branch name, commit sha, pull request number, timings, runner and machine names. CI run insights may also store, on the owner's machines only, CI job logs, test reports, guardrail reports and the datasets built from them (test results, CPU and memory samples, workflow checks) to improve its features (ci-run-insights R5.2 to R5.6). Every log and report passes the redact package (`internal/redact`) before it is written; the values of the runner's `env:` block are dropped, names kept. Each repository's CI data has a retention limit and a size cap, set in Settings, Data (ci-run-insights R5.5, R6.2). Never stored: secrets, environment values, actor email, commit messages. Step, job and test names are shown as text and never as markup. Everything stays on the owner's machines (R6.7).
 
 **R5.39** (OPS34) — **Read-only API.** `listJobs` (filters: repository, machine, runner, runner kind, job key, branch, result, range, cursor), `getJob` (steps, attempts, needs, history, critical path), `getRun`, `getJobStats` (daily waits and run times, weekday by hour counts, forecast-against-actual points, filtered like `listJobs`) and `getForecast` are viewer role (R6.4).
 
@@ -263,6 +263,9 @@ Owner decisions of 2026-11-18 (RES15 review). Web screens: `web-console` section
 | Audit log | 400 days | 90 days | 5 years |
 | Structured log files, per mode | 10 files of 50 MiB | 2 files | 50 files |
 | Crash files | 30 days, newest 20 | 7 days, 5 files | 365 days, 200 files |
+| CI logs and raw reports, files (ci-run-insights R6.2) | 30 days and 1 GiB per repository | 7 days, 64 MiB | 365 days, 20 GiB |
+| Test results, workflow checks, guardrail reports (ci-run-insights R6.2) | 90 days | 14 days (checks 30) | 400 days |
+| CPU and memory samples per job (ci-run-insights R6.2) | 7 days | 1 day | 30 days |
 
 Whichever of a time or a size limit is reached first applies. The oldest data goes first.
 

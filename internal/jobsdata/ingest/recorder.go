@@ -10,6 +10,7 @@ import (
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/github"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/jobsdata"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/jobsdata/reconcile"
 )
 
 // Forecaster makes the forecast of a job that just started, from the history
@@ -33,6 +34,12 @@ type Config struct {
 	Forecast Forecaster
 	// Graphs reads workflow files; nil fetches no graph.
 	Graphs GraphSource
+	// Origins and Classify record who ran a job and where its steps came from (R5.39, R5.40); nil skips both.
+	Origins  OriginSink
+	Classify reconcile.Classify
+	// OnJobCompleted is called once, after the job row is written, when a job first reaches done: CI run
+	// insights re-analyse after each CI run (ci-run-insights R5.44). It must not block; nil does nothing.
+	OnJobCompleted func()
 	// Repos gives the id of a repository crsp serves; false skips its jobs.
 	Repos func(ctx context.Context, fullName string) (int64, bool)
 	Now   func() time.Time
@@ -181,6 +188,7 @@ func (r *Recorder) OnJob(ctx context.Context, gj github.Job) error {
 	j := toJob(gj, repoID, path, state)
 	r.mu.Lock()
 	old, had := r.jobs.get(j.ID)
+	firstDone := state == jobsdata.Done && (!had || old.State != jobsdata.Done)
 	if had {
 		if rank(j.State) < rank(old.State) {
 			r.mu.Unlock()
@@ -199,6 +207,9 @@ func (r *Recorder) OnJob(ctx context.Context, gj github.Job) error {
 	}
 	if err := r.cfg.Writer.UpsertJob(ctx, j); err != nil {
 		return err
+	}
+	if firstDone && r.cfg.OnJobCompleted != nil {
+		r.cfg.OnJobCompleted()
 	}
 	r.forecast(ctx, j, state)
 	r.applyParked(ctx, rk, pending)
@@ -350,7 +361,13 @@ func (r *Recorder) OnSteps(ctx context.Context, jobID int64, steps []github.JobS
 		}
 		out = append(out, st)
 	}
-	return r.cfg.Writer.ReplaceSteps(ctx, jobID, out)
+	if err := r.cfg.Writer.ReplaceSteps(ctx, jobID, out); err != nil {
+		return err
+	}
+	if r.cfg.Origins != nil {
+		return r.cfg.Origins.SetStepsSource(ctx, jobID, "events")
+	}
+	return nil
 }
 
 // known says whether the job was recorded, in this process or before it.

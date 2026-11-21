@@ -3,6 +3,7 @@ package checks
 import (
 	"context"
 	"fmt"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/runnercache"
 	"sort"
 	"strings"
 	"time"
@@ -185,7 +186,9 @@ func runnerRegistered(ctx context.Context, env doctor.Env) []doctor.Finding {
 		case got == nil:
 			f.Severity, f.Title = doctor.Fail, r.Name+" is not registered on GitHub"
 			f.Detail = "GitHub does not list a runner with this name, so no job reaches it."
-			f.Fix = doctor.Fix{Text: "Restart the runner service; if it stays missing, add the runner again from the Runners screen.", Link: "/runners"}
+			f.Fix = doctor.Fix{Text: "Restart the runner service; if it stays missing, remove the record here (Remove) and add the runner again from the Runners screen.", Link: "/runners"}
+			// A record GitHub does not list: a half-made add (R5.50). The button asks first.
+			f.Action = &doctor.Action{ID: doctor.ActionRemoveRunnerRecord, Label: "Remove", Args: &doctor.ActionArgs{RunnerID: r.ID, Name: r.Name}}
 		case got.Status != "online":
 			f.Severity, f.Title = doctor.Fail, r.Name+" is offline on GitHub"
 			f.Detail = "GitHub lists the runner but it is not connected."
@@ -264,7 +267,9 @@ func runnerOrphan(ctx context.Context, env doctor.Env) []doctor.Finding {
 				Subject: doctor.Subject{Kind: "github_runner", ID: fmt.Sprint(gr.ID), Name: gr.Name},
 				Title:   gr.Name + " on GitHub belongs to no machine",
 				Detail:  "It has the pool's name prefix in " + sc.name + " but no machine runs it.",
-				Fix:     doctor.Fix{Text: "Remove it from GitHub. The product asks first and uses a remove token.", Link: "/runners"},
+				Fix:     doctor.Fix{Text: "Press Remove. The product asks first and removes only this registration from GitHub.", Link: "/runners"},
+				Action: &doctor.Action{ID: doctor.ActionRemoveGitHubRunner, Label: "Remove", Args: &doctor.ActionArgs{
+					GitHubRunnerID: gr.ID, Name: gr.Name, InstallationID: sc.inst, Owner: sc.sc.Owner, Repo: sc.sc.Repo, Organization: sc.sc.Organization}},
 			})
 		}
 		if orphans == 0 {
@@ -546,6 +551,50 @@ func runnerSymlink(ctx context.Context, env doctor.Env) []doctor.Finding {
 			f.Fix = doctor.Fix{Text: "Add the runner again from the Runners screen; it takes the right away.", Link: "/runners"}
 		default:
 			f.Severity, f.Title = doctor.OK, r.Name+" holds no symbolic link right, as its setting says"
+		}
+		out = append(out, f)
+	}
+	return out
+}
+
+// runnerCacheWrite is caches R5.57: a runner can write the shared tool folders
+// of its repository (cargo-target, cargo-home, rustup-home, xwin, ...). A second
+// runner on a machine met `Permission denied` on folders the first runner's user
+// had made. The agent tries a file in each folder as the runner's own user; the
+// fix is the group and ACL commands crsp runs when it adds a runner, shown as
+// text. The check reads only (R5.7).
+func runnerCacheWrite(ctx context.Context, env doctor.Env) []doctor.Finding {
+	rs, ms, out := persistentRunners(ctx, env, "runner.cachewrite")
+	for _, r := range rs {
+		m := ms[r.MachineID]
+		f := doctor.Finding{Check: "runner.cachewrite", Subject: runnerSubject(r)}
+		p := r.CacheWrite
+		switch {
+		case !isOnline(env, m):
+			out = append(out, offlineSkip("runner.cachewrite", m))
+			continue
+		case p == nil:
+			// A runner with its own folders only has nothing shared to write.
+			f.Severity, f.Title = doctor.Skip, "The shared tool folders of "+r.Name+" were not looked at"
+			f.Detail = "The agent on " + m.Name + " did not try to write them as the runner's user, or the runner keeps its own folders."
+			f.Fix = doctor.Fix{Text: "Update the agent on " + m.Name + " and run the checks again.", Command: "crsp doctor --check runner.cachewrite"}
+		default:
+			var bad []string
+			for _, d := range p.Dirs {
+				if d.Err != "" {
+					bad = append(bad, fmt.Sprintf("%s (%s)", d.Dir, d.Err))
+				}
+			}
+			if len(bad) == 0 {
+				f.Severity, f.Title = doctor.OK, r.Name+" can write its shared tool folders"
+				break
+			}
+			f.Severity, f.Title = doctor.Fail, r.Name+" cannot write its shared tool folders"
+			f.Detail = "Permission denied in: " + strings.Join(bad, "; ") + ". Another runner's user made them, so this runner's user has no access."
+			f.Fix = doctor.Fix{
+				Text:    "Give the group " + p.Group + " read and write access to " + p.Root + ", with default access for new files, from an administrator shell on " + m.Name + ". Adding a runner does this itself.",
+				Command: runnercache.FixCommands(r.OS, runnercache.SharedTools{Root: p.Root, Group: p.Group}, r.Name),
+			}
 		}
 		out = append(out, f)
 	}

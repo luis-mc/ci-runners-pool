@@ -72,7 +72,7 @@ func (b *Backend) PrepareImage(ctx context.Context, spec backend.ImageSpec) (bac
 			if ctx.Err() != nil {
 				return backend.ImageRef{}, ctx.Err()
 			}
-			b.log("prepare image", "The pull from the registry failed ("+b.redact(perr.Error())+"); building the image here instead")
+			b.log("prepare image", pullFailOpen+b.redact(perr.Error())+pullFailClose)
 		} else {
 			if ans.GetOutcome() == agentv1.EnsureImageAnswer_OUTCOME_NOT_FOUND {
 				// The controller said the registry has no such image (R5.71).

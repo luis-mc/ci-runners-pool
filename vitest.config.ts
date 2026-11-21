@@ -21,8 +21,8 @@ export default defineConfig({
           exclude: [...configDefaults.exclude, ...nestedCheckouts],
           environment: 'node',
           passWithNoTests: false,
-          testTimeout: 60_000,
-          hookTimeout: 60_000,
+          testTimeout: 10_000, // measured: slowest guard test 0.4 s
+          hookTimeout: 10_000,
         },
       },
       {
@@ -31,6 +31,7 @@ export default defineConfig({
           include: ['scripts/design/*.test.ts'],
           environment: 'node',
           passWithNoTests: false,
+          testTimeout: 10_000,
         },
       },
       'apps/web',

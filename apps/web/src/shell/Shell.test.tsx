@@ -30,7 +30,7 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe('the shell (R5.3)', () => {
-  it('has the header, the six areas, one headline and the main landmark', async () => {
+  it('has the header, the seven areas, one headline and the main landmark', async () => {
     renderApp(signedIn(), '/');
     expect(
       await screen.findByRole('heading', { level: 1, name: 'Overview' }),
@@ -43,7 +43,15 @@ describe('the shell (R5.3)', () => {
       within(nav)
         .getAllByRole('link')
         .map((a) => a.textContent),
-    ).toEqual(['Overview', 'Shared Pool', 'Repositories', 'Jobs', 'Doctor', 'Settings']);
+    ).toEqual([
+      'Overview',
+      'Shared Pool',
+      'Repositories',
+      'Jobs',
+      'Doctor',
+      'Settings',
+      'Help',
+    ]);
     expect(
       within(nav).getByRole('link', { name: 'Overview' }).getAttribute('aria-current'),
     ).toBe('page');
@@ -78,6 +86,50 @@ describe('the shell (R5.3)', () => {
   it('says no machines only when the machines list is empty', async () => {
     renderApp(signedIn().on('GET', '/api/v1/machines', { items: [] }), '/');
     expect(await screen.findByText('no machines')).toBeTruthy();
+  });
+
+  it('says reconnecting, never no machines or the first-run banner, while the service restarts (CRSP205)', async () => {
+    let phase: 'up' | 'down' | 'back-empty' | 'back' = 'up';
+    const api = signedIn()
+      .on('GET', '/api/v1/machines', () => {
+        if (phase === 'down')
+          return apiError(503, 'unavailable', 'The service is restarting.');
+        if (phase === 'back-empty') return { items: [] };
+        return { items: [machine()] };
+      })
+      .on('GET', '/api/v1/setup', () => ({
+        has_app: true,
+        has_owner: true,
+        setup_link_redeemed: true,
+        steps: {
+          connect_github: 'done',
+          first_machine: phase === 'back-empty' ? 'todo' : 'done',
+          first_repository: 'done',
+        },
+      }));
+    renderApp(api, '/');
+    expect(await screen.findByText('1 of 1 machine online')).toBeTruthy();
+
+    // The service goes away: the header waits, it does not claim an empty pool.
+    phase = 'down';
+    act(() => void window.dispatchEvent(new Event('focus')));
+    expect(await screen.findByText('reconnecting')).toBeTruthy();
+    expect(screen.queryByText('no machines')).toBeNull();
+
+    // The controller listens again, its machine list not loaded yet: still reconnecting.
+    phase = 'back-empty';
+    act(() => void window.dispatchEvent(new Event('focus')));
+    await waitFor(() => expect(api.count('GET', '/api/v1/machines')).toBeGreaterThan(2));
+    await waitFor(() => expect(api.count('GET', '/api/v1/setup')).toBeGreaterThan(2));
+    expect(screen.getByText('reconnecting')).toBeTruthy();
+    expect(screen.queryByText('no machines')).toBeNull();
+    expect(screen.queryByText(/First run is not finished\./)).toBeNull();
+
+    // The machine joins again.
+    phase = 'back';
+    act(() => void window.dispatchEvent(new Event('focus')));
+    expect(await screen.findByText('1 of 1 machine online')).toBeTruthy();
+    expect(screen.queryByText('reconnecting')).toBeNull();
   });
 
   it('hides the first-run banner when all three steps are done', async () => {
@@ -425,7 +477,7 @@ describe('the menu on a phone (UX-15, UX-16)', () => {
       expect(screen.queryByRole('navigation', { name: 'Areas' })).toBeNull();
       fireEvent.click(button);
       const nav = screen.getByRole('navigation', { name: 'Areas' });
-      expect(within(nav).getAllByRole('link')).toHaveLength(6);
+      expect(within(nav).getAllByRole('link')).toHaveLength(7);
       expect(screen.getByRole('button', { name: 'Close the menu' })).toBeTruthy();
     } finally {
       vi.unstubAllGlobals();

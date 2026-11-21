@@ -142,16 +142,24 @@ func TestContainerCleanEndsLeftOverProcessesOfItsSessionOnly(t *testing.T) {
 	}
 	t.Cleanup(func() { _ = bystander.Process.Kill(); _ = bystander.Wait() })
 	cs := script(t, "clean.sh")
-	cmd := exec.CommandContext(t.Context(), "setsid", "sh", "-c", `sleep 300 & echo $! >"$1"; sleep 0.2; sh "$2" job-completed`, "sh", pidFile, cs)
+	cmd := exec.CommandContext(t.Context(), "setsid", "sh", "-c", `sleep 300 & echo $! >"$1"; sh "$2" job-completed`, "sh", pidFile, cs)
 	cmd.Env = append(os.Environ(), "CRSP_RUNNER_DIR="+p.dir, "CRSP_STATE_DIR="+p.state, "CRSP_DEPS="+filepath.Join(p.deps, "r1"), "CRSP_TMP_ROOT="+p.tmpRoot)
 	if out, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("%v\n%s", err, out)
 	}
 	b, _ := os.ReadFile(pidFile)
 	pid, _ := strconv.Atoi(strings.TrimSpace(string(b)))
-	time.Sleep(200 * time.Millisecond)
-	if err := syscallAlive(pid); err == nil {
-		t.Errorf("the process the job left (%d) still runs", pid)
+	// The clean may end the process a moment after it returns: poll, bounded.
+	tick := time.NewTicker(10 * time.Millisecond)
+	defer tick.Stop()
+	limit := time.NewTimer(5 * time.Second)
+	defer limit.Stop()
+	for syscallAlive(pid) == nil {
+		select {
+		case <-tick.C:
+		case <-limit.C:
+			t.Fatalf("the process the job left (%d) still runs", pid)
+		}
 	}
 	if err := syscallAlive(bystander.Process.Pid); err != nil {
 		t.Error("a process of another session was ended")
@@ -285,8 +293,10 @@ func TestSupervisorRestartsADeadRunnerWithBackOffAndNeverEphemeral(t *testing.T)
 	}
 	// the runner exits at once: poll until the supervisor sees it dead
 	var out string
+	poll := time.NewTicker(50 * time.Millisecond)
+	defer poll.Stop()
 	for i := 0; i < 100; i++ {
-		time.Sleep(50 * time.Millisecond)
+		<-poll.C
 		if out = tick(); strings.Contains(out, "ended, starting it again") {
 			break
 		}

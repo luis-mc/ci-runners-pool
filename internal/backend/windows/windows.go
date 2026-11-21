@@ -47,6 +47,9 @@ type Config struct {
 	// Rights sets and reads the user rights of the runner account. Nil means
 	// the PowerShell implementation; tests pass a fake (runners R5.14).
 	Rights RightsGranter
+	// LookupSID reads the SID of a local account in this process, without
+	// PowerShell. Nil means the PowerShell script (tests, non-Windows).
+	LookupSID func(account string) (string, error)
 }
 
 // DefaultConfig is the production layout.
@@ -55,6 +58,7 @@ func DefaultConfig() Config {
 		Root:        `C:\ProgramData\crsp\runners`,
 		CrspBinary:  `C:\Program Files\crsp\crsp.exe`,
 		NewPassword: RandomPassword,
+		LookupSID:   nativeLookupSID,
 	}
 }
 
@@ -87,10 +91,13 @@ func New(d sys.Deps, cfg Config) *Backend {
 	return b
 }
 
-// RandomPassword makes a 32-character random password. It is made inside the
-// process that registers the service and is never kept (runners R5.15).
+// RandomPassword makes a 32-character random password of letters and digits
+// only. A symbol can break `sc.exe`, a quoting layer or the service logon
+// ("Credential ... is invalid", runners R5.96), and 32 characters of 57 give
+// about 187 bits, so nothing is lost. It is made inside the process that
+// registers the service and is never kept (runners R5.15).
 func RandomPassword() string {
-	const set = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!#%+-=?@"
+	const set = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789"
 	for {
 		b := make([]byte, 32)
 		for i := range b {
@@ -100,10 +107,10 @@ func RandomPassword() string {
 			}
 			b[i] = set[n.Int64()]
 		}
-		// Windows password rules want three of four classes; take all four so
-		// a local policy never refuses the account.
+		// Windows password rules want three of five classes; upper, lower and
+		// digit are three, so a local policy never refuses the account.
 		if s := string(b); strings.ContainsAny(s, "ABCDEFGHJKLMNPQRSTUVWXYZ") && strings.ContainsAny(s, "abcdefghijkmnopqrstuvwxyz") &&
-			strings.ContainsAny(s, "23456789") && strings.ContainsAny(s, "!#%+-=?@") {
+			strings.ContainsAny(s, "23456789") {
 			return s
 		}
 	}
@@ -145,13 +152,31 @@ func (b *Backend) psOK(ctx context.Context, step, script string, env, secret map
 }
 
 // accountSID reads the SID of the account that was made, so icacls never has
-// to map a name.
+// to map a name. It asks Windows directly (LookupAccountName) when it can;
+// the PowerShell script is the fallback.
 func (b *Backend) accountSID(ctx context.Context, account string, env map[string]string) (string, error) {
+	if b.cfg.LookupSID != nil {
+		sid, err := b.cfg.LookupSID(account)
+		if err != nil || !strings.HasPrefix(sid, "S-1-") {
+			if err == nil {
+				err = fmt.Errorf("answer %q is not a SID", sid)
+			}
+			e := &FolderResetError{Detail: b.redact(fmt.Sprintf("read SID of %s: %v", account, err)), Err: err}
+			b.log("acl", e.Detail)
+			return "", e
+		}
+		return sid, nil
+	}
 	res, err := b.ps(ctx, scriptAccountSID, env, nil)
 	if err != nil {
 		return "", &FolderResetError{Detail: b.redact(fmt.Sprintf("read SID of %s: %v", account, err)), Err: err}
 	}
 	sid := strings.TrimSpace(res.Stdout)
+	if res.ExitCode == 0 && sid == "" {
+		e := &FolderResetError{Detail: fmt.Sprintf("read SID of %s: powershell exited 0 but printed nothing on stdout (stderr: %q); the script output did not reach the agent", account, b.redact(strings.TrimSpace(res.Stderr)))}
+		b.log("acl", e.Detail)
+		return "", e
+	}
 	if res.ExitCode != 0 || !strings.HasPrefix(sid, "S-1-") {
 		e := &FolderResetError{Detail: fmt.Sprintf("read SID of %s: powershell exited %d: %s", account, res.ExitCode, b.redact(plainError(res.Stderr, res.Stdout)))}
 		b.log("acl", e.Detail)
@@ -206,6 +231,9 @@ func (b *Backend) want(r backend.RunnerSpec, account string) (persistent.Meta, s
 	// hooks clean after every job (runners R5.90, R5.91).
 	maps.Copy(kv, runnercache.DependencyEnvJoin(folder, Join))
 	kv[hygiene.EnvRunnerDir] = folder
+	if r.SharedTools.On() {
+		maps.Copy(kv, r.SharedTools.Env(Join, r.Name))
+	}
 	if r.MaxParallel > 0 {
 		maps.Copy(kv, poolsize.Env(r.MaxParallel))
 	}
@@ -351,6 +379,17 @@ func (b *Backend) start(ctx context.Context, r backend.RunnerSpec, cfg backend.S
 	}
 	if err := b.rights.Grant(ctx, account, r.WindowsSymlinkRight); err != nil {
 		return h, err
+	}
+	// The shared tool folders: every runner account is in crsp-runners, which
+	// gets Modify, inherited (caches R5.57).
+	for _, c := range runnercache.WindowsSharePlan(r.SharedTools) {
+		res, err := b.d.Cmd.Run(ctx, c)
+		if err == nil && res.ExitCode != 0 {
+			err = fmt.Errorf("%s exited %d: %s", c.Name, res.ExitCode, strings.TrimSpace(res.Stderr))
+		}
+		if err != nil {
+			return h, fmt.Errorf("share tools: %w", err)
+		}
 	}
 	if err := b.writeHooksAndEnv(folder, wantEnv, r.KeepDependencies); err != nil {
 		return h, err

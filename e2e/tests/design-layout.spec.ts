@@ -74,6 +74,9 @@ const SCREENS: {
   { name: 'add a machine', path: '/pool/machines/add', ready: 'Add a machine' },
   { name: 'runners', path: '/pool/runners', ready: 'Runners' },
   { name: 'jobs', path: '/jobs', ready: 'Jobs' },
+  { name: 'jobs live', path: '/jobs/live', ready: 'Jobs' },
+  { name: 'jobs done', path: '/jobs/done', ready: 'Jobs' },
+  { name: 'jobs run elsewhere', path: '/jobs/elsewhere', ready: 'Jobs' },
   {
     name: 'jobs empty',
     path: '/jobs',
@@ -131,6 +134,7 @@ const SCREENS: {
     loads: ['/api/v1/settings/pool', '/api/v1/settings/queue'],
   },
   { name: 'settings console', path: '/settings/console', ready: 'Settings' },
+  { name: 'settings updates', path: '/settings/updates', ready: 'Settings' },
   { name: 'settings data', path: '/settings/data', ready: 'Settings' },
   { name: 'settings audit log', path: '/settings/audit', ready: 'Settings' },
   { name: 'settings old address', path: '/settings/backups', ready: 'Settings' },
@@ -299,7 +303,7 @@ for (const path of ['/repositories/turn-on', '/pool/runners/add', '/pool/machine
 }
 
 // CRSP132, UX-11: on a wide screen the toolbar above a list is one row (search, filters, selection, count, actions).
-for (const path of ['/repositories', '/pool/machines', '/pool/runners', '/jobs']) {
+for (const path of ['/repositories', '/pool/machines', '/pool/runners', '/jobs/live']) {
   test(`list toolbar is one row at 1300 px: ${path}`, async ({ page }) => {
     // The Repositories toolbar (search, Pool, Active types, Select all, count, Add) no longer fits one row inside its pane.
     test.fixme(
@@ -377,7 +381,7 @@ for (const width of [360, 393]) {
     await button.click();
     await expect(
       page.getByRole('navigation', { name: 'Areas' }).getByRole('link'),
-    ).toHaveCount(6);
+    ).toHaveCount(7);
   });
 }
 

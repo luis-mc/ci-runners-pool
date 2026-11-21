@@ -72,7 +72,7 @@ jobs:
             if [ "$versioned" = "true" ]; then name="${INSTALLER_NAME}_${version}.msi"; else name="${INSTALLER_NAME}.msi"; fi
             cp "$f" "release/$name"
           done
-          (cd release && sha256sum * > SHA256SUMS)
+          (cd release && sha256sum -- * > SHA256SUMS)
       - name: Get the publish token (retries 5xx)
         run: python3 scripts/delivery/publish_token.py --url "$TOKEN_URL" --out "$RUNNER_TEMP/token"
         env:

@@ -18,6 +18,7 @@ import type { EventSourceFactory } from './live/store';
 import { AppShell } from './shell/Shell';
 import { FaultBoundary } from './screens/common';
 import { DoctorScreen } from './screens/doctor/Doctor';
+import { HelpScreen } from './screens/help/Help';
 import { jobsRoutes } from './screens/jobs/routes';
 import { MOVED, MovedTo } from './screens/pool/redirects';
 import { PoolLayout } from './screens/pool/PoolLayout';
@@ -42,6 +43,7 @@ import {
   AccessTab,
   AuditTab,
   ConsoleTab,
+  UpdatesTab,
   DataTab,
   RepositoriesTab,
   OldSettingsAddress,
@@ -201,12 +203,14 @@ export function App({
                   <Route key={from} path={from} element={<MovedTo to={to} />} />
                 ))}
                 <Route path="doctor" element={<DoctorScreen />} />
+                <Route path="help" element={<HelpScreen />} />
                 <Route path="settings/updates/review" element={<UpdateReviewPage />} />
                 <Route path="settings" element={<SettingsLayout />}>
                   <Route index element={<Navigate to="access" replace />} />
                   <Route path="access" element={<AccessTab />} />
                   <Route path="repositories" element={<RepositoriesTab />} />
                   <Route path="console" element={<ConsoleTab />} />
+                  <Route path="updates" element={<UpdatesTab />} />
                   <Route path="data" element={<DataTab />} />
                   <Route path="audit" element={<AuditTab />} />
                   <Route path="users" element={<OldSettingsAddress old="users" />} />
@@ -220,7 +224,6 @@ export function App({
                     path="notifications"
                     element={<OldSettingsAddress old="notifications" />}
                   />
-                  <Route path="updates" element={<OldSettingsAddress old="updates" />} />
                   <Route
                     path="retention"
                     element={<OldSettingsAddress old="retention" />}

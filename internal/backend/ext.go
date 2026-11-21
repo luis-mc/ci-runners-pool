@@ -1,5 +1,7 @@
 package backend
 
+import "time"
+
 import "context"
 
 // Found is a runner seen in the OS service list, made by CRSP or not (runners
@@ -16,6 +18,12 @@ type Found struct {
 	FolderUnreadable bool
 	Labels           []string
 	RunnerVersion    string
+	// SessionRefused is true when the listener's newest log says a session
+	// for the runner already exists. SessionWaitUntil is the end of the wait
+	// window while it is expected; zero with SessionRefused means the window
+	// is over (runners R5.95).
+	SessionRefused   bool
+	SessionWaitUntil time.Time
 }
 
 // Finder lists runners from the OS service list, not only from folders.

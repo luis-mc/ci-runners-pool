@@ -103,7 +103,17 @@ func TestStreamEventsSnapshotThenChanges(t *testing.T) {
 	srv := httptest.NewServer(mux)
 	defer srv.Close()
 	go func() {
-		time.Sleep(100 * time.Millisecond)
+		// Publish once the stream is subscribed, so the change follows the snapshot.
+		tick := time.NewTicker(time.Millisecond)
+		defer tick.Stop()
+		giveUp := time.After(3 * time.Second)
+		for hub.Streams() == 0 {
+			select {
+			case <-tick.C:
+			case <-giveUp:
+				return // readEvents fails with its own timeout
+			}
+		}
 		hub.Publish(events.JobStarted, []byte(`{"id":1}`))
 	}()
 	got := readEvents(t, srv.URL, "", 2)
@@ -164,14 +174,21 @@ func TestDoctorRoutes(t *testing.T) {
 		t.Fatalf("run = %+v", run)
 	}
 	var got gen.DoctorRun
-	for i := 0; i < 100; i++ {
+	tick := time.NewTicker(10 * time.Millisecond)
+	defer tick.Stop()
+	giveUp := time.After(10 * time.Second)
+	for got.State != "done" {
 		rec = httptest.NewRecorder()
 		mux.ServeHTTP(rec, httptest.NewRequestWithContext(context.Background(), http.MethodGet, "/api/v1/doctor/runs/"+run.Id, nil))
 		_ = json.Unmarshal(rec.Body.Bytes(), &got)
 		if got.State == "done" {
 			break
 		}
-		time.Sleep(10 * time.Millisecond)
+		select {
+		case <-tick.C:
+		case <-giveUp:
+			t.Fatalf("the doctor run did not finish: %+v", got)
+		}
 	}
 	if got.State != "done" || got.Worst == nil || *got.Worst != "warn" || len(got.Findings) != 1 {
 		t.Fatalf("run = %+v", got)

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/audit"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/store"
@@ -126,6 +127,18 @@ func patchFor(key string, v int) Patch {
 		p.MaxEventStreams = &v
 	case "fallback_grace_minutes":
 		p.FallbackGraceMinutes = &v
+	case "insights_ci_data_days":
+		p.InsightsCIDataDays = &v
+	case "insights_ci_data_mib_per_repository":
+		p.InsightsCIDataMiBPerRepository = &v
+	case "insights_test_results_days":
+		p.InsightsTestResultsDays = &v
+	case "insights_resource_samples_days":
+		p.InsightsResourceSamplesDays = &v
+	case "insights_hold_cap_seconds":
+		p.InsightsHoldCapSeconds = &v
+	case "insights_update_every_n_runs":
+		p.InsightsUpdateEveryNthRuns = &v
 	}
 	return p
 }
@@ -155,5 +168,86 @@ func TestAutoUpdateDefaultsOnAndToggles(t *testing.T) {
 	p, _ := l.List(ctx, audit.Filter{})
 	if len(p.Items) != 2 || !strings.Contains(p.Items[0].Summary, "auto_update") {
 		t.Fatalf("each change must write one audit row naming auto_update: %+v", p.Items)
+	}
+}
+
+// CIX12 (R5.5, R6.2): the CI data keys, their defaults, floors and ceilings, and the audit row.
+func TestInsightsRanges(t *testing.T) {
+	ctx := context.Background()
+	s, _ := setup(t)
+	got, err := s.Get(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !got.InsightsKeepCIData || got.InsightsCIDataDays != 30 || got.InsightsCIDataMiBPerRepository != 1024 ||
+		got.InsightsTestResultsDays != 90 || got.InsightsResourceSamplesDays != 7 || got.InsightsHoldCapSeconds != 120 ||
+		got.InsightsGuardrailArtifact != "test-guardrails*" {
+		t.Fatalf("defaults = %+v", got)
+	}
+	want := map[string]Range{
+		"insights_ci_data_days":               {7, 365},
+		"insights_ci_data_mib_per_repository": {64, 20480},
+		"insights_test_results_days":          {14, 400},
+		"insights_resource_samples_days":      {1, 30},
+		"insights_hold_cap_seconds":           {30, 900},
+	}
+	for key, r := range want {
+		if Ranges[key] != r {
+			t.Errorf("%s range = %v, want %v", key, Ranges[key], r)
+		}
+		for _, v := range []int{r.Min, r.Max} {
+			if _, err := s.Update(ctx, owner, patchFor(key, v)); err != nil {
+				t.Errorf("%s=%d at the limit: %v", key, v, err)
+			}
+		}
+		for _, v := range []int{r.Min - 1, r.Max + 1} {
+			if _, err := s.Update(ctx, owner, patchFor(key, v)); err == nil {
+				t.Errorf("%s=%d outside the range was accepted", key, v)
+			}
+		}
+	}
+	off, name, empty := false, "ci-guard*", ""
+	if _, err := s.Update(ctx, owner, Patch{InsightsKeepCIData: &off, InsightsGuardrailArtifact: &name}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.Update(ctx, owner, Patch{InsightsGuardrailArtifact: &empty}); err == nil {
+		t.Error("an empty guard report name was accepted")
+	}
+	got, _ = s.Get(ctx)
+	if got.InsightsKeepCIData || got.InsightsGuardrailArtifact != "ci-guard*" {
+		t.Fatalf("saved = %+v", got)
+	}
+	if l := CIDataLimits(got); l.Keep || l.Days != 365*24*time.Hour || l.BytesPerRepository != 20480<<20 {
+		t.Fatalf("limits = %+v", l)
+	}
+}
+
+// CIX23 (D18, D19): the update period of CI run insights: default every run, N from 2 to 50, three periods.
+func TestInsightsUpdatePeriod(t *testing.T) {
+	ctx := context.Background()
+	s, _ := setup(t)
+	got, _ := s.Get(ctx)
+	if got.InsightsUpdatePeriod != "every_run" || got.InsightsUpdateEveryNthRuns != 5 {
+		t.Fatalf("defaults = %q, %d", got.InsightsUpdatePeriod, got.InsightsUpdateEveryNthRuns)
+	}
+	if Ranges["insights_update_every_n_runs"] != (Range{2, 50}) {
+		t.Errorf("N range = %v", Ranges["insights_update_every_n_runs"])
+	}
+	for _, n := range []int{1, 51} {
+		if _, err := s.Update(ctx, owner, Patch{InsightsUpdateEveryNthRuns: &n}); err == nil {
+			t.Errorf("N=%d was accepted", n)
+		}
+	}
+	bad := "daily"
+	if _, err := s.Update(ctx, owner, Patch{InsightsUpdatePeriod: &bad}); err == nil {
+		t.Error("an unknown period was accepted")
+	}
+	p, n := "every_nth_run", 10
+	if _, err := s.Update(ctx, owner, Patch{InsightsUpdatePeriod: &p, InsightsUpdateEveryNthRuns: &n}); err != nil {
+		t.Fatal(err)
+	}
+	got, _ = s.Get(ctx)
+	if got.InsightsUpdatePeriod != "every_nth_run" || got.InsightsUpdateEveryNthRuns != 10 {
+		t.Fatalf("saved = %q, %d", got.InsightsUpdatePeriod, got.InsightsUpdateEveryNthRuns)
 	}
 }

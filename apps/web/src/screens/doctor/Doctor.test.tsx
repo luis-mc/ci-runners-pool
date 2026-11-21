@@ -433,4 +433,40 @@ describe('runner leftovers finding (doctor R5.48, OPS33)', () => {
     await screen.findByRole('list', { name: 'Runner leftovers' });
     expect(screen.queryByRole('button', { name: 'Remove' })).toBeNull();
   });
+
+  describe('half-registered runners (doctor R5.50)', () => {
+    const REG = '/api/v1/doctor/registration-fixes';
+    const stray = (): Finding =>
+      finding({
+        check: 'runner.orphan',
+        severity: 'warn',
+        title: 'crsp-stray on GitHub belongs to no machine',
+        subject: { kind: 'github_runner', id: '555', name: 'crsp-stray' },
+        fix: { text: 'Press Remove.' },
+        action: {
+          id: 'remove_github_runner',
+          label: 'Remove',
+          args: {
+            github_runner_id: 555,
+            name: 'crsp-stray',
+            installation_id: 7,
+            owner: 'o',
+            repo: 'r',
+          },
+        },
+      });
+    it('asks first and sends the args of the finding with a yes', async () => {
+      const api = signedIn()
+        .on('GET', '/api/v1/doctor/findings', { items: [stray()], last_run_at: lastRun })
+        .on('POST', '/api/v1/doctor/runs', run({ state: 'done' }))
+        .on('POST', REG, { removed: true, name: 'crsp-stray' });
+      renderApp(api, '/doctor');
+      fireEvent.click(await screen.findByRole('button', { name: 'Remove' }));
+      const card = await screen.findByRole('dialog');
+      expect(within(card).getByText('Remove crsp-stray from GitHub?')).toBeTruthy();
+      expect(api.count('POST', REG)).toBe(0);
+      fireEvent.click(within(card).getByRole('button', { name: 'Remove' }));
+      await waitFor(() => expect(api.count('POST', REG)).toBe(1));
+    });
+  });
 });

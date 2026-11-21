@@ -700,7 +700,7 @@ func TestAutoUpdateCancelsDrainAfterTheLimit(t *testing.T) {
 	if _, err := h.m.AutoCheck(context.Background()); err != nil {
 		t.Fatal(err)
 	}
-	time.Sleep(200 * time.Millisecond)
+	waitCancelled(t, h)
 	st := h.m.Status(context.Background())
 	if h.d.cancelCount() != 1 || st.State != StateIdle || !strings.Contains(st.Error, "tries again at the next check") {
 		t.Fatalf("cancelled=%d %+v", h.d.cancelCount(), st)
@@ -829,13 +829,18 @@ func TestFollowPostponesAfterTheDrainLimitAndRetries(t *testing.T) {
 	if _, err := h.m.Follow(context.Background(), "1.5.0"); err != nil {
 		t.Fatal(err)
 	}
-	time.Sleep(200 * time.Millisecond)
+	waitCancelled(t, h)
 	st := h.m.Status(context.Background())
 	if h.d.cancelCount() != 1 || st.State != StateIdle || len(h.spawns) != 0 {
 		t.Fatalf("a running job is never cut: cancelled=%d %+v", h.d.cancelCount(), st)
 	}
 	if _, err := h.m.Follow(context.Background(), "1.5.0"); err != nil || len(h.d.begun) != 2 {
 		t.Fatalf("the next ask tries again: %v %v", err, h.d.begun)
+	}
+	// The second ask armed the drain limit again: end it here, so its timer does not write into the
+	// test's folder while the folder is being removed.
+	if _, err := h.m.Cancel(context.Background(), "test"); err != nil {
+		t.Fatal(err)
 	}
 }
 
@@ -986,5 +991,29 @@ func TestAfterInstallRunsOnlyAfterASuccessfulMSIUpdate(t *testing.T) {
 	case v := <-run("1.4.0", "1603"):
 		t.Fatalf("a failed update must not start a tray: %q", v)
 	case <-time.After(150 * time.Millisecond):
+	}
+}
+
+// waitCancelled waits, bounded, until the update has given up its drain.
+func waitCancelled(t *testing.T, h *harness) {
+	t.Helper()
+	tick := time.NewTicker(5 * time.Millisecond)
+	defer tick.Stop()
+	limit := time.NewTimer(5 * time.Second)
+	defer limit.Stop()
+	for h.d.cancelCount() == 0 {
+		select {
+		case <-tick.C:
+		case <-limit.C:
+			t.Fatal("the drain was never cancelled")
+		}
+	}
+	// the status settles right after the cancel
+	for h.m.Status(context.Background()).State != StateIdle {
+		select {
+		case <-tick.C:
+		case <-limit.C:
+			t.Fatal("the update never went idle")
+		}
 	}
 }

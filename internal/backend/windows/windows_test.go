@@ -13,6 +13,7 @@ import (
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backend/persistent"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backend/sys"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backend/sys/sysfake"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/runnercache"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/runners"
 )
 
@@ -725,5 +726,53 @@ func TestNoSIDStopsBeforeICACLS(t *testing.T) {
 		if c.Name == "icacls" || c.Name == "takeown" {
 			t.Errorf("%s ran without a SID", c.Name)
 		}
+	}
+}
+
+func TestAccountSIDEmptyOutputNamesCause(t *testing.T) {
+	r := newRig(t)
+	r.cmd.Rules = []sysfake.Rule{{Match: "SID.Value", Result: sys.Result{}}}
+	_, err := r.b.accountSID(context.Background(), "crsp-box-1", map[string]string{"CRSP_ACCOUNT": "crsp-box-1"})
+	if err == nil || !strings.Contains(err.Error(), "exited 0 but printed nothing on stdout") {
+		t.Fatalf("err = %v", err)
+	}
+}
+
+func TestAccountSIDGoodAndNative(t *testing.T) {
+	r := newRig(t)
+	got, err := r.b.accountSID(context.Background(), "crsp-box-1", nil)
+	if err != nil || got != testSID {
+		t.Fatalf("ps path: %q %v", got, err)
+	}
+	if !strings.Contains(scriptAccountSID, "Write-Output $sid") || strings.Contains(scriptAccountSID, "[Console]::Out") {
+		t.Error("script must use Write-Output")
+	}
+	r.b.cfg.LookupSID = func(string) (string, error) { return testSID, nil }
+	n := len(r.cmd.Calls)
+	if got, err = r.b.accountSID(context.Background(), "crsp-box-1", nil); err != nil || got != testSID || len(r.cmd.Calls) != n {
+		t.Fatalf("native path: %q %v calls %d->%d", got, err, n, len(r.cmd.Calls))
+	}
+	r.b.cfg.LookupSID = func(string) (string, error) { return "", errors.New("none") }
+	if _, err = r.b.accountSID(context.Background(), "crsp-box-1", nil); err == nil {
+		t.Error("native error must fail")
+	}
+}
+
+// Caches R5.57: the shared tool folders give the runner accounts' group Modify,
+// inherited, and each runner has its own build folder.
+func TestSharedToolFoldersGetGroupModify(t *testing.T) {
+	r := newRig(t)
+	spec := r.spec()
+	spec.SharedTools = runnercache.SharedTools{Root: `C:\ProgramData\crsp\tools\r1`, Group: runners.RunnersGroup}
+	if err := start(t, r, spec, backend.StartConfig{Registration: "REGTOKEN"}); err != nil {
+		t.Fatal(err)
+	}
+	texts := strings.Join(r.cmd.Texts(), "\n")
+	if !strings.Contains(texts, `icacls C:\ProgramData\crsp\tools\r1 /grant crsp-runners:(OI)(CI)(M) /T /C`) {
+		t.Errorf("no grant:\n%s", texts)
+	}
+	_, env := r.b.want(spec, "crsp-box-1")
+	if !strings.Contains(env, `CARGO_TARGET_DIR=C:\ProgramData\crsp\tools\r1\cargo-target\box-1`) {
+		t.Errorf("env:\n%s", env)
 	}
 }

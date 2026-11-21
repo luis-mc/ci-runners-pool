@@ -224,10 +224,11 @@ func TestRunnerFilesNeverCutARunningJob(t *testing.T) {
 	if r.host.log() != "" || !fileIs(t, "old", r.folder, "bin", "Runner.Listener") {
 		t.Fatalf("a running job's runner was touched: %s", r.host.log())
 	}
-	// The hold ended with the answer: the runner takes jobs again.
-	if d := r.gate.Start("j2", machines.JobRef{Repository: "o/r", RunID: 8, Job: "x", RunnerName: "r1"}, "persistent"); !d.Go {
-		t.Fatalf("the runner stayed held: %v", d.Reasons)
-	}
+	// The hold ends right after the answer is sent (a deferred release in the agent), so the runner takes jobs
+	// again within a moment, not in the same instant as the answer reaches the test.
+	waitFor(t, "the runner takes jobs again", func() bool {
+		return r.gate.Start("j2", machines.JobRef{Repository: "o/r", RunID: 8, Job: "x", RunnerName: "r1"}, "persistent").Go
+	})
 	r.gate.Finish("j1")
 	r.gate.Finish("j2")
 	if err := r.updater(r.data, time.Second).UpdateRunner(t.Context(), r.id, r.req()); err != nil {

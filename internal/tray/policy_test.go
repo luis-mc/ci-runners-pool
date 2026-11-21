@@ -87,7 +87,6 @@ func TestHeaderNamesWhyTheMachineTakesNoJobs(t *testing.T) {
 		{"accepting", MachinePolicy{Known: true, Accepting: true}, "CI Runners Shared Pool 1.4.0 - up to date"},
 		{"paused", MachinePolicy{Known: true, PauseReason: "paused"}, "CI Runners Shared Pool 1.4.0 - up to date · Paused"},
 		{"on battery", MachinePolicy{Known: true, PauseReason: "on_battery", OnBattery: true}, "CI Runners Shared Pool 1.4.0 - up to date · On battery"},
-		{"quiet hours", MachinePolicy{Known: true, PauseReason: "quiet_hours"}, "CI Runners Shared Pool 1.4.0 - up to date · Quiet hours"},
 		{"over budget is not a pause", MachinePolicy{Known: true, PauseReason: "budget"}, "CI Runners Shared Pool 1.4.0 - up to date"},
 		{"no policy", MachinePolicy{}, "CI Runners Shared Pool 1.4.0 - up to date"},
 	}

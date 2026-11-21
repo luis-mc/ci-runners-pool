@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"fmt"
 	"net/http"
 	"time"
 
@@ -26,6 +25,7 @@ type MachinesService interface {
 	Redetect(ctx context.Context, actor, id string) error
 	RunHostCommand(ctx context.Context, actor, id string, argv []string, timeout time.Duration) (machines.HostOutcome, error)
 	RemoveRunnerLeftovers(ctx context.Context, actor, machineID string, refs []leftovers.Ref) ([]leftovers.Result, error)
+	StartCompact(ctx context.Context, actor, id string, confirm bool) error
 	ArmRecovery(ctx context.Context, actor, id string) error
 	LoadHistory(ctx context.Context, id string, from, to time.Time) ([]machines.LoadPoint, error)
 	GetChange(ctx context.Context, machineID, id string) (machines.Change, error)
@@ -195,15 +195,11 @@ func settingsToAPI(st machines.Settings) gen.MachineSettings {
 	out.DockerCompact = machinesPtr(mode)
 	out.DockerCompactThresholdGib = machinesPtr(int(pol.ThresholdBytes >> 30))
 	out.DockerCompactIdleMinutes = machinesPtr(int(pol.Idle / time.Minute))
-	out.DockerCompactQuietStart = machinesPtr(clockText(pol.QuietStart))
-	out.DockerCompactQuietEnd = machinesPtr(clockText(pol.QuietEnd))
 	if !st.PauseUntil.IsZero() {
 		out.PauseUntil = machinesPtr(st.PauseUntil)
 	}
 	return out
 }
-
-func clockText(min int) string { return fmt.Sprintf("%02d:%02d", min/60, min%60) }
 
 func f32(v float64) *float32 { x := float32(v); return &x }
 
@@ -415,7 +411,6 @@ func (s *server) UpdateMachine(ctx context.Context, r gen.UpdateMachineRequestOb
 		u.CompactMode = &mode
 	}
 	u.CompactThresholdGiB, u.CompactIdleMinutes = b.DockerCompactThresholdGib, b.DockerCompactIdleMinutes
-	u.CompactQuietStart, u.CompactQuietEnd = b.DockerCompactQuietStart, b.DockerCompactQuietEnd
 	if b.CpuCapPct != nil {
 		u.CPUCapPct = machinesPtr(int(*b.CpuCapPct))
 	}
@@ -765,4 +760,17 @@ type leftoverResultRow = struct {
 	Name    string                                        `json:"name"`
 	Outcome gen.RemoveRunnerLeftoversResultResultsOutcome `json:"outcome"`
 	Steps   []string                                      `json:"steps"`
+}
+
+// StartDockerCompact implements POST /api/v1/machines/{machineId}/docker-compact
+// (caches R5.58): the owner's Compact now.
+func (s *server) StartDockerCompact(ctx context.Context, r gen.StartDockerCompactRequestObject) (gen.StartDockerCompactResponseObject, error) {
+	if s.machinesOff() {
+		return machinesUnavailable[gen.StartDockerCompactdefaultJSONResponse](), nil
+	}
+	confirm := r.Params.Confirm != nil && *r.Params.Confirm
+	if err := s.opts.Machines.StartCompact(ctx, s.actor(ctx), r.MachineId, confirm); err != nil {
+		return fail[gen.StartDockerCompactdefaultJSONResponse](s, err), nil
+	}
+	return gen.StartDockerCompact202JSONResponse{Started: true}, nil
 }

@@ -463,3 +463,30 @@ func TestNotAdmin(t *testing.T) {
 		t.Fatalf("calls %v", f.calls)
 	}
 }
+
+// Doctor R5.48: an agent folder in the pool directory that belongs to no known
+// runner (no service, no account, no download, no record) is a leftover on its
+// own; the scan lists it and removes nothing, and a folder of an owned runner
+// is never listed.
+func TestUnusedAgentFolderIsFlaggedAlone(t *testing.T) {
+	f := machine()
+	f.dirs = []leftovers.Dir{
+		{Name: "agent-unused", Path: rf("agent-unused"), ModTime: now.Add(-72 * time.Hour)},
+		{Name: "mine", Path: rf("mine"), ModTime: now.Add(-72 * time.Hour)},
+	}
+	f.svcs, f.accts, f.files = nil, nil, nil
+	f.sizes = map[string]int64{rf("agent-unused"): 313 << 20}
+	sc, err := leftovers.Find(context.Background(), f, mine, now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := ids(sc); len(got) != 1 || got[0] != "folder:"+rf("agent-unused") {
+		t.Fatalf("items = %v", got)
+	}
+	if sc.Items[0].SizeBytes != 313<<20 || sc.Items[0].Why == "" {
+		t.Errorf("%+v", sc.Items[0])
+	}
+	if len(f.calls) != 0 {
+		t.Fatalf("the scan removed something: %v", f.calls)
+	}
+}

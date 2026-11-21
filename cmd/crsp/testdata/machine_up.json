@@ -174,7 +174,7 @@
       {
         "do": "accepting",
         "accepting": false,
-        "reason": "quiet_hours"
+        "reason": "base_image_missing"
       },
       {
         "do": "expect_up",

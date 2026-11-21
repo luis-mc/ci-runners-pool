@@ -106,6 +106,26 @@ type RegistryRequest struct {
 // (registry R5.14); the time waited follows.
 const WaitingText = "Waiting for the controller to say whether the image is in the registry"
 
+// The other job log words of the registry flow. Each one is a row of the
+// "Registry job-log words" table in docs/design-system/next-version/content.md;
+// words_test.go fails when a string and its row differ.
+const (
+	waitedOpen    = " (waited "
+	busyText      = "The registry is busy; asking again in "
+	pullingText   = "Pulling the job image from the registry"
+	pullRetryText = "The pull did not finish; trying again"
+	pushFailText  = "The image stays on this machine; it was not pushed: "
+	pushedText    = "Pushed the image to the registry staging"
+	pullFailOpen  = "The pull from the registry failed ("
+	pullFailClose = "); building the image here instead"
+)
+
+// waitingLine is the job log line of a wait: WaitingText and the time waited.
+func waitingLine(d time.Duration) string { return WaitingText + waitedOpen + waited(d) + ")" }
+
+// busyLine is the job log line when the registry says it is busy.
+func busyLine(d time.Duration) string { return busyText + waited(d) }
+
 const (
 	pullTries       = 3
 	pushTries       = 5
@@ -198,7 +218,7 @@ func (b *Backend) waitLoop(ctx context.Context, fn func() bool) error {
 		if err := ctx.Err(); err != nil {
 			return err
 		}
-		b.log("prepare image", WaitingText+" (waited "+waited(b.now().Sub(start))+")")
+		b.log("prepare image", waitingLine(b.now().Sub(start)))
 		b.sleep(ctx, backoff(attempt))
 		if err := ctx.Err(); err != nil {
 			return err
@@ -226,7 +246,7 @@ func (b *Backend) ask(ctx context.Context, ctl Controller, r RegistryRequest) (*
 				if d <= 0 {
 					d = defaultBusyWait
 				}
-				b.log("prepare image", "The registry is busy; asking again in "+waited(d))
+				b.log("prepare image", busyLine(d))
 				b.sleep(ctx, d)
 				if ctx.Err() != nil {
 					return false
@@ -320,7 +340,7 @@ func (b *Backend) pull(ctx context.Context, ctl Controller, r RegistryRequest, a
 	start := b.now()
 	total := ans.GetSizeBytes()
 	b.pullReport(ctl, id, r, digest, agentv1.PullReport_SOURCE_PULLED, agentv1.PullReport_STATE_PULLING, 0, total, 0, "")
-	b.log("prepare image", "Pulling the job image from the registry"+sizeText(0, total, 0))
+	b.log("prepare image", pullingText+sizeText(0, total, 0))
 	defer func() {
 		st, msg := agentv1.PullReport_STATE_DONE, ""
 		if err != nil {
@@ -334,7 +354,7 @@ func (b *Backend) pull(ctx context.Context, ctl Controller, r RegistryRequest, a
 	}()
 	for try := 0; try < pullTries; try++ {
 		if try > 0 {
-			b.log("prepare image", "The pull did not finish; trying again")
+			b.log("prepare image", pullRetryText)
 			b.sleep(ctx, backoff(try-1))
 		}
 		var tok string
@@ -351,7 +371,7 @@ func (b *Backend) pull(ctx context.Context, ctl Controller, r RegistryRequest, a
 					last = now
 					done, tot := prog.bytes()
 					b.pullReport(ctl, id, r, digest, agentv1.PullReport_SOURCE_PULLED, agentv1.PullReport_STATE_PULLING, done, tot, now.Sub(start).Seconds(), "")
-					b.log("prepare image", "Pulling the job image from the registry"+sizeText(done, tot, now.Sub(start)))
+					b.log("prepare image", pullingText+sizeText(done, tot, now.Sub(start)))
 				}
 			})
 			if rerr != nil {
@@ -420,7 +440,7 @@ func (b *Backend) push(ctx context.Context, ctl Controller, r RegistryRequest, a
 	host, staging := ans.GetRegistryHost(), ans.GetStagingName()
 	start := b.now()
 	fail := func(msg string) {
-		b.log("push image", "The image stays on this machine; it was not pushed: "+msg)
+		b.log("push image", pushFailText+msg)
 		b.pushReport(ctl, id, r, ans, "", agentv1.PushReport_STATE_FAILED, b.now().Sub(start).Seconds(), msg)
 	}
 	if host == "" || staging == "" {
@@ -484,7 +504,7 @@ func (b *Backend) push(ctx context.Context, ctl Controller, r RegistryRequest, a
 		})
 		if lastErr == nil {
 			_, _ = b.run(ctx, "rmi", ref)
-			b.log("push image", "Pushed the image to the registry staging")
+			b.log("push image", pushedText)
 			b.pushReport(ctl, id, r, ans, digest, agentv1.PushReport_STATE_PUSHED, b.now().Sub(start).Seconds(), "")
 			return
 		}

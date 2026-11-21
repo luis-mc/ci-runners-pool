@@ -1,6 +1,7 @@
 // One job : where it builds (repository, branch, commit, worktree), its run and attempts, the
 // run's job graph, its steps as a waterfall, the runner, the times, the queue place and ETA, the forecast and the
 // history of its job key. The one primary is "Open the run on GitHub" (LOOK27); no command changes a job.
+import { HelpTerm } from '../help/HelpTerm';
 import {
   ActionBar,
   Badge,
@@ -30,6 +31,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Load } from '../common';
 import type { Schemas } from '../../api/api';
 import { useJobDetail, useRun } from './api';
+import { ResourcesPane, StepsSource, runsOnFact } from '../insights/JobInsights';
 import { graphSource } from './runBasis';
 import { edgesOf, graphNodes, stepRows } from './runViews';
 import {
@@ -240,13 +242,19 @@ function JobBody({ j }: { j: JobDetail }) {
             }
           />
         )}
+        <StepsSource j={j} />
       </Section>
       <Section title="Runner">
+        <Facts items={[runsOnFact(j)]} />
         {runner ? (
           <Facts
             items={[
               { name: 'Runner', value: runner.name },
-              { name: 'Runner type', value: RUNNER_KIND_WORDS[runner.kind] },
+              {
+                name: 'Runner type',
+                value: RUNNER_KIND_WORDS[runner.kind],
+                help: <HelpTerm term="runnerType" />,
+              },
               { name: 'Machine', value: runner.machine_name ?? 'not known' },
               {
                 name: 'Backend',
@@ -264,10 +272,11 @@ function JobBody({ j }: { j: JobDetail }) {
               { name: 'Labels', value: j.labels.join(', ') || 'none' },
             ]}
           />
-        ) : (
+        ) : j.runner_origin ? null : (
           <Empty title="No runner yet. The pool places the job when a slot is free." />
         )}
       </Section>
+      {runner && j.state !== 'queued' ? <ResourcesPane jobId={j.id} /> : null}
       <Section title="Times">
         <Facts
           items={[

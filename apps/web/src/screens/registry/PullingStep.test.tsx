@@ -1,7 +1,7 @@
 // REG5 R5.39: the pulling step of Add runners says what is pulled and how far, that it waits for the controller, or
 // that it failed and offers "Build it here instead".
 import { createApiClient } from '@crsp/contract';
-import { cleanup, render, screen } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it } from 'vitest';
 import { ApiProvider } from '../../api/api';
@@ -29,13 +29,14 @@ const pull = (over: Partial<Schemas['RegistryPull']> = {}): Schemas['RegistryPul
 function show(items: Schemas['RegistryPull'][]) {
   const api = new MockApi().on('GET', '/api/v1/registry/pulls', { items });
   const client = createApiClient('http://controller.test', api.fetch as typeof fetch);
-  return render(
+  const rendered = render(
     <MemoryRouter>
       <ApiProvider client={client}>
         <PullingStep machineId="m1" machineName="Pi lab" active={false} />
       </ApiProvider>
     </MemoryRouter>,
   );
+  return { ...rendered, api };
 }
 
 describe('PullingStep', () => {
@@ -60,8 +61,9 @@ describe('PullingStep', () => {
   });
 
   it('shows nothing when no pull is going on', async () => {
-    const { container } = show([]);
-    await new Promise((r) => setTimeout(r, 50));
+    const { container, api } = show([]);
+    await waitFor(() => expect(api.count('GET', '/api/v1/registry/pulls')).toBe(1));
+    await act(async () => {});
     expect(container.textContent).toBe('');
   });
 });

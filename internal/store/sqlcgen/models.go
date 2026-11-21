@@ -45,6 +45,39 @@ type Backup struct {
 	DeletedAt     sql.NullString
 }
 
+type CiJobLog struct {
+	JobID        int64
+	RepositoryID int64
+	RunID        int64
+	RunAttempt   int64
+	Path         string
+	Bytes        int64
+	RawBytes     int64
+	Lines        int64
+	Sha256       string
+	State        string
+	Reason       string
+	FetchedAt    string
+	ExpiresAt    string
+}
+
+type CiReportFile struct {
+	ID           int64
+	RepositoryID int64
+	RunID        int64
+	RunAttempt   int64
+	ArtifactID   int64
+	ArtifactName string
+	Member       string
+	Format       string
+	Path         string
+	Bytes        int64
+	State        string
+	Reason       string
+	FetchedAt    string
+	ExpiresAt    string
+}
+
 type CliToken struct {
 	ID           string
 	Hash         string
@@ -130,6 +163,20 @@ type GithubApp struct {
 	CreatedAt     string
 }
 
+type GuardrailReport struct {
+	RepositoryID int64
+	RunID        int64
+	HeadSha      string
+	Guardrail    string
+	Source       string
+	State        string
+	Count        int64
+	KnownCount   int64
+	Reason       string
+	Breaks       string
+	ReportedAt   string
+}
+
 type ImageBuild struct {
 	ID             string
 	MachineID      string
@@ -169,6 +216,60 @@ type ImageProfile struct {
 	BuiltIn    int64
 	CreatedAt  string
 	UpdatedAt  string
+}
+
+type InsightAnalyserRun struct {
+	ID         int64
+	Analyser   string
+	WindowFrom string
+	WindowTo   string
+	StartedAt  string
+	FinishedAt string
+	Ok         int64
+	Found      int64
+	Resolved   int64
+	Error      string
+}
+
+type InsightDigest struct {
+	Week      string
+	Path      string
+	Top       string
+	WrittenAt string
+}
+
+type InsightFinding struct {
+	ID               int64
+	Kind             string
+	Scope            string
+	RepositoryID     int64
+	Repository       string
+	Subject          string
+	Area             string
+	Title            string
+	Fix              string
+	Snippet          string
+	Evidence         string
+	MinutesSavedWeek int64
+	Guardrail        string
+	ActionKind       string
+	FirstSeen        string
+	LastSeen         string
+	ResolvedAt       string
+	HiddenUntil      string
+}
+
+type InsightPlan struct {
+	ID         string
+	FindingID  int64
+	ActionKind string
+	State      string
+	Changes    string
+	Results    string
+	CreatedBy  string
+	CreatedAt  string
+	StartedAt  string
+	FinishedAt string
 }
 
 type Installation struct {
@@ -224,6 +325,11 @@ type Job struct {
 	FcBasis      string
 	FcSamples    int64
 	UpdatedAt    string
+	RunnerOrigin string
+	RunnerGroup  string
+	RunnerLabels string
+	StepsSource  string
+	CheckedAt    string
 }
 
 type JobDaily struct {
@@ -287,6 +393,31 @@ type JobQueue struct {
 	LockedAt    sql.NullString
 	LastError   sql.NullString
 	CreatedAt   string
+}
+
+type JobResourceSample struct {
+	JobID       int64
+	SampledAt   string
+	MachineID   string
+	RunnerID    string
+	CpuMillis   int64
+	MemoryBytes int64
+	Known       int64
+}
+
+type JobResourceSummary struct {
+	JobID         int64
+	JobIdent      string
+	MachineID     string
+	Samples       int64
+	CpuP50Millis  int64
+	CpuP95Millis  int64
+	CpuPeakMillis int64
+	MemP50Bytes   int64
+	MemP95Bytes   int64
+	MemPeakBytes  int64
+	UnknownReason string
+	CompletedAt   string
 }
 
 type JobStep struct {
@@ -874,6 +1005,28 @@ type SlotTicket struct {
 	WaitReason    sql.NullString
 }
 
+type TestResult struct {
+	ID           int64
+	RepositoryID int64
+	RunID        int64
+	RunAttempt   int64
+	JobID        int64
+	JobIdent     string
+	HeadSha      string
+	ReportID     int64
+	Format       string
+	TestID       string
+	Suite        string
+	Name         string
+	File         string
+	Kind         string
+	Result       string
+	DurationMs   int64
+	Retries      int64
+	Assertions   int64
+	FinishedAt   string
+}
+
 type TrayBinding struct {
 	MachineID    string
 	OsUserID     string
@@ -900,6 +1053,20 @@ type WebhookDelivery struct {
 	DeliveryID string
 	Event      string
 	ReceivedAt string
+}
+
+type WorkflowCheck struct {
+	RepositoryID  int64
+	HeadSha       string
+	Workflow      string
+	CheckID       string
+	Job           string
+	Status        string
+	Line          int64
+	Detail        string
+	Guardrail     string
+	DefaultBranch int64
+	CheckedAt     string
 }
 
 type WorkflowGraph struct {

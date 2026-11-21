@@ -150,7 +150,7 @@ A message is one or two short sentences in plain words. It names the thing, neve
 | Date | Year-month-day. | 2026-11-02 |
 | Time | 24-hour, local time. | 14:30 |
 | Date and time | Date, a space, then time. | 2026-11-02 14:30 |
-| Short date and time | Day, month name, time; only in a one-line table cell (UX-72). The detail shows the full form above. | 18 Nov 13:28 |
+| Short date and time | Day, month name, time; only where a cell is narrow (UX-72). The detail shows the full form above. | 18 Nov 13:28 |
 | Number | Digits, with a space for thousands. A dot for decimals. | 12 345.5 |
 | Count | A number before the noun. The noun agrees with the count. | 1 item, 3 items |
 | Size | A number and a unit, with a space. | 4.2 MB |
@@ -218,7 +218,7 @@ The words of the machine mode, the battery pause and the CPU cap (machines R5.61
 | Waiting for jobs to finish | Section title of the job that holds a machine that stopped new jobs. |
 | Stop new jobs on {machine}? | Question card title. Lines: "Running jobs finish first, for up to {m} min." and "Nothing is removed. Resume undoes it." Primary: Stop new jobs. |
 | Taking jobs | State word: the machine takes new jobs. |
-| Paused, On battery, Quiet hours | State words: why the machine takes no new job. |
+| Paused, On battery | State words: why the machine takes no new job. |
 | Busy | State word: the load is over the budget, so a new job waits. The tray header does not say it. |
 | Needs a base image, Disk low | State words: a backend it may use has no runner base image on the machine; the disk is almost full. |
 | You stopped new jobs from the console. The jobs that run finish. Resume takes jobs again. | The note under Now for Not taking jobs. |
@@ -241,7 +241,6 @@ The words of the machine mode, the battery pause and the CPU cap (machines R5.61
 | Setting the CPU cap. | Note while the agent has not yet reported the result for the chosen value. |
 | It takes no new job. The jobs that run finish. | Note under the state when the machine is paused. |
 | It takes no new job while it runs on battery. The jobs that run finish. | Note when the machine is on battery. |
-| It takes no new job in quiet hours. The jobs that run finish. | Note in quiet hours. |
 | Its load is over the budget. A new job waits until the load drops. | Note when the state is Busy. |
 | Could not save. {why} | Problem message when a change was not saved. |
 | Could not change the mode. Could not pause. Could not resume. | Titles of the tray notice when a menu change failed. |
@@ -256,6 +255,7 @@ The words of the tray menu (tray R5.1, R5.42; owner decision D10, TRAY3). No ent
 |---|---|
 | Open console | The tray entry that opens the console, signed in. |
 | Open Doctor | The tray entry that opens the console Doctor page. |
+| Open weekly digest | The tray entry that opens the newest weekly CI run insights digest, a draft file on this machine (feature ci-run-insights R5.38; CIX23). Shown only when a digest was written. |
 | Pause | The tray submenu. Its items are "for 1 hour" and "until I resume". |
 | Paused until {time} - Resume now | The tray entry in place of Pause while a timed pause holds. {time} is hours and minutes. Pressing it resumes. |
 | Paused - Resume now | The same entry for a pause with no end. |
@@ -544,6 +544,24 @@ The words of the setup step "Add the first machine" when a machine is already in
 | Add the first machine is done. | Done message when a machine is in the pool and it is not the controller's own. |
 | Add another machine | The one action. It opens the Add a machine wizard for other computers. |
 
+## Half-registered runner words
+
+The Remove button of two Doctor findings: a GitHub runner no machine runs, and a runner record GitHub does not list (doctor R5.50, runners R5.94). Remove here takes only that one registration or record away, and the card says so.
+
+| Word | Where and meaning |
+|---|---|
+| Remove | The one button of each finding and the action of its card. Admin only (busy word: Removing). |
+| Remove {runner} from GitHub? | Title of the card for a GitHub runner no machine runs. |
+| No machine runs this runner. Only this registration is removed from GitHub. | Intro of that card. |
+| The registration of runner {runner} on GitHub | The line the card lists for it. |
+| Remove the record of {runner}? | Title of the card for a record GitHub does not list. |
+| GitHub does not list this runner, so it cannot take jobs. Its record is removed from crsp. | Intro of that card. |
+| The record of runner {runner} in crsp, and its service and folder on the machine | The line the card lists for it. |
+| {runner} on GitHub belongs to no machine | Title of the first finding. |
+| {runner} is not registered on GitHub | Title of the second finding. |
+| {runner} cannot write its shared tool folders | Title of the finding that a runner user cannot write cargo-target, cargo-home, rustup-home, xwin or the tool cache (doctor R5.51, caches R5.57). Its fix is a command shown as text. |
+| {runner} can write its shared tool folders | The same finding when it is fine. |
+
 ## Runner state words
 
 The state word of a runner on the Runners screen (web-console R5.23, runners R5.79; UX-19). A word other than idle or busy shows its reason in a muted line under it.
@@ -557,6 +575,8 @@ The state word of a runner on the Runners screen (web-console R5.23, runners R5.
 | offline | GitHub lists the runner offline. Reason: "GitHub reports it offline". |
 | unknown | GitHub could not be read. Reason: "GitHub could not be read, so the state is not known". |
 | failed | The runner did not start. The reason line is the reason of the failure. |
+| offline, with "Waiting for GitHub to release the old session, until {time}" | After a hard restart GitHub still holds the runner's old session for a few minutes. A wait, never a failure (runners R5.95). The reason line ends with the time the wait is over. |
+| offline, with "GitHub still holds the old session of this runner after the wait window; look for a second listener or another machine that uses this runner name" | The wait is over and GitHub still refuses the session (runners R5.95). |
 | Remove | The action on the row of a failed runner (busy word: Removing). Asks first in the question card, which names the runner (UX-9, UX-62). |
 
 
@@ -691,15 +711,12 @@ The words of the Docker disk section on the machine page (caches R5.51 to R5.54,
 | Start when this much can be reclaimed | The name of the number field, in GiB. The default is 30. |
 | Wait until the machine has been idle for | The name of the number field, in minutes. The default is 30. |
 | No job runs or waits for its runners. | Help under the idle field. |
-| Quiet hours start, Quiet hours end | The names of the two hour lists. Defaults 01:00 and 06:00. |
-| In the machine's own time. | Help under Quiet hours start. |
-| At most once a day. New jobs wait in the queue while the disk is made smaller. No job is stopped. | The note at the end of the section. |
+| It starts at any hour, once the machine has been idle for that long and that much can be reclaimed, and at most once a day. New jobs wait in the queue while the disk is made smaller. No job is stopped. | The note at the end of the section. It says when the compact runs. |
 | Now | The facts line with the state word. |
 | Disk file, Docker uses, Can be reclaimed, Last time | The other facts lines. Sizes as in Dates, times and numbers. Last time is a date, a time and the sizes, or the failure. |
 | Making the disk smaller | State word while the compact runs. |
 | Off | State word: the policy is off for this machine. |
 | Done today | State word: it ran in the last 24 hours. |
-| Waiting for quiet hours | State word: outside the quiet hours. |
 | Waiting: the machine is offline | State word. |
 | Waiting: the machine is paused or not taking jobs | State word. |
 | Waiting for the agent to look at the disk | State word before the first report. |
@@ -712,6 +729,13 @@ The words of the Docker disk section on the machine page (caches R5.51 to R5.54,
 | The agent on this machine does not run as administrator, so it cannot make Docker's disk smaller. Install the agent again from an administrator window, or turn this off. | Problem message under the facts. |
 | Turn off | The action beside that message. Saves Off. |
 | Could not save. {why} | Problem message when a change was not saved. |
+| Make the disk smaller now | The button that starts the compact by hand (caches R5.58). Busy label: Making the disk smaller. Disabled with the reason when the agent has no administrator rights or the compact is running. |
+| Make Docker's disk smaller on {machine}? | Title of its question card. |
+| The machine is drained first. The disk is made smaller when the running jobs have ended. | Intro of the card. |
+| Can be reclaimed: {size} | First line of the card: the file size minus what Docker uses. |
+| New jobs wait in the queue; no job is stopped | Second line of the card. |
+| Docker restarts, and the machine takes jobs again when it is done | Third line of the card. |
+| Make smaller | The confirm button of the card. Busy label: Starting. |
 | {machine} is making Docker's disk smaller ({size} on disk, {size} used). New jobs wait in the queue and start again when it is done; no job is stopped. | Notice to the projects, before. |
 | {machine} made Docker's disk smaller: {size} to {size}. Jobs take the machine again. | Notice to the projects, after. |
 | {machine} could not make Docker's disk smaller: {why}. Jobs take the machine again. | Notice to the projects, on a failure. |
@@ -861,6 +885,7 @@ The words of the small update page the tray opens (tray R5.43, web-console R5.96
 
 | Words | Used for |
 |---|---|
+| Updates | The Settings tab after Console (LOOK43). It holds the Updates pane; Console no longer does. |
 | Update | Title of the page and name of the wizard. |
 | Version {version} is ready. Running jobs finish first; the service restarts (about 1 min). | The Review line. It is also the text of the native fallback box. |
 | Update now | The primary on Review. Busy word: Updating. |
@@ -912,7 +937,7 @@ The words of the native update window on Windows (tray R5.46 to R5.49). The step
 
 ## Shared Pool and Jobs words
 
-The words of the six-item menu, Shared Pool and the Jobs sub-sections (owner decisions D24, D29, D31 to D34, LOOK31). "Runners" stays "runners" (D29).
+The words of the seven-item menu, Shared Pool and the Jobs sub-sections (owner decisions D24, D29, D31 to D34, LOOK31). "Runners" stays "runners" (D29).
 
 | Word | Where and meaning |
 |---|---|
@@ -926,8 +951,9 @@ The words of the six-item menu, Shared Pool and the Jobs sub-sections (owner dec
 | Add a machine first. | Reason on a step or button that cannot start yet. |
 | {n} machines, {m} runners, {k} busy | The pool totals above the runner list and on the summary. |
 | Runners serve every repository that uses the pool. | The one line on Add runners, in place of the Repository question. |
-| How crsp works: the Pool has Machines, and each machine has Runners. Repositories use the pool. Start in Shared Pool. | The first-run strip on the Overview. |
-| Hide this | Button that hides the strip for good in this browser. |
+| How a job gets run | The first-run pane of the Overview: the picture of Help (component 64), replacing the old *How crsp works* strip (LOOK44). |
+| Open Help | Button of that pane that opens Help. |
+| Hide this | Button that hides the pane for good in this browser. |
 | Showing the last 100 finished jobs. | Note above the finished jobs when more exist. |
 | See all | Button that pages in the earlier finished jobs. |
 | Done, failed and the averages count the last 200 finished jobs. | Quiet line under a grouped Jobs table. |
@@ -1070,6 +1096,22 @@ The words of the new Jobs section (web-console 4.6, proposed). A wait names what
 | expands at run time | Marks a matrix job or a reusable workflow in the job graph. |
 | Arrows come from the workflow file at commit {sha} (read once per commit and kept). | Line over the job graph. When the file cannot be read: "no arrows are drawn: jobs that ran at the same time are shown side by side. This is a guess from timing, not from the workflow." |
 
+### One-line row words (CRSP210, UX-72)
+
+The short forms a one-line table shows; the whole line is the hover text and sits under the row's button (*Why*, *Details*). A workflow is its file name (`ci.yml`), the run number is the *Run* column (`#44723830522`, `, attempt 2`).
+
+| Wait reason | Short form |
+| --- | --- |
+| free slot | waits for a slot |
+| load over budget | machine load too high |
+| no runner with labels | no runner with its labels |
+| repository parallel limit | repository limit |
+| machine drained | machine not taking jobs |
+| load not measured | load not measured yet |
+| paused | machine paused |
+| on battery | machine on battery |
+| unknown | reason not known yet |
+
 ### Row action words (RES17, UX-72)
 
 One word set for the button at the end of a table row. The guard reads this table: a label not listed here fails the `rowActionWords` guard of `e2e/tests/web-console/ux-routes.spec.ts` and the Jobs rows spec `e2e/tests/web-console/ux-jobs-rows.spec.ts`.
@@ -1087,6 +1129,65 @@ One word set for the button at the end of a table row. The guard reads this tabl
 | Copy | The button of a code block in a cell (Doctor, a finding's command): copies the text and says Copied. It changes nothing. A press. |
 | On, Off | The word of a switch in a cell (Repositories, the pool for a repository): it shows the state; pressing it changes the state. Admin only. |
 | Why, Details | Button inside a cell that has a long text, to read it whole. Not a row action. |
+
+## Jobs redesign words (LOOK40, concept A, owner decisions of 20 Nov 2026; feature ci-run-insights)
+
+The words of the Jobs Overview, its new tabs and parts (UX-74 to UX-77, components 58 to 63). A word of a UX rule is not repeated here.
+
+| Word | Where and meaning |
+|---|---|
+| Overview, Live, Done, Run elsewhere, Run insights, Charts | The six tabs of Jobs, in this order (D9 to D13, D20, D7, D8). Overview is first and the landing. *Live* replaces the tabs Queue and Running. |
+| Group by | Choice above the Done list, with None, Repository, Machine, Runner, Runner type, Job type. It replaces the five *By* tabs (D11). |
+| All, Queue, Running, Done | The one state filter of the list of Live, Done and Run elsewhere (LOOK41, owner decision of 20 Nov 2026; it replaces the chips *Queued, Running, No runner*). |
+| Waiting now | KPI tile: how many jobs wait, with the oldest wait as its second line. |
+| Wait slow end (p90) | KPI tile: the wait that 9 in 10 jobs stay under. Hint: *9 in 10 jobs wait less than this.* |
+| Jobs that passed | KPI tile: the share of finished jobs that passed, with the flaky count. |
+| Pool busy | KPI tile: the share of runner time spent running jobs. |
+| vs the previous 7 days | The change line of a tile; *vs the previous 14 days*, *vs the previous 30 days* follow the range. 7 days is the default range. |
+| better, worse, same | The word of a change, beside its glyph and colour (UX-58). A fall in *Waiting now* is *better*. |
+| Needs you | Title of the strip of the top 3 findings by minutes saved a week. |
+| Nothing needs you now. | Empty strip. |
+| about {n} min a week | The minutes a finding saves. |
+| sure, likely, a guess | The confidence words of a finding (D16, UX-76): *sure* means the data proves it, *likely* means the data points to it, *a guess* is an estimate. |
+| How we know | Fold of a finding: the data behind it. |
+| Show the jobs behind it | Link of a finding: opens the filtered list. |
+| Dismiss, Restore | Buttons of a finding in Run insights only (UX-52). Busy words: Dismissing, Restoring. |
+| To do, Done, Dismissed | The three lists of Run insights. |
+| Where the time goes | Card and chart: waiting and running time per day (stacked). |
+| Wait parts | Chart: the parts of waiting (GitHub, queue, slot hold and start, cleanup). |
+| Busiest repositories | Card: a bar list of repositories by wait and run minutes. |
+| Failed and flaky | Card: failed jobs and jobs that passed on a rerun of the same commit. |
+| Runner timeline | Card and part title: lanes per runner on a time axis. On a machine page the title is *Runner timeline of {machine}*. |
+| idle while queued | Legend and table word of a stretch where a runner stood idle while a job queued. |
+| no jobs | A lane with no job in the range. |
+| No runner has worked in this range. | Empty runner timeline. |
+| Nothing to rank in this range. | Empty bar list. |
+| Open the {n} jobs of {name} | Link of a bar list row; *Open the {n} jobs of that day* for a chart column. |
+| Open the jobs that wait now | Link of the Waiting now tile. |
+| Loading | Value area of a tile that is loading. |
+| Run elsewhere | Tab: jobs GitHub gave to a runner that is not crsp; each row names that runner and its state follows GitHub (D7). |
+
+## Jobs list words (LOOK41, owner decision of 20 Nov 2026; feature ci-run-insights)
+
+The words of the one search list of Live, Done and Run elsewhere (component 67) and of the Overview built from it.
+
+| Word | Where and meaning |
+|---|---|
+| State | Name of the state filter (All, Queue, Running, Done). |
+| Search jobs, Search runs, Search run elsewhere | Names of the search box. Placeholder: *Search, or repo: state: runner: branch: job:*. |
+| repo:, state:, runner:, branch:, job: | Search words that narrow one field; a plain word matches any text of a row. |
+| Show details, Hide details | Name and tooltip of the details button (an icon button); *Hide details* while the panel is open. |
+| Details: {row}, Close details | Name of the details panel and its close button. |
+| Nothing matches. Clear the search or choose All. | Empty list after a search or a state choice. |
+| Waits for or runs | Column of the All list: the wait reason of a waiting run, the job a running run does. |
+| When | Column of the All list: when a run starts, ends or ended. |
+| Starts, Ends, Finished | Fact names of a run in the details panel: by state. |
+| Runner type | The word for persistent against ephemeral runners (owner rule); never *kind* in text a user sees. |
+| Open run, Open job | The button of the details panel that opens the page; the row action keeps its words (UX-72). |
+| Wait slow end (p90) | Overview tile (see Jobs redesign words). |
+| Failed jobs | Overview card: how many of the finished jobs of the last 7 days failed; it opens the finished jobs. |
+| Each number is compared with the 7 days before. | Line under the Overview cards. |
+| Showing {n} of {m} finished {runs or jobs} in the last {days} days. | Note under the list when it holds finished rows. |
 
 ## Runner leftover words
 
@@ -1136,3 +1237,117 @@ The words of the Registry tab under Images and caches: the registry of ready-mad
 | Replace wizard (live) | Go back to the old image; Pointers already moved stay moved.; The base image changed too, so the new image is built on a newer base. |
 | Add runners, Review | The registry has key {key}, {size}. A machine without a job image pulls it instead of building. |
 | Add runners, pulling | Waiting for the controller to send the job image to {machine}. The pull goes on when it answers.; The job image could not be pulled, so no runner was added. Nothing was changed on {machine}.; Build it here instead |
+
+## Registry job-log words (REG13)
+
+The lines the agent writes to the job log while it asks the controller for a job image, waits, pulls, builds and pushes (`internal/backend/container/ensure.go`, `images.go`). People read them in the job log, so they are user words. `{n}` is a number, `{reason}` is the cause in plain words. `internal/backend/container/words_test.go` builds each line from the code and fails when a line and its row differ, or a row has no line. A change of a word here changes the Go string in the same branch.
+
+| Where | Line |
+|---|---|
+| Waiting for the controller, under a minute | Waiting for the controller to say whether the image is in the registry (waited {n} s) |
+| Waiting for the controller, a minute or more | Waiting for the controller to say whether the image is in the registry (waited {n} min {n} s) |
+| The registry is busy, under a minute | The registry is busy; asking again in {n} s |
+| The registry is busy, a minute or more | The registry is busy; asking again in {n} min {n} s |
+| Pull starts, size not known | Pulling the job image from the registry |
+| Pull goes on | Pulling the job image from the registry, {n} of {n} GB |
+| Pull goes on, little time left | Pulling the job image from the registry, {n} of {n} GB, less than a minute left |
+| Pull goes on, more time left | Pulling the job image from the registry, {n} of {n} GB, about {n} min left |
+| Pull did not finish | The pull did not finish; trying again |
+| Pull failed | The pull from the registry failed ({reason}); building the image here instead |
+| Push failed | The image stays on this machine; it was not pushed: {reason} |
+| Push done | Pushed the image to the registry staging |
+
+## Run insights words (CIX22, owner decisions D7 and D8 of 20 Nov 2026)
+
+Run insights is a tab of Jobs, placed before Charts. Estimates always say *estimate* or *about*. `{n}` is a number, `{x}` a value, `{time}` a time.
+
+| Where | Words |
+|---|---|
+| Jobs tab | Run insights |
+| Segments | Do next, Waits, Timeline, Tests, Guardrails |
+| Filter chip, Queue and Running | Run elsewhere |
+| Run elsewhere, empty | No job runs on another runner. |
+| Run elsewhere, runner column | Runner and labels; "{runner} (group {group}; labels {labels})" |
+| Do next, table | What to do, Project, Area, Saves ("about {n} min a week"), Since; row action Open |
+| Do next, project of a pool finding | the pool |
+| Do next, empty | Nothing to do. crsp found no waste in the last 7 days. |
+| Do next, not enough data | Not enough finished jobs yet to rank anything. crsp needs a few days of CI. |
+| Do next, digest fold | Weekly digest, {week} |
+| Finding, panes | The fix, Evidence, Estimate |
+| Finding, primary | Review the change |
+| Finding, normal button | Open the workflow on GitHub |
+| Overview line | {n} things to do next, about {m} min a week |
+| Waits, panes | Wait, hold and run per day, By repository, By job |
+| Waits, columns | Wait, middle; Wait, slow end; Hold, middle; Hold, slow end; Run, middle; Run, slow end; Holds over the cap |
+| Timeline, notes | idle while {n} job(s) waited; after-merge work |
+| Timeline, empty | No runner took a job in this range. |
+| Tests, segments | Slowest, Flaky, Duplicated, No assertions |
+| Tests, over the limit | {x} s, over the {kind} limit of {n} s |
+| Tests, empty | No test reports found. crsp reads JUnit, Playwright, vitest, go test, nextest and TRX reports your CI uploads. |
+| Guardrails, states | ✓ pass, ✕ break {n}, – off ({reason}), ◷ unknown |
+| Guardrails, source | guard report of {date}, crsp check |
+| Waiting on GitHub | Waiting for GitHub's hourly limit until {time}; {n} jobs not read yet. |
+| Action wizard, steps | Review, Changing, Done |
+| Action wizard, buttons | Make the change, Not now |
+| Job page, fact | Runs on: "crsp runner {runner} on {machine}", "Another runner: {name} (group {group}; labels {labels})", "GitHub-hosted runner ({label})", "not known yet" |
+| Job page, steps source | Steps from GitHub events. / Steps read from GitHub. |
+| Job page, checked | Last checked with GitHub {ago}. |
+| Job page, pane | CPU and memory; CPU, peak; CPU, slow end (p95); Memory, peak; Memory, slow end (p95) |
+| Run page, pane | Savings |
+| Run page, notes | This run was superseded; This commit ran twice; This code was tested again; This run went on after its first failure |
+| Size and backends, section | Demand; columns Labels, Slots, Busy, Jobs an hour, Wait, middle, Wait, slow end |
+| Size and backends, estimate | {labels}: with {n} more slot(s) the p95 wait would be about {x} (now {y}). An estimate from the last 7 days. |
+| Size and backends, queue grows | The queue grows: at least {n} more slots are needed. |
+| Repository page, panes | CI checks, Guardrails, Job slots |
+| Repository page, CI checks | ✓ pass, ✕ fix, – skipped; columns Status, Rule, Job, Line, Fix; "Checked {time}." |
+| Repository page, Job slots | No advice: the limit of this repository did not hold jobs back while slots were free. |
+
+## Run insights follow-up words (CIX23, owner decisions D17 to D21 of 20 Nov 2026)
+
+| Where | Words |
+|---|---|
+| Finding, secondary action | Hide for 7 days. Busy word: Hiding. After it, disabled with the reason "This finding is hidden for now." |
+| Finding, after hiding | Hidden until {time}. It comes back then if it is still true. |
+| Finding, hiding failed | Could not hide this finding. {reason} |
+| Settings, Data, section | CI run insights |
+| Settings, Data, period field | Update period. Help: How often crsp looks at your CI again. A slower period uses less CPU, memory and disk. |
+| Settings, Data, period choices | After every CI run, After every few CI runs, Once an hour |
+| Settings, Data, number field | Runs between updates ({n} runs, 2 to 50), shown only for After every few CI runs |
+| Settings, Data, saved | CI run insights saved. |
+| Settings, Data, refused | Runs between updates must be from 2 to 50. |
+| Do next, cost warning, title | Analysing CI runs costs more than it should: {what is over, such as CPU 6.2% (limit 5%), memory 320 MB (limit 300 MB), disk 1.10 GB (limit 1 GB)} |
+| Do next, cost warning, fix | Choose a slower update period in Settings: analyse after every 5th CI run, or once an hour. (After every few CI runs: once an hour. Already once an hour: Lower the days or the size of the CI data kept in Settings, or ask for a bigger machine.) |
+
+## Help words
+
+The words of the Help page and of the ? beside a term (LOOK44, owner pick I of 20 Nov, D57). English only. *Slot* is a shown word. *Runner type* is the word for persistent or ephemeral; Linux or Windows is the system, never the type.
+
+| Word | Where and meaning |
+|---|---|
+| Help | The seventh area of the menu and the page title. |
+| How crsp runs your jobs, one step at a time. | Lead of Help. |
+| How a job gets run | Pane of the picture on Help and on the first-run Overview. |
+| On GitHub / In your pool | The two groups of the picture. |
+| Steps | Name of the stepper list. |
+| On GitHub / In your pool / Looking after the pool | The three steps of Help. |
+| Next / Back / Start again | The buttons of the stepper pane. Next is the primary; on the last step it says *Start again*. |
+| Parts 1 to 3 happen on GitHub. A push starts a run, and each job of the run asks for a runner by its labels. | Line of step 1. |
+| Parts 4 to 7 happen in your pool. crsp queues the job, waits for a free slot on a machine, and a runner there does the work. | Line of step 2. |
+| The Doctor, the tray app and the images and caches keep the pool working. | Line of step 3. |
+| 7 parts. Press a part to see its step. | Quiet line under the picture. |
+| Repository, Run, Job, Queue, Slot, Runner, Machine | The seven parts. Their lines: a GitHub project; one start of a workflow; asks for a runner; waits for a slot; room for one job; does the work; your computer. |
+| Questions | Pane of the question cards of the current step. |
+| What does shared mean? / What are a run and a job? / What are labels? / What does Run elsewhere mean? | Cards of step 1. |
+| Why is my job waiting? / What is a slot? / What is the load budget? / What is the queue? / What is a runner type? | Cards of step 2. |
+| What is the Doctor? / What is the tray app? / What are images and caches? | Cards of step 3. |
+| Slot | Room for one job at a time on a machine. |
+| Pool size makes slots: you set memory and CPUs on Pool size, and crsp turns that into slots, the number of jobs that run at once. | The sentence of the slot card and of the ? on Slots. |
+| Load budget | The most memory and CPU a machine may use for jobs. Over it, new jobs wait. The card shows each machine's own budget (`memory 70%, CPU 55%`), read from the API. |
+| {n} of {m} slots in use | The slots of each machine on the slot card. |
+| Runner type | Persistent keeps its tools and caches. Ephemeral is fresh for every job. |
+| Run elsewhere | Another runner runs the job, not your pool, for example a GitHub-hosted runner. |
+| No machine yet. Add a machine to see its slots. / ... its load budget. | The card when the pool has no machine. |
+| What does {term} mean? | Name of the ? button. {term} is Slots, Load budget, Queue, Runner type or Run elsewhere. |
+| More about this in Help | The link in the ? answer. |
+| Open Pool size / Open Jobs / Open the Doctor / Open Images and caches | Links on the cards. |
+| Load budget | Fact row on the machine page: `memory {n}%, CPU {m}%`. |

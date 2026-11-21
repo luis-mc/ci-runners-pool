@@ -35,11 +35,22 @@ func (c *ctl) Start(t *testing.T) {
 	t.Helper()
 	var ln net.Listener
 	var err error
-	for i := 0; i < 50; i++ {
+	// The old listener may still hold the port for a moment: retry on a ticker,
+	// for at most one second.
+	retry := time.NewTicker(20 * time.Millisecond)
+	defer retry.Stop()
+	ctx, stop := context.WithTimeout(t.Context(), time.Second)
+	defer stop()
+	for {
 		if ln, err = (&net.ListenConfig{}).Listen(t.Context(), "tcp", c.Addr); err == nil {
 			break
 		}
-		time.Sleep(20 * time.Millisecond)
+		select {
+		case <-retry.C:
+			continue
+		case <-ctx.Done():
+		}
+		break
 	}
 	if err != nil {
 		t.Fatal(err)
@@ -100,14 +111,19 @@ func fastConfig(t *testing.T, c *ctl, code string) agent.Config {
 func waitFor(t *testing.T, what string, cond func() bool) {
 	t.Helper()
 	// 15 s: the Windows CI runners are slow under load; a pass returns at once.
-	deadline := time.Now().Add(15 * time.Second)
-	for time.Now().Before(deadline) {
+	tick := time.NewTicker(10 * time.Millisecond)
+	defer tick.Stop()
+	timeout := time.After(15 * time.Second)
+	for {
 		if cond() {
 			return
 		}
-		time.Sleep(10 * time.Millisecond)
+		select {
+		case <-tick.C:
+		case <-timeout:
+			t.Fatalf("timed out waiting for %s", what)
+		}
 	}
-	t.Fatalf("timed out waiting for %s", what)
 }
 
 func runAgent(t *testing.T, cfg agent.Config) (stop func() error) {

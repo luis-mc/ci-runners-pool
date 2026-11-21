@@ -250,11 +250,7 @@ func TestSSHJoinWindowsOverARealSSHExchangeNeverPersistsTheKey(t *testing.T) { /
 	t.Cleanup(func() { _ = ln.Close() })
 	w := &winMachine{shell: "cmd", admin: true, hasExe: true, arch: "AMD64"}
 	go func() {
-		for {
-			conn, err := ln.Accept()
-			if err != nil {
-				return
-			}
+		for conn, err := ln.Accept(); err == nil; conn, err = ln.Accept() {
 			go serveWin(conn, cfg, w)
 		}
 	}()

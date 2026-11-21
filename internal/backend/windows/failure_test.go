@@ -151,11 +151,22 @@ func TestFailureBeforeWorkCleansNothing(t *testing.T) {
 	}
 }
 
-func TestRandomPasswordHasEveryClass(t *testing.T) {
+// TestRandomPasswordLettersAndDigitsOnly: a symbol in the password broke the
+// service logon on one machine ("Credential ... is invalid", runners R5.96), so
+// the password is letters and digits, with upper, lower and digit all present.
+func TestRandomPasswordLettersAndDigitsOnly(t *testing.T) {
 	for range 200 {
 		p := RandomPassword()
-		if len(p) != 32 || !strings.ContainsAny(p, "!#%+-=?@") || !strings.ContainsAny(p, "23456789") {
-			t.Fatalf("weak password %q", p)
+		if len(p) != 32 {
+			t.Fatalf("length %d: %q", len(p), p)
+		}
+		for _, c := range p {
+			if (c < 'a' || c > 'z') && (c < 'A' || c > 'Z') && (c < '0' || c > '9') {
+				t.Fatalf("password has %q, not a letter or digit", c)
+			}
+		}
+		if !strings.ContainsAny(p, "ABCDEFGHJKLMNPQRSTUVWXYZ") || !strings.ContainsAny(p, "abcdefghijkmnopqrstuvwxyz") || !strings.ContainsAny(p, "23456789") {
+			t.Fatalf("missing a class: %q", p)
 		}
 	}
 }

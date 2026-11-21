@@ -53,6 +53,7 @@ export const IMAGES = [
     last_pull_at: '2026-09-01T09:00:00Z',
     unique_bytes: 3.9 * GB,
     size_bytes: 4.2 * GB,
+    unused_days: 79,
   }),
 ];
 
@@ -90,6 +91,7 @@ export const overview = () => ({
       id: 'rec_1',
       rule: 'replace',
       image_id: 'img_docsv4',
+      image: IMAGES[1],
       other_image_id: 'img_goold',
       kind: 'custom',
       frees_bytes: 1.8 * GB,
@@ -100,6 +102,7 @@ export const overview = () => ({
       id: 'rec_2',
       rule: 'unused',
       image_id: 'img_mobile',
+      image: IMAGES[2],
       kind: 'custom',
       frees_bytes: 3.9 * GB,
       decider: 'owner',
@@ -125,12 +128,15 @@ const detail = (s: Record<string, unknown>, inUse: boolean) => ({
   stack_hash: '3ce86298410301e478baa185c81f75e9d8e02dcf22633e16d02d5ee627d67eb0',
   base_name: 'ubuntu:24.04',
   pushed_by: 'm1',
+  in_use: inUse,
+  shared_bytes: (s.size_bytes as number) - (s.unique_bytes as number),
   lineage: [
     {
       image_id: 'img_goold',
       key: OLD_BUILD,
       state: 'current',
       pushed_at: '2026-11-10T09:00:00Z',
+      relation: 'same_profile',
     },
   ],
   layers: [
@@ -175,8 +181,17 @@ const plan = (state: string, over: Record<string, unknown> = {}) => ({
   repositories: ['octo/docs'],
   machines: ['build-1'],
   frees_bytes: 1.8 * GB,
-  steps_done: state === 'done' ? 3 : 0,
-  steps_total: 3,
+  steps_done: state === 'done' ? 2 : 0,
+  steps_total: 2,
+  steps: [
+    {
+      kind: 'point',
+      targets: ['octo/docs'],
+      state: state === 'done' ? 'done' : state === 'running' ? 'running' : 'waiting',
+    },
+    { kind: 'warm', targets: ['build-1'], state: state === 'done' ? 'done' : 'waiting' },
+    { kind: 'supersede', targets: [], state: state === 'done' ? 'done' : 'waiting' },
+  ],
   can_rollback: state === 'done',
   created_at: '2026-11-19T09:00:00Z',
   ...over,

@@ -49,3 +49,27 @@ func TestOpenUpdatePrefersTheNativeWindow(t *testing.T) {
 		t.Fatalf("%v %d", err, browser)
 	}
 }
+
+// TRAY9: a done stage of an earlier update must not hide a newer release.
+func TestWindowModeTable(t *testing.T) {
+	done := func(v string) *StageInfo { return &StageInfo{Name: "done", Version: v} }
+	cases := []struct {
+		name string
+		st   Status
+		want string
+	}{
+		{"no stage", Status{Version: "0.1.17", Update: UpdateInfo{Latest: "0.1.18"}}, "review"},
+		{"leftover done, newer latest", Status{Version: "0.1.17", Update: UpdateInfo{Latest: "0.1.18", Stage: done("0.1.17")}}, "review"},
+		{"real done, same latest", Status{Version: "0.1.18", Update: UpdateInfo{Latest: "0.1.18", Stage: done("0.1.18")}}, "live"},
+		{"done, latest not yet known", Status{Version: "0.1.18", Update: UpdateInfo{Stage: done("0.1.18")}}, "live"},
+		{"done without version, newer latest", Status{Version: "0.1.17", Update: UpdateInfo{Latest: "0.1.18", Stage: done("")}}, "review"},
+		{"done, latest older", Status{Version: "0.1.18", Update: UpdateInfo{Latest: "0.1.17", Stage: done("0.1.18")}}, "live"},
+		{"updating over a leftover done", Status{Version: "0.1.17", Update: UpdateInfo{State: "downloading", Latest: "0.1.18", Stage: done("0.1.17")}}, "live"},
+		{"old failed stage, newer latest", Status{Version: "0.1.17", Update: UpdateInfo{Latest: "0.1.18", Stage: &StageInfo{Name: "failed", Version: "0.1.17"}}}, "review"},
+	}
+	for _, c := range cases {
+		if got := WindowMode(c.st); got != c.want {
+			t.Errorf("%s: %s, want %s", c.name, got, c.want)
+		}
+	}
+}

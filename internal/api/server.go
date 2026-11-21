@@ -97,6 +97,11 @@ type Options struct {
 	Compare CompareService
 	// Trial serves the trial mode routes (handlers_trial.go). Nil answers 501.
 	Trial TrialService
+	// Insights serves the CI run insights routes (handlers_insights.go). Nil answers 501.
+	Insights *InsightsArea
+	// JobRunners says who ran a job (runner origin, group, labels, steps source, checked at). Nil leaves
+	// those fields of a job absent (ci-run-insights R5.39 to R5.41).
+	JobRunners JobRunnerReader
 	// PublicHost is the name or address runners and machines reach this
 	// controller at (CRSP_PUBLIC_HOST), and ListenAddr the console address. The
 	// parity setup writes https://PublicHost:port; with none a runner can reach

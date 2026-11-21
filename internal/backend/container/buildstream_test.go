@@ -164,9 +164,26 @@ func TestOneBuildAtATimeAndSecondFindsTheImage(t *testing.T) {
 	if !r.b.buildGate.Busy() {
 		t.Fatal("the gate must be held while a build runs")
 	}
-	// Give the second asker time to pass the local check and reach the gate
-	// (the join added the registry ask before the gate).
-	time.Sleep(150 * time.Millisecond)
+	// The first asker inspected twice (before and after the gate). The third
+	// "image inspect" is the second asker's local check, the last step before it
+	// reaches the gate; wait for it so the image is still missing for that check.
+	tick := time.NewTicker(time.Millisecond)
+	defer tick.Stop()
+	ctx, stop := context.WithTimeout(context.Background(), 10*time.Second)
+	defer stop()
+	for {
+		r.f.mu.Lock()
+		n := r.f.count("image inspect")
+		r.f.mu.Unlock()
+		if n >= 3 {
+			break
+		}
+		select {
+		case <-tick.C:
+		case <-ctx.Done():
+			t.Fatalf("the second asker never checked for the image (%d inspects)", n)
+		}
+	}
 	close(sc.gate)
 	wg.Wait()
 	r.f.mu.Lock()
