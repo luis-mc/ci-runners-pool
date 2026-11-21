@@ -145,6 +145,11 @@ type Machine struct {
 	BudgetMemoryPct, BudgetCPUPct int
 	// OverBudgetSince is when the load went over the budget and stayed; zero when under it.
 	OverBudgetSince time.Time
+	// LoadWarnSince is when the machine went over its budget with jobs running
+	// and the controller's load watch raised its warning; zero when none (scheduling R5.77).
+	LoadWarnSince time.Time
+	// RunningJobs name the jobs that hold a slot ("repo job").
+	RunningJobs []string
 	// DiskFreeBytes and DiskTotalBytes describe the work volume; nil when unknown.
 	DiskFreeBytes, DiskTotalBytes *int64
 	// PauseReason is why the machine takes no new jobs ("disk_low", "paused",

@@ -341,6 +341,12 @@ func (f doctorFleet) Machines(ctx context.Context) ([]doctor.Machine, error) {
 			LightSlots: v.Settings.LightSlots, PauseReason: v.Machine.PauseReason,
 			JobSlots: v.Settings.JobSlots, GateMaxWaitMin: v.Settings.GateMaxWaitMinutes,
 		}
+		if v.LoadWarning != nil {
+			m.LoadWarnSince = v.LoadWarning.Since
+		}
+		for _, j := range v.RunningJobs {
+			m.RunningJobs = append(m.RunningJobs, strings.TrimSpace(j.Repository+" "+j.Job))
+		}
 		m.RunnerPeak, m.RunnerPeakRepo = f.runnerPeak(ctx, v.Machine.ID, allRunners)
 		if m.State == "" {
 			m.State = v.Machine.State

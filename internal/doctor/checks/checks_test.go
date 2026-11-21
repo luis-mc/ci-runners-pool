@@ -215,6 +215,24 @@ func TestLoadBudget(t *testing.T) {
 	}
 }
 
+// Scheduling R5.77: a warning from the load watch warns at once and names the
+// figures, the budget and the running jobs.
+func TestLoadBudgetWarnsWhileJobsRun(t *testing.T) {
+	m := healthyMachine()
+	m.Load = &doctor.Load{MemoryPct: 96, MemoryKnown: true, CPUPct: 20, CPUKnown: true, SampledAt: now}
+	m.LoadWarnSince = now.Add(-10 * time.Second)
+	m.RunningJobs = []string{"o/r build", "o/r e2e"}
+	fs := run(t, doctor.Env{Fleet: &fleet{machines: []doctor.Machine{m}}}, "machine.load.budget")
+	if len(fs) != 1 || fs[0].Severity != doctor.Warn {
+		t.Fatalf("findings %+v", fs)
+	}
+	for _, want := range []string{"Memory 96% of 85%", "CPU 20% of 60%", "o/r build, o/r e2e", "not stopped"} {
+		if !strings.Contains(fs[0].Detail, want) {
+			t.Fatalf("detail %q lacks %q", fs[0].Detail, want)
+		}
+	}
+}
+
 func TestDisk(t *testing.T) {
 	mk := func(name string, free, total int64) doctor.Machine {
 		m := healthyMachine()
