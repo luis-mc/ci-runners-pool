@@ -89,7 +89,8 @@ export function HelpScreen() {
         <JobPathPicture
           onSelect={(id) => {
             const card = PART_CARD[id];
-            if (card) document.getElementById(card)?.scrollIntoView?.({ block: 'center' });
+            if (card)
+              document.getElementById(card)?.scrollIntoView?.({ block: 'center' });
           }}
         />
         <Text tone="muted">
