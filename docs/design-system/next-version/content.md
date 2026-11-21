@@ -893,7 +893,7 @@ The words of the small update page the tray opens (tray R5.43, web-console R5.96
 | Running jobs are safe. | Line under the progress bar while the update works. |
 | Hide | Closes the window while the update goes on. It stops nothing. |
 | Downloading, Waiting for jobs, Installing, Restarting | The work steps, in the order the service goes through them. |
-| Downloading {n}%, Waiting for running jobs to end, Installing {n}%, Restarting the service | The live line of the current step. |
+| Downloading {n}%, Waiting for running jobs to end, Installing {n}%, Waiting for another installer, Restarting the service | The live line of the current step. |
 | The service is restarting. This page waits for it. | Note while the service is down for the install. |
 | Updated to {version}. | The Done message. |
 | Close | The primary on Done, and the left button after a failure. |
@@ -921,8 +921,10 @@ The words of the native update window on Windows (tray R5.46 to R5.49). The step
 | Cancel update | Stops the update while it downloads or waits for jobs. Busy word: Cancelling... |
 | Installing {version} | The heading while it installs; the bar shows {n}% when the service knows it. |
 | This cannot be cancelled. You can hide this window; the update goes on. | The note while it installs. |
-| Restarting the service | The heading while the service is replaced. |
-| The service is replaced and starts again. This window waits for it. | The note while the service is down. |
+| Waiting for another installer | The heading while another program holds Windows Installer (TRAY11). Indeterminate bar; the button is Hide. |
+| {name} is installing. Windows installs one program at a time; this update starts when it finishes. | The note under it. {name} is the other installer; without a name it reads `Another program`. |
+| Restarting the service | The heading while the service is replaced. It shows only once the installer has finished. |
+| The service is replaced and starts again. This window waits for it. | The note while the service is down after the installer finished. |
 | Updated | The heading on Done. |
 | Now running {version}. | The Done line, and the body of the toast after an automatic update. |
 | Close | The button on Done, Failed and Cancelled. |
