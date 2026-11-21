@@ -1359,8 +1359,8 @@ A run can start other runs when it ends (the Installers workflow after CI). The 
 | Where | Words |
 |---|---|
 | Run page and run details, fact | Started next: "{workflow}, {state}"; several are joined with "; " |
-| Run page, status line, and the Result column of the lists | follow-up running (a status, glyph and colour of *running*, beside the run's own result) |
+| Run page, status line, and the Result column of the Done and All lists | follow-up running (a status, glyph and colour of *running*, beside the run's own result) |
 | Run details, fact while a follow-up runs | Still running: follow-up running |
-| Done and All lists, column | Started next; "nothing" when the run started no run |
+| Done list, column | Started next; "nothing" when the run started no run |
 | Timeline, row | Waited for a runner: {project} {job} |
 | Timeline, note | follow-up run |

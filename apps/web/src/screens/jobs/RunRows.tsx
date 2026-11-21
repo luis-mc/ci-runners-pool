@@ -171,7 +171,6 @@ export function runColumns(kind: RunKind, _now: number): Column<RunRow>[] {
         },
         secondary: true,
       },
-      next,
       status,
     ];
   if (kind === 'queue')
