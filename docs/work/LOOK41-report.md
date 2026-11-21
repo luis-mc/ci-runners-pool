@@ -30,7 +30,7 @@ Branch `LOOK41-jobs-redesign`, from `origin/CRSP208-release-48`. Branch-only fil
 - Playwright (targeted, before the gate): jobs-doctor, ux-jobs-rows, ux-table-cells.
 
 ## E2E results
-(filled in after the gate)
+DL-88 gate (`branch_gate.py --e2e-only --no-setup --no-publish`, full suite because packages/ui changed) on head 647b2e6: 3258 passed, 2 skipped, 0 failed (21 min). Earlier runs on this branch failed 13 cases (stat tile gap and label-in-name, table outside a pane on the new list, Live rows two lines high, the 3 insights cases proven on the release head); all fixed before the final run. Changed specs: `jobs-doctor.spec.ts` (4 new cases: focus and search, Down/Up/j/k walk, details panel, redirects and six tabs), `ux-jobs-rows.spec.ts`, `ux-table-cells.spec.ts`, `design-layout.spec.ts` (new Jobs screens). `ux-routes` entries are read from `screens/jobs/routes.tsx`, so `/jobs/live`, `/jobs/done`, `/jobs/elsewhere` and the redirecting old routes are covered at 360, 393 and 1300 px.
 
 ## Failures proven on the release head
 - `ux-routes.spec.ts` `ux wordBroken: /jobs/insights` (data, stress, empty): the word *Guardrails* in the Area column of Do next breaks over two lines at 1300 px. Proven on a clean worktree of `origin/CRSP208-release-48` (same 3 failures, 18 other cases of that route pass). It blocked the DL-88 gate record (the full suite ran because packages/ui changed), so it was fixed rather than listed: `DoNext.tsx` gives its table `oneLine`, so the Area column is a fit column sized to its widest value (UX-72). No check was weakened and no known-list entry was added. All insights routes pass after it.
