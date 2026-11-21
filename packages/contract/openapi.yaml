@@ -6909,7 +6909,7 @@ components:
               tray_paused,
               on_battery,
               busy,
-                  base_image_missing,
+              base_image_missing,
               disk_low,
             ]
     CpuCapState:
