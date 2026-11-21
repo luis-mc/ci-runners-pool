@@ -1,6 +1,6 @@
 // LOOK31: the six-item menu, Shared Pool and its tabs, the old addresses, the Runners grouping, the
 // "How crsp works" strip and the Jobs sub-sections.
-import { cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { renderApp, repository, runner, signedIn } from '../../testing/mock';
@@ -230,9 +230,16 @@ describe('How crsp works strip (D33)', () => {
   });
 
   it('is gone once the pool has a machine, a runner and a repository', async () => {
-    renderApp(ready(), '/');
+    const api = ready();
+    renderApp(api, '/');
     await screen.findByRole('heading', { level: 1, name: 'Overview' });
-    await new Promise((r) => setTimeout(r, 50));
+    // The strip decides once its three lists are answered: wait on that, then let the state settle.
+    await waitFor(() => {
+      expect(api.count('GET', '/api/v1/machines')).toBeGreaterThan(0);
+      expect(api.count('GET', '/api/v1/runners')).toBeGreaterThan(0);
+      expect(api.count('GET', '/api/v1/github/repositories')).toBeGreaterThan(0);
+    });
+    await act(async () => {});
     expect(screen.queryByText(/How crsp works:/)).toBeNull();
   });
 

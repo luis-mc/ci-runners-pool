@@ -276,15 +276,31 @@ export async function openRoute(
 }
 
 /** Waits for the page to be at rest, and puts the mode on pages that have no stored one (sign-in, first run). */
+/** Waits until the page has drawn after a change (a resize, a click): two animation frames, no fixed time. */
+export async function frames(page: Page): Promise<void> {
+  await page.evaluate(
+    () =>
+      new Promise<void>((done) =>
+        requestAnimationFrame(() => requestAnimationFrame(() => done())),
+      ),
+  );
+}
+
+/** The page's first level heading is on screen: the page has rendered its data (or its empty or failed words). */
+export async function headingShown(page: Page): Promise<void> {
+  await page.getByRole('heading', { level: 1 }).first().waitFor({ state: 'visible' });
+}
+
 export async function settle(page: Page, mode: Mode, loading = false): Promise<void> {
   await page.locator('main').first().waitFor();
-  if (loading) await page.waitForTimeout(500);
+  if (loading)
+    await frames(page); // never answered: the loading state is at rest once drawn
   else await page.waitForLoadState('networkidle');
   await page.evaluate(
     (m) => document.documentElement.setAttribute('data-theme', m),
     mode,
   );
-  await page.waitForTimeout(50);
+  await frames(page);
 }
 
 /** The measures. Each is a function body run in the page; it returns a list of problem lines. */
@@ -546,7 +562,7 @@ export async function measureEverywhere(
     await openRoute(page, route, { mode, state });
     for (const w of widths) {
       await page.setViewportSize(w);
-      await page.waitForTimeout(30);
+      await frames(page);
       for (const line of await measure(page, what))
         out.push(`${route.pattern} ${state} ${mode} ${w.width}px: ${line}`);
     }
@@ -679,7 +695,7 @@ export async function stickyWalkAfterChange(page: Page): Promise<string[]> {
     else await text.fill(`${await text.inputValue()}x`);
   } else if (await box.count()) await box.click({ force: true });
   else return [];
-  await page.waitForTimeout(80);
+  await frames(page);
   return stickyWalk(page);
 }
 
@@ -696,7 +712,7 @@ export async function stickyEverywhere(
     await openRoute(page, route, { mode, state });
     for (const w of widths) {
       await page.setViewportSize(w);
-      await page.waitForTimeout(30);
+      await frames(page);
       for (const line of await walk(page))
         out.push(`${route.pattern} ${state} ${mode} ${w.width}px: ${line}`);
     }
