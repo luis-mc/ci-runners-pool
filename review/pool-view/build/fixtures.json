@@ -1,0 +1,596 @@
+{
+ "overview": {
+  "machines": [
+   {
+    "id": "m1",
+    "name": "GameRoomPC",
+    "os": "linux",
+    "arch": "x64",
+    "state": "active",
+    "online": true,
+    "taking": {
+     "taking_jobs": true
+    },
+    "is_controller": true,
+    "backends": [
+     {
+      "name": "docker",
+      "present": true,
+      "usable": true,
+      "allowed": true,
+      "version": "27"
+     }
+    ],
+    "settings": {
+     "budget_memory_pct": 85,
+     "budget_cpu_pct": 60,
+     "job_slots": 2,
+     "light_slots": 2,
+     "heavy_slots": 1,
+     "allowed_backends": [
+      "docker"
+     ],
+     "drain_timeout_minutes": 60,
+     "windows_symlink_right": false
+    },
+    "load": {
+     "memory_pct": 80,
+     "cpu_pct": 55,
+     "memory_known": true,
+     "cpu_known": true,
+     "sampled_at": "2026-11-21T14:12:00Z",
+     "stale": false
+    },
+    "slots_used": 2,
+    "last_seen_at": "2026-11-21T14:12:00Z",
+    "running_jobs": []
+   },
+   {
+    "id": "m2",
+    "name": "BuildTower",
+    "os": "linux",
+    "arch": "x64",
+    "state": "active",
+    "online": true,
+    "taking": {
+     "taking_jobs": true
+    },
+    "is_controller": false,
+    "backends": [
+     {
+      "name": "docker",
+      "present": true,
+      "usable": true,
+      "allowed": true,
+      "version": "27"
+     }
+    ],
+    "settings": {
+     "budget_memory_pct": 85,
+     "budget_cpu_pct": 60,
+     "job_slots": 3,
+     "light_slots": 2,
+     "heavy_slots": 1,
+     "allowed_backends": [
+      "docker"
+     ],
+     "drain_timeout_minutes": 60,
+     "windows_symlink_right": false
+    },
+    "load": {
+     "memory_pct": 40,
+     "cpu_pct": 45,
+     "memory_known": true,
+     "cpu_known": true,
+     "sampled_at": "2026-11-21T14:12:00Z",
+     "stale": false
+    },
+    "slots_used": 2,
+    "last_seen_at": "2026-11-21T14:12:00Z",
+    "running_jobs": []
+   },
+   {
+    "id": "m3",
+    "name": "MacMini",
+    "os": "macos",
+    "arch": "arm64",
+    "state": "active",
+    "online": true,
+    "taking": {
+     "taking_jobs": true
+    },
+    "is_controller": false,
+    "backends": [
+     {
+      "name": "docker",
+      "present": true,
+      "usable": true,
+      "allowed": true,
+      "version": "27"
+     }
+    ],
+    "settings": {
+     "budget_memory_pct": 85,
+     "budget_cpu_pct": 60,
+     "job_slots": 1,
+     "light_slots": 2,
+     "heavy_slots": 1,
+     "allowed_backends": [
+      "docker"
+     ],
+     "drain_timeout_minutes": 60,
+     "windows_symlink_right": false
+    },
+    "load": {
+     "memory_pct": 20,
+     "cpu_pct": 20,
+     "memory_known": true,
+     "cpu_known": true,
+     "sampled_at": "2026-11-21T14:12:00Z",
+     "stale": false
+    },
+    "slots_used": 1,
+    "last_seen_at": "2026-11-21T14:12:00Z",
+    "running_jobs": []
+   }
+  ],
+  "queued_count": 4,
+  "running": [],
+  "last_event_id": "1"
+ },
+ "routes": {
+  "/api/v1/me": {
+   "user": {
+    "id": 1,
+    "login": "octo",
+    "role": "owner",
+    "added_at": "2026-11-01T10:00:00Z"
+   },
+   "csrf": "tok",
+   "github_signin": {
+    "state": "active",
+    "expires_at": "2026-11-27T18:30:00Z"
+   }
+  },
+  "/api/v1/me/preferences": {
+   "theme": "dark"
+  },
+  "/api/v1/overview": {
+   "machines": [
+    {
+     "id": "m1",
+     "name": "GameRoomPC",
+     "os": "linux",
+     "arch": "x64",
+     "state": "active",
+     "online": true,
+     "taking": {
+      "taking_jobs": true
+     },
+     "is_controller": true,
+     "backends": [
+      {
+       "name": "docker",
+       "present": true,
+       "usable": true,
+       "allowed": true,
+       "version": "27"
+      }
+     ],
+     "settings": {
+      "budget_memory_pct": 85,
+      "budget_cpu_pct": 60,
+      "job_slots": 2,
+      "light_slots": 2,
+      "heavy_slots": 1,
+      "allowed_backends": [
+       "docker"
+      ],
+      "drain_timeout_minutes": 60,
+      "windows_symlink_right": false
+     },
+     "load": {
+      "memory_pct": 80,
+      "cpu_pct": 55,
+      "memory_known": true,
+      "cpu_known": true,
+      "sampled_at": "2026-11-21T14:12:00Z",
+      "stale": false
+     },
+     "slots_used": 2,
+     "last_seen_at": "2026-11-21T14:12:00Z",
+     "running_jobs": []
+    },
+    {
+     "id": "m2",
+     "name": "BuildTower",
+     "os": "linux",
+     "arch": "x64",
+     "state": "active",
+     "online": true,
+     "taking": {
+      "taking_jobs": true
+     },
+     "is_controller": false,
+     "backends": [
+      {
+       "name": "docker",
+       "present": true,
+       "usable": true,
+       "allowed": true,
+       "version": "27"
+      }
+     ],
+     "settings": {
+      "budget_memory_pct": 85,
+      "budget_cpu_pct": 60,
+      "job_slots": 3,
+      "light_slots": 2,
+      "heavy_slots": 1,
+      "allowed_backends": [
+       "docker"
+      ],
+      "drain_timeout_minutes": 60,
+      "windows_symlink_right": false
+     },
+     "load": {
+      "memory_pct": 40,
+      "cpu_pct": 45,
+      "memory_known": true,
+      "cpu_known": true,
+      "sampled_at": "2026-11-21T14:12:00Z",
+      "stale": false
+     },
+     "slots_used": 2,
+     "last_seen_at": "2026-11-21T14:12:00Z",
+     "running_jobs": []
+    },
+    {
+     "id": "m3",
+     "name": "MacMini",
+     "os": "macos",
+     "arch": "arm64",
+     "state": "active",
+     "online": true,
+     "taking": {
+      "taking_jobs": true
+     },
+     "is_controller": false,
+     "backends": [
+      {
+       "name": "docker",
+       "present": true,
+       "usable": true,
+       "allowed": true,
+       "version": "27"
+      }
+     ],
+     "settings": {
+      "budget_memory_pct": 85,
+      "budget_cpu_pct": 60,
+      "job_slots": 1,
+      "light_slots": 2,
+      "heavy_slots": 1,
+      "allowed_backends": [
+       "docker"
+      ],
+      "drain_timeout_minutes": 60,
+      "windows_symlink_right": false
+     },
+     "load": {
+      "memory_pct": 20,
+      "cpu_pct": 20,
+      "memory_known": true,
+      "cpu_known": true,
+      "sampled_at": "2026-11-21T14:12:00Z",
+      "stale": false
+     },
+     "slots_used": 1,
+     "last_seen_at": "2026-11-21T14:12:00Z",
+     "running_jobs": []
+    }
+   ],
+   "queued_count": 4,
+   "running": [],
+   "last_event_id": "1"
+  },
+  "/api/v1/update": {
+   "current_version": "1.4.0",
+   "latest_version": "1.4.0",
+   "update_available": false,
+   "state": "idle",
+   "auto_update": false,
+   "running_jobs": [],
+   "drain_timeout_minutes": 60
+  },
+  "/api/v1/setup": {
+   "has_app": true,
+   "has_owner": true,
+   "setup_link_redeemed": true,
+   "steps": {
+    "connect_github": "done",
+    "first_machine": "done",
+    "first_repository": "done"
+   }
+  },
+  "/api/v1/machines": {
+   "items": [
+    {
+     "id": "m1",
+     "name": "GameRoomPC",
+     "os": "linux",
+     "arch": "x64",
+     "state": "active",
+     "online": true,
+     "taking": {
+      "taking_jobs": true
+     },
+     "is_controller": true,
+     "backends": [
+      {
+       "name": "docker",
+       "present": true,
+       "usable": true,
+       "allowed": true,
+       "version": "27"
+      }
+     ],
+     "settings": {
+      "budget_memory_pct": 85,
+      "budget_cpu_pct": 60,
+      "job_slots": 2,
+      "light_slots": 2,
+      "heavy_slots": 1,
+      "allowed_backends": [
+       "docker"
+      ],
+      "drain_timeout_minutes": 60,
+      "windows_symlink_right": false
+     },
+     "load": {
+      "memory_pct": 80,
+      "cpu_pct": 55,
+      "memory_known": true,
+      "cpu_known": true,
+      "sampled_at": "2026-11-21T14:12:00Z",
+      "stale": false
+     },
+     "slots_used": 2,
+     "last_seen_at": "2026-11-21T14:12:00Z",
+     "running_jobs": []
+    },
+    {
+     "id": "m2",
+     "name": "BuildTower",
+     "os": "linux",
+     "arch": "x64",
+     "state": "active",
+     "online": true,
+     "taking": {
+      "taking_jobs": true
+     },
+     "is_controller": false,
+     "backends": [
+      {
+       "name": "docker",
+       "present": true,
+       "usable": true,
+       "allowed": true,
+       "version": "27"
+      }
+     ],
+     "settings": {
+      "budget_memory_pct": 85,
+      "budget_cpu_pct": 60,
+      "job_slots": 3,
+      "light_slots": 2,
+      "heavy_slots": 1,
+      "allowed_backends": [
+       "docker"
+      ],
+      "drain_timeout_minutes": 60,
+      "windows_symlink_right": false
+     },
+     "load": {
+      "memory_pct": 40,
+      "cpu_pct": 45,
+      "memory_known": true,
+      "cpu_known": true,
+      "sampled_at": "2026-11-21T14:12:00Z",
+      "stale": false
+     },
+     "slots_used": 2,
+     "last_seen_at": "2026-11-21T14:12:00Z",
+     "running_jobs": []
+    },
+    {
+     "id": "m3",
+     "name": "MacMini",
+     "os": "macos",
+     "arch": "arm64",
+     "state": "active",
+     "online": true,
+     "taking": {
+      "taking_jobs": true
+     },
+     "is_controller": false,
+     "backends": [
+      {
+       "name": "docker",
+       "present": true,
+       "usable": true,
+       "allowed": true,
+       "version": "27"
+      }
+     ],
+     "settings": {
+      "budget_memory_pct": 85,
+      "budget_cpu_pct": 60,
+      "job_slots": 1,
+      "light_slots": 2,
+      "heavy_slots": 1,
+      "allowed_backends": [
+       "docker"
+      ],
+      "drain_timeout_minutes": 60,
+      "windows_symlink_right": false
+     },
+     "load": {
+      "memory_pct": 20,
+      "cpu_pct": 20,
+      "memory_known": true,
+      "cpu_known": true,
+      "sampled_at": "2026-11-21T14:12:00Z",
+      "stale": false
+     },
+     "slots_used": 1,
+     "last_seen_at": "2026-11-21T14:12:00Z",
+     "running_jobs": []
+    }
+   ]
+  },
+  "/api/v1/runners": {
+   "items": []
+  },
+  "/api/v1/github/repositories": {
+   "items": [],
+   "stale": {
+    "stale": false
+   }
+  }
+ },
+ "machines": [
+  {
+   "id": "m1",
+   "name": "GameRoomPC",
+   "os": "linux",
+   "arch": "x64",
+   "state": "active",
+   "online": true,
+   "taking": {
+    "taking_jobs": true
+   },
+   "is_controller": true,
+   "backends": [
+    {
+     "name": "docker",
+     "present": true,
+     "usable": true,
+     "allowed": true,
+     "version": "27"
+    }
+   ],
+   "settings": {
+    "budget_memory_pct": 85,
+    "budget_cpu_pct": 60,
+    "job_slots": 2,
+    "light_slots": 2,
+    "heavy_slots": 1,
+    "allowed_backends": [
+     "docker"
+    ],
+    "drain_timeout_minutes": 60,
+    "windows_symlink_right": false
+   },
+   "load": {
+    "memory_pct": 80,
+    "cpu_pct": 55,
+    "memory_known": true,
+    "cpu_known": true,
+    "sampled_at": "2026-11-21T14:12:00Z",
+    "stale": false
+   },
+   "slots_used": 2,
+   "last_seen_at": "2026-11-21T14:12:00Z",
+   "running_jobs": []
+  },
+  {
+   "id": "m2",
+   "name": "BuildTower",
+   "os": "linux",
+   "arch": "x64",
+   "state": "active",
+   "online": true,
+   "taking": {
+    "taking_jobs": true
+   },
+   "is_controller": false,
+   "backends": [
+    {
+     "name": "docker",
+     "present": true,
+     "usable": true,
+     "allowed": true,
+     "version": "27"
+    }
+   ],
+   "settings": {
+    "budget_memory_pct": 85,
+    "budget_cpu_pct": 60,
+    "job_slots": 3,
+    "light_slots": 2,
+    "heavy_slots": 1,
+    "allowed_backends": [
+     "docker"
+    ],
+    "drain_timeout_minutes": 60,
+    "windows_symlink_right": false
+   },
+   "load": {
+    "memory_pct": 40,
+    "cpu_pct": 45,
+    "memory_known": true,
+    "cpu_known": true,
+    "sampled_at": "2026-11-21T14:12:00Z",
+    "stale": false
+   },
+   "slots_used": 2,
+   "last_seen_at": "2026-11-21T14:12:00Z",
+   "running_jobs": []
+  },
+  {
+   "id": "m3",
+   "name": "MacMini",
+   "os": "macos",
+   "arch": "arm64",
+   "state": "active",
+   "online": true,
+   "taking": {
+    "taking_jobs": true
+   },
+   "is_controller": false,
+   "backends": [
+    {
+     "name": "docker",
+     "present": true,
+     "usable": true,
+     "allowed": true,
+     "version": "27"
+    }
+   ],
+   "settings": {
+    "budget_memory_pct": 85,
+    "budget_cpu_pct": 60,
+    "job_slots": 1,
+    "light_slots": 2,
+    "heavy_slots": 1,
+    "allowed_backends": [
+     "docker"
+    ],
+    "drain_timeout_minutes": 60,
+    "windows_symlink_right": false
+   },
+   "load": {
+    "memory_pct": 20,
+    "cpu_pct": 20,
+    "memory_known": true,
+    "cpu_known": true,
+    "sampled_at": "2026-11-21T14:12:00Z",
+    "stale": false
+   },
+   "slots_used": 1,
+   "last_seen_at": "2026-11-21T14:12:00Z",
+   "running_jobs": []
+  }
+ ]
+}
