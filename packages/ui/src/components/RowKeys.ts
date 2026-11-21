@@ -45,7 +45,7 @@ export function handleRowKey(e: KeyboardEvent): boolean {
   const k = e.key;
   if (k !== 'ArrowLeft' && k !== 'ArrowRight' && k !== 'Home' && k !== 'End')
     return false;
-  const target = e.target instanceof HTMLElement ? e.target : null;
+  const target = e.target instanceof Element ? (e.target as HTMLElement) : null;
   if (!target) return false;
   const row = rowOf(target);
   if (!row || row.items.length === 0) return false;

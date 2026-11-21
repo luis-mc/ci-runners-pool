@@ -26,6 +26,7 @@ export * from './components/Wizard';
 export * from './components/Grant';
 export * from './components/KeyHints';
 export * from './components/Popover';
+export * from './components/Help';
 export * from './components/Shell';
 export * from './components/ActionBar';
 export * from './components/EditBar';

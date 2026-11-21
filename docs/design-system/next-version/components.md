@@ -14,7 +14,7 @@ One numbered section per shared component. A part that nearly fits is extended w
 
 ## 2. Top menu and breadcrumbs
 
-- **Used for:** moving between the main areas, and showing the path back up. The console has exactly six areas: Overview, Shared Pool, Repositories, Jobs, Doctor, Settings. An area with parts (Shared Pool, Jobs, Settings) shows them as one tab row (component 3) under the menu, never as more menu items.
+- **Used for:** moving between the main areas, and showing the path back up. The console has exactly seven areas: Overview, Shared Pool, Repositories, Jobs, Doctor, Settings, Help (LOOK44). An area with parts (Shared Pool, Jobs, Settings) shows them as one tab row (component 3) under the menu, never as more menu items.
 - **Looks:** a row of the main areas, starting on the frame edge, with the current one marked as a tab is marked: bold primary text and a 3 px underline, never a box (UX-69). A quiet trail of links shows the path back up. The top bar above it holds the product name and status on the left and Commands and the login on the right inside the same frame; at phone width it is two lines, name and login, then status and Commands. On a phone the areas are one Menu button (`TopMenuButton`), its box on the same frame edge as the title and the tab row; it opens the list under it (UX-15, UX-69). LOOK36.
 - **Source:** `packages/ui/src/components/Shell.tsx` (`Header`, `TopMenu`, `TopMenuButton`)
 - **Rules:** UX-1, UX-3, UX-16, UX-17, UX-69.
@@ -688,6 +688,41 @@ A field's width caps its box, never its name and help: a lone field's name and h
 - **Source:** `packages/ui/src/components/Charts.tsx` (`TrendChart`, `mode="stacked"`), `packages/ui/src/components.css` (to be built; the apps do not follow this yet).
 - **Rules:** UX-41, UX-17, UX-18, UX-52, UX-58, UX-16.
 - **Guard:** `packages/ui/src/components/Viz.test.tsx` (to be written with the mode).
+
+## 64. Job path
+
+- **Used for:** the picture of how a job gets run, on the Help page and on the first-run Overview (LOOK44, owner pick I, D57). It shows the parts a job passes through, in order: Repository, Run, Job (*On GitHub*) and Queue, Slot, Runner, Machine (*In your pool*).
+- **Anatomy:** a list of two framed groups with a label each (*On GitHub*, *In your pool*), each holding numbered boxes in order: the number, the part's name in bold and one short muted line (*one start of a workflow*). An arrow sits between two boxes. The boxes are HTML, not a drawing, so the words wrap and a screen reader reads them (UX-17).
+- **States:** *read only* (the first-run Overview: the boxes are plain boxes); *with a choice* (on Help each box is a button that goes to the step it belongs to); *lit* (the parts of the current step have the selection fill and the primary border; the rest stay plain), told by the fill and by `aria-pressed`, never by colour alone (UX-58).
+- **Tokens:** `--ds-color-surface`, `--ds-color-border`, `--ds-color-divider`, `--ds-color-primary`, `--ds-color-selection`, `--ds-color-on-primary`, `--ds-color-text`, `--ds-color-text-muted`, `--ds-space-1` to `--ds-space-5`, `--ds-radius-2`, `--ds-radius-3`, `--ds-target-min`. No new token.
+- **Keyboard and screen reader:** each box is one tab stop; Down, Up, `j` and `k` move through them in page order (UX-57); Enter or Space presses. A box is named by its visible words (*Slot room for one job*), so its name holds its visible text. The list is named *How a job gets run*.
+- **Phone (360, 393 px):** the groups stack and the boxes run top to bottom with a down arrow between them; a box is at least `--ds-target-min` high and its words wrap, never cut (UX-72).
+- **Source:** `packages/ui/src/components/Help.tsx` (`JobPath`), `packages/ui/src/components.css`
+- **Rules:** UX-41, UX-17, UX-57, UX-58, UX-72, UX-16, CORE-2, CORE-5.
+- **Guard:** `packages/ui/src/components/Help.test.tsx`, `e2e/tests/web-console/help.spec.ts` and the DOM layout checks of `ux-routes.spec.ts` at 360, 393 and 1300 px.
+
+## 65. Stepper
+
+- **Used for:** a read-only tour of one picture in a few steps (the three steps of Help). It is the step bar of the wizard (component 4) without the work: nothing here changes anything, so there is no Review, no Stop and no Done step (UX-30 is for a flow that changes something).
+- **Anatomy:** the step bar of the wizard: a numbered step per name, the current one bold with the primary underline, a step the tour has been to marked with a tick and pressable, a later step grey and not pressable until the tour has got there. The page keeps Back and Next in the pane's action row; Next is the one primary, and on the last step it says *Start again*.
+- **States:** *current*, *been there* (pressable), *later* (disabled). A link that ends in a card opens the step of that card and counts the step as been to.
+- **Keyboard and screen reader:** each pressable step is one tab stop, Down and Up move between them (UX-57); the current step has `aria-current="step"`; the list is named by the page (*Steps*).
+- **Phone (360, 393 px):** the bar wraps as the wizard's bar does (UX-15).
+- **Source:** `packages/ui/src/components/Help.tsx` (`Stepper`), `packages/ui/src/components.css` (the `ds-steps` rules of component 4)
+- **Rules:** UX-5, UX-54, UX-57, UX-15, UX-16, CORE-5, CORE-6.
+- **Guard:** `packages/ui/src/components/Help.test.tsx`, `e2e/tests/web-console/help.spec.ts`.
+
+## 66. Term help
+
+- **Used for:** the ? beside a word the user may not know (*Slots*, *Load budget*, *Queue*, *Runner type*, *Run elsewhere*): a short answer where the word is, and a link to the same card on the Help page (LOOK44, D57).
+- **Anatomy:** a small button with the sign ? and the name *What does {term} mean?*, placed after the word. It opens a popover (component 31) with the term in bold, one or two short sentences and the link *More about this in Help*. It is not a command: the screen's primary-button check and the rule of no command buttons on the Overview (UX-52) leave it out (`data-term-help`).
+- **States:** *closed* (`aria-expanded="false"`), *open*. Escape and a press outside close it; Escape puts focus back on the ? (LOOK30).
+- **Tokens:** `--ds-color-primary`, `--ds-color-surface`, `--ds-color-border`, `--ds-space-2`, `--ds-space-3`, `--ds-space-4`, `--ds-radius-3`, `--ds-target-min`, `--ds-z-menu`. No new token.
+- **Keyboard and screen reader:** one tab stop; Enter or Space opens; the open answer is a group named by the term (UX-43, UX-44).
+- **Phone (360, 393 px):** the answer is a sheet at the bottom of the screen, full width (UX-43); the button is `--ds-target-min` square (UX-16).
+- **Source:** `packages/ui/src/components/Help.tsx` (`TermHelp`), `packages/ui/src/components/Popover.tsx`, `packages/ui/src/components.css`
+- **Rules:** UX-43, UX-44, UX-46, UX-47, UX-16, UX-17, UX-57, CORE-3.
+- **Guard:** `apps/web/src/screens/help/Help.test.tsx`, `e2e/tests/web-console/help.spec.ts`, and the `primary` guard of `e2e/tests/web-console/ux-guards.ts`.
 
 ## How to add a component
 

@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 // Component 16: a progress bar. A known total is a filled bar; an unknown total is an animated bar (UX-29).
 // LevelBar shows a level against a budget (UX-41) with its value in words.
 export function Progress({
@@ -38,16 +39,22 @@ export function LevelBar({
   value,
   max,
   text,
+  help,
 }: {
   label: string;
   value: number;
   max: number;
   text: string;
+  /** A term-help button (component 66) beside the name. */
+  help?: ReactNode;
 }) {
   const pct = max > 0 ? Math.min(100, (value / max) * 100) : 0;
   return (
     <div className="ds-level">
-      <span className="ds-level__name">{label}</span>
+      <span className="ds-level__name">
+        {label}
+        {help}
+      </span>
       <div
         className="ds-level__bar"
         role="meter"

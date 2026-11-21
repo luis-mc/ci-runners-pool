@@ -1,6 +1,7 @@
 // One job : where it builds (repository, branch, commit, worktree), its run and attempts, the
 // run's job graph, its steps as a waterfall, the runner, the times, the queue place and ETA, the forecast and the
 // history of its job key. The one primary is "Open the run on GitHub" (LOOK27); no command changes a job.
+import { HelpTerm } from '../help/HelpTerm';
 import {
   ActionBar,
   Badge,
@@ -249,7 +250,11 @@ function JobBody({ j }: { j: JobDetail }) {
           <Facts
             items={[
               { name: 'Runner', value: runner.name },
-              { name: 'Runner type', value: RUNNER_KIND_WORDS[runner.kind] },
+              {
+                name: 'Runner type',
+                value: RUNNER_KIND_WORDS[runner.kind],
+                help: <HelpTerm term="runnerType" />,
+              },
               { name: 'Machine', value: runner.machine_name ?? 'not known' },
               {
                 name: 'Backend',

@@ -97,7 +97,7 @@ The states named for every list follow the design system: loading (component 16,
 
 - **Purpose:** the frame around every signed-in screen.
 - **Header:** the product name, the pool status as a word, glyph and colour (UX-58), the live-update state, a button that opens the command palette (it shows `Ctrl+K`, or `Cmd+K` on macOS), and the user menu (GitHub login, role, the state of the GitHub sign-in, Sign in with GitHub again when it ended, Sign out; R5.95).
-- **Top menu (component 2):** six areas: Overview, Shared Pool, Repositories, Jobs, Doctor, Settings (owner decision D24, LOOK31). The current area is marked. Shared Pool and Jobs have sub-sections as tabs (component 3). The old addresses `/machines`, `/runners`, `/images` and `/caches` redirect to their place in Shared Pool and keep the query, so bookmarks, the setup banner and a stored plan (`?plan=`) work. Below 601 px the areas are one Menu button that opens the list, so the menu never takes more than one row (UX-15, UX-16; CRSP159). Detail pages show breadcrumbs (component 2).
+- **Top menu (component 2):** seven areas: Overview, Shared Pool, Repositories, Jobs, Doctor, Settings, Help (owner decisions D24, LOOK31, LOOK44). The current area is marked. Shared Pool and Jobs have sub-sections as tabs (component 3). The old addresses `/machines`, `/runners`, `/images` and `/caches` redirect to their place in Shared Pool and keep the query, so bookmarks, the setup banner and a stored plan (`?plan=`) work. Below 601 px the areas are one Menu button that opens the list, so the menu never takes more than one row (UX-15, UX-16; CRSP159). Detail pages show breadcrumbs (component 2).
 - **Page header (component 1):** one headline per screen (UX-3), with the screen's one primary action (UX-4).
 - **Banner slot (component 18):** the one app-wide slot (UX-27). It carries "Live updates paused", "First run is not finished" and "A new version is ready".
 - **Activity strip (component 27):** running work that the console started, such as a drain, an image rebuild or an update (UX-34).
@@ -149,7 +149,7 @@ The states named for every list follow the design system: loading (component 16,
 
 - **Purpose:** see the pool at a glance and jump to what needs you.
 - **Data:** `getOverview`, then `streamEvents`.
-- **First run:** a note strip "How crsp works" (Pool, Machines, Runners; repositories use the pool) shows until the pool has a machine, a runner and a repository; it can be hidden and stays hidden in this browser (D33, LOOK31).
+- **First run:** a pane "How a job gets run" shows the picture of Help (the job path, component 64) and the buttons *Open Help* and *Hide this* until the pool has a machine, a runner and a repository; it can be hidden and stays hidden in this browser. It replaces the old "How crsp works" note (D33, LOOK31, LOOK44).
 - **Shows:** a card per machine (component 8, UX-10) with its state word (UX-58) and three level bars for memory, CPU and slots against its budget (UX-41, owner question Q4); the queue count; the running jobs (component 15); the section "Why jobs wait" (component 15): every queued or held job with the first reason it waits, in words, from `waiting` of `getOverview` (scheduling R5.48, UX-34, UX-19); today's minutes saved as a lettered figure (component 31). Each item links to its screen.
 - **Actions:** none. The overview only shows and links (UX-52).
 - **States:** loading; empty (no machine yet: "No machines yet. Add a machine to start." links to Machines, content.md); could not load; live; live updates paused. Every section, and the loading and could-not-load states, sit in a pane titled in its top border (UX-10, UX-51); the h1 stays in every state (UX-17).
@@ -288,6 +288,18 @@ Settings hold configuration only (UX-52). Settings has six tabs (CRSP159, owner 
 - **Notifications (built, CRSP37):** a table (component 15) of the channels with name, kind, where it sends, events, lowest severity, on or off and the last test; one form (Add and Edit) whose Save is the tab's one Save, in the action bar (UX-24, UX-71); **Add channel** (a normal button; the form it opens is saved by the tab's one Save, LOOK27), **Send test** per row, busy and disabled while it runs, one result line under the table (UX-13, UX-27, UX-38); **Delete** with a question card that names the channel and the events it stops carrying (UX-62, R5.30). A secret is never shown again. A viewer sees only their own channels and cannot pick a webhook, with the reason beside it. Empty: "No channels yet. Add a channel to be told when a machine, job or disk needs you."
 - **Detail:** budgets are in `machines` and `scheduling`; notifications in `notifications`; updates, backup and config export in `operations`; the audit log in `observability`.
 - **Components:** 1, 3, 7, 8, 9, 13, 14, 15, 17, 19, 22, 24, 29, 37.
+
+### 4.10 Help
+
+- **Purpose:** explain how a job gets run, in plain words, and what the terms of the console mean (LOOK44, owner pick I).
+- **Data:** the machine list (`listMachines`), for each machine's real slots and load budget; the rest is fixed text.
+- **Shows:** the page header; a pane *How a job gets run* with the stepper (component 65: *On GitHub*, *In your pool*, *Looking after the pool*), the job path (component 64) with the parts of the step lit, and one line for the step; a pane *Questions* with the question cards of the step (UX-10, UX-51). The slot card says *Pool size makes slots*: you set memory and CPUs on Pool size, and crsp turns that into slots, the number of jobs that run at once. The slot and load budget cards list each machine with its own numbers, never a fixed 85% or 60%. *Runner type* is the word for persistent or ephemeral. The last step explains the Doctor, the tray app and images and caches. English only.
+- **Actions:** Back and Next (the one primary; *Start again* on the last step), a part of the picture or a step to go to it. Nothing changes any data, so there is no Review or Done step. A later step is grey until the tour has been there; an address that ends in a card (`/help#q-slot`) opens its step.
+- **In the console:** a ? (component 66) beside *Slots*, *Load budget*, *Queue*, *Runner type* and *Run elsewhere* opens a short answer with a link to the same card (`/help#q-slot`, `#q-budget`, `#q-queue`, `#q-runner-type`, `#q-elsewhere`).
+- **Keyboard:** Down, Up, `j` and `k` move between the controls, the boxes of the picture included (UX-57).
+- **States:** loading and could not load for the machine numbers (the cards still read); no machine (*No machine yet. Add a machine to see its slots.*).
+- **Components:** 1, 4 (step bar), 7, 8, 64, 65, 66.
+- **Rules:** CORE-1 to CORE-7, UX-4, UX-10, UX-43, UX-51, UX-54, UX-57, UX-72.
 
 ## 5. Functional requirements
 
@@ -527,6 +539,7 @@ flowchart LR
 | `/jobs`, `/jobs/repository`, `/jobs/machine`, `/jobs/runner`, `/jobs/runner-type`, `/jobs/job-type`, `/jobs/charts`, `/jobs/run/:id`, `/jobs/:id` | Jobs |
 | `/images`, `/caches` | Images and caches |
 | `/doctor` | Doctor |
+| `/help` | Help |
 | `/settings/access`, `/settings/repositories`, `/settings/console`, `/settings/data`, `/settings/audit` (and the old one-page addresses, which redirect) | Settings |
 
 **API operations to add** (all under `/api/v1`, each with `x-auth` and `x-rate-limit`). The owning spec fixes each one's shape.

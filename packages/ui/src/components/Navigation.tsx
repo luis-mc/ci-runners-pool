@@ -138,7 +138,7 @@ export function handleNavigationKey(
   const down = e.key === 'ArrowDown' || e.key === 'j';
   const up = e.key === 'ArrowUp' || e.key === 'k';
   if (!down && !up) return false;
-  const target = e.target instanceof HTMLElement ? e.target : null;
+  const target = e.target instanceof Element ? (e.target as HTMLElement) : null;
   const letter = e.key === 'j' || e.key === 'k';
   if (letter && isTextEntry(target)) return false;
   if (!letter && target && ownsVerticalArrows(target)) return false;

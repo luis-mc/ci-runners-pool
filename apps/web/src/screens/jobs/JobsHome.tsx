@@ -1,6 +1,7 @@
 // Jobs, home: one tab row for the queue, the running work, the last done work and the sub-sections (by repository,
 // machine, runner, runner type, job type, charts). Every list is one Table (component 15). Wait reasons say what is
 // happening (UX-29); a status is a word, a glyph and a colour (UX-58). Runs are the first view, jobs the second.
+import { HelpTerm } from '../help/HelpTerm';
 import {
   ActionBar,
   Button,
@@ -690,6 +691,7 @@ function JobsListTab({ kind }: { kind: Kind }) {
                   }}
                 />
               ) : null}
+              {kind !== 'done' ? <HelpTerm term="elsewhere" /> : null}
               {kind === 'done' ? (
                 <Segmented
                   label="Range"

@@ -27,6 +27,7 @@ import { waitWords } from '../jobs/words';
 import { Load } from '../common';
 import { OverviewInsights } from '../insights/OverviewLine';
 import { HowCrspWorks } from './HowCrspWorks';
+import { HelpTerm } from '../help/HelpTerm';
 
 type Machine = Schemas['Machine'];
 type Job = Schemas['Job'];
@@ -80,6 +81,7 @@ export function MachineCard({ m }: { m: Machine }) {
       />
       <LevelBar
         label="Slots"
+        help={<HelpTerm term="slot" />}
         value={m.slots_used}
         max={Math.max(1, budget.job_slots)}
         text={`${m.slots_used} of ${budget.job_slots}`}
@@ -221,7 +223,11 @@ export function Overview() {
           <Section title="Queue and running jobs">
             <Facts
               items={[
-                { name: 'Queued jobs', value: formatNumber(o.queued_count) },
+                {
+                  name: 'Queued jobs',
+                  value: formatNumber(o.queued_count),
+                  help: <HelpTerm term="queue" />,
+                },
                 { name: 'Running jobs', value: formatNumber(o.running.length) },
               ]}
             />

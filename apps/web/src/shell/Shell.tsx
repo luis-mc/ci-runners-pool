@@ -94,6 +94,7 @@ export const AREAS: readonly NavItem[] = [
   { to: '/jobs', label: 'Jobs' },
   { to: '/doctor', label: 'Doctor' },
   { to: '/settings', label: 'Settings' },
+  { to: '/help', label: 'Help' },
 ];
 
 interface Command {

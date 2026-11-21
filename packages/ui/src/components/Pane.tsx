@@ -13,6 +13,7 @@ export function Pane({
   level = 2,
   children,
   footer,
+  id,
 }: {
   title: string;
   /** A number shown after the title, as in ┤ Machines 3 ├. */
@@ -25,10 +26,13 @@ export function Pane({
   level?: 2 | 3 | undefined;
   children: ReactNode;
   footer?: ReactNode | undefined;
+  /** An address on the page: a link can end in `#id` (the Help cards). */
+  id?: string | undefined;
 }) {
   const Heading = level === 2 ? 'h2' : 'h3';
   return (
     <section
+      id={id}
       className="ds-pane"
       aria-label={title}
       data-actions={actions ? true : undefined}
