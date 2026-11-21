@@ -48,6 +48,7 @@ export const doNextColumns: Column<Finding>[] = [
     header: 'Area',
     cell: (f) => AREA_WORDS[f.area],
     sort: (f) => f.area,
+    kind: 'fit',
     secondary: true,
   },
   {
@@ -55,12 +56,14 @@ export const doNextColumns: Column<Finding>[] = [
     header: 'Saves',
     cell: (f) => minutesWords(f.minutes_saved_week),
     sort: (f) => f.minutes_saved_week,
+    kind: 'fit',
   },
   {
     id: 'since',
     header: 'Since',
     cell: (f) => formatShortDateTime(f.first_seen),
     sort: (f) => f.first_seen,
+    kind: 'fit',
     secondary: true,
   },
 ];
@@ -103,6 +106,7 @@ export function DoNext() {
               ) : (
                 <Table
                   caption="Things to do next"
+                  oneLine
                   columns={doNextColumns}
                   rows={items}
                   rowKey={(f) => String(f.id)}

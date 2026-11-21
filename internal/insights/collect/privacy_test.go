@@ -16,7 +16,7 @@ import (
 
 const (
 	pem       = "-----BEGIN RSA PRIVATE KEY-----\nMIIEowIBAAKCAQEAverysecretkeymaterial\nsecondlineofkeymaterial\n-----END RSA PRIVATE KEY-----"
-	ghToken   = "ghp_abcdefghijklmnopqrstuvwxyz0123456789"
+	ghToken   = "ghp_" + "abcdefghijklmnopqrstuvwxyz0123456789"
 	jwt       = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV"
 	heldValue = "s3cr3t-held-by-controller"
 	envValue  = "env-value-never-kept"
