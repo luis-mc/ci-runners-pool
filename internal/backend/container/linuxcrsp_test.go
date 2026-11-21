@@ -10,6 +10,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -185,7 +186,7 @@ func TestLinuxCrspOwnBinaryOnSameArchLinuxHost(t *testing.T) {
 func TestStageRefusesWindowsBinary(t *testing.T) {
 	r, root := stagedRig(t)
 	r.b.cfg.CrspHostPath = writeFile(t, "crsp.exe", append([]byte("MZ"), make([]byte, 80)...))
-	_, err := r.b.stageBuild(context.Background(), "k1", "amd64")
+	_, err := r.b.stageBuild(context.Background(), "k1", runtime.GOARCH)
 	if !errors.Is(err, ErrNoLinuxCrsp) || !strings.Contains(err.Error(), "Windows program") {
 		t.Fatalf("%v", err)
 	}

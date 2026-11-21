@@ -6,6 +6,7 @@ import (
 	"encoding/binary"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -18,7 +19,7 @@ func stagedRig(t *testing.T) (*rig, string) {
 	t.Helper()
 	root := t.TempDir()
 	bin := filepath.Join(t.TempDir(), "crsp-bin")
-	if err := os.WriteFile(bin, elfHeader(elf.EM_X86_64), 0o700); err != nil {
+	if err := os.WriteFile(bin, elfHeader(nativeMachine()), 0o700); err != nil {
 		t.Fatal(err)
 	}
 	return newRig(t, func(c *Config) {
@@ -48,7 +49,7 @@ func TestBuildUsesEmbeddedFiles(t *testing.T) {
 
 func TestStageWritesTreeAndBinary(t *testing.T) {
 	r, root := stagedRig(t)
-	dir, err := r.b.stageBuild(context.Background(), "abc123", "amd64")
+	dir, err := r.b.stageBuild(context.Background(), "abc123", runtime.GOARCH)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -72,7 +73,7 @@ func TestStageWritesTreeAndBinary(t *testing.T) {
 		t.Error("staged Dockerfile differs from the embedded one")
 	}
 	// A second stage replaces the folder.
-	if _, err := r.b.stageBuild(context.Background(), "abc123", "amd64"); err != nil {
+	if _, err := r.b.stageBuild(context.Background(), "abc123", runtime.GOARCH); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -80,7 +81,7 @@ func TestStageWritesTreeAndBinary(t *testing.T) {
 func TestStageRefusesBadKey(t *testing.T) {
 	r, _ := stagedRig(t)
 	for _, k := range []string{"", "../x", "a/b"} {
-		if _, err := r.b.stageBuild(context.Background(), k, "amd64"); err == nil {
+		if _, err := r.b.stageBuild(context.Background(), k, runtime.GOARCH); err == nil {
 			t.Errorf("key %q was accepted", k)
 		}
 	}
@@ -166,4 +167,13 @@ func elfHeader(m elf.Machine) []byte {
 	binary.LittleEndian.PutUint32(h[20:], uint32(elf.EV_CURRENT))
 	binary.LittleEndian.PutUint16(h[52:], 64)
 	return h
+}
+
+// nativeMachine is the ELF machine type of this host's architecture, so a staged
+// build on any CI runner (amd64 or arm64) finds a binary of its own arch.
+func nativeMachine() elf.Machine {
+	if runtime.GOARCH == "arm64" {
+		return elf.EM_AARCH64
+	}
+	return elf.EM_X86_64
 }
