@@ -209,6 +209,8 @@ The band, the buttons and the focus ring follow the design system, component 49 
 
 **R5.51** (built, TRAY8) — **Already the newest is an answer, not a failure.** When the service answers `install` with `this is already the newest stable release`, the tray client returns that plain error without the `local channel:` prefix. The update window then shows `Up to date` with `Now running {version}. This is the newest stable release.` and one `Close` button, never `The update failed`; a Review of a version that is not newer than the one that runs opens on the same step, with no `Update now`. The notice and the native box say `Up to date`. The window wraps its text a little narrower than its box, so a long line such as the Review note wraps and is never cut.
 
+**R5.52** (built, TRAY10) — **The window measures text with a device context it owns.** The native update window and `--layout-check` build their fonts the same way (`newFonts(dpi)`): the fonts create their own measuring DC and delete it in `free()`, and never keep a DC that was released (a released DC made `GetTextExtentPoint32` fail, so every width was 0, the body line never wrapped and the `0%` label and the bar ran past the margin). `Measure` never answers 0 for non-empty text: when the call fails it estimates from the rune count and the average character width. `Clipped` flags a line that measures 0, a line wider than its box, and any item that runs past the right margin (`pad + textW`).
+
 **R5.29** — The tray MUST ask the service to look for updates only through the local channel calls `check` and `install`; it never talks to GitHub itself. Update, restart and Look for updates MUST NOT need a network port in the tray (R6.3). (M1, CRSP19)
 
 **R5.30** — Open on GitHub MUST open `https://github.com/luis-mc/ci-runners-shared-pool` in the default browser. (M1, CRSP19)
@@ -317,6 +319,7 @@ Rows marked built have tests that exist and run in CI. Rows marked planned are n
 | R5.49 | built (TRAY5): internal/updatewindow/layout_test.go (nothing clipped at every DPI, no fixed pixel heights), art_test.go (the palette is the generated tokens, faint scanlines), tray-smoke Windows layout check and screenshots |
 | R5.50 | built (TRAY8): internal/tray/apply_test.go TestMissedHideOfTheUpdateLineIsReasserted, TestOnlyChangedItemsAreTouched; internal/tray/update_prompt_test.go TestOfferNeverOffersAVersionThatIsNotNewer |
 | R5.51 | built (TRAY8): internal/updatewindow/model_test.go TestNoUpdateAnswerShowsUpToDate, TestReviewNeverOffersAVersionThatIsNotNewer, TestReviewBodyWrapsWithoutCutting; internal/tray/update_prompt_test.go TestInstallAnsweredNoUpdateSaysUpToDate; apps/web Updates.test.tsx (no Update to line for a version that is not newer) |
+| R5.52 | built (TRAY10): internal/updatewindow/paint_windows_test.go TestFontsMeasureAfterTheScreenDCIsReleased (Windows), layout_test.go TestClippedFlagsALineWiderThanItsBoxAndAFailedMeasure, TestInstallingBodyWrapsAtEveryDPI |
 | R5.2 | built: internal/tray/menu_test.go, TestServiceLinePerState, TestHeaderPerUpdateState; internal/tray/tray_test.go, TestStatusTextPerState (tooltip) |
 | R5.3 | built: internal/tray/tray_test.go, TestPollerUpdatesWithin10s (injected clock) |
 | R5.4 | built: internal/tray/tray_test.go, TestIconIsAlwaysTheDiscDifferingOnlyInColour, TestCommittedAppIconMatches |
