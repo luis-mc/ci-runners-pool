@@ -1325,21 +1325,15 @@ The words of the Help page and of the ? beside a term (LOOK44, owner pick I of 2
 | Word | Where and meaning |
 |---|---|
 | Help | The seventh area of the menu and the page title. |
-| How crsp runs your jobs, one step at a time. | Lead of Help. |
+| How crsp runs your jobs, and what its words mean. | Lead of Help (LOOK47). |
 | How a job gets run | Pane of the picture on Help and on the first-run Overview. |
 | On GitHub / In your pool | The two groups of the picture. |
-| Steps | Name of the stepper list. |
-| On GitHub / In your pool / Looking after the pool | The three steps of Help. |
-| Next / Back / Start again | The buttons of the stepper pane. Next is the primary; on the last step it says *Start again*. |
-| Parts 1 to 3 happen on GitHub. A push starts a run, and each job of the run asks for a runner by its labels. | Line of step 1. |
-| Parts 4 to 7 happen in your pool. crsp queues the job, waits for a free slot on a machine, and a runner there does the work. | Line of step 2. |
-| The Doctor, the tray app and the images and caches keep the pool working. | Line of step 3. |
-| 7 parts. Press a part to see its step. | Quiet line under the picture. |
+| 7 parts. Press a part to jump to its question. | Quiet line under the picture. |
 | Repository, Run, Job, Queue, Slot, Runner, Machine | The seven parts. Their lines: a GitHub project; one start of a workflow; asks for a runner; waits for a slot; room for one job; does the work; your computer. |
-| Questions | Pane of the question cards of the current step. |
-| What does shared mean? / What are a run and a job? / What are labels? / What does Run elsewhere mean? | Cards of step 1. |
-| Why is my job waiting? / What is a slot? / What is the load budget? / What is the queue? / What is a runner type? | Cards of step 2. |
-| What is the Doctor? / What is the tray app? / What are images and caches? | Cards of step 3. |
+| Questions | Pane with every question card at once (no steps, no Back, Next or Start again since LOOK47). |
+| What does shared mean? / What are a run and a job? / What are labels? / What does Run elsewhere mean? | Cards about GitHub, first in the grid. |
+| Why is my job waiting? / What is a slot? / What is the load budget? / What is the queue? / What is a runner type? | Cards about the pool, second in the grid. |
+| What is the Doctor? / What is the tray app? / What are images and caches? | Cards about looking after the pool, last in the grid. |
 | Slot | Room for one job at a time on a machine. |
 | Pool size makes slots: you set memory and CPUs on Pool size, and crsp turns that into slots, the number of jobs that run at once. | The sentence of the slot card and of the ? on Slots. |
 | Load budget | The most memory and CPU a machine may use for jobs. Over it, new jobs wait. The card shows each machine's own budget (`memory 70%, CPU 55%`), read from the API. |
