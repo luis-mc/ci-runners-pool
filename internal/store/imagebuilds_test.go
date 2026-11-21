@@ -130,13 +130,12 @@ func TestImageBuildListRunningFirstAndPerMachine(t *testing.T) {
 	q := testDB(t)
 	ids := []string{"bld_1", "bld_2", "bld_3"}
 	i := 0
-	r := &builds.Recorder{Q: q, NewID: func() string { i++; return ids[i-1] }}
+	clk := time.Now()
+	r := &builds.Recorder{Q: q, NewID: func() string { i++; return ids[i-1] }, Now: func() time.Time { clk = clk.Add(time.Second); return clk }}
 	a, _ := r.Begin(ctx, builds.Meta{MachineID: "m1", Key: "a"})
 	r.End(ctx, a.ID, builds.Outcome{State: builds.StateDone})
-	time.Sleep(2 * time.Millisecond)
 	b, _ := r.Begin(ctx, builds.Meta{MachineID: "m2", Key: "b"})
 	r.Progress(ctx, b.ID, builds.Progress{Step: 1, Total: 2, Name: "x"})
-	time.Sleep(2 * time.Millisecond)
 	c, _ := r.Begin(ctx, builds.Meta{MachineID: "m1", Key: "c"})
 	r.End(ctx, c.ID, builds.Outcome{State: builds.StateFailed, FailureClass: builds.ClassOther})
 

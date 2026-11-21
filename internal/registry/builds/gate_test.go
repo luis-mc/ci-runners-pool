@@ -2,6 +2,7 @@ package builds
 
 import (
 	"context"
+	"runtime"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -22,13 +23,9 @@ func TestGateOneBuildAtATime(t *testing.T) {
 				return
 			}
 			n := atomic.AddInt32(&inside, 1)
-			for {
-				p := atomic.LoadInt32(&peak)
-				if n <= p || atomic.CompareAndSwapInt32(&peak, p, n) {
-					break
-				}
+			for p := atomic.LoadInt32(&peak); n > p && !atomic.CompareAndSwapInt32(&peak, p, n); p = atomic.LoadInt32(&peak) {
 			}
-			time.Sleep(5 * time.Millisecond)
+			runtime.Gosched() // stay inside long enough for a second build to try
 			atomic.AddInt32(&inside, -1)
 			rel()
 		}()

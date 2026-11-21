@@ -46,7 +46,7 @@ func moduleRoot(t *testing.T) string {
 		t.Fatal(err)
 	}
 	topModule := ""
-	for {
+	for hops := 0; hops < 256; hops++ {
 		for _, marker := range []string{".git", "go.work"} {
 			if _, err := os.Stat(filepath.Join(dir, marker)); err == nil {
 				return dir

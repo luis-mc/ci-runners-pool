@@ -165,14 +165,12 @@ func (e *env) session(machineID, key string, hello *agentv1.Hello) (*fakeAgent, 
 	}
 	fa := &fakeAgent{T: e.T, Stream: st, Ack: first.GetHelloAck(), in: make(chan *agentv1.SessionResponse, 64), errc: make(chan error, 1), cancel: cancel}
 	go func() {
-		for {
-			m, err := st.Receive()
-			if err != nil {
-				fa.errc <- err
-				return
-			}
+		var m *agentv1.SessionResponse
+		var err error
+		for m, err = st.Receive(); err == nil; m, err = st.Receive() {
 			fa.in <- m
 		}
+		fa.errc <- err
 	}()
 	e.T.Cleanup(cancel)
 	return fa, nil
@@ -214,14 +212,23 @@ func waitFor(t *testing.T, what string, cond func() bool) {
 // machine (detection runs docker, lspci and the like) and is slow when cold.
 func waitUntil(t *testing.T, limit time.Duration, what string, cond func() bool) {
 	t.Helper()
-	deadline := time.Now().Add(limit)
-	for time.Now().Before(deadline) {
-		if cond() {
-			return
-		}
-		time.Sleep(5 * time.Millisecond)
+	if cond() {
+		return
 	}
-	t.Fatalf("timed out waiting for %s", what)
+	tick := time.NewTicker(5 * time.Millisecond)
+	defer tick.Stop()
+	deadline := time.NewTimer(limit)
+	defer deadline.Stop()
+	for {
+		select {
+		case <-tick.C:
+			if cond() {
+				return
+			}
+		case <-deadline.C:
+			t.Fatalf("timed out waiting for %s", what)
+		}
+	}
 }
 
 func heartbeat() *agentv1.SessionRequest {

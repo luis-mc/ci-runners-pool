@@ -150,11 +150,7 @@ func TestRealSSHRunnerPinsHostKeyAndRunsCommand(t *testing.T) { // RES3
 	t.Cleanup(func() { _ = ln.Close() })
 	got := make(chan string, 1)
 	go func() {
-		for {
-			conn, err := ln.Accept()
-			if err != nil {
-				return
-			}
+		for conn, err := ln.Accept(); err == nil; conn, err = ln.Accept() {
 			go serveOne(conn, cfg, got)
 		}
 	}()
