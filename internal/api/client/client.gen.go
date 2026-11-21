@@ -2531,6 +2531,27 @@ func (e Role) Valid() bool {
 	}
 }
 
+// Defines values for RunFollowUpState.
+const (
+	RunFollowUpStateDone    RunFollowUpState = "done"
+	RunFollowUpStateQueued  RunFollowUpState = "queued"
+	RunFollowUpStateRunning RunFollowUpState = "running"
+)
+
+// Valid indicates whether the value is a known member of the RunFollowUpState enum.
+func (e RunFollowUpState) Valid() bool {
+	switch e {
+	case RunFollowUpStateDone:
+		return true
+	case RunFollowUpStateQueued:
+		return true
+	case RunFollowUpStateRunning:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for RunGraphSource.
 const (
 	TimingOverlap RunGraphSource = "timing_overlap"
@@ -2543,6 +2564,30 @@ func (e RunGraphSource) Valid() bool {
 	case TimingOverlap:
 		return true
 	case WorkflowFile:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RunItemOverallState.
+const (
+	RunItemOverallStateDone            RunItemOverallState = "done"
+	RunItemOverallStateFollowUpRunning RunItemOverallState = "follow_up_running"
+	RunItemOverallStateQueued          RunItemOverallState = "queued"
+	RunItemOverallStateRunning         RunItemOverallState = "running"
+)
+
+// Valid indicates whether the value is a known member of the RunItemOverallState enum.
+func (e RunItemOverallState) Valid() bool {
+	switch e {
+	case RunItemOverallStateDone:
+		return true
+	case RunItemOverallStateFollowUpRunning:
+		return true
+	case RunItemOverallStateQueued:
+		return true
+	case RunItemOverallStateRunning:
 		return true
 	default:
 		return false
@@ -2585,6 +2630,30 @@ func (e RunSavingChange) Valid() bool {
 	case NoWait:
 		return true
 	case StartAfterNeeds:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for RunSummaryOverallState.
+const (
+	RunSummaryOverallStateDone            RunSummaryOverallState = "done"
+	RunSummaryOverallStateFollowUpRunning RunSummaryOverallState = "follow_up_running"
+	RunSummaryOverallStateQueued          RunSummaryOverallState = "queued"
+	RunSummaryOverallStateRunning         RunSummaryOverallState = "running"
+)
+
+// Valid indicates whether the value is a known member of the RunSummaryOverallState enum.
+func (e RunSummaryOverallState) Valid() bool {
+	switch e {
+	case RunSummaryOverallStateDone:
+		return true
+	case RunSummaryOverallStateFollowUpRunning:
+		return true
+	case RunSummaryOverallStateQueued:
+		return true
+	case RunSummaryOverallStateRunning:
 		return true
 	default:
 		return false
@@ -3087,6 +3156,7 @@ func (e TimelineLaneOrigin) Valid() bool {
 const (
 	TimelineSegmentKindIdle TimelineSegmentKind = "idle"
 	TimelineSegmentKindJob  TimelineSegmentKind = "job"
+	TimelineSegmentKindWait TimelineSegmentKind = "wait"
 )
 
 // Valid indicates whether the value is a known member of the TimelineSegmentKind enum.
@@ -3095,6 +3165,8 @@ func (e TimelineSegmentKind) Valid() bool {
 	case TimelineSegmentKindIdle:
 		return true
 	case TimelineSegmentKindJob:
+		return true
+	case TimelineSegmentKindWait:
 		return true
 	default:
 		return false
@@ -6666,6 +6738,23 @@ type ResourceSample struct {
 // Role defines model for Role.
 type Role string
 
+// RunFollowUp A run that another run started next (CIX24).
+type RunFollowUp struct {
+	Attempt     *int       `json:"attempt,omitempty"`
+	CompletedAt *time.Time `json:"completed_at,omitempty"`
+
+	// Link The run on GitHub.
+	Link         string           `json:"link"`
+	Result       *JobResult       `json:"result,omitempty"`
+	RunId        int64            `json:"run_id"`
+	StartedAt    *time.Time       `json:"started_at,omitempty"`
+	State        RunFollowUpState `json:"state"`
+	WorkflowName string           `json:"workflow_name"`
+}
+
+// RunFollowUpState defines model for RunFollowUp.State.
+type RunFollowUpState string
+
 // RunGraph Where the edges of a run come from (OPS34 D3).
 type RunGraph struct {
 	// DynamicNodes node_id of the jobs a matrix or a reusable workflow expands at run time.
@@ -6696,22 +6785,40 @@ type RunItem struct {
 	// Eta Seconds from now, with a range. When a queued job starts, or when a run ends.
 	Eta *Eta `json:"eta,omitempty"`
 
+	// FollowUps How many runs this run started next.
+	FollowUps *int `json:"follow_ups,omitempty"`
+
+	// FollowUpsOpen How many of them are queued or running.
+	FollowUpsOpen *int `json:"follow_ups_open,omitempty"`
+
 	// Graph Where the edges of a run come from (OPS34 D3).
-	Graph        RunGraph     `json:"graph"`
-	HeadSha      string       `json:"head_sha"`
-	HtmlUrl      string       `json:"html_url"`
-	Id           int64        `json:"id"`
-	Jobs         []Job        `json:"jobs"`
-	PullRequest  *int         `json:"pull_request,omitempty"`
-	Repository   string       `json:"repository"`
-	RepositoryId *int64       `json:"repository_id,omitempty"`
-	Result       *JobResult   `json:"result,omitempty"`
-	State        RunItemState `json:"state"`
-	TaskId       *string      `json:"task_id,omitempty"`
-	Trigger      string       `json:"trigger"`
-	Workflow     string       `json:"workflow"`
-	Worktree     *string      `json:"worktree,omitempty"`
+	Graph   RunGraph `json:"graph"`
+	HeadSha string   `json:"head_sha"`
+	HtmlUrl string   `json:"html_url"`
+	Id      int64    `json:"id"`
+	Jobs    []Job    `json:"jobs"`
+
+	// OverallState The state with follow-ups counted. It is the run's own state until the run is done, then follow_up_running while a run it started next (event workflow_run, such as Installers after CI) is queued or running. The own state and the result do not change.
+	OverallState RunItemOverallState `json:"overall_state"`
+	PullRequest  *int                `json:"pull_request,omitempty"`
+	Repository   string              `json:"repository"`
+	RepositoryId *int64              `json:"repository_id,omitempty"`
+	Result       *JobResult          `json:"result,omitempty"`
+
+	// StartedBy The run that started this one (event workflow_run), when it is known.
+	StartedBy *int64 `json:"started_by,omitempty"`
+
+	// StartedNext The runs this run started next, oldest first.
+	StartedNext []RunFollowUp `json:"started_next"`
+	State       RunItemState  `json:"state"`
+	TaskId      *string       `json:"task_id,omitempty"`
+	Trigger     string        `json:"trigger"`
+	Workflow    string        `json:"workflow"`
+	Worktree    *string       `json:"worktree,omitempty"`
 }
+
+// RunItemOverallState The state with follow-ups counted. It is the run's own state until the run is done, then follow_up_running while a run it started next (event workflow_run, such as Installers after CI) is queued or running. The own state and the result do not change.
+type RunItemOverallState string
 
 // RunItemState defines model for RunItem.State.
 type RunItemState string
@@ -6756,21 +6863,36 @@ type RunSummary struct {
 	CreatedAt   time.Time  `json:"created_at"`
 
 	// Eta Seconds from now, with a range. When a queued job starts, or when a run ends.
-	Eta     *Eta   `json:"eta,omitempty"`
-	HeadSha string `json:"head_sha"`
-	HtmlUrl string `json:"html_url"`
+	Eta *Eta `json:"eta,omitempty"`
+
+	// FollowUps How many runs this run started next.
+	FollowUps *int `json:"follow_ups,omitempty"`
+
+	// FollowUpsOpen How many of them are queued or running.
+	FollowUpsOpen *int   `json:"follow_ups_open,omitempty"`
+	HeadSha       string `json:"head_sha"`
+	HtmlUrl       string `json:"html_url"`
 
 	// Id The GitHub run id.
-	Id           int64           `json:"id"`
-	JobsDone     int             `json:"jobs_done"`
-	JobsFailed   int             `json:"jobs_failed"`
-	JobsTotal    int             `json:"jobs_total"`
-	PullRequest  *int            `json:"pull_request,omitempty"`
-	Repository   string          `json:"repository"`
-	RepositoryId *int64          `json:"repository_id,omitempty"`
-	Result       *JobResult      `json:"result,omitempty"`
-	State        RunSummaryState `json:"state"`
-	TaskId       *string         `json:"task_id,omitempty"`
+	Id         int64 `json:"id"`
+	JobsDone   int   `json:"jobs_done"`
+	JobsFailed int   `json:"jobs_failed"`
+	JobsTotal  int   `json:"jobs_total"`
+
+	// OverallState The state with follow-ups counted. It is the run's own state until the run is done, then follow_up_running while a run it started next (event workflow_run, such as Installers after CI) is queued or running. The own state and the result do not change.
+	OverallState RunSummaryOverallState `json:"overall_state"`
+	PullRequest  *int                   `json:"pull_request,omitempty"`
+	Repository   string                 `json:"repository"`
+	RepositoryId *int64                 `json:"repository_id,omitempty"`
+	Result       *JobResult             `json:"result,omitempty"`
+
+	// StartedBy The run that started this one (event workflow_run), when it is known.
+	StartedBy *int64 `json:"started_by,omitempty"`
+
+	// StartedNext The runs this run started next, oldest first.
+	StartedNext *[]RunFollowUp  `json:"started_next,omitempty"`
+	State       RunSummaryState `json:"state"`
+	TaskId      *string         `json:"task_id,omitempty"`
 
 	// TotalSeconds Wall time from created to completed, or to now while open.
 	TotalSeconds *int    `json:"total_seconds,omitempty"`
@@ -6778,6 +6900,9 @@ type RunSummary struct {
 	Workflow     string  `json:"workflow"`
 	Worktree     *string `json:"worktree,omitempty"`
 }
+
+// RunSummaryOverallState The state with follow-ups counted. It is the run's own state until the run is done, then follow_up_running while a run it started next (event workflow_run, such as Installers after CI) is queued or running. The own state and the result do not change.
+type RunSummaryOverallState string
 
 // RunSummaryState defines model for RunSummary.State.
 type RunSummaryState string
@@ -7276,20 +7401,26 @@ type TimelineLaneOrigin string
 
 // TimelineSegment defines model for TimelineSegment.
 type TimelineSegment struct {
-	End        time.Time                 `json:"end"`
-	Event      *string                   `json:"event,omitempty"`
-	JobId      *int64                    `json:"job_id,omitempty"`
-	JobIdent   *string                   `json:"job_ident,omitempty"`
+	End   time.Time `json:"end"`
+	Event *string   `json:"event,omitempty"`
+
+	// FollowUp The job belongs to a run another run started (event workflow_run).
+	FollowUp *bool   `json:"follow_up,omitempty"`
+	JobId    *int64  `json:"job_id,omitempty"`
+	JobIdent *string `json:"job_ident,omitempty"`
+
+	// Kind A wait is the time a follow-up job waited for its runner (CIX24).
 	Kind       TimelineSegmentKind       `json:"kind"`
 	Markers    *[]TimelineSegmentMarkers `json:"markers,omitempty"`
 	Repository *string                   `json:"repository,omitempty"`
+	RunId      *int64                    `json:"run_id,omitempty"`
 	Start      time.Time                 `json:"start"`
 
 	// WaitingJobIds For a marked segment, the jobs that waited meanwhile.
 	WaitingJobIds *[]int64 `json:"waiting_job_ids,omitempty"`
 }
 
-// TimelineSegmentKind defines model for TimelineSegment.Kind.
+// TimelineSegmentKind A wait is the time a follow-up job waited for its runner (CIX24).
 type TimelineSegmentKind string
 
 // TimelineSegmentMarkers defines model for TimelineSegment.Markers.
