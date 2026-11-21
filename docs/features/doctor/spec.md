@@ -220,6 +220,8 @@ States:
 **R5.48 (OPS52 addition).** An agent folder in the runners folder that belongs to no known runner is a leftover on its own: no service, account, download or record is needed for the scan to list it, with its size, and the scan removes nothing. Remove runs only after the yes of the question card.
 **R5.60** (M1, OPS55; scheduling R5.73, R5.75; runners R5.98) — **`runner.slots`: runners and hold against the job slots.** For each machine with known job slots the check compares the most runners one repository can use on it (pool runners plus the repository's own) with the job slots, and the machine's gate maximum wait with the 30-minute job timeout. `ok` when the runners do not exceed the slots and the wait is below the timeout. `warn` when the runners exceed the slots: the title names the machine, the repository and both numbers, and the fix says to remove runners on the machine page until there are at most as many as slots, or raise Job slots (Pool size sets how many fit). `warn` when the stored maximum wait is not below the job timeout (the hook cuts it to 10 minutes anyway); the fix says to set Gate maximum wait to 10 minutes or less on the machine page.
 
+**R5.61** (M1, OPS59; machines R5.70, R5.68) — **`machine.reset`: settings or runners that look reset.** For each machine the check is `ok` unless it finds a sign: the machine joined again (it kept its settings and runners, but the owner should look); its settings are all the defaults while an earlier machine of the same computer (host name, OS, architecture) had chosen ones; or, on the controller machine, runner records belong to a machine that is not in the pool. `warn` names the machine and the signs, and the fix says to check allowed backends, pool size and runners on the machine page and points at the `machine.rejoin` audit entry.
+
 ## 6. Non-functional requirements
 
 **R6.1** — Speed: a full run over 10 machines, 50 runners and 100 repositories ends within 60 s. Each check has a timeout: default 10 s, ceiling 60 s. A quick run ends within 10 s. NOT YET IMPLEMENTED.
@@ -287,6 +289,7 @@ Machines:
 | `machine.floor.disk` | The machine is paused with the reason `disk_low`: free disk under the floor (default 10 GiB, `disk_floor_gib`), so no job and no VM starts until the floor plus 1 GiB is free. The fix names what to clean: container images and build cache, runner caches, left-over job folders, VM disks and checkpoints | fail | `crsp runners clean-work --machine NAME`, `docker system df`, `docker image prune -a` | no | 1 |
 | `machine.clock` | Clock differs from the controller or from GitHub's `Date` header by over 30 s (warn) or 120 s (fail) | warn, fail | Turn on time sync (NTP) on that machine | no | 1 |
 | `machine.config` | The machine config the hooks read is missing or not readable by runner accounts | fail | Grant read rights; the command per OS | no | 1 |
+| `machine.reset` | The machine joined again, has default settings after an earlier machine of the same computer had chosen ones, or runner records belong to a machine not in the pool | warn | Check backends, pool size and runners on the machine page; set them again | no | 1 |
 | `machine.slots` | A slot held by a dead holder or past `slot_stale_min`; a queue ticket older than that | fail | `crsp slots free-stale --machine NAME` (the next job gate also frees them) | no | 1 |
 | `machine.slots.heavy` | Heavy slots above total slots, so the heavy limit never bites | warn | Lower heavy slots on the Machines screen | no | 1 |
 | `machine.agent.version` | Agent version differs from the controller's | warn | Update the agent (drains first) | no | 3 |
@@ -536,6 +539,7 @@ Rows that name a file without "planned" are built (CRSP23). Planned rows are NOT
 | R5.51 | internal/doctor/checks/checks_test.go TestRunnerCacheWrite; internal/runnercache/sharedtools_test.go TestProbeRunsAsTheRunnerUser, TestFixCommandsAreTheSamePlan |
 | R5.48 (OPS52) | internal/leftovers/leftovers_test.go TestUnusedAgentFolderIsFlaggedAlone |
 | R5.60 | internal/doctor/checks/runnerslots_test.go TestRunnerSlotsWarns |
+| R5.61 | internal/doctor/checks/machinereset_test.go TestMachineResetWarns; internal/store/controllerstate_test.go TestResetSigns |
 
 ## 10. Decisions
 
