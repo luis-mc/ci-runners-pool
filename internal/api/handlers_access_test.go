@@ -95,24 +95,17 @@ func TestAccessCredentialLifecycleAndAudit(t *testing.T) { // R5.82
 	}
 }
 
-func TestParityCredentialIsRefusedOnEveryOtherEndpoint(t *testing.T) { // R5.83
+type parityCall struct{ method, path string }
+
+// checkParityScope calls every endpoint with an access credential: the endpoints
+// in allowed must not be refused, every other must answer 403.
+func checkParityScope(t *testing.T, calls []parityCall) {
+	t.Helper()
 	h := newHarness(t)
 	owner, csrf := h.setup(1, "alice")
 	value, _ := makeAccess(t, h, owner, csrf, "ci")
 	allowed := map[string]bool{"GET /api/v1/runners": true, "POST /api/v1/doctor/runs": true, "GET /api/v1/doctor/runs/d1": true}
-	for _, c := range []struct{ method, path string }{
-		{"GET", "/api/v1/runners"}, {"POST", "/api/v1/doctor/runs"}, {"GET", "/api/v1/doctor/runs/d1"},
-		// Reads outside the scope.
-		{"GET", "/api/v1/machines"}, {"GET", "/api/v1/settings"}, {"GET", "/api/v1/audit"}, {"GET", "/api/v1/jobs"},
-		{"GET", "/api/v1/auth/cli/tokens"}, {"GET", "/api/v1/access-credentials"}, {"GET", "/api/v1/users"},
-		// Writes.
-		{"POST", "/api/v1/access-credentials"}, {"DELETE", "/api/v1/access-credentials/ac_x"},
-		{"POST", "/api/v1/machines/m1/drain"}, {"PUT", "/api/v1/settings/pool"}, {"PATCH", "/api/v1/settings"},
-		{"DELETE", "/api/v1/runners/r1"}, {"POST", "/api/v1/runner-plans"}, {"POST", "/api/v1/repository-plans"},
-		{"POST", "/api/v1/repositories/100/parity-setup"}, {"POST", "/api/v1/join-codes"}, {"POST", "/api/v1/backups"},
-		{"POST", "/api/v1/update/apply"}, {"POST", "/api/v1/service/restart"}, {"PUT", "/api/v1/app/private-key"},
-		{"POST", "/api/v1/users"}, {"POST", "/api/v1/auth/logout"},
-	} {
+	for _, c := range calls {
 		var body any
 		if c.method != "GET" && c.method != "DELETE" {
 			body = map[string]any{}
@@ -129,6 +122,30 @@ func TestParityCredentialIsRefusedOnEveryOtherEndpoint(t *testing.T) { // R5.83
 			t.Errorf("%s: %d %s; want 403", key, res.StatusCode, b)
 		}
 	}
+}
+
+func TestParityCredentialReachesItsThreeEndpoints(t *testing.T) { // R5.83
+	checkParityScope(t, []parityCall{
+		{"GET", "/api/v1/runners"}, {"POST", "/api/v1/doctor/runs"}, {"GET", "/api/v1/doctor/runs/d1"},
+	})
+}
+
+func TestParityCredentialIsRefusedOnReadsOutsideItsScope(t *testing.T) { // R5.83
+	checkParityScope(t, []parityCall{
+		{"GET", "/api/v1/machines"}, {"GET", "/api/v1/settings"}, {"GET", "/api/v1/audit"}, {"GET", "/api/v1/jobs"},
+		{"GET", "/api/v1/auth/cli/tokens"}, {"GET", "/api/v1/access-credentials"}, {"GET", "/api/v1/users"},
+	})
+}
+
+func TestParityCredentialIsRefusedOnWrites(t *testing.T) { // R5.83
+	checkParityScope(t, []parityCall{
+		{"POST", "/api/v1/access-credentials"}, {"DELETE", "/api/v1/access-credentials/ac_x"},
+		{"POST", "/api/v1/machines/m1/drain"}, {"PUT", "/api/v1/settings/pool"}, {"PATCH", "/api/v1/settings"},
+		{"DELETE", "/api/v1/runners/r1"}, {"POST", "/api/v1/runner-plans"}, {"POST", "/api/v1/repository-plans"},
+		{"POST", "/api/v1/repositories/100/parity-setup"}, {"POST", "/api/v1/join-codes"}, {"POST", "/api/v1/backups"},
+		{"POST", "/api/v1/update/apply"}, {"POST", "/api/v1/service/restart"}, {"PUT", "/api/v1/app/private-key"},
+		{"POST", "/api/v1/users"}, {"POST", "/api/v1/auth/logout"},
+	})
 }
 
 func TestAccessCredentialNeedsAnAdminToMakeOne(t *testing.T) { // R5.82

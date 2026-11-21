@@ -25,7 +25,7 @@ SELECT * FROM image_builds WHERE state IN ('queued', 'building') OR push_state I
 ORDER BY queued_at;
 
 -- name: ListImageBuildsOfMachine :many
-SELECT * FROM image_builds WHERE machine_id = ? ORDER BY queued_at DESC LIMIT ?;
+SELECT * FROM image_builds WHERE machine_id = ? ORDER BY queued_at DESC, rowid DESC LIMIT ?;
 
 -- name: TypicalImageBuildSeconds :one
 SELECT coalesce(avg(julianday(finished_at) - julianday(started_at)) * 86400.0, 0.0) AS seconds
@@ -34,4 +34,4 @@ FROM (SELECT started_at, finished_at FROM image_builds
       ORDER BY finished_at DESC LIMIT 5);
 
 -- name: ListImageBuilds :many
-SELECT * FROM image_builds ORDER BY queued_at DESC LIMIT ?;
+SELECT * FROM image_builds ORDER BY queued_at DESC, rowid DESC LIMIT ?;

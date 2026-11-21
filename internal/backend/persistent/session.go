@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/runners"
 	"strings"
 	"time"
 )
@@ -19,8 +20,28 @@ import (
 const SessionExistsText = "a session for this runner already exists"
 
 // DefaultSessionWindow is how long a stale session is expected after a restart
-// (the pool setting session_wait_minutes, default 3).
-const DefaultSessionWindow = 3 * time.Minute
+// (the pool setting session_wait_minutes, default 6). On 20 Nov a hard Docker
+// restart kept every listener waiting for about 4 minutes, so 3 minutes was too
+// short and showed a fault for what was only a wait (runners R5.95).
+const DefaultSessionWindow = 6 * time.Minute
+
+// WaitReason is the words shown on the runner while GitHub holds its old
+// session. It is a wait, never an error (runners R5.95).
+const WaitReason = runners.SessionWaitReason
+
+// WaitText is WaitReason with the end of the wait window.
+func WaitText(until time.Time) string { return runners.SessionWaitText(until) }
+
+// Backoff is how long to wait before the next look at a refused session:
+// 5 seconds, doubled each time, never more than a minute. The listener is
+// never restarted in between (runners R5.46, R5.95).
+func Backoff(attempt int) time.Duration {
+	d := 5 * time.Second
+	for i := 0; i < attempt && d < time.Minute; i++ {
+		d *= 2
+	}
+	return min(d, time.Minute)
+}
 
 // ErrSessionStale means the session is still refused after the window.
 var ErrSessionStale = errors.New("GitHub still holds a session of this runner after the wait window")
@@ -60,6 +81,15 @@ type SessionGuard struct {
 	List func(context.Context) ([]int, error)
 
 	announced bool
+	attempts  int
+}
+
+// NextWait is the delay before the supervisor looks again after a refused
+// session (Backoff grows with each refusal). A clear look starts it over.
+func (g *SessionGuard) NextWait() time.Duration {
+	d := Backoff(g.attempts)
+	g.attempts++
+	return d
 }
 
 func (g *SessionGuard) now() time.Time {
@@ -89,11 +119,12 @@ func (g *SessionGuard) Observe(output string) (SessionState, error) {
 		}
 	}
 	if !found {
+		g.attempts = 0
 		return SessionClear, nil
 	}
 	if InSessionWindow(g.Restart, g.now(), g.Window) {
 		if !g.announced && g.Log != nil {
-			g.Log(fmt.Sprintf("runner %s: GitHub still holds the old session; waiting for it to drop, until %s", g.Runner, g.Until().UTC().Format("15:04:05Z")))
+			g.Log(fmt.Sprintf("runner %s: %s", g.Runner, WaitText(g.Until())))
 		}
 		g.announced = true
 		return SessionExpired, nil

@@ -2,7 +2,6 @@ package agent
 
 import (
 	"context"
-	"time"
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/dockercompact"
 	agentv1 "github.com/luis-mc/ci-runners-shared-pool/internal/gen/agent/v1"
@@ -20,9 +19,7 @@ func (c Config) dockerHost() dockercompact.Host {
 // changes nothing. Linux and macOS have no disk-file step: present is false.
 func dockerDiskReport(ctx context.Context, h dockercompact.Host) *agentv1.DockerDiskReport {
 	in := dockercompact.Inspect(ctx, h)
-	_, offset := time.Now().Zone()
-	r := &agentv1.DockerDiskReport{Present: len(in.Files) > 0, UsedKnown: in.UsedKnown, UsedBytes: in.UsedBytes, CanCompact: in.Elevated,
-		UtcOffsetSeconds: int32(offset)} //nolint:gosec // a zone offset is within a day
+	r := &agentv1.DockerDiskReport{Present: len(in.Files) > 0, UsedKnown: in.UsedKnown, UsedBytes: in.UsedBytes, CanCompact: in.Elevated}
 	for _, f := range in.Files {
 		r.Files = append(r.Files, f.Path)
 		r.FileBytes += f.Before

@@ -276,15 +276,31 @@ export async function openRoute(
 }
 
 /** Waits for the page to be at rest, and puts the mode on pages that have no stored one (sign-in, first run). */
+/** Waits until the page has drawn after a change (a resize, a click): two animation frames, no fixed time. */
+export async function frames(page: Page): Promise<void> {
+  await page.evaluate(
+    () =>
+      new Promise<void>((done) =>
+        requestAnimationFrame(() => requestAnimationFrame(() => done())),
+      ),
+  );
+}
+
+/** The page's first level heading is on screen: the page has rendered its data (or its empty or failed words). */
+export async function headingShown(page: Page): Promise<void> {
+  await page.getByRole('heading', { level: 1 }).first().waitFor({ state: 'visible' });
+}
+
 export async function settle(page: Page, mode: Mode, loading = false): Promise<void> {
   await page.locator('main').first().waitFor();
-  if (loading) await page.waitForTimeout(500);
+  if (loading)
+    await frames(page); // never answered: the loading state is at rest once drawn
   else await page.waitForLoadState('networkidle');
   await page.evaluate(
     (m) => document.documentElement.setAttribute('data-theme', m),
     mode,
   );
-  await page.waitForTimeout(50);
+  await frames(page);
 }
 
 /** The measures. Each is a function body run in the page; it returns a list of problem lines. */
@@ -304,12 +320,12 @@ const MEASURES = {
       if (r.width < 43.5 || r.height < 43.5) bad.push(label(e) + ' is ' + Math.round(r.width) + 'x' + Math.round(r.height) + ' px');
     }
     return bad;`,
-  /** UX-4: one primary button on the screen (a screen that offers an action has exactly one). The tabs that
-   *  switch the section, the sort buttons of a table head and the row buttons of a table are not the screen's actions. */
+  /** UX-4: one primary button on the screen (a screen that offers an action has exactly one). The tabs and
+   *  segmented switches that switch the section, the filter chips, the sort buttons of a table head, the row buttons of a table and the ? term-help buttons (component 66) are not the screen's actions. */
   primary: `${VISIBLE}
     const all = Array.from(document.querySelectorAll('[data-primary], button[data-kind=primary], a[data-button][data-kind=primary]')).filter(visible);
     const names = all.map(label);
-    const hasActions = Array.from(document.querySelectorAll('main button, main a[data-button]')).some((e) => visible(e) && !e.closest('[role=tablist], table, [role=table], [role=row]'));
+    const hasActions = Array.from(document.querySelectorAll('main button, main a[data-button]')).some((e) => visible(e) && !e.closest('[role=tablist], .ds-segmented, .ds-chips, table, [role=table], [role=row]') && !e.hasAttribute('data-term-help'));
     if (names.length > 1) return ['more than one primary: ' + names.join(' | ')];
     if (names.length === 0 && hasActions) return ['no primary button although the screen has actions'];
     return [];`,
@@ -546,7 +562,7 @@ export async function measureEverywhere(
     await openRoute(page, route, { mode, state });
     for (const w of widths) {
       await page.setViewportSize(w);
-      await page.waitForTimeout(30);
+      await frames(page);
       for (const line of await measure(page, what))
         out.push(`${route.pattern} ${state} ${mode} ${w.width}px: ${line}`);
     }
@@ -679,7 +695,7 @@ export async function stickyWalkAfterChange(page: Page): Promise<string[]> {
     else await text.fill(`${await text.inputValue()}x`);
   } else if (await box.count()) await box.click({ force: true });
   else return [];
-  await page.waitForTimeout(80);
+  await frames(page);
   return stickyWalk(page);
 }
 
@@ -696,7 +712,7 @@ export async function stickyEverywhere(
     await openRoute(page, route, { mode, state });
     for (const w of widths) {
       await page.setViewportSize(w);
-      await page.waitForTimeout(30);
+      await frames(page);
       for (const line of await walk(page))
         out.push(`${route.pattern} ${state} ${mode} ${w.width}px: ${line}`);
     }

@@ -276,3 +276,21 @@ func TestOpenPageUsesTheTargetLink(t *testing.T) {
 		}
 	}
 }
+
+// CIX23 (D18): the digest link shows only when a weekly digest file exists.
+func TestDigestItemOnlyWithAFile(t *testing.T) {
+	st := Status{State: StateHealthy, Version: "1.4.0", Update: UpdateInfo{State: "idle"}}
+	for _, l := range labels(Visible(BuildMenu("1.4.0", st, false))) {
+		if l == LabelOpenDigest {
+			t.Fatal("no digest file: the link must be hidden")
+		}
+	}
+	st.DigestPath = "/data/ci-data/digests/2026-W47.md"
+	found := false
+	for _, l := range labels(Visible(BuildMenu("1.4.0", st, false))) {
+		found = found || l == LabelOpenDigest
+	}
+	if !found {
+		t.Fatal("a digest file exists: the menu must link to it")
+	}
+}

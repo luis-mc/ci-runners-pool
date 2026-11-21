@@ -198,6 +198,19 @@ func (o *Opener) OpenLogFolder() error {
 	return nil
 }
 
+// OpenDigest opens the weekly digest file, a draft the service wrote and never sent (ci-run-insights R5.38).
+func (o *Opener) OpenDigest(path string) error {
+	if path == "" {
+		o.notify("No weekly digest yet", "The first one is written on Monday at 08:00 Lisbon time.")
+		return nil
+	}
+	if err := o.Files(path); err != nil {
+		o.notify("Could not open the weekly digest", path+": "+err.Error())
+		return err
+	}
+	return nil
+}
+
 func (o *Opener) notify(title, body string) {
 	if o.Notify != nil {
 		o.Notify(title, body)

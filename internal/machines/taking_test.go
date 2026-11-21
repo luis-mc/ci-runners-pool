@@ -44,7 +44,6 @@ func TestComputeAvailability(t *testing.T) {
 		{"load over the budget", true, machines.StateActive, auto, rep(machines.PauseReasonBudget), false, machines.NotTakingBusy},
 		{"base image missing", true, machines.StateActive, auto, rep(machines.PauseReasonBaseImage), false, machines.NotTakingBaseImage},
 		{"disk low", true, machines.StateActive, auto, rep(machines.PauseReasonDiskLow), false, machines.NotTakingDiskLow},
-		{"quiet hours", true, machines.StateActive, auto, rep(machines.PauseReasonQuietHours), false, machines.NotTakingQuietHours},
 		// The agent's own paused and on_battery lag behind a setting the controller just wrote (the bug of OPS29).
 		{"a stale agent paused is not read", true, machines.StateActive, always, rep(machines.PauseReasonPaused), true, ""},
 		{"a stale agent on_battery under Always is not read", true, machines.StateActive, always, rep(machines.PauseReasonOnBattery), true, ""},

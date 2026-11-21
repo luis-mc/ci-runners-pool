@@ -1,6 +1,6 @@
 // LOOK31: the six-item menu, Shared Pool and its tabs, the old addresses, the Runners grouping, the
 // "How crsp works" strip and the Jobs sub-sections.
-import { cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { renderApp, repository, runner, signedIn } from '../../testing/mock';
@@ -28,7 +28,7 @@ const empty = () =>
     .on('GET', '/api/v1/runners', { items: [] })
     .on('GET', '/api/v1/github/repositories', repos([]));
 
-describe('the six areas and the old addresses (D24)', () => {
+describe('the seven areas and the old addresses (D24)', () => {
   it('moves the old addresses to Shared Pool and keeps the query', async () => {
     const api = ready().on('GET', '/api/v1/runner-plans/:id', {
       id: 'rp1',
@@ -92,12 +92,12 @@ describe('the six areas and the old addresses (D24)', () => {
     ).toBeTruthy();
   });
 
-  it('moves between the six areas with Down and j from the menu', async () => {
+  it('moves between the seven areas with Down and j from the menu', async () => {
     const user = userEvent.setup();
     renderApp(ready(), '/');
     const nav = await screen.findByRole('navigation', { name: 'Areas' });
     const links = within(nav).getAllByRole('link');
-    expect(links).toHaveLength(6);
+    expect(links).toHaveLength(7);
     links[0]!.focus();
     await user.keyboard('j');
     expect(document.activeElement).toBe(links[1]);
@@ -207,7 +207,7 @@ describe('Runners grouped by machine (D32)', () => {
   });
 });
 
-describe('How crsp works strip (D33)', () => {
+describe('First-run job path (D33, LOOK44)', () => {
   it('decides from the three counts and the dismissal', () => {
     const f = { machines: 1, runners: 1, repositories: 1, dismissed: false };
     expect(showStrip(f)).toBe(false);
@@ -219,26 +219,42 @@ describe('How crsp works strip (D33)', () => {
 
   it('shows on first run and is dismissed for good', async () => {
     renderApp(empty(), '/');
-    expect(await screen.findByText(/How crsp works:/)).toBeTruthy();
+    expect(
+      await screen.findByRole('region', { name: 'How a job gets run' }),
+    ).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Open Help' })).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Hide this' }));
-    await waitFor(() => expect(screen.queryByText(/How crsp works:/)).toBeNull());
+    await waitFor(() =>
+      expect(screen.queryByRole('region', { name: 'How a job gets run' })).toBeNull(),
+    );
     expect(window.localStorage.getItem(STRIP_STORE_NAME)).toBe('1');
     cleanup();
     renderApp(empty(), '/');
     await screen.findByRole('heading', { level: 1, name: 'Overview' });
-    await waitFor(() => expect(screen.queryByText(/How crsp works:/)).toBeNull());
+    await waitFor(() =>
+      expect(screen.queryByRole('region', { name: 'How a job gets run' })).toBeNull(),
+    );
   });
 
   it('is gone once the pool has a machine, a runner and a repository', async () => {
-    renderApp(ready(), '/');
+    const api = ready();
+    renderApp(api, '/');
     await screen.findByRole('heading', { level: 1, name: 'Overview' });
-    await new Promise((r) => setTimeout(r, 50));
-    expect(screen.queryByText(/How crsp works:/)).toBeNull();
+    // The strip decides once its three lists are answered: wait on that, then let the state settle.
+    await waitFor(() => {
+      expect(api.count('GET', '/api/v1/machines')).toBeGreaterThan(0);
+      expect(api.count('GET', '/api/v1/runners')).toBeGreaterThan(0);
+      expect(api.count('GET', '/api/v1/github/repositories')).toBeGreaterThan(0);
+    });
+    await act(async () => {});
+    expect(screen.queryByRole('region', { name: 'How a job gets run' })).toBeNull();
   });
 
   it('stays while a repository is still to choose', async () => {
     const api = ready().on('GET', '/api/v1/github/repositories', repos([]));
     renderApp(api, '/');
-    expect(await screen.findByText(/How crsp works:/)).toBeTruthy();
+    expect(
+      await screen.findByRole('region', { name: 'How a job gets run' }),
+    ).toBeTruthy();
   });
 });

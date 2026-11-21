@@ -25,13 +25,27 @@ func okInput() machines.CompactInput {
 	}
 }
 
-// caches R5.51 to R5.54: the decision, one reason at a time.
-func TestDecideCompact(t *testing.T) {
-	cases := []struct {
-		name   string
-		mutate func(*machines.CompactInput)
-		want   string
-	}{
+type compactCase struct {
+	name   string
+	mutate func(*machines.CompactInput)
+	want   string
+}
+
+func runCompactCases(t *testing.T, cases []compactCase) {
+	t.Helper()
+	for _, c := range cases {
+		in := okInput()
+		c.mutate(&in)
+		got := machines.DecideCompact(in)
+		if got.Reason != c.want || got.Run != (c.want == machines.CompactRun) {
+			t.Errorf("%s: got %+v, want %s", c.name, got, c.want)
+		}
+	}
+}
+
+// caches R5.51 to R5.54: the decision, one reason at a time. Gates: setting, state, report, rights.
+func TestDecideCompactGates(t *testing.T) {
+	runCompactCases(t, []compactCase{
 		{"all conditions met", func(*machines.CompactInput) {}, machines.CompactRun},
 		{"off by the user", func(in *machines.CompactInput) { in.Settings.CompactMode = machines.CompactOff }, machines.CompactSkipOff},
 		{"windows without a disk file is off by default", func(in *machines.CompactInput) { in.Disk.Present = false }, machines.CompactSkipOff},
@@ -41,22 +55,23 @@ func TestDecideCompact(t *testing.T) {
 		{"a change is open", func(in *machines.CompactInput) { in.Open = true }, machines.CompactSkipChange},
 		{"already compacting", func(in *machines.CompactInput) { in.Compacting = true }, machines.CompactSkipRunning},
 		{"no report yet", func(in *machines.CompactInput) { in.Disk = machines.DockerDisk{} }, machines.CompactSkipOff},
+	})
+}
+
+// Disk size threshold.
+func TestDecideCompactThreshold(t *testing.T) {
+	runCompactCases(t, []compactCase{
 		{"no admin right", func(in *machines.CompactInput) { in.Disk.CanCompact = false }, machines.CompactSkipNoAdmin},
 		{"below the default 30 GiB", func(in *machines.CompactInput) { in.Disk.FileBytes = 100 * gib }, machines.CompactSkipBelow},
 		{"threshold set by the user", func(in *machines.CompactInput) { in.Settings.CompactThresholdGiB = 200 }, machines.CompactSkipBelow},
 		{"used unknown is nothing to reclaim", func(in *machines.CompactInput) { in.Disk.UsedKnown = false }, machines.CompactSkipBelow},
-		{"before quiet hours", func(in *machines.CompactInput) { in.Now = time.Date(2026, 11, 15, 0, 59, 0, 0, time.UTC) }, machines.CompactSkipQuiet},
-		{"quiet hours end is open", func(in *machines.CompactInput) { in.Now = time.Date(2026, 11, 15, 6, 0, 0, 0, time.UTC) }, machines.CompactSkipQuiet},
-		{"quiet hours in the machine's own time", func(in *machines.CompactInput) {
-			in.Disk.UTCOffset = 2 * time.Hour // 02:00 UTC is 04:00 local: inside
-			in.Now = time.Date(2026, 11, 15, 2, 0, 0, 0, time.UTC)
-		}, machines.CompactRun},
-		{"local time outside the window", func(in *machines.CompactInput) {
-			in.Disk.UTCOffset = 5 * time.Hour // 02:00 UTC is 07:00 local
-		}, machines.CompactSkipQuiet},
-		{"window across midnight", func(in *machines.CompactInput) {
-			in.Settings.CompactQuietStart, in.Settings.CompactQuietEnd = "22:00", "03:00"
-		}, machines.CompactRun},
+		{"any hour of the day", func(in *machines.CompactInput) { in.Now = time.Date(2026, 11, 15, 14, 0, 0, 0, time.UTC) }, machines.CompactRun},
+	})
+}
+
+// Once per day, running or waiting jobs, and idle time.
+func TestDecideCompactBusyAndIdle(t *testing.T) {
+	runCompactCases(t, []compactCase{
 		{"once per day", func(in *machines.CompactInput) { in.LastAt = in.Now.Add(-23 * time.Hour) }, machines.CompactSkipToday},
 		{"a day later", func(in *machines.CompactInput) { in.LastAt = in.Now.Add(-25 * time.Hour) }, machines.CompactRun},
 		{"a job runs", func(in *machines.CompactInput) { in.Running = 1 }, machines.CompactSkipBusy},
@@ -66,15 +81,7 @@ func TestDecideCompact(t *testing.T) {
 		{"idle time set by the user", func(in *machines.CompactInput) { in.Settings.CompactIdleMinutes = 90 }, machines.CompactSkipIdle},
 		{"idle unknown", func(in *machines.CompactInput) { in.IdleSince = time.Time{} }, machines.CompactSkipIdle},
 		{"on forces a Linux machine", func(in *machines.CompactInput) { in.OS = "linux"; in.Settings.CompactMode = machines.CompactOn }, machines.CompactRun},
-	}
-	for _, c := range cases {
-		in := okInput()
-		c.mutate(&in)
-		got := machines.DecideCompact(in)
-		if got.Reason != c.want || got.Run != (c.want == machines.CompactRun) {
-			t.Errorf("%s: got %+v, want %s", c.name, got, c.want)
-		}
-	}
+	})
 }
 
 func TestSettingsValidateCompact(t *testing.T) {
@@ -90,16 +97,14 @@ func TestSettingsValidateCompact(t *testing.T) {
 	bad("mode", machines.SettingsUpdate{CompactMode: s("sometimes")})
 	bad("threshold", machines.SettingsUpdate{CompactThresholdGiB: n(-1)})
 	bad("idle", machines.SettingsUpdate{CompactIdleMinutes: n(5000)})
-	bad("clock", machines.SettingsUpdate{CompactQuietStart: s("1am")})
-	bad("clock range", machines.SettingsUpdate{CompactQuietEnd: s("25:00")})
 	v, _, err := rig.svc.UpdateSettings(context.Background(), "owner", rig.id, machines.SettingsUpdate{
-		CompactMode: s("on"), CompactThresholdGiB: n(50), CompactIdleMinutes: n(45), CompactQuietStart: s("02:30"), CompactQuietEnd: s("05:00"),
+		CompactMode: s("on"), CompactThresholdGiB: n(50), CompactIdleMinutes: n(45),
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
 	st := v.Settings
-	if st.CompactMode != "on" || st.CompactThresholdGiB != 50 || st.CompactIdleMinutes != 45 || st.CompactQuietStart != "02:30" || st.CompactQuietEnd != "05:00" {
+	if st.CompactMode != "on" || st.CompactThresholdGiB != 50 || st.CompactIdleMinutes != 45 {
 		t.Fatalf("settings %+v", st)
 	}
 	if !strings.Contains(rig.audit(), "docker compact") {
@@ -432,5 +437,46 @@ func TestCompactJobQueuedDuringTheCompactWaits(t *testing.T) {
 	}
 	if strings.Contains(r.audit(), "cancel") {
 		t.Fatalf("something was cancelled:\n%s", r.audit())
+	}
+}
+
+// Caches R5.58: the owner's Compact now asks first and names what can be
+// reclaimed; with the yes it drains, compacts and resumes like the automatic one.
+func TestStartCompactNamesTheReclaimableSizeThenRuns(t *testing.T) {
+	r := newCompactRig(t)
+	ctx := context.Background()
+	err := r.svc.StartCompact(ctx, "owner", r.id, false)
+	var nc *machines.NeedsConfirmationError
+	if !errors.As(err, &nc) || !strings.Contains(strings.Join(nc.Names, "\n"), "Can be reclaimed: 165.0 GiB") {
+		t.Fatalf("err = %v", err)
+	}
+	if len(r.host.argv) != 0 {
+		t.Fatal("nothing runs without the yes")
+	}
+	if err := r.svc.StartCompact(ctx, "owner", r.id, true); err != nil {
+		t.Fatal(err)
+	}
+	r.svc.WaitCompact()
+	if len(r.host.argv) != 1 || r.host.argv[0][0] != "docker-compact" || r.host.states[0] != machines.StateDrained || r.state() != machines.StateActive {
+		t.Fatalf("host %v states %v final %s", r.host.argv, r.host.states, r.state())
+	}
+	if log := r.audit(); !strings.Contains(log, "machine.compact.done") {
+		t.Fatalf("audit:\n%s", log)
+	}
+}
+
+func TestStartCompactRefusals(t *testing.T) {
+	r := newCompactRig(t)
+	ctx := context.Background()
+	r.report(true, false)
+	if err := r.svc.StartCompact(ctx, "owner", r.id, true); !errors.Is(err, machines.ErrInvalid) {
+		t.Fatalf("no admin: %v", err)
+	}
+	r.report(false, true)
+	if err := r.svc.StartCompact(ctx, "owner", r.id, true); !errors.Is(err, machines.ErrInvalid) {
+		t.Fatalf("no disk file: %v", err)
+	}
+	if len(r.host.argv) != 0 {
+		t.Fatal("a refused compact ran")
 	}
 }

@@ -36,11 +36,7 @@ func newFakeSMTP(t *testing.T, tlsCfg *tls.Config, wantAuth string) *fakeSMTP {
 	f := &fakeSMTP{t: t, ln: ln, tlsCfg: tlsCfg, wantAuth: wantAuth}
 	t.Cleanup(func() { _ = ln.Close() })
 	go func() {
-		for {
-			c, err := ln.Accept()
-			if err != nil {
-				return
-			}
+		for c, err := ln.Accept(); err == nil; c, err = ln.Accept() {
 			go f.serve(c)
 		}
 	}()
@@ -55,11 +51,7 @@ func (f *fakeSMTP) serve(c net.Conn) {
 	r := bufio.NewReader(c)
 	say := func(s string) { _, _ = c.Write([]byte(s + "\r\n")) }
 	say("220 fake ESMTP")
-	for {
-		line, err := r.ReadString('\n')
-		if err != nil {
-			return
-		}
+	for line, err := r.ReadString('\n'); err == nil; line, err = r.ReadString('\n') {
 		line = strings.TrimRight(line, "\r\n")
 		up := strings.ToUpper(line)
 		switch {
@@ -109,8 +101,7 @@ func (f *fakeSMTP) serve(c net.Conn) {
 		case up == "DATA":
 			say("354 go")
 			var b strings.Builder
-			for {
-				l, err := r.ReadString('\n')
+			for l, err := r.ReadString('\n'); ; l, err = r.ReadString('\n') {
 				if err != nil {
 					return
 				}

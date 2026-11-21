@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backend"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/backend/persistent"
@@ -54,6 +55,7 @@ func (b *Backend) parseShow(svc, out string) backend.Found {
 		Running: kv["ActiveState"] == "active",
 		Name:    svc[strings.LastIndex(svc, ".")+1:],
 	}
+	f.SessionRefused, f.SessionWaitUntil = persistent.SessionWait(folder, time.Now(), 0)
 	meta, err := persistent.ReadMeta(b.d.FS, folder+"/"+persistent.MetaFile)
 	switch {
 	case err != nil:

@@ -37,6 +37,12 @@ describe('dom layout judge', () => {
     ).toEqual([]);
     expect(judgeLayout('other', [], star).stale).toEqual([]);
   });
+  it('judges the clipped-text rule like every other rule (CRSP210)', () => {
+    expect(
+      judgeLayout('jobs', [{ width: 1300, rule: 'clipped-text', text: 'x' }], []).unknown,
+    ).toHaveLength(1);
+    expect(domLayoutSource()).toContain("add('clipped-text'");
+  });
   it('builds a source that carries the options', () => {
     const src = domLayoutSource({ primary: '#go', spaceVar: '--s-' });
     expect(src).toContain('"#go"');

@@ -65,7 +65,6 @@ func TestSharedCacheModeAndLock(t *testing.T) {
 		mu.Unlock()
 		un()
 	}()
-	time.Sleep(250 * time.Millisecond)
 	mu.Lock()
 	order = append(order, "first")
 	mu.Unlock()

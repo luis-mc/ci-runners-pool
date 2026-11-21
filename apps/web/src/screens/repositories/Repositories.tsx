@@ -66,6 +66,7 @@ import {
   type HostedState,
 } from './fallback';
 import { InstallAppButton } from './InstallApp';
+import { CiChecksPane, GuardrailsPane, JobSlotsPane } from '../insights/RepositoryPanes';
 import { MissingPermissionsGuide } from '../GrantGuide';
 import { OrgPools } from './OrgPools';
 import { allRepositories, applyChanges, type Repository } from './plans';
@@ -943,6 +944,9 @@ function RepositoryBody({ r, onChanged }: { r: Repository; onChanged: () => void
           </Pane>
         </Stack>
       </form>
+      <CiChecksPane repositoryId={r.id} />
+      <GuardrailsPane fullName={r.full_name} />
+      <JobSlotsPane repositoryId={r.id} />
       {saved ? <Message tone="done">{saved}</Message> : null}
       {save.error ? <Message tone="problem">Could not save. {save.error}</Message> : null}
       <EditBar

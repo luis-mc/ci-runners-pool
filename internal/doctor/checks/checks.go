@@ -45,10 +45,12 @@ func Register(reg *doctor.Registry) {
 		doctor.NewCheck("runner.hookrun", doctor.GroupRunner, M1, false, runnerHookRun),
 		doctor.NewCheck("runner.listener", doctor.GroupRunner, M1, false, runnerListener),
 		doctor.NewCheck("runner.toolcache", doctor.GroupRunner, M1, false, runnerToolCache),
+		doctor.NewCheck("runner.cachewrite", doctor.GroupRunner, M1, false, runnerCacheWrite),
 		doctor.NewCheck("runner.symlink", doctor.GroupRunner, M1, false, runnerSymlink),
 		doctor.NewCheck("runner.logon", doctor.GroupRunner, M1, false, runnerLogon),
 		doctor.NewCheck("runner.labels.generic", doctor.GroupRunner, M1, false, runnerLabelsGeneric),
 		doctor.NewCheck("runner.registrations", doctor.GroupRunner, M1, false, runnerRegistrations),
+		doctor.NewCheck("runner.slots", doctor.GroupRunner, M1, false, runnerSlots),
 		doctor.NewCheck("github.app.installation", doctor.GroupGitHub, M1, false, appInstallation),
 		doctor.NewCheck("github.app.permissions", doctor.GroupGitHub, M1, false, appPermissions),
 		doctor.NewCheck("github.webhook", doctor.GroupGitHub, M1, false, githubWebhook),
@@ -59,6 +61,7 @@ func Register(reg *doctor.Registry) {
 		doctor.NewCheck("repo.fallback", doctor.GroupRepository, M1, false, repoFallback),
 		doctor.NewCheck("repo.ephemeral_capacity", doctor.GroupRepository, M1, false, repoEphemeralCapacity),
 		doctor.NewCheck("runner.unclean", doctor.GroupRunner, M1, false, runnerUnclean),
+		doctor.NewCheck("runner.postgres_logins", doctor.GroupRunner, M1, false, runnerPostgresLogins),
 		doctor.NewCheck("runner.light_leftover", doctor.GroupRunner, M1, false, runnerLightLeftover),
 		doctor.NewCheck("repo.coverage", doctor.GroupRepository, M1, false, repoCoverage),
 		doctor.NewCheck("workflow.labels", doctor.GroupWorkflow, M1, false, workflowLabels),
@@ -67,6 +70,7 @@ func Register(reg *doctor.Registry) {
 	} {
 		reg.Register(c)
 	}
+	registerWorkflowChecks(reg)
 }
 
 // controllerSubject is the subject of findings that concern the whole controller.

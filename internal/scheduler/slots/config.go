@@ -15,6 +15,15 @@ const (
 	OnTimeoutRun  = "run"
 )
 
+// JobTimeoutMin is the longest timeout-minutes crsp asks a job to carry
+// (doctor workflow.timeout, guideline 30). Time held in the job-started hook
+// counts against it, so the hold must end well before it (scheduling R5.75).
+const JobTimeoutMin = 30
+
+// MaxHoldMin is the longest the job-started hook may hold a job: a third of
+// JobTimeoutMin. A longer setting is cut to it when the hook reads it (R5.75).
+const MaxHoldMin = JobTimeoutMin / 3
+
 // Settings are the scheduling settings of one machine (R5.1).
 type Settings struct {
 	BudgetMemoryPct int
@@ -45,7 +54,7 @@ func Defaults() Settings {
 		LightSlots:      1,
 		HeavySlots:      1,
 		SlotMaxAgeMin:   120,
-		GateMaxWaitMin:  30,
+		GateMaxWaitMin:  MaxHoldMin,
 		GatePollSec:     15,
 		OnTimeout:       OnTimeoutFail,
 		LightJobs:       []string{"smoke", "prune", "prune-*", "cleanup", "remove-train", "decide", "delete-*", "runners"},
@@ -221,6 +230,9 @@ func ResolveGate(flagMaxWait, flagPoll int, flagOnTimeout string, getenv func(st
 	}
 	if out.MaxWaitMin < 0 {
 		out.MaxWaitMin = 0
+	}
+	if out.MaxWaitMin > MaxHoldMin {
+		out.MaxWaitMin = MaxHoldMin
 	}
 	if out.OnTimeout != OnTimeoutRun {
 		out.OnTimeout = OnTimeoutFail

@@ -454,3 +454,23 @@ func TestWorkerDropsWhenFullAndRunsInOrder(t *testing.T) {
 		t.Fatal("submit after stop")
 	}
 }
+
+// CIX23 (D18): a job reaching done tells the insights engine once; a repeated event and a queued job do not.
+func TestOnJobCompletedCallsOnceAtDone(t *testing.T) {
+	st := newStore()
+	calls := 0
+	r := New(Config{Writer: st, Reader: st, Now: func() time.Time { return t0 }, OnJobCompleted: func() { calls++ },
+		Repos: func(_ context.Context, name string) (int64, bool) { return 7, name == "luis-mc/app" }})
+	ctx := context.Background()
+	_ = r.OnJob(ctx, ghJob(1, "queued"))
+	if calls != 0 {
+		t.Fatalf("a queued job is not a finished run: %d calls", calls)
+	}
+	done := ghJob(1, "completed")
+	done.Conclusion, done.StartedAt, done.CompletedAt = "success", t0.Add(time.Minute), t0.Add(2*time.Minute)
+	_ = r.OnJob(ctx, done)
+	_ = r.OnJob(ctx, done) // GitHub redelivers
+	if calls != 1 {
+		t.Fatalf("calls = %d, want 1", calls)
+	}
+}

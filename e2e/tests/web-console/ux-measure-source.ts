@@ -187,7 +187,8 @@ export const TEXT_MEASURES = {
       if (!readable) bad.push('"' + text.slice(0, 30) + '" is cut and cannot be read whole');
     }
     return bad;`,
-  /** UX-72: at desktop width every row of one table has one height. */
+  /** UX-72 (v3): at desktop width a row may grow only because a value in it wraps. A row taller than the shortest
+   *  row of its table with no wrapped text in it (no text of two or more lines) is a breach. */
   rowHeights: String.raw`${VISIBLE}
     if (window.innerWidth < 1000) return [];
     const bad = [];
@@ -198,8 +199,20 @@ export const TEXT_MEASURES = {
       const rows = Array.from(t.tBodies[0] ? t.tBodies[0].rows : []).filter((r) => visible(r) && !r.classList.contains('ds-table__expanded'));
       if (rows.length < 2) continue;
       const heights = rows.map((r) => Math.round(r.getBoundingClientRect().height));
-      if (Math.max(...heights) - Math.min(...heights) > 2)
-        bad.push('table #' + n + ' (' + ((t.querySelector('caption') || {}).textContent || 'no caption').trim().slice(0, 30) + ') rows are ' + heights.join('/') + ' px high');
+      const min = Math.min(...heights);
+      const wraps = (r) => Array.from(r.querySelectorAll('td, th, td *')).some((c) => {
+        for (const k of Array.from(c.childNodes)) {
+          if (k.nodeType !== 3 || !(k.textContent || '').trim()) continue;
+          const range = document.createRange();
+          range.selectNodeContents(k);
+          const tops = new Set(Array.from(range.getClientRects()).map((q) => Math.round(q.top)));
+          if (tops.size > 1) return true;
+        }
+        return false;
+      });
+      const odd = rows.filter((r, i) => heights[i] - min > 2 && !wraps(r));
+      if (odd.length)
+        bad.push('table #' + n + ' (' + ((t.querySelector('caption') || {}).textContent || 'no caption').trim().slice(0, 30) + ') rows are ' + heights.join('/') + ' px high and a taller row has no wrapped text');
     }
     return bad;`,
 };

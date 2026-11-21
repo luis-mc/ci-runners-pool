@@ -30,7 +30,7 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe('the shell (R5.3)', () => {
-  it('has the header, the six areas, one headline and the main landmark', async () => {
+  it('has the header, the seven areas, one headline and the main landmark', async () => {
     renderApp(signedIn(), '/');
     expect(
       await screen.findByRole('heading', { level: 1, name: 'Overview' }),
@@ -43,7 +43,15 @@ describe('the shell (R5.3)', () => {
       within(nav)
         .getAllByRole('link')
         .map((a) => a.textContent),
-    ).toEqual(['Overview', 'Shared Pool', 'Repositories', 'Jobs', 'Doctor', 'Settings']);
+    ).toEqual([
+      'Overview',
+      'Shared Pool',
+      'Repositories',
+      'Jobs',
+      'Doctor',
+      'Settings',
+      'Help',
+    ]);
     expect(
       within(nav).getByRole('link', { name: 'Overview' }).getAttribute('aria-current'),
     ).toBe('page');
@@ -469,7 +477,7 @@ describe('the menu on a phone (UX-15, UX-16)', () => {
       expect(screen.queryByRole('navigation', { name: 'Areas' })).toBeNull();
       fireEvent.click(button);
       const nav = screen.getByRole('navigation', { name: 'Areas' });
-      expect(within(nav).getAllByRole('link')).toHaveLength(6);
+      expect(within(nav).getAllByRole('link')).toHaveLength(7);
       expect(screen.getByRole('button', { name: 'Close the menu' })).toBeTruthy();
     } finally {
       vi.unstubAllGlobals();

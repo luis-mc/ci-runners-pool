@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="pkg.Suite" tests="4">
+    <testcase classname="pkg.Suite" name="adds" time="0.25" assertions="3"/>
+    <testcase classname="pkg.Suite" name="no checks" time="0.01" assertions="0"/>
+    <testcase classname="pkg.Suite" name="breaks" time="1.5"><failure message="x"/></testcase>
+    <testcase classname="pkg.Suite" name="flaky one" time="0.5"><flakyFailure message="y"/></testcase>
+    <testcase classname="pkg.Suite" name="later" time="0"><skipped/></testcase>
+  </testsuite>
+</testsuites>

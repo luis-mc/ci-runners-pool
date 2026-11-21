@@ -56,7 +56,8 @@ func scanJobRow(sc scanner) (sqlcgen.Job, error) {
 		&r.Matrix, &r.JobIdent, &r.Branch, &r.HeadSha, &r.Event, &r.Labels, &r.State, &r.Result, &r.HtmlUrl, &r.CreatedAt,
 		&r.QueuedAt, &r.SlotAt, &r.StartedAt, &r.CompletedAt, &r.CleanupMs, &r.MachineID, &r.MachineName, &r.RunnerID,
 		&r.RunnerName, &r.RunnerKind, &r.Backend, &r.Isolation, &r.Cache, &r.WaitReason, &r.WaitText, &r.Worktree,
-		&r.Light, &r.FcLoMs, &r.FcMidMs, &r.FcHiMs, &r.FcBasis, &r.FcSamples, &r.UpdatedAt)
+		&r.Light, &r.FcLoMs, &r.FcMidMs, &r.FcHiMs, &r.FcBasis, &r.FcSamples, &r.UpdatedAt,
+		&r.RunnerOrigin, &r.RunnerGroup, &r.RunnerLabels, &r.StepsSource, &r.CheckedAt) // CIX8 columns (migration 00030)
 	return r, err
 }
 

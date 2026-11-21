@@ -26,7 +26,7 @@ func contentRows(t *testing.T) []string {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for {
+	for depth := 0; depth < 64; depth++ { // up to the folder that holds go.mod
 		if _, err := os.Stat(filepath.Join(dir, "go.mod")); err == nil {
 			break
 		}

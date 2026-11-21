@@ -129,7 +129,7 @@ func only(t *testing.T, fs []doctor.Finding, check string) doctor.Finding {
 func TestEveryRegisteredCheckIsM1AndHasAnID(t *testing.T) {
 	reg := doctor.NewRegistry()
 	Register(reg)
-	if len(reg.All()) != 39 {
+	if len(reg.All()) != 48 {
 		t.Fatalf("checks: %v", reg.SortedIDs())
 	}
 	for _, c := range reg.All() {
@@ -733,7 +733,7 @@ func TestRunnerListenerStaleSession(t *testing.T) {
 	if f, _ := sev(mk("inside", 90*time.Second, nil)); f.Severity != doctor.OK || f.Fix.Text != "" {
 		t.Fatalf("inside the window: %+v", f)
 	}
-	f, _ := sev(mk("past", 4*time.Minute, nil))
+	f, _ := sev(mk("past", 7*time.Minute, nil))
 	if f.Severity != doctor.Warn || f.Fix.Text == "" {
 		t.Fatalf("past the window: %+v", f)
 	}
@@ -904,5 +904,54 @@ func TestSymlinkProbeFrom(t *testing.T) {
 	}
 	if p := doctor.SymlinkProbeFrom(true, false, false, ""); p.Held || p.DeveloperMode {
 		t.Fatalf("%+v", p)
+	}
+}
+
+// Doctor R5.50: both halves of a half-registered runner offer a Remove button
+// that carries what the server needs to check again; the doctor itself removes
+// nothing.
+func TestRegistrationHalvesOfferRemove(t *testing.T) {
+	g := newGH()
+	g.runners["o/r"] = []github.Runner{{ID: 555, Name: "crsp-stray", Status: "offline"}}
+	fl := &fleet{machines: []doctor.Machine{healthyMachine()}, runners: []doctor.Runner{persistent("r1", "crsp-mine")}}
+	fs := run(t, doctor.Env{GitHub: g, Fleet: fl}, "runner.orphan")
+	var stray doctor.Finding
+	for _, f := range fs {
+		if f.Subject.Name == "crsp-stray" {
+			stray = f
+		}
+	}
+	if stray.Action == nil || stray.Action.ID != doctor.ActionRemoveGitHubRunner || stray.Action.Args == nil ||
+		stray.Action.Args.GitHubRunnerID != 555 || stray.Action.Args.Name != "crsp-stray" || stray.Action.Args.Owner != "o" || stray.Action.Args.Repo != "r" {
+		t.Fatalf("GitHub runner with no record: %+v", stray)
+	}
+	// The record GitHub does not list.
+	fs = forCheck(run(t, doctor.Env{GitHub: g, Fleet: fl}, "runner.registered"), "runner.registered")
+	if len(fs) != 1 || fs[0].Severity != doctor.Fail || fs[0].Action == nil || fs[0].Action.ID != doctor.ActionRemoveRunnerRecord || fs[0].Action.Args.RunnerID != "r1" {
+		t.Fatalf("record with no GitHub runner: %+v", fs)
+	}
+}
+
+// Caches R5.57: a runner whose user cannot write the shared tool folders is a
+// fail with the commands that fix it; one that can is ok.
+func TestRunnerCacheWrite(t *testing.T) {
+	bad, good, unlooked := persistent("r1", "crsp-bad"), persistent("r2", "crsp-good"), persistent("r3", "crsp-new")
+	bad.OS, good.OS = "linux", "linux"
+	root := "/var/lib/crsp/tools/1"
+	bad.CacheWrite = &doctor.CacheWriteProbe{Root: root, Group: "crsp-repo-1", Dirs: []doctor.CacheDirProbe{
+		{Dir: root + "/cargo-target", Err: "Permission denied"}, {Dir: root + "/xwin"}}}
+	good.CacheWrite = &doctor.CacheWriteProbe{Root: root, Group: "crsp-repo-1", Dirs: []doctor.CacheDirProbe{{Dir: root + "/cargo-target"}}}
+	fl := &fleet{machines: []doctor.Machine{healthyMachine()}, runners: []doctor.Runner{bad, good, unlooked}}
+	got := map[string]doctor.Finding{}
+	for _, f := range forCheck(run(t, doctor.Env{Fleet: fl}, "runner.cachewrite"), "runner.cachewrite") {
+		got[f.Subject.Name] = f
+	}
+	b := got["crsp-bad"]
+	if b.Severity != doctor.Fail || !strings.Contains(b.Detail, root+"/cargo-target (Permission denied)") || strings.Contains(b.Detail, "xwin") ||
+		!strings.Contains(b.Fix.Command, "setfacl -R -d -m g:crsp-repo-1:rwX "+root) {
+		t.Errorf("bad: %+v", b)
+	}
+	if got["crsp-good"].Severity != doctor.OK || got["crsp-new"].Severity != doctor.Skip {
+		t.Errorf("good %+v, unlooked %+v", got["crsp-good"], got["crsp-new"])
 	}
 }

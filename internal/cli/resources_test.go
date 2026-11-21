@@ -405,10 +405,9 @@ func TestWatchNDJSON(t *testing.T) {
 		}
 		ev("2", "job.started", jobJSON(1, "luis-mc/app", "test", "running"))
 		w.(http.Flusher).Flush()
-		time.Sleep(100 * time.Millisecond)
-		f.cancel() // Ctrl+C
+		<-r.Context().Done() // the CLI ends the stream after Ctrl+C
 	})
-	code, out, errOut := f.run("job", "watch", "--json")
+	code, out, errOut := f.runUntilPrinted(`"job.started"`, "job", "watch", "--json")
 	lines := strings.Split(strings.TrimSpace(out), "\n")
 	if code != 0 || len(lines) != 2 || !strings.Contains(lines[0], `"job.queued"`) || !strings.Contains(lines[1], `"job.started"`) {
 		t.Fatalf("%d %q %q", code, out, errOut)
@@ -434,10 +433,9 @@ func TestWatchReconnects(t *testing.T) {
 		b, _ := json.Marshal(map[string]any{"id": "9", "type": "job.finished", "at": "2026-11-14T10:00:05Z", "job": jobJSON(1, "luis-mc/app", "test", "done")})
 		_, _ = fmt.Fprintf(w, "data: %s\n\n", b)
 		w.(http.Flusher).Flush()
-		time.Sleep(100 * time.Millisecond)
-		f.cancel()
+		<-r.Context().Done() // the CLI ends the stream after Ctrl+C
 	})
-	code, out, errOut := f.run("job", "watch")
+	code, out, errOut := f.runUntilPrinted("job.finished", "job", "watch")
 	if code != 0 || !strings.Contains(errOut, "Reconnecting") || !strings.Contains(out, "job.finished") || !strings.Contains(out, "luis-mc/app test") {
 		t.Fatalf("%d %q %q", code, out, errOut)
 	}

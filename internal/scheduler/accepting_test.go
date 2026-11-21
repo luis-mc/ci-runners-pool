@@ -47,7 +47,6 @@ func TestGateHoldsNewJobsWithTheReasonWhileNotAccepting(t *testing.T) {
 	}{
 		{"paused", scheduler.WaitPaused, "this machine is paused"},
 		{"on_battery", scheduler.WaitOnBattery, "this machine is on battery"},
-		{"quiet_hours", scheduler.WaitQuietHours, "this machine is in quiet hours"},
 	} {
 		t.Run(c.reason, func(t *testing.T) {
 			e, acc := envWithAcceptance(t)

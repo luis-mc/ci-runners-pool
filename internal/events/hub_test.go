@@ -175,17 +175,31 @@ func TestStopClosesStreams(t *testing.T) {
 	}
 }
 
+// leaveOnKeepAlive cancels the request once a keep-alive comment was written.
+type leaveOnKeepAlive struct {
+	*httptest.ResponseRecorder
+	cancel context.CancelFunc
+}
+
+func (l *leaveOnKeepAlive) Write(p []byte) (int, error) {
+	n, err := l.ResponseRecorder.Write(p)
+	if strings.Contains(l.Body.String(), ": keep-alive") {
+		l.cancel()
+	}
+	return n, err
+}
+
+// WriteString is the path io.WriteString takes; the recorder has its own.
+func (l *leaveOnKeepAlive) WriteString(str string) (int, error) { return l.Write([]byte(str)) }
+
 func TestSSEFormatAndServe(t *testing.T) {
 	h := NewHub(Options{Snapshotter: snap{}})
 	h.Publish(JobQueued, []byte(`{"id":7}`))
 	s, _ := h.Subscribe(context.Background(), 0)
 	ctx, cancel := context.WithCancel(context.Background())
-	rec := httptest.NewRecorder()
+	// The client leaves as soon as it has seen the first keep-alive.
+	rec := &leaveOnKeepAlive{ResponseRecorder: httptest.NewRecorder(), cancel: cancel}
 	req := httptest.NewRequestWithContext(ctx, "GET", "/api/v1/events", nil)
-	go func() {
-		time.Sleep(60 * time.Millisecond)
-		cancel()
-	}()
 	Serve(rec, req, s, 20*time.Millisecond)
 	body := rec.Body.String()
 	for _, want := range []string{"event: snapshot", `"snapshot":{"queued_count":0}`, ": keep-alive", "\n\n"} {

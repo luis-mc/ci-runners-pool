@@ -1,7 +1,7 @@
 # Design system: next version (draft)
 
 <!-- status:start -->
-**Status:** draft. Not approved. Created on 2026-11-19 as a full copy of `v2`; the apps follow `v2` until the owner approves this draft.
+**Status:** draft. Not approved. Created on 2026-11-20 as a full copy of `v3`; the apps follow `v3` until the owner approves this draft.
 <!-- status:end -->
 
 > **Starter.** Every item in this version is a starter item. Keep, change or delete each one before v1 is approved.
@@ -21,3 +21,5 @@ This draft is a full, project-neutral starter design system. It holds UX rules, 
 
 The changes of this version that the apps still have to build. One line per change, `- C<n>: what the apps must do`. Empty for a new version.
 - C16: build the pane frame, reverse-video selection, key-hint bar and the six themes with their Settings choice (LOOK2).
+- C148: change the table text of every list to the new UX-72: wrap, break, ellipsis plus tooltip and tap to expand (cell full-text, component 62); retire the `rowHeights` guard (LOOK40).
+- C150: build the runner timeline, cell full-text and the stacked trend chart (components 61 to 63); the stat tile, ranked findings strip and bar list are built (LOOK41).

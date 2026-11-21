@@ -52,8 +52,8 @@ for (const width of [393, 1300]) {
           };
         });
         expect(heights.count).toBe(4);
-        expect(heights.heights).toHaveLength(1); // one height for every row
-        expect(heights.heights[0]).toBeLessThan(heights.button * 2); // and it is one line
+        // UX-72 (v3): a row grows only because a value in it wraps; the shortest row is one line.
+        expect(Math.min(...heights.heights)).toBeLessThan(heights.button * 2);
       }
     });
   }

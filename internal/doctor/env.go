@@ -31,6 +31,8 @@ type Env struct {
 	// Ephemeral says whether the pool can make an ephemeral runner; nil makes
 	// repo.ephemeral_capacity skip.
 	Ephemeral EphemeralSource
+	// Postgres is nil when no Postgres server is read; runner.postgres_logins then skips.
+	Postgres PostgresSource
 	// PoolName is the pool's name label; RunnerPrefix starts the name of every
 	// runner the product makes (default "crsp-").
 	PoolName string
@@ -153,6 +155,14 @@ type Machine struct {
 	Admin bool
 	// LightSlots is the machine's light slot setting (scheduling R5.1).
 	LightSlots int
+	// JobSlots is the machine's job slot setting and GateMaxWaitMin its hold
+	// limit; 0 means unknown. RunnerPeak is the most runners one repository
+	// can use on the machine (pool runners plus its own), RunnerPeakRepo the
+	// repository that has them; empty when only pool runners exist
+	// (scheduling R5.73, R5.75).
+	JobSlots, GateMaxWaitMin int
+	RunnerPeak               int
+	RunnerPeakRepo           string
 	// DockerCompact is the Docker disk compact policy and what the agent
 	// reported; nil when the machine has no Docker disk file to compact.
 	DockerCompact *DockerCompact
@@ -224,6 +234,9 @@ type Runner struct {
 	// ToolCache is what the agent saw in the runner's tool cache; nil when it
 	// did not look (R5.35).
 	ToolCache *ToolCacheProbe
+	// CacheWrite is what the agent saw when it tried to write the shared tool
+	// folders as the runner's own user; nil when it did not look (caches R5.57).
+	CacheWrite *CacheWriteProbe
 	// SymlinkWanted is true when the machine or label setting asks for the
 	// symbolic link right for this runner (runners R5.14). Symlink is what the
 	// agent read; nil when it did not look (R5.42).
@@ -274,6 +287,21 @@ func SymlinkProbeFrom(known, canLink, developerMode bool, errText string) *Symli
 		return &SymlinkProbe{Err: errText}
 	}
 	return &SymlinkProbe{Held: canLink && !developerMode, DeveloperMode: developerMode}
+}
+
+// CacheWriteProbe is the result of trying to create a file in each shared tool
+// folder (cargo-target, cargo-home, rustup-home, xwin, ...) as the runner's own
+// user. Root and Group are the shared tools folder and the group that owns it.
+type CacheWriteProbe struct {
+	Root  string
+	Group string
+	Dirs  []CacheDirProbe
+}
+
+// CacheDirProbe is one folder tried; Err is empty when the runner could write.
+type CacheDirProbe struct {
+	Dir string
+	Err string
 }
 
 // ToolCacheProbe is what the agent found in a runner's tool cache (_work/_tool
@@ -478,4 +506,23 @@ type VMState struct {
 // VMSource reads the VM backend of this machine.
 type VMSource interface {
 	VM(ctx context.Context) (VMState, error)
+}
+
+// PostgresLogin is a Postgres login of a pool's server and the shared owner
+// role it belongs to (runners R5.97).
+type PostgresLogin struct {
+	Name, OwnerRole string
+	// SelfGrant: createrole_self_grant is 'set, inherit' on the login (OPS54).
+	SelfGrant bool
+	// Attrs is the login's role attributes as a stable text; Members the roles
+	// it is a member of, sorted. The check compares them across the logins of
+	// one owner role.
+	Attrs   string
+	Members []string
+}
+
+// PostgresSource lists the runner logins of the pool's Postgres server
+// (doctor R5.59). Read only; removing one is a separate action.
+type PostgresSource interface {
+	PostgresLogins(ctx context.Context) ([]PostgresLogin, error)
 }

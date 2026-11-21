@@ -7,6 +7,8 @@ import (
 	"net/http"
 
 	"github.com/luis-mc/ci-runners-shared-pool/internal/api/gen"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/doctor"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/github"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/repos"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/runners"
 )
@@ -27,6 +29,8 @@ type RunnersService interface {
 	StartRemove(ctx context.Context, finish func(context.Context) error)
 	UpdateSettings(ctx context.Context, runnerID string, keepDependencies *bool, actor string) (runners.View, error)
 	RequestClearCache(ctx context.Context, runnerID, actor string) (runners.View, error)
+	RemoveStrayRegistration(ctx context.Context, in runners.StrayRegistration, prefix string, confirm bool, actor string) error
+	RemoveRecordWithoutRegistration(ctx context.Context, id string, confirm bool, actor string) (runners.Record, error)
 }
 
 var _ RunnersService = (*runners.Service)(nil)
@@ -346,4 +350,51 @@ func RunnerEventJSON(r runners.Record, gone bool) []byte {
 		return nil
 	}
 	return b
+}
+
+// RemoveRegistration implements POST /api/v1/doctor/registration-fixes (doctor
+// R5.50, runners R5.94): the Remove button of a half-registered runner. The
+// service reads GitHub and the records again before it removes anything.
+func (s *server) RemoveRegistration(ctx context.Context, req gen.RemoveRegistrationRequestObject) (gen.RemoveRegistrationResponseObject, error) {
+	if s.opts.Runners == nil {
+		return gen.RemoveRegistrationdefaultJSONResponse{StatusCode: http.StatusNotImplemented, Body: notImplemented()}, nil
+	}
+	if req.Body == nil {
+		return gen.RemoveRegistrationdefaultJSONResponse{StatusCode: http.StatusBadRequest, Body: gen.ErrorEnvelope{Error: gen.ErrorBody{Code: CodeBadRequest, Message: "a body is needed"}}}, nil
+	}
+	confirm := req.Params.Confirm != nil && *req.Params.Confirm
+	a := req.Body.Args
+	var name string
+	var err error
+	switch req.Body.Action {
+	case gen.RemoveRegistrationRequestActionRemoveGithubRunner:
+		in := runners.StrayRegistration{Name: deref(a.Name)}
+		if a.InstallationId != nil {
+			in.InstallationID = *a.InstallationId
+		}
+		if a.GithubRunnerId != nil {
+			in.GitHubID = *a.GithubRunnerId
+		}
+		in.Scope = github.RunnerScope{Owner: deref(a.Owner), Repo: deref(a.Repo), Organization: deref(a.Organization)}
+		name = in.Name
+		err = s.opts.Runners.RemoveStrayRegistration(ctx, in, doctor.DefaultRunnerPrefix, confirm, actorFrom(ctx))
+	case gen.RemoveRegistrationRequestActionRemoveRunnerRecord:
+		var r runners.Record
+		r, err = s.opts.Runners.RemoveRecordWithoutRegistration(ctx, deref(a.RunnerId), confirm, actorFrom(ctx))
+		name = r.Name
+	default:
+		return gen.RemoveRegistrationdefaultJSONResponse{StatusCode: http.StatusBadRequest, Body: gen.ErrorEnvelope{Error: gen.ErrorBody{Code: CodeBadRequest, Message: "unknown action"}}}, nil
+	}
+	if err != nil {
+		code, body := runnerFail(err)
+		return gen.RemoveRegistrationdefaultJSONResponse{StatusCode: code, Body: body}, nil
+	}
+	return gen.RemoveRegistration200JSONResponse(gen.RemoveRegistrationResult{Removed: true, Name: name}), nil
+}
+
+func deref(p *string) string {
+	if p == nil {
+		return ""
+	}
+	return *p
 }

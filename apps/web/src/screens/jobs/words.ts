@@ -13,7 +13,6 @@ const REASON_WORDS: Record<Schemas['WaitReason'], string> = {
   no_runner_with_labels: 'waits for a runner with its labels',
   repository_parallel_limit: "waits for the repository's parallel limit",
   machine_drained: 'waits because its machine is not taking jobs',
-  quiet_hours: 'waits for quiet hours to end',
   load_not_measured: 'waits because the machine load is not measured yet',
   paused: 'waits because its machine is paused',
   on_battery: 'waits because its machine runs on battery',
@@ -24,6 +23,33 @@ const REASON_WORDS: Record<Schemas['WaitReason'], string> = {
 export function waitWords(j: Pick<Job, 'wait_reason' | 'wait_text'>): string {
   if (j.wait_text) return j.wait_text;
   return j.wait_reason ? REASON_WORDS[j.wait_reason] : 'waits to be placed';
+}
+
+const REASON_SHORT: Record<Schemas['WaitReason'], string> = {
+  free_slot: 'waits for a slot',
+  load_over_budget: 'machine load too high',
+  no_runner_with_labels: 'no runner with its labels',
+  repository_parallel_limit: 'repository limit',
+  machine_drained: 'machine not taking jobs',
+  load_not_measured: 'load not measured yet',
+  paused: 'machine paused',
+  on_battery: 'machine on battery',
+  unknown: 'reason not known yet',
+};
+
+/**
+ * The short form of a wait reason for a one-line row (UX-72): a few words, the full line is under the Why button.
+ * A line the server sent without a reason has none (the table shortens it at its first clause).
+ */
+export function waitShort(j: Pick<Job, 'wait_reason' | 'wait_text'>): string | undefined {
+  if (j.wait_reason) return REASON_SHORT[j.wait_reason];
+  return j.wait_text ? undefined : 'waits to be placed';
+}
+
+/** The workflow file name of a path (`.github/workflows/ci.yml` is `ci.yml`): the value of a one-line row (CRSP210). */
+export function workflowFile(path: string): string {
+  const name = path.split('/').filter(Boolean).pop();
+  return name ?? path;
 }
 
 /** UX-58: the result as a word, a glyph and a colour. */

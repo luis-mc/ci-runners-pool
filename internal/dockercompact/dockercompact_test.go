@@ -19,6 +19,8 @@ type fakeHost struct {
 	goos     string
 	admin    bool
 	calls    []string
+	kvmSeq   []bool // answers of the /dev/kvm probe, in order; nil: always present
+	kvmCalls int
 	sizes    map[string]int64
 	files    map[string]string
 	fail     map[string]Result // call prefix -> answer
@@ -86,6 +88,14 @@ func (f *fakeHost) Run(_ context.Context, _ time.Duration, name string, args ...
 		if strings.HasPrefix(line, prefix) {
 			return r, nil
 		}
+	}
+	if strings.HasSuffix(line, "sh -c test -e /dev/kvm") && f.kvmSeq != nil {
+		n := f.kvmCalls
+		f.kvmCalls++
+		if n < len(f.kvmSeq) && !f.kvmSeq[n] {
+			return Result{ExitCode: 1}, nil
+		}
+		return Result{}, nil
 	}
 	switch {
 	case strings.HasPrefix(line, "reg query"):
@@ -342,5 +352,43 @@ func TestParseDockerSize(t *testing.T) {
 	}
 	if _, ok := dockercompact.ParseDockerSize("lots"); ok {
 		t.Fatal("garbage accepted")
+	}
+}
+
+// Caches R5.58: when /dev/kvm was in the Docker VM before the compact, it must
+// be there after the restart; the module is loaded again when it is not.
+func TestWindowsCompactLoadsKVMAgainAfterTheRestart(t *testing.T) {
+	h := newWin()
+	h.infoOK = 1
+	h.kvmSeq = []bool{true, false, true} // before: yes; after the restart: no; after modprobe: yes
+	rep, err := dockercompact.Do(context.Background(), h)
+	if err != nil {
+		t.Fatalf("Do: %v\n%v", err, h.calls)
+	}
+	if !rep.KVMBefore || !rep.KVMAfter || !h.has("wsl -d docker-desktop -e sh -c modprobe kvm_intel || modprobe kvm_amd") {
+		t.Fatalf("%+v\n%v", rep, h.calls)
+	}
+	if h.index("docker desktop start") > h.index("wsl -d docker-desktop -e sh -c modprobe") {
+		t.Error("the module is loaded after Docker is back, never before")
+	}
+}
+
+func TestWindowsCompactSaysWhenKVMDoesNotComeBack(t *testing.T) {
+	h := newWin()
+	h.infoOK = 1
+	h.kvmSeq = []bool{true, false, false, false}
+	rep, err := dockercompact.Do(context.Background(), h)
+	if err == nil || !strings.Contains(err.Error(), "/dev/kvm is not back") || rep.KVMAfter {
+		t.Fatalf("err %v rep %+v", err, rep)
+	}
+}
+
+func TestWindowsCompactAsksNothingOfAMachineWithoutKVM(t *testing.T) {
+	h := newWin()
+	h.infoOK = 1
+	h.kvmSeq = []bool{false}
+	rep, err := dockercompact.Do(context.Background(), h)
+	if err != nil || rep.KVMBefore || h.has("wsl -d docker-desktop -e sh -c modprobe") {
+		t.Fatalf("err %v rep %+v\n%v", err, rep, h.calls)
 	}
 }
