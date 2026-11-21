@@ -246,6 +246,9 @@ func (s *Service) PlanAdd(ctx context.Context, req AddRequest, actor string) (Pl
 	if err != nil {
 		return Plan{}, err
 	}
+	if err := s.checkSlotCap(ctx, m, req); err != nil {
+		return Plan{}, err
+	}
 	specs, err := s.addSpecs(ctx, m, req)
 	if err != nil {
 		return Plan{}, err

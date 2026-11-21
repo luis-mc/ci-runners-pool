@@ -218,6 +218,7 @@ States:
 **R5.51** (M1, Built OPS52; caches R5.57) — **`runner.cachewrite`: a runner can write its shared tool folders.** The agent tries to create and remove a file in each shared tool folder (cargo-target, cargo-home, rustup-home, xwin, tool-cache) as the runner's own user (`runuser -u <user>`; an agent running as root would always succeed). The finding is `fail` with the folders that gave `Permission denied`, and its fix names the group and shows the commands (`chgrp`, `chmod g+rwX`, setgid, `setfacl` with a default ACL on Linux; `icacls` with inherited Modify for `crsp-runners` on Windows) as text; adding a runner runs the same plan itself. `skip` when the agent did not look or the runner keeps its own folders. The doctor reads only. `doctor.Runner.CacheWrite` carries the probe. NOT YET IMPLEMENTED: the agent filling the probe over the link, the same open point as `runner.toolcache`.
 
 **R5.48 (OPS52 addition).** An agent folder in the runners folder that belongs to no known runner is a leftover on its own: no service, account, download or record is needed for the scan to list it, with its size, and the scan removes nothing. Remove runs only after the yes of the question card.
+**R5.60** (M1, OPS55; scheduling R5.73, R5.75; runners R5.98) — **`runner.slots`: runners and hold against the job slots.** For each machine with known job slots the check compares the most runners one repository can use on it (pool runners plus the repository's own) with the job slots, and the machine's gate maximum wait with the 30-minute job timeout. `ok` when the runners do not exceed the slots and the wait is below the timeout. `warn` when the runners exceed the slots: the title names the machine, the repository and both numbers, and the fix says to remove runners on the machine page until there are at most as many as slots, or raise Job slots (Pool size sets how many fit). `warn` when the stored maximum wait is not below the job timeout (the hook cuts it to 10 minutes anyway); the fix says to set Gate maximum wait to 10 minutes or less on the machine page.
 
 ## 6. Non-functional requirements
 
@@ -360,6 +361,7 @@ Repositories and workflows:
 | `workflow.slow_tests_on_pr` | Mutation or many-run property tests run on pull requests | warn | Run them on a schedule or on the default branch only | no | 1 |
 | `runner.labels.generic` | A runner carries a label that is not generic | warn | Remove the label; target by repository variable | no | 1 |
 | `runner.registrations` | A machine holds more than 20 runner registrations (pool runners have one hidden registration for each repository that uses the pool, runners R5.88) | warn | Remove long-lived runners from the machine, or stop using the pool for repositories that do not need them | no | 1 |
+| `runner.slots` | A machine has more runners for one repository than job slots, or its stored hold maximum wait is not below the 30-minute job timeout (scheduling R5.73, R5.75) | warn | Remove runners on the machine page, or raise Job slots; set Gate maximum wait to 10 minutes or less | no | 1 |
 | `runner.unclean` | A persistent runner whose cleanup failed, so it takes no new job (runners R5.91) | fail | Wait for the next cleanup, or fix the cause named in the finding on the machine | no | 1 |
 | `repo.ephemeral_capacity` | A public repository that is Ephemeral only uses the pool and no machine has ephemeral capacity, so its jobs would wait (github-integration R5.60) | fail | Add runners with Ephemeral, or set the repository to Any runner | no | 1 |
 
@@ -533,6 +535,7 @@ Rows that name a file without "planned" are built (CRSP23). Planned rows are NOT
 | R5.50 | internal/doctor/checks/checks_test.go TestRegistrationHalvesOfferRemove; internal/api/handlers_runners_test.go TestRemoveRegistrationFixes; apps/web/src/screens/doctor/Doctor.test.tsx (half-registered runners) |
 | R5.51 | internal/doctor/checks/checks_test.go TestRunnerCacheWrite; internal/runnercache/sharedtools_test.go TestProbeRunsAsTheRunnerUser, TestFixCommandsAreTheSamePlan |
 | R5.48 (OPS52) | internal/leftovers/leftovers_test.go TestUnusedAgentFolderIsFlaggedAlone |
+| R5.60 | internal/doctor/checks/runnerslots_test.go TestRunnerSlotsWarns |
 
 ## 10. Decisions
 
