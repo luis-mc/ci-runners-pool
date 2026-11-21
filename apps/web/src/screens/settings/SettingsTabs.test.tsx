@@ -14,13 +14,14 @@ const titles = (el: HTMLElement) =>
     .map((h) => h.textContent ?? '');
 
 describe('Settings tabs (D8)', () => {
-  it('has the five tabs in order', async () => {
+  it('has the six tabs in order', async () => {
     renderApp(signedIn(), '/settings');
     const tabs = await screen.findAllByRole('tab');
     expect(tabs.map((t) => t.textContent)).toEqual([
       'Access',
       'Repositories',
       'Console',
+      'Updates',
       'Data',
       'Audit log',
     ]);
@@ -32,7 +33,8 @@ describe('Settings tabs (D8)', () => {
   it.each([
     ['access', ['users', 'github-app', 'access-for-ci']],
     ['repositories', ['public-repositories', 'budgets']],
-    ['console', ['appearance', 'notifications', 'updates']],
+    ['console', ['appearance', 'notifications', 'network']],
+    ['updates', ['updates']],
     ['data', ['retention', 'backups', 'config-export']],
   ])('the %s tab holds its sections in order', async (tab, ids) => {
     renderApp(signedIn(), `/settings/${tab}`);
@@ -52,7 +54,6 @@ describe('Settings tabs (D8)', () => {
     ['budgets', 'repositories', 'budgets'],
     ['appearance', 'console', 'appearance'],
     ['notifications', 'console', 'notifications'],
-    ['updates', 'console', 'updates'],
     ['retention', 'data', 'retention'],
     ['backups', 'data', 'backups'],
     ['export', 'data', 'config-export'],
@@ -64,6 +65,15 @@ describe('Settings tabs (D8)', () => {
       (await screen.findByRole('tab', { selected: true })).textContent?.toLowerCase(),
     ).toBe(tab === 'access' ? 'access' : tab);
     await waitFor(() => expect(section(id)).toBeTruthy());
+  });
+
+  it('the old /settings/updates and /settings/console#updates land on the Updates tab', async () => {
+    renderApp(signedIn(), '/settings/console#updates');
+    await waitFor(() =>
+      expect(screen.getByRole('tab', { selected: true }).textContent).toBe('Updates'),
+    );
+    expect(OLD_SETTINGS).not.toContain('updates');
+    expect(settingsPath('updates')).toBe('/settings/updates');
   });
 
   it('shows the backup time on a 24-hour clock', async () => {

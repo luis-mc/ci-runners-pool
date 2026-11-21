@@ -131,6 +131,7 @@ const SCREENS: {
     loads: ['/api/v1/settings/pool', '/api/v1/settings/queue'],
   },
   { name: 'settings console', path: '/settings/console', ready: 'Settings' },
+  { name: 'settings updates', path: '/settings/updates', ready: 'Settings' },
   { name: 'settings data', path: '/settings/data', ready: 'Settings' },
   { name: 'settings audit log', path: '/settings/audit', ready: 'Settings' },
   { name: 'settings old address', path: '/settings/backups', ready: 'Settings' },
