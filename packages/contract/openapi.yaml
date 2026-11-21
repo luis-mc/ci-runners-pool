@@ -1425,6 +1425,8 @@ paths:
   /api/v1/doctor/registration-fixes:
     post:
       operationId: removeRegistration
+      x-cli: none
+      x-cli-reason: 'The owner confirms each half-registered runner in the Doctor screen; the CLI has no command for it yet.'
       tags: [doctor]
       summary: Remove one half of a half-registered runner
       description: >-
@@ -1457,6 +1459,8 @@ paths:
   /api/v1/machines/{machineId}/docker-compact:
     post:
       operationId: startDockerCompact
+      x-cli: none
+      x-cli-reason: 'The owner confirms the size on the machine screen first; the CLI has no command for it yet.'
       tags: [machines]
       summary: Make Docker's disk file smaller now
       description: >-
