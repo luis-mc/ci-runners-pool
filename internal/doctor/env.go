@@ -166,6 +166,10 @@ type Machine struct {
 	// DockerCompact is the Docker disk compact policy and what the agent
 	// reported; nil when the machine has no Docker disk file to compact.
 	DockerCompact *DockerCompact
+	// ResetSigns say why the machine's settings or runners may have gone back
+	// to the defaults: a rejoin, default settings after chosen ones, runner
+	// records of a machine that is not in the pool (machine.reset, R5.61).
+	ResetSigns []string
 }
 
 // DockerCompact is what the machine.docker.compact check reads (caches R5.51 to R5.54).
