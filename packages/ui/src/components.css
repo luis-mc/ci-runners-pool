@@ -868,7 +868,7 @@ body {
   padding: var(--ds-space-3);
   text-align: start;
   vertical-align: middle;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
   border-block-end: var(--ds-border-thin) solid var(--ds-color-divider);
 }
 .ds-table__sort {

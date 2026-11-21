@@ -80,6 +80,8 @@ func (l *link) updateFiles(ctx context.Context, u *agentv1.UpdateRunnerFiles) {
 			if len(waiting) > 0 {
 				job = waiting[0].Job
 			}
+			// The hold ends before the answer goes out: whoever reads the answer finds the runner free.
+			l.cfg.Gate.ReleaseRunner(name)
 			// The error text is the job's name; the controller words the rest.
 			l.answerSwap(id, rid, true, OutcomeWaiting, "", false, errors.New(job))
 			return

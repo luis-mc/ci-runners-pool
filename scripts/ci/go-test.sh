@@ -34,8 +34,10 @@ set +e
   fi
   if [ -n "$slow_pkgs" ]; then
     # Remaining G1 breaks: over 60 s under -race today. Do not raise this to hide a slow package.
+    # One at a time (-p 1): they share four cores, and scheduler and store (80 to 90 s alone) reached the
+    # 150 s limit with seven at once (CI run 44849018260) and store again with two at once (run 44851000439).
     # shellcheck disable=SC2086
-    go test -json -timeout 150s "$@" $slow_pkgs || echo "$?" >> "$rc_file"
+    go test -json -timeout 150s -p 1 "$@" $slow_pkgs || echo "$?" >> "$rc_file"
   fi
 } | node scripts/ci/go-test-summary.mjs "$json"
 sum_rc=${PIPESTATUS[1]}
