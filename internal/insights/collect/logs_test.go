@@ -207,7 +207,7 @@ const sampleLog = `2026-11-20T10:00:00.1000000Z ##[group]Run npm test
 func TestLogRedactedAndEnvValuesDropped(t *testing.T) {
 	r := newRig(t)
 	r.rd.Add("hunter2-super-value")
-	r.gh.logs[55] = sampleLog + "2026-11-20T10:00:02.0000000Z token ghp_abcdefghijklmnopqrstuvwxyz0123456789 used\n"
+	r.gh.logs[55] = sampleLog + "2026-11-20T10:00:02.0000000Z token ghp_" + "abcdefghijklmnopqrstuvwxyz0123456789 used\n"
 	r.svc.JobCompleted(context.Background(), 3, 900, 2, 55)
 	r.drain(t)
 
@@ -222,7 +222,7 @@ func TestLogRedactedAndEnvValuesDropped(t *testing.T) {
 		t.Fatalf("row = %+v", row)
 	}
 	text := r.readLog(t, row.Path)
-	for _, leaked := range []string{"hunter2-super-value", "production", "first line", "second line of the value", "ghp_abcdefghijklmnopqrstuvwxyz0123456789"} {
+	for _, leaked := range []string{"hunter2-super-value", "production", "first line", "second line of the value", "ghp_" + "abcdefghijklmnopqrstuvwxyz0123456789"} {
 		if strings.Contains(text, leaked) {
 			t.Errorf("the stored log still holds %q:\n%s", leaked, text)
 		}

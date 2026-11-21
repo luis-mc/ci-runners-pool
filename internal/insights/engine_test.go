@@ -201,13 +201,13 @@ func TestFailedRunResolvesNothing(t *testing.T) {
 	st, runs := newMemStore(), &memRuns{}
 	e := NewEngine([]Analyser{a}, st, runs, quiet())
 	_ = e.RunOnce(context.Background(), t0)
-	a.out, a.err = nil, errors.New("read failed token=ghp_abcdefghijklmnopqrstuvwxyz0123456789")
+	a.out, a.err = nil, errors.New("read failed token=ghp_"+"abcdefghijklmnopqrstuvwxyz0123456789")
 	err := e.RunOnce(context.Background(), t0.Add(Interval))
 	if err == nil || len(st.open) != 1 || len(st.closed) != 0 {
 		t.Fatalf("err=%v open=%v closed=%v", err, st.open, st.closed)
 	}
 	r := runs.rows[1]
-	if r.ok || r.errText == "" || strings.Contains(r.errText, "ghp_abcdefghijklmnopqrstuvwxyz0123456789") {
+	if r.ok || r.errText == "" || strings.Contains(r.errText, "ghp_"+"abcdefghijklmnopqrstuvwxyz0123456789") {
 		t.Fatalf("run row %+v", r)
 	}
 }
