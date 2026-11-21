@@ -104,7 +104,7 @@ func (q *Queries) InsertImageBuild(ctx context.Context, arg InsertImageBuildPara
 }
 
 const listImageBuilds = `-- name: ListImageBuilds :many
-SELECT id, machine_id, profile_id, arch, image_tag, reason, state, step, steps_total, step_name, typical_seconds, size_bytes, failure_step, failure_class, failure_why, log_tail, push_state, queued_at, started_at, finished_at, updated_at FROM image_builds ORDER BY queued_at DESC LIMIT ?
+SELECT id, machine_id, profile_id, arch, image_tag, reason, state, step, steps_total, step_name, typical_seconds, size_bytes, failure_step, failure_class, failure_why, log_tail, push_state, queued_at, started_at, finished_at, updated_at FROM image_builds ORDER BY queued_at DESC, rowid DESC LIMIT ?
 `
 
 func (q *Queries) ListImageBuilds(ctx context.Context, limit int64) ([]ImageBuild, error) {
@@ -203,7 +203,7 @@ func (q *Queries) ListImageBuildsInFlight(ctx context.Context) ([]ImageBuild, er
 }
 
 const listImageBuildsOfMachine = `-- name: ListImageBuildsOfMachine :many
-SELECT id, machine_id, profile_id, arch, image_tag, reason, state, step, steps_total, step_name, typical_seconds, size_bytes, failure_step, failure_class, failure_why, log_tail, push_state, queued_at, started_at, finished_at, updated_at FROM image_builds WHERE machine_id = ? ORDER BY queued_at DESC LIMIT ?
+SELECT id, machine_id, profile_id, arch, image_tag, reason, state, step, steps_total, step_name, typical_seconds, size_bytes, failure_step, failure_class, failure_why, log_tail, push_state, queued_at, started_at, finished_at, updated_at FROM image_builds WHERE machine_id = ? ORDER BY queued_at DESC, rowid DESC LIMIT ?
 `
 
 type ListImageBuildsOfMachineParams struct {
