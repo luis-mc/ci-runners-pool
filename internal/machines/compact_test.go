@@ -45,18 +45,7 @@ func TestDecideCompact(t *testing.T) {
 		{"below the default 30 GiB", func(in *machines.CompactInput) { in.Disk.FileBytes = 100 * gib }, machines.CompactSkipBelow},
 		{"threshold set by the user", func(in *machines.CompactInput) { in.Settings.CompactThresholdGiB = 200 }, machines.CompactSkipBelow},
 		{"used unknown is nothing to reclaim", func(in *machines.CompactInput) { in.Disk.UsedKnown = false }, machines.CompactSkipBelow},
-		{"before quiet hours", func(in *machines.CompactInput) { in.Now = time.Date(2026, 11, 15, 0, 59, 0, 0, time.UTC) }, machines.CompactSkipQuiet},
-		{"quiet hours end is open", func(in *machines.CompactInput) { in.Now = time.Date(2026, 11, 15, 6, 0, 0, 0, time.UTC) }, machines.CompactSkipQuiet},
-		{"quiet hours in the machine's own time", func(in *machines.CompactInput) {
-			in.Disk.UTCOffset = 2 * time.Hour // 02:00 UTC is 04:00 local: inside
-			in.Now = time.Date(2026, 11, 15, 2, 0, 0, 0, time.UTC)
-		}, machines.CompactRun},
-		{"local time outside the window", func(in *machines.CompactInput) {
-			in.Disk.UTCOffset = 5 * time.Hour // 02:00 UTC is 07:00 local
-		}, machines.CompactSkipQuiet},
-		{"window across midnight", func(in *machines.CompactInput) {
-			in.Settings.CompactQuietStart, in.Settings.CompactQuietEnd = "22:00", "03:00"
-		}, machines.CompactRun},
+		{"any hour of the day", func(in *machines.CompactInput) { in.Now = time.Date(2026, 11, 15, 14, 0, 0, 0, time.UTC) }, machines.CompactRun},
 		{"once per day", func(in *machines.CompactInput) { in.LastAt = in.Now.Add(-23 * time.Hour) }, machines.CompactSkipToday},
 		{"a day later", func(in *machines.CompactInput) { in.LastAt = in.Now.Add(-25 * time.Hour) }, machines.CompactRun},
 		{"a job runs", func(in *machines.CompactInput) { in.Running = 1 }, machines.CompactSkipBusy},
@@ -90,16 +79,14 @@ func TestSettingsValidateCompact(t *testing.T) {
 	bad("mode", machines.SettingsUpdate{CompactMode: s("sometimes")})
 	bad("threshold", machines.SettingsUpdate{CompactThresholdGiB: n(-1)})
 	bad("idle", machines.SettingsUpdate{CompactIdleMinutes: n(5000)})
-	bad("clock", machines.SettingsUpdate{CompactQuietStart: s("1am")})
-	bad("clock range", machines.SettingsUpdate{CompactQuietEnd: s("25:00")})
 	v, _, err := rig.svc.UpdateSettings(context.Background(), "owner", rig.id, machines.SettingsUpdate{
-		CompactMode: s("on"), CompactThresholdGiB: n(50), CompactIdleMinutes: n(45), CompactQuietStart: s("02:30"), CompactQuietEnd: s("05:00"),
+		CompactMode: s("on"), CompactThresholdGiB: n(50), CompactIdleMinutes: n(45),
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
 	st := v.Settings
-	if st.CompactMode != "on" || st.CompactThresholdGiB != 50 || st.CompactIdleMinutes != 45 || st.CompactQuietStart != "02:30" || st.CompactQuietEnd != "05:00" {
+	if st.CompactMode != "on" || st.CompactThresholdGiB != 50 || st.CompactIdleMinutes != 45 {
 		t.Fatalf("settings %+v", st)
 	}
 	if !strings.Contains(rig.audit(), "docker compact") {

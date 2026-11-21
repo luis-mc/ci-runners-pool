@@ -564,7 +564,7 @@ message GateDecision {
 
   message Wait {
     // free_slot, load_over_budget, repository_parallel_limit, machine_drained,
-    // quiet_hours, lost_race or unknown (observability R5.5).
+    // lost_race or unknown (observability R5.5).
     repeated string reasons = 1;
     // The reasons in words, with their figures.
     string text = 2;
@@ -985,9 +985,10 @@ message DockerDiskReport {
   int64 used_bytes = 5;
   // True when the agent has the administrator rights the compact needs.
   bool can_compact = 6;
-  // The offset of the machine's local time from UTC, in seconds, so the
-  // controller reads the quiet-hours window in the machine's own time.
-  int32 utc_offset_seconds = 7;
+  // Field 7 was the machine's UTC offset, read for the quiet-hours window.
+  // Quiet hours were dropped (OPS51).
+  reserved 7;
+  reserved "utc_offset_seconds";
 }
 
 // SymlinkReport is what the agent read about symbolic links. It makes a link in
@@ -1072,7 +1073,7 @@ message ImageReport {
 // LoadReport while the answer is not "accepting" (CRSP75, machines R5.62).
 message AcceptingReport {
   bool accepting = 1;
-  // paused, on_battery, quiet_hours or budget; empty while accepting.
+  // paused, on_battery or budget; empty while accepting.
   string pause_reason = 2;
   // Battery state the agent read; unknown counts as on mains (R5.63).
   bool on_battery = 3;

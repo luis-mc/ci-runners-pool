@@ -17,7 +17,6 @@ const DefaultWarmMaxAge = 15 * time.Minute
 const (
 	WarmHoldPaused    = "paused"
 	WarmHoldBattery   = "on_battery"
-	WarmHoldQuiet     = "quiet_hours"
 	WarmHoldDiskFloor = "disk_floor"
 )
 
@@ -137,8 +136,6 @@ func holdText(h string) string {
 		return "this machine is paused"
 	case WarmHoldBattery:
 		return "this machine is on battery"
-	case WarmHoldQuiet:
-		return "this machine is in quiet hours"
 	case WarmHoldDiskFloor:
 		return "free disk is under the floor"
 	}

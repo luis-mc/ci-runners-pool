@@ -63,11 +63,6 @@ const TAKING: Record<
     kind: 'off',
     note: 'It takes no new job while it runs on battery. The jobs that run finish.',
   },
-  quiet_hours: {
-    word: 'Quiet hours',
-    kind: 'off',
-    note: 'It takes no new job in quiet hours. The jobs that run finish.',
-  },
   busy: {
     word: 'Busy',
     kind: 'waiting',

@@ -28,7 +28,7 @@ type PolicyInfo struct {
 	// Mode is automatic, always or paused.
 	Mode string `json:"mode"`
 	// Accepting is whether the machine takes new jobs; PauseReason is why not:
-	// paused, on_battery, quiet_hours or budget.
+	// paused, on_battery or budget.
 	Accepting   bool   `json:"accepting"`
 	PauseReason string `json:"pause_reason,omitempty"`
 	OnBattery   bool   `json:"on_battery,omitempty"`

@@ -80,7 +80,7 @@ func TestWarmNeverOverLimits(t *testing.T) {
 		t.Fatalf("%+v", p)
 	}
 	// A hold releases every warm runner and starts none.
-	for _, hold := range []string{scheduler.WarmHoldPaused, scheduler.WarmHoldBattery, scheduler.WarmHoldQuiet, scheduler.WarmHoldDiskFloor} {
+	for _, hold := range []string{scheduler.WarmHoldPaused, scheduler.WarmHoldBattery, scheduler.WarmHoldDiskFloor} {
 		p := scheduler.PlanWarm(scheduler.WarmInput{Settings: warmSet(4, 2), Warm: warmAges(1, 2), Load: quiet, Hold: hold, Now: warmNow})
 		if p.Start != 0 || len(p.Release) != 2 || !strings.HasPrefix(p.Why, "no warm runner") {
 			t.Fatalf("%s: %+v", hold, p)

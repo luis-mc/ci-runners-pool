@@ -50,7 +50,7 @@ Status: **built**, **specified** (in a spec, not built), **partial**, **absent**
 | G6 | Watchdog for a demand source that goes quiet while jobs queue | absent | local-ci-pool issue #30, RunnerRunner issue #102 |
 | G7 | "Why is this job waiting?" per queued job in the console | partial: the gate logs reasons (built); console view is M3 (scheduling R5.48) | RunnerRunner |
 | G8 | Admission when load cannot be measured | built as fail-open on purpose (scheduling R5.22, R5.61: a broken install must not fail CI) | Unyoke fails closed |
-| G9 | Laptop and desk policy: pause on battery, ask when the user is active, tray mode Automatic / Always / Paused, CPU cap | partial: quiet hours only (machines R5.28, M3) | switchable |
+| G9 | Laptop and desk policy: pause on battery, ask when the user is active, tray mode Automatic / Always / Paused, CPU cap | partial: no quiet hours (dropped, OPS51) | switchable |
 | G10 | Refuse and drain when a served repository turns public; fork guard | partial: fork approval setting built, hook guard not built (R5.26) | local-ci-pool |
 | G11 | Container hardening: non-root, no Docker socket, no host folders, memory, CPU and process limits, no traffic between job containers | specified in part (runners R5.27, M2); limits and network isolation not written | local-ci-pool SECURITY.md |
 | G12 | Docker inside a job through a throwaway VM cloned from a base | specified (R5.28 Hyper-V differencing disk M4, R5.29 macOS M5) | local-ci-pool docker class, ephemerd |

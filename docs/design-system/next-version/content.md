@@ -218,7 +218,7 @@ The words of the machine mode, the battery pause and the CPU cap (machines R5.61
 | Waiting for jobs to finish | Section title of the job that holds a machine that stopped new jobs. |
 | Stop new jobs on {machine}? | Question card title. Lines: "Running jobs finish first, for up to {m} min." and "Nothing is removed. Resume undoes it." Primary: Stop new jobs. |
 | Taking jobs | State word: the machine takes new jobs. |
-| Paused, On battery, Quiet hours | State words: why the machine takes no new job. |
+| Paused, On battery | State words: why the machine takes no new job. |
 | Busy | State word: the load is over the budget, so a new job waits. The tray header does not say it. |
 | Needs a base image, Disk low | State words: a backend it may use has no runner base image on the machine; the disk is almost full. |
 | You stopped new jobs from the console. The jobs that run finish. Resume takes jobs again. | The note under Now for Not taking jobs. |
@@ -241,7 +241,6 @@ The words of the machine mode, the battery pause and the CPU cap (machines R5.61
 | Setting the CPU cap. | Note while the agent has not yet reported the result for the chosen value. |
 | It takes no new job. The jobs that run finish. | Note under the state when the machine is paused. |
 | It takes no new job while it runs on battery. The jobs that run finish. | Note when the machine is on battery. |
-| It takes no new job in quiet hours. The jobs that run finish. | Note in quiet hours. |
 | Its load is over the budget. A new job waits until the load drops. | Note when the state is Busy. |
 | Could not save. {why} | Problem message when a change was not saved. |
 | Could not change the mode. Could not pause. Could not resume. | Titles of the tray notice when a menu change failed. |
@@ -691,15 +690,12 @@ The words of the Docker disk section on the machine page (caches R5.51 to R5.54,
 | Start when this much can be reclaimed | The name of the number field, in GiB. The default is 30. |
 | Wait until the machine has been idle for | The name of the number field, in minutes. The default is 30. |
 | No job runs or waits for its runners. | Help under the idle field. |
-| Quiet hours start, Quiet hours end | The names of the two hour lists. Defaults 01:00 and 06:00. |
-| In the machine's own time. | Help under Quiet hours start. |
-| At most once a day. New jobs wait in the queue while the disk is made smaller. No job is stopped. | The note at the end of the section. |
+| It starts at any hour, once the machine has been idle for that long and that much can be reclaimed, and at most once a day. New jobs wait in the queue while the disk is made smaller. No job is stopped. | The note at the end of the section. It says when the compact runs. |
 | Now | The facts line with the state word. |
 | Disk file, Docker uses, Can be reclaimed, Last time | The other facts lines. Sizes as in Dates, times and numbers. Last time is a date, a time and the sizes, or the failure. |
 | Making the disk smaller | State word while the compact runs. |
 | Off | State word: the policy is off for this machine. |
 | Done today | State word: it ran in the last 24 hours. |
-| Waiting for quiet hours | State word: outside the quiet hours. |
 | Waiting: the machine is offline | State word. |
 | Waiting: the machine is paused or not taking jobs | State word. |
 | Waiting for the agent to look at the disk | State word before the first report. |
@@ -861,6 +857,7 @@ The words of the small update page the tray opens (tray R5.43, web-console R5.96
 
 | Words | Used for |
 |---|---|
+| Updates | The Settings tab after Console (LOOK43). It holds the Updates pane; Console no longer does. |
 | Update | Title of the page and name of the wizard. |
 | Version {version} is ready. Running jobs finish first; the service restarts (about 1 min). | The Review line. It is also the text of the native fallback box. |
 | Update now | The primary on Review. Busy word: Updating. |
@@ -1081,7 +1078,6 @@ The short forms a one-line table shows; the whole line is the hover text and sit
 | no runner with labels | no runner with its labels |
 | repository parallel limit | repository limit |
 | machine drained | machine not taking jobs |
-| quiet hours | quiet hours |
 | load not measured | load not measured yet |
 | paused | machine paused |
 | on battery | machine on battery |

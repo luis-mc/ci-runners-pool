@@ -50,8 +50,6 @@ func waitReason(r string) *gen.WaitReason {
 		out = gen.WaitReasonRepositoryParallelLimit
 	case "machine_drained":
 		out = gen.WaitReasonMachineDrained
-	case "quiet_hours":
-		out = gen.WaitReasonQuietHours
 	case "load_not_measured":
 		out = gen.WaitReasonLoadNotMeasured
 	case "paused":

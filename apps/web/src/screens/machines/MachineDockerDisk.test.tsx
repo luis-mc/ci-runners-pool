@@ -22,7 +22,7 @@ const windows = (
       file_bytes: 236 * GIB,
       used_bytes: 71 * GIB,
       reclaimable_bytes: 165 * GIB,
-      reason: 'outside_quiet_hours',
+      reason: 'busy',
       ...status,
     },
   });
@@ -33,8 +33,6 @@ const windows = (
       docker_compact: 'auto' as const,
       docker_compact_threshold_gib: 30,
       docker_compact_idle_minutes: 30,
-      docker_compact_quiet_start: '01:00',
-      docker_compact_quiet_end: '06:00',
       ...over,
     },
   };
@@ -51,7 +49,7 @@ describe('Docker disk section', () => {
     renderApp(detail(), '/pool/machines/m1');
     await screen.findByRole('heading', { name: 'build-1' });
     expect(screen.getByRole('heading', { name: 'Docker disk' })).toBeTruthy();
-    expect(screen.getByText('Waiting for quiet hours')).toBeTruthy();
+    expect(screen.getByText('Waiting: jobs run or wait here')).toBeTruthy();
     expect(screen.getByText('Can be reclaimed')).toBeTruthy();
     const section = within(
       screen
@@ -61,37 +59,17 @@ describe('Docker disk section', () => {
     expect(
       section.getByRole<HTMLInputElement>('radio', { name: /Automatic/ }).checked,
     ).toBe(true);
-    expect(
-      screen.getByRole<HTMLSelectElement>('combobox', { name: 'Quiet hours start' })
-        .value,
-    ).toBe('01:00');
-    expect(screen.getByText(/At most once a day/)).toBeTruthy();
+    expect(screen.queryByText(/Quiet hours/)).toBeNull();
+    expect(screen.getByText(/at most once a day/)).toBeTruthy();
   });
 
-  it('saves the mode and the quiet hours at once, without Save', async () => {
+  it('saves the mode at once, without Save', async () => {
     const api = detail();
     renderApp(api, '/pool/machines/m1');
     await screen.findByRole('heading', { name: 'build-1' });
     fireEvent.click(screen.getByRole('radio', { name: /^Off/ }));
     await waitFor(() => expect(api.count('PATCH', '/api/v1/machines/m1')).toBe(1));
     expect(lastPatch(api)).toEqual({ docker_compact: 'off' });
-    fireEvent.change(screen.getByRole('combobox', { name: 'Quiet hours end' }), {
-      target: { value: '05:00' },
-    });
-    await waitFor(() => expect(api.count('PATCH', '/api/v1/machines/m1')).toBe(2));
-    expect(lastPatch(api)).toEqual({ docker_compact_quiet_end: '05:00' });
-  });
-
-  it('keeps a quiet hour that is not on the hour', async () => {
-    renderApp(
-      detail(windows({ docker_compact_quiet_start: '02:30' })),
-      '/pool/machines/m1',
-    );
-    await screen.findByRole('heading', { name: 'build-1' });
-    expect(
-      screen.getByRole<HTMLSelectElement>('combobox', { name: 'Quiet hours start' })
-        .value,
-    ).toBe('02:30');
   });
 
   it('says when the agent cannot make the disk smaller and offers Turn off', async () => {

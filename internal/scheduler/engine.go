@@ -50,7 +50,7 @@ func WithLogger(l *slog.Logger) Option { return func(e *Engine) { e.log = l } }
 func WithAlerts(f func(Alert)) Option { return func(e *Engine) { e.alert = f } }
 
 // WithAccepting sets where the gate reads a machine's acceptance: the agent's
-// own report of paused, on battery or quiet hours (scheduling R5.68). A machine
+// own report of paused or on battery (scheduling R5.68). A machine
 // that is not accepting holds every new job with that reason. A machine the
 // callback knows nothing about accepts. The budget reason is not held here:
 // the gate checks the live load itself.
