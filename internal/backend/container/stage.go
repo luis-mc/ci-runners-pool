@@ -1,6 +1,7 @@
 package container
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"io/fs"
@@ -15,7 +16,7 @@ var keyRe = regexp.MustCompile(`^[A-Za-z0-9._-]{1,128}$`)
 // the crsp binary beside the base Dockerfile, which copies it (runners R5.48).
 // The folder is the build context and is removed by the caller after the build.
 // An old folder of the same key is replaced, so a half-written one is never used.
-func (b *Backend) stageBuild(key string) (string, error) {
+func (b *Backend) stageBuild(ctx context.Context, key, arch string) (string, error) {
 	if !keyRe.MatchString(key) {
 		return "", fmt.Errorf("image key %q cannot name a build folder", key)
 	}
@@ -55,11 +56,23 @@ func (b *Backend) stageBuild(key string) (string, error) {
 	if err != nil {
 		return fail(fmt.Errorf("write the image files: %w", err))
 	}
+	// The binary is the image's own OS and architecture (OPS60, registry R5.82):
+	// the agent's file on a Linux host of the same arch, else the Linux release
+	// asset of the same version. A file of any other kind fails the build here,
+	// before docker starts, with the reason.
 	src := b.cfg.CrspHostPath
+	if src == "" && b.cfg.LinuxCrsp != nil {
+		if src, err = b.cfg.LinuxCrsp(ctx, arch); err != nil {
+			return fail(err)
+		}
+	}
 	if src == "" {
 		if src, err = os.Executable(); err != nil {
 			return fail(fmt.Errorf("find the crsp binary for the image: %w", err))
 		}
+	}
+	if err := CheckLinuxBinary(src, arch); err != nil {
+		return fail(err)
 	}
 	if err := copyFile(src, filepath.Join(dir, "linux-base", "crsp")); err != nil {
 		return fail(fmt.Errorf("copy the crsp binary into the build folder: %w", err))

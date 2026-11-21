@@ -491,7 +491,9 @@ export function AddRunnersWizard() {
       <Stack>
         {phase === 'failed' ? (
           <Message tone="problem">
-            The runners were not all added. {sentence(problem ?? 'A step failed.')}
+            {failed.length} failed, {done.length} done.{' '}
+            {sentence(problem ?? 'A step failed.')} A failed runner stays in Runners with
+            its reason. Open Runners, remove it, fix the cause, then add it again.
           </Message>
         ) : null}
         {phase === 'stopped' ? (

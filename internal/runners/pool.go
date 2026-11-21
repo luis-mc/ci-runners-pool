@@ -85,6 +85,17 @@ func (s *Service) addPoolRunner(ctx context.Context, a AddSpec, version, actor s
 	if err := s.SyncPoolRegistrations(ctx, actor); err != nil {
 		s.audit(ctx, actor, "runner.pool_sync_failed", a.MachineID, rec.ID, err.Error())
 	}
+	// The step ends with the real outcome of this runner's registrations (OPS60,
+	// R5.100): one that failed fails the step with its reason, so Add runners
+	// never says "added" for a runner that is Failed. The runner stays in the
+	// list as Failed; the owner removes it.
+	if all, err := s.Store.ListRunners(ctx, Filter{}); err == nil {
+		for _, k := range all {
+			if k.PoolRunnerID == rec.ID && k.State == Failed {
+				return fmt.Errorf("runner %s was added but is failed: %s. It stays in Runners as failed; remove it there, fix the cause and add it again", a.Name, k.Reason)
+			}
+		}
+	}
 	return nil
 }
 
@@ -169,13 +180,12 @@ func (s *Service) SyncPoolRegistrations(ctx context.Context, actor string) error
 		}
 		sort.Strings(keys)
 		for _, k := range keys {
-			if c, ok := have[k]; ok && c.State != Failed {
+			if _, ok := have[k]; ok {
+				// A failed registration stays: the pool runner shows Failed with the
+				// reason, and only the owner removes it. It is never removed or
+				// retried by the reconcile (OPS60, R5.100): each retry of a failed
+				// image build costs minutes and hid the reason.
 				continue
-			} else if ok {
-				if err := s.discardFailed(ctx, c, actor, "runner.pool_failed_removed"); err != nil {
-					errs = append(errs, err)
-					continue
-				}
 			}
 			if err := s.addRegistration(ctx, p, wanted[k].repo, actor); err != nil {
 				errs = append(errs, fmt.Errorf("registration of %s for %s: %w", p.Name, wanted[k].repo.FullName, err))
