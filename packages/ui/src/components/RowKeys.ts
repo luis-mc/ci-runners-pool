@@ -22,7 +22,7 @@ function radioGroup(r: HTMLInputElement): HTMLInputElement[] {
 }
 
 /** The items of the row `target` sits in, and whether landing on one chooses it. */
-function rowOf(target: HTMLElement): { items: HTMLElement[]; choose: boolean } | null {
+function rowOf(target: Element): { items: HTMLElement[]; choose: boolean } | null {
   if (target instanceof HTMLInputElement && target.type === 'radio') {
     return target.name ? { items: radioGroup(target), choose: true } : null;
   }
@@ -45,11 +45,13 @@ export function handleRowKey(e: KeyboardEvent): boolean {
   const k = e.key;
   if (k !== 'ArrowLeft' && k !== 'ArrowRight' && k !== 'Home' && k !== 'End')
     return false;
-  const target = e.target instanceof HTMLElement ? e.target : null;
-  if (!target) return false;
+  // An Element, not an HTMLElement: the target may be an SVG shape inside a button.
+  const hit = e.target instanceof Element ? e.target : null;
+  if (!hit) return false;
+  const target: Element = hit instanceof HTMLElement ? hit : (hit.closest<HTMLElement>(ITEMS) ?? hit);
   const row = rowOf(target);
   if (!row || row.items.length === 0) return false;
-  const at = row.items.indexOf(target);
+  const at = row.items.indexOf(target as HTMLElement);
   if (at < 0) return false;
   const n = row.items.length;
   let to: number;

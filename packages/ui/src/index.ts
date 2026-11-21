@@ -41,3 +41,7 @@ export * from './components/Waterfall';
 export * from './components/JobGraph';
 export * from './components/Charts';
 export type * from './components/Viz.types';
+export * from './components/SearchTable';
+export * from './components/StatTile';
+export * from './components/BarList';
+export * from './components/FindingList';
