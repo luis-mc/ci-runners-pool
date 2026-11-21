@@ -166,7 +166,10 @@ function RemoveRegistration({
         client.POST('/api/v1/doctor/registration-fixes', {
           params: { query: { confirm: true } },
           body: {
-            action: action.id === 'remove_runner_record' ? 'remove_runner_record' : 'remove_github_runner',
+            action:
+              action.id === 'remove_runner_record'
+                ? 'remove_runner_record'
+                : 'remove_github_runner',
             args: action.args,
           },
         }),
@@ -386,7 +389,9 @@ export function DoctorScreen() {
               }
             />
           ) : null}
-          {(f.action?.id === 'remove_github_runner' || f.action?.id === 'remove_runner_record') && f.action.args ? (
+          {(f.action?.id === 'remove_github_runner' ||
+            f.action?.id === 'remove_runner_record') &&
+          f.action.args ? (
             <RemoveRegistration
               finding={f}
               onRemoved={(check) => void start.run({ checks: [check] })}

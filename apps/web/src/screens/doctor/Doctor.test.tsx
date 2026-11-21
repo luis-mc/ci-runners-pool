@@ -446,7 +446,13 @@ describe('runner leftovers finding (doctor R5.48, OPS33)', () => {
         action: {
           id: 'remove_github_runner',
           label: 'Remove',
-          args: { github_runner_id: 555, name: 'crsp-stray', installation_id: 7, owner: 'o', repo: 'r' },
+          args: {
+            github_runner_id: 555,
+            name: 'crsp-stray',
+            installation_id: 7,
+            owner: 'o',
+            repo: 'r',
+          },
         },
       });
     it('asks first and sends the args of the finding with a yes', async () => {

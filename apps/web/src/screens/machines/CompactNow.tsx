@@ -25,16 +25,13 @@ export function CompactNow({ m, onStarted }: { m: Machine; onStarted: () => void
   const session = useSession();
   const st = m.docker_compact_status;
   const running = st?.running === true;
-  const ask = useQuestion(
-    async () => {
-      await unwrap(
-        client.POST('/api/v1/machines/{machineId}/docker-compact', {
-          params: { path: { machineId: m.id }, query: { confirm: true } },
-        }),
-      );
-    },
-    onStarted,
-  );
+  const ask = useQuestion(async () => {
+    await unwrap(
+      client.POST('/api/v1/machines/{machineId}/docker-compact', {
+        params: { path: { machineId: m.id }, query: { confirm: true } },
+      }),
+    );
+  }, onStarted);
   if (!st?.disk_present) return null;
   const admin = session.can('admin');
   const reason = !admin
