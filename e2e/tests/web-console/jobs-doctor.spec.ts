@@ -13,6 +13,9 @@ test('Jobs: the queue says why a run waits and when it should start, Done lists 
   await page.goto('/jobs');
   await expect(page.getByRole('heading', { level: 1, name: 'Jobs' })).toBeVisible();
   const queue = page.getByRole('table', { name: 'Queue runs' });
+  // CRSP210: the row shows the short reason; Why opens the whole sentence under the row.
+  await expect(queue.getByText('waits for a slot', { exact: true })).toBeVisible();
+  await queue.getByRole('button', { name: 'Why' }).click();
   await expect(
     queue.getByText('waits for a free slot on any Linux machine'),
   ).toBeVisible();
