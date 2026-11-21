@@ -9,6 +9,9 @@
  *  5. where a rule asks for it, the primary action is in view without scrolling;
  *  6. fields in one visual row share one width class, one box width and one top edge (CORE-7, UX-23);
  *  7. a check box or radio is drawn on the left edge of the field column of its group (CORE-7);
+ *  9. (LOOK46, opt in with `sectionGapVar` and `focusVars`) the top-level panes of a page are one section gap apart
+ *     (the token named by `sectionGapVar`, `--ds-space-6`, 32 px), and no pane title overlaps the box of a control above
+ *     it, counting the control's focus outline and glow;
  *  8. no clipped text (CRSP210): no element whose text is wider than its box while it hides the rest (`overflow` hidden
  *     or clip, or `text-overflow: ellipsis`), and no table cell whose box overlaps another cell of its row (the action
  *     cell included) or whose content runs out of the cell into the next one.
@@ -38,7 +41,9 @@ export type LayoutRule =
   | 'primary-in-view'
   | 'field-row'
   | 'check-edge'
-  | 'clipped-text';
+  | 'clipped-text'
+  | 'section-gap'
+  | 'title-clear';
 
 /** One known breach: the screen, the width it happens at ('*' for every width), the rule and the task that removes it. */
 export interface KnownLayoutBreach {
@@ -64,6 +69,10 @@ export interface DomLayoutOptions {
   readonly buttons?: string;
   /** Prefix of the spacing custom properties; `--space-` means `--space-0` to `--space-7`. */
   readonly spaceVar?: string;
+  /** The custom property of the gap between the sections of a page, for example `--ds-space-6` (rule 9, off when unset). */
+  readonly sectionGapVar?: string;
+  /** The custom properties of the focus ring: its width, its offset and its glow (a box-shadow list), for rule 9. */
+  readonly focusVars?: { readonly width: string; readonly offset: string; readonly glow: string };
   readonly known?: readonly KnownLayoutBreach[];
   /** Runs before each width is measured (wait for the page to be at rest). */
   readonly ready?: () => Promise<void>;
@@ -80,7 +89,10 @@ const DEFAULT_SPACE_VAR = '--space-';
 
 /** The page's own measurement: runs in the browser through `page.evaluate`. Returns the problems found. */
 export function domLayoutSource(
-  options: Pick<DomLayoutOptions, 'groups' | 'primary' | 'buttons' | 'spaceVar'> = {},
+  options: Pick<
+    DomLayoutOptions,
+    'groups' | 'primary' | 'buttons' | 'spaceVar' | 'sectionGapVar' | 'focusVars'
+  > = {},
 ): string {
   return `((cfg) => {
     const visible = (e) => {
@@ -247,6 +259,69 @@ export function domLayoutSource(
       }
     }
 
+    // 9. top-level panes are one section gap apart; no pane title sits under the focus ring of a control above it (LOOK46)
+    if (cfg.sectionGapVar) {
+      const px = (value) => {
+        const p2 = document.createElement('i');
+        p2.style.cssText = 'position:absolute;visibility:hidden;width:0;height:0;padding-left:var(' + value + ')';
+        document.body.appendChild(p2);
+        const n = parseFloat(getComputedStyle(p2).paddingLeft) || 0;
+        p2.remove();
+        return n;
+      };
+      const want = px(cfg.sectionGapVar);
+      const nested = (e) => e.parentElement && e.parentElement.closest('.ds-pane, .ds-side, [role=dialog], .ds-wizard');
+      const tops = Array.from(document.querySelectorAll('main .ds-pane')).filter((p2) => visible(p2) && !nested(p2) && !p2.closest('.ds-card-grid'));
+      const label = (p2) => '"' + ((p2.querySelector(':scope > .ds-pane__title') || {}).textContent || p2.getAttribute('aria-label') || name(p2)).trim().replace(/\\s+/g, ' ').slice(0, 30) + '"';
+      for (let i = 1; i < tops.length; i++) {
+        const a = tops[i - 1];
+        const b = tops[i];
+        const ra = a.getBoundingClientRect();
+        const rb = b.getBoundingClientRect();
+        if (sameRow(ra, rb) || rb.top < ra.bottom - 1) continue;
+        // the two panes are neighbours when nothing sits between them: the blocks that hold them are adjacent siblings
+        let ca = a;
+        const chain = new Set();
+        for (let e = a; e; e = e.parentElement) chain.add(e);
+        let cb = b;
+        while (cb.parentElement && !chain.has(cb.parentElement)) cb = cb.parentElement;
+        const lca = cb.parentElement;
+        if (!lca) continue;
+        while (ca.parentElement !== lca) ca = ca.parentElement;
+        const kids = Array.from(lca.children).filter(visible);
+        if (kids.indexOf(cb) - kids.indexOf(ca) !== 1) continue;
+        const gap = rb.top - ra.bottom;
+        if (Math.abs(gap - want) > 1) add('section-gap', 'the panes ' + label(a) + ' and ' + label(b) + ' are ' + Math.round(gap) + ' px apart, not the section gap ' + want + ' px (' + cfg.sectionGapVar + ')');
+      }
+      if (cfg.focusVars) {
+        const probe2 = document.createElement('i');
+        probe2.style.cssText = 'position:absolute;visibility:hidden;width:0;height:0;outline-style:solid;outline-width:var(' + cfg.focusVars.width + ');outline-offset:var(' + cfg.focusVars.offset + ');box-shadow:var(' + cfg.focusVars.glow + ')';
+        document.body.appendChild(probe2);
+        const ps = getComputedStyle(probe2);
+        let reach = (parseFloat(ps.outlineWidth) || 0) + (parseFloat(ps.outlineOffset) || 0);
+        for (const layer of ps.boxShadow.split(/,(?![^(]*\\))/)) {
+          const nums = (layer.replace(/rgba?\\([^)]*\\)/g, '').match(/-?[\\d.]+px/g) || []).map(parseFloat);
+          if (nums.length >= 3) reach = Math.max(reach, nums[2] + (nums[3] || 0) + Math.max(Math.abs(nums[0]), Math.abs(nums[1])));
+        }
+        probe2.remove();
+        const fixed = (e) => { for (let x = e; x; x = x.parentElement) { const pos = getComputedStyle(x).position; if (pos === 'fixed' || pos === 'sticky') return true; } return false; };
+        // a table head folded away at phone width keeps its sort buttons in the DOM but not on the screen
+        const folded = (e) => { const head = e.closest('thead'); return head ? head.getBoundingClientRect().width <= 2 : false; };
+        const controls = Array.from(document.querySelectorAll('main input, main select, main textarea, main button, main a[href], main [tabindex]')).filter((c) => visible(c) && !fixed(c) && !folded(c) && c.getAttribute('tabindex') !== '-1' && !c.disabled);
+        for (const t of Array.from(document.querySelectorAll('main .ds-pane__title')).filter(visible)) {
+          const tr = t.getBoundingClientRect();
+          const own = t.closest('.ds-pane');
+          for (const c of controls) {
+            if (own.contains(c) || c.contains(t)) continue;
+            const cr = c.getBoundingClientRect();
+            if (cr.top >= tr.top) continue;
+            if (cr.left - reach < tr.right - 0.5 && cr.right + reach > tr.left + 0.5 && cr.top - reach < tr.bottom - 0.5 && cr.bottom + reach > tr.top + 0.5)
+              add('title-clear', 'the title ' + label(own) + ' sits ' + Math.round(tr.top - cr.bottom) + ' px under ' + name(c) + ', inside its focus ring (reach ' + Math.round(reach) + ' px)');
+          }
+        }
+      }
+    }
+
     // 5. the primary action in view without scrolling
     if (cfg.primary) {
       const target = Array.from(document.querySelectorAll(cfg.primary)).find(visible);
@@ -262,6 +337,8 @@ export function domLayoutSource(
     primary: options.primary ?? null,
     buttons: options.buttons ?? DEFAULT_BUTTONS,
     spaceVar: options.spaceVar ?? DEFAULT_SPACE_VAR,
+    sectionGapVar: options.sectionGapVar ?? null,
+    focusVars: options.focusVars ?? null,
   })})`;
 }
 

@@ -32,7 +32,7 @@ Every rule has an ID. A feature spec and the code cite the ID (`design system UX
 | UX-7 | **Never act on hidden items.** The count on an action is the count the user can see. | none yet |
 | UX-8 | **Only buttons look like buttons.** Information never does. An action is never a plain link. | none yet |
 | UX-9 | **Ask first in the page.** Use one question card: Cancel on the left, the action on the right. Never use the browser's alert, confirm or prompt. | `e2e/tests/web-console/ux-static.spec.ts` |
-| UX-10 | **Boxed sections share one card look and sit in one grid.** Use as many columns as fit, with equal widths. Cards never touch. | `e2e/tests/web-console/ux-routes.spec.ts` |
+| UX-10 | **Boxed sections share one card look and sit in one grid.** Use as many columns as fit, with equal widths. Cards never touch. The sections of every page are one section gap apart, 32 px (`--ds-space-6`), on every screen; a search or filter bar above a pane leaves the same gap, so its focus ring never covers the pane's title. | `e2e/tests/web-console/ux-routes.spec.ts` |
 | UX-11 | **Long lists use the one shared pager.** A preview ends with "See all N". | none yet |
 | UX-12 | **Choice lists start with Select all N and Clear.** | `e2e/tests/web-console/ux-routes.spec.ts` |
 | UX-13 | **A button that starts work is not pressable while it runs.** It says that it is running. Every button that sends a request stays busy until the answer. The busy state comes from the server's answer, not a timer. | `scripts/design/wizard-behaviour.test.ts` |
