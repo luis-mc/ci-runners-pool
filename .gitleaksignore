@@ -1,5 +1,2 @@
 # CRSP47: the first version of the redactor test named a runner token variable in a string; a false positive in history, fixed in the next commit.
 ac3ed37373ed913098ce2fca9ae2ad21287c3add:internal/redact/redact_test.go:project-named-secret:39
-# CRSP208: CIX12 privacy test fixtures, a fake PEM block and a fake JWT that the redactor test must see removed; not secrets.
-3ad9ecc0cd497e5096a1aec9152e61bec2ec8ca3:internal/insights/collect/privacy_test.go:private-key:18
-3ad9ecc0cd497e5096a1aec9152e61bec2ec8ca3:internal/insights/collect/privacy_test.go:jwt:20
