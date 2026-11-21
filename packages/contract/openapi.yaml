@@ -8924,7 +8924,16 @@ components:
       properties:
         name:
           type: string
-          enum: [downloading, waiting_for_jobs, installing, waiting_installer, restarting, done, failed]
+          enum:
+            [
+              downloading,
+              waiting_for_jobs,
+              installing,
+              waiting_installer,
+              restarting,
+              done,
+              failed,
+            ]
           description: waiting_installer means another installer holds Windows Installer; the update starts when it ends (TRAY11). restarting is set only once the installer has finished.
         waiting_for:
           type: string
