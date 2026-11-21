@@ -112,7 +112,7 @@ Screens are from the product brief: 1 (sign-in and first-run wizard), 3 (reposit
 
 **Sign-in.** One primary action: "Sign in with GitHub". A user who is not allowed sees a Problem message (rules UX-26) with their GitHub login and what to do: ask the owner to add them.
 
-**Repositories** (components 15, rules UX-22, UX-58). One row per repository the user can see through the App. Columns: repository, visibility, your GitHub right, pool switch, variable status, `runs-on` check. The pool switch saves at once (rules UX-22). A repository the user does not administer on GitHub shows the switch disabled, with the reason beside it (rules UX-38). **Built by OPS28:** a column **Runner kind** shows `Ephemeral only` or `Any runner` per repository and the owner can change it (R5.60).
+**Repositories** (components 15, rules UX-22, UX-58). One row per repository the user can see through the App. Columns: repository, visibility, your GitHub right, pool switch, variable status, `runs-on` check. The pool switch saves at once (rules UX-22). A repository the user does not administer on GitHub shows the switch disabled, with the reason beside it (rules UX-38). **Built by OPS28:** a column **Runner type** shows `Ephemeral only` or `Any runner` per repository and the owner can change it (R5.60).
 
 **Repository policy.** Allowed runner groups and labels, maximum parallel jobs, priority, and fork pull requests. Turning fork pull requests on asks first with a warning card (components 9, rules UX-9).
 

@@ -82,6 +82,8 @@ A retired word is not drawn as a label, button or message. The guard scans the s
 | Check now | Try again |
 | Recheck | Try again |
 | Erase | Delete |
+| Runner kind | Runner type |
+| Kind (for persistent or ephemeral) | Runner type; Type alone where the page or step is already about runners (LOOK50) |
 <!-- retired-words:end -->
 
 ## Wizard step names
