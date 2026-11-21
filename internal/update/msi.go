@@ -151,6 +151,11 @@ func recoverMSI(dir, current string, now time.Time) (bool, Result) {
 	case ok:
 		_ = RecordFailure(dir, rec.To, now, false)
 		return done(Result{Error: fmt.Sprintf("the installer failed with exit code %d; the old version stays (Windows Installer rolled back). The log is %s", code, rec.Log)})
+	case staleMSILog(rec, now):
+		// The installer never started, or it ended without a result and left its log alone: a
+		// dead attempt, never "restarting" for ever (TRAY11).
+		_ = RecordFailure(dir, rec.To, now, false)
+		return done(Result{Error: "the installer did not run to its end and the old version still runs. The log is " + rec.Log})
 	case now.Sub(rec.StartedAt) > LockMaxAge:
 		_ = RecordFailure(dir, rec.To, now, false)
 		return done(Result{Error: "the installer left no result in its log. The log is " + rec.Log})
@@ -303,4 +308,14 @@ func clearFailures(dir, version string) error {
 		return os.Remove(filepath.Join(dir, FailuresFile))
 	}
 	return nil
+}
+
+// staleMSILog says the install that left this record is dead: its log never appeared within
+// msiExitGrace of the start, or has not been written for msiRestartGrace.
+func staleMSILog(rec PendingMSI, now time.Time) bool {
+	fi, err := os.Stat(rec.Log)
+	if err != nil {
+		return now.Sub(rec.StartedAt) > msiExitGrace
+	}
+	return now.Sub(fi.ModTime()) > msiRestartGrace && now.Sub(rec.StartedAt) > msiRestartGrace
 }

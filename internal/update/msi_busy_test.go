@@ -261,3 +261,53 @@ func TestBusyDetectionHelpers(t *testing.T) {
 		t.Fatal("no file, no name")
 	}
 }
+
+// A restart that finds an install record whose log never appeared, or went quiet, settles it.
+func TestRecoverMSISettlesAnInstallThatNeverRanOrWentQuiet(t *testing.T) {
+	now := time.Date(2026, 11, 21, 13, 7, 0, 0, time.UTC)
+	dir := t.TempDir()
+	log := filepath.Join(dir, "msi-update.log")
+
+	pendingFor(t, dir, log, now) // no log yet: wait for it
+	if RecoverMSI(dir, "1.4.0", now.Add(msiExitGrace-time.Second)) {
+		t.Fatal("a start in progress is left alone")
+	}
+	if !RecoverMSI(dir, "1.4.0", now.Add(msiExitGrace+time.Second)) {
+		t.Fatal("an installer that never wrote its log is a dead attempt")
+	}
+	if s, _ := ReadStage(dir); s.Name != StageFailed || s.LogPath != log {
+		t.Fatalf("%+v", s)
+	}
+
+	pendingFor(t, dir, log, now) // a log without an end line that stopped growing
+	_ = os.WriteFile(log, []byte("Action start 13:07:01: INSTALL.\n"), 0o600)
+	_ = os.Chtimes(log, now, now)
+	if RecoverMSI(dir, "1.4.0", now.Add(time.Minute)) {
+		t.Fatal("a log that is still fresh is left alone")
+	}
+	if !RecoverMSI(dir, "1.4.0", now.Add(msiRestartGrace+time.Minute)) {
+		t.Fatal("a quiet log is a dead attempt")
+	}
+}
+
+// The console never reattaches to a dead attempt: after the failure a new yes is a new attempt.
+func TestAfterAFailureANewAttemptStarts(t *testing.T) {
+	r := newBusyRig(t)
+	r.logs = []string{log1603}
+	r.run(t)
+	first := r.m.Status(context.Background()).Attempt
+	if first == nil {
+		t.Fatal("no attempt")
+	}
+	r.clock = r.clock.Add(time.Second)
+	if _, err := r.m.Apply(context.Background(), KindUpdate, true, "octo"); err != nil {
+		t.Fatal(err)
+	}
+	second := r.m.Status(context.Background())
+	if second.Attempt == nil || second.Attempt.ID == first.ID || second.Error != "" {
+		t.Fatalf("old %+v, new %+v, error %q", first, second.Attempt, second.Error)
+	}
+	if second.Stage == nil || second.Stage.Attempt != second.Attempt.ID || second.Stage.Name == StageFailed {
+		t.Fatalf("the stage must belong to the new attempt: %+v", second.Stage)
+	}
+}
