@@ -105,10 +105,15 @@ for (const s of SCREENS) {
     await seeded().install(page);
     await page.goto(s.path);
     await expect(page.locator('table.ds-table').first()).toBeAttached();
+    await expect(page.getByRole('heading', { level: 1 }).first()).toBeVisible();
     const found = await measureDomLayout(page, {
-      ready: async () => {
-        await page.waitForTimeout(100);
-      },
+      ready: () =>
+        page.evaluate(
+          () =>
+            new Promise<void>((done) =>
+              requestAnimationFrame(() => requestAnimationFrame(() => done())),
+            ),
+        ),
     });
     const { unknown, stale } = judgeLayout(
       s.name,

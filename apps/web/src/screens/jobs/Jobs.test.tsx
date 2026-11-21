@@ -1,7 +1,7 @@
 // R5.104, R5.105, R5.111, R5.116 (OPS34): Queue, Running and Done as one row for each run with a Runs | Jobs switch,
 // the wait reason and start range of the queue, the Done range, paging and both exports, and loading, empty and
 // error states. Fed by the mocked Jobs API; no fake data reaches the console.
-import { cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 import { apiError, renderApp } from '../../testing/mock';
 import { job, jobsApi, runSummary } from '../../testing/jobsData';
@@ -144,7 +144,7 @@ describe('Done', () => {
     const api = jobsApi({ runs: [runSummary()] });
     renderApp(api, '/jobs/done');
     await screen.findByRole('table', { name: 'Done runs' });
-    await new Promise((r) => setTimeout(r, 300));
+    await act(async () => {}); // let every effect and state update settle
     expect(api.count('GET', '/api/v1/runs')).toBe(1);
   });
 

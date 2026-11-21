@@ -39,4 +39,4 @@ test('the first JavaScript is within the gzip budget', async () => {
     `bundle: first JavaScript ${total} bytes gzipped (budget ${budgets.firstJavaScriptGzipBytes})`,
   );
   expect(total).toBeLessThanOrEqual(budgets.firstJavaScriptGzipBytes);
-}, 60_000);
+}, 5_000); // measured 0.5 s

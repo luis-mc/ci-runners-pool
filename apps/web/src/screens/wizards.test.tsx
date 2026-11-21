@@ -544,7 +544,7 @@ describe('wizard harness (UX-5, UX-30, UX-54, R5.19)', () => {
         },
       ]);
       expect(problems.join('\n')).toBe('');
-    }, 120000);
+    }, 5_000); // measured: slowest wizard 0.7 s
   }
 
   it('a failed run offers Try again and says what failed (UX-30)', async () => {
