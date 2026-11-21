@@ -137,6 +137,15 @@ A message is one or two short sentences in plain words. It names the thing, neve
 - Use the same word for the same thing every time.
 - Never blame the user.
 
+## Audit log words
+
+| Where | Word |
+|---|---|
+| Column heads | When, Who, What, On, Details, Result |
+| On | What the change acted on: its kind, a space, its name. "repository luis-mc/app". |
+| Details | The note of the change as plain text, with no key name before it. |
+| Export | The word Export, at the end of the toolbar. |
+
 ## Empty, failed and waiting states
 
 - **Empty:** say what will appear here, and offer the action that fills it. "No reports yet. Add a report to start."
@@ -149,7 +158,7 @@ A message is one or two short sentences in plain words. It names the thing, neve
 |---|---|---|
 | Date | Year-month-day. | 2026-11-02 |
 | Time | 24-hour, local time. | 14:30 |
-| Date and time | Date, a space, then time. | 2026-11-02 14:30 |
+| Date and time | Date, a space, then time. Always on one line (UX-78). | 2026-11-02 14:30 |
 | Short date and time | Day, month name, time; only where a cell is narrow (UX-72). The detail shows the full form above. | 18 Nov 13:28 |
 | Number | Digits, with a space for thousands. A dot for decimals. | 12 345.5 |
 | Count | A number before the noun. The noun agrees with the count. | 1 item, 3 items |
