@@ -837,6 +837,11 @@ func TestFollowPostponesAfterTheDrainLimitAndRetries(t *testing.T) {
 	if _, err := h.m.Follow(context.Background(), "1.5.0"); err != nil || len(h.d.begun) != 2 {
 		t.Fatalf("the next ask tries again: %v %v", err, h.d.begun)
 	}
+	// The second ask armed the drain limit again: end it here, so its timer does not write into the
+	// test's folder while the folder is being removed.
+	if _, err := h.m.Cancel(context.Background(), "test"); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestFollowStopsAfterThreeFailedTriesOfAVersion(t *testing.T) {
