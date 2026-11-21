@@ -119,7 +119,7 @@ test('the cards sit in four columns at 1300 px, two on a tablet and one on a pho
   ] as const) {
     await page.setViewportSize({ width, height: 900 });
     await page.goto('/help');
-    await expect(page.getByRole('heading', { level: 1, name: 'Help' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'What is a slot?' })).toBeVisible();
     expect(await columns()).toBe(expected);
   }
 });

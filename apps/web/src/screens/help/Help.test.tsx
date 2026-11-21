@@ -27,6 +27,9 @@ describe('Help (LOOK47)', () => {
   it('opens at /help with the picture on top and every card visible, no wizard', async () => {
     renderApp(signedIn(), '/help');
     expect(await screen.findByRole('heading', { level: 1, name: 'Help' })).toBeTruthy();
+    await screen.findByRole('region', {
+      name: 'Questions, in the order a job meets them',
+    });
     const nav = screen.getByRole('navigation', { name: 'Areas' });
     expect(
       within(nav).getByRole('link', { name: 'Help' }).getAttribute('aria-current'),
@@ -53,7 +56,9 @@ describe('Help (LOOK47)', () => {
 
   it('presses a part of the picture and nothing is locked', async () => {
     renderApp(signedIn(), '/help');
-    await screen.findByRole('heading', { level: 1, name: 'Help' });
+    await screen.findByRole('region', {
+      name: 'Questions, in the order a job meets them',
+    });
     const box = await screen.findByRole<HTMLButtonElement>('button', {
       name: /^Slot\s*1 of 4 busy/,
     });
@@ -122,7 +127,9 @@ describe('Help is layout G (LOOK48)', () => {
 
   it('orders the cards by the box they explain and every card names its box', async () => {
     renderApp(signedIn(), '/help');
-    await screen.findByRole('heading', { level: 1, name: 'Help' });
+    await screen.findByRole('region', {
+      name: 'Questions, in the order a job meets them',
+    });
     const order = PATH_PARTS.map((p) => p.id);
     const boxes = CARDS.map((c) => order.indexOf(c.box));
     expect(boxes).toEqual([...boxes].sort((a, b) => a - b));
@@ -139,7 +146,9 @@ describe('Help is layout G (LOOK48)', () => {
 
   it('lights the diagram box when its badge is pressed', async () => {
     renderApp(signedIn(), '/help');
-    await screen.findByRole('heading', { level: 1, name: 'Help' });
+    await screen.findByRole('region', {
+      name: 'Questions, in the order a job meets them',
+    });
     const slotBox = screen.getByRole('button', { name: /^Slot/ });
     expect(slotBox.getAttribute('aria-pressed')).toBeNull();
     const card = screen.getByRole('region', { name: 'What is a slot?' });
@@ -152,7 +161,9 @@ describe('Help is layout G (LOOK48)', () => {
 
   it('puts a small picture on the cards that have one', async () => {
     renderApp(signedIn(), '/help');
-    await screen.findByRole('heading', { level: 1, name: 'Help' });
+    await screen.findByRole('region', {
+      name: 'Questions, in the order a job meets them',
+    });
     for (const t of [
       'What does shared mean?',
       'Why is my job waiting?',
