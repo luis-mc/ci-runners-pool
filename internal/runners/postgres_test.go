@@ -137,7 +137,12 @@ func TestCreatedbOptInAndDeclaredRoles(t *testing.T) {
 	if _, err := p.Provision(ctx, DBSpec{Repo: "o/a", RunnerID: "r1"}); err != nil {
 		t.Fatal(err)
 	}
-	if s := f.sql(); !strings.Contains(s, "NOCREATEDB") || strings.Contains(strings.ReplaceAll(s, "NOCREATEDB", ""), "CREATEDB") {
+	// the sibling copy (OPS54) names CREATEDB inside a CASE; the declared setting is the rest
+	s0 := f.sql()
+	if i := strings.Index(s0, "DECLARE sib oid"); i >= 0 {
+		s0 = s0[:i] + s0[i+strings.Index(s0[i:], "END $b$;"):]
+	}
+	if s := s0; !strings.Contains(s, "NOCREATEDB") || strings.Contains(strings.ReplaceAll(s, "NOCREATEDB", ""), "CREATEDB") {
 		t.Errorf("CREATEDB must be off by default: %s", s)
 	}
 	f.calls = nil
@@ -325,9 +330,10 @@ func TestRemovingLastRunnerDropsOwnerRole(t *testing.T) { // OPS53, R5.97
 func TestLoginsListedAndRemovedByName(t *testing.T) { // OPS53, doctor R5.59
 	ctx := context.Background()
 	p, f, _ := newPG(t)
-	f.answers = map[string]string{"FROM pg_roles u WHERE u.rolcanlogin": "r_r1 crsp_o_a_owner\nr_old\n"}
+	f.answers = map[string]string{"FROM pg_roles u WHERE u.rolcanlogin": "r_r1|crsp_o_a_owner|t|createdb,createrole,inherit|crsp_o_a_owner,reader\nr_old|||inherit|\n"}
 	ls, err := p.Logins(ctx)
-	if err != nil || len(ls) != 2 || ls[0] != (Login{"r_r1", "crsp_o_a_owner"}) || ls[1] != (Login{Name: "r_old"}) {
+	if err != nil || len(ls) != 2 || ls[0].Name != "r_r1" || ls[0].OwnerRole != "crsp_o_a_owner" || !ls[0].SelfGrant || ls[0].Attrs != "createdb,createrole,inherit" ||
+		strings.Join(ls[0].Members, " ") != "crsp_o_a_owner reader" || ls[1].Name != "r_old" || ls[1].SelfGrant || len(ls[1].Members) != 0 {
 		t.Fatalf("%+v %v", ls, err)
 	}
 	f.calls = nil
@@ -337,6 +343,72 @@ func TestLoginsListedAndRemovedByName(t *testing.T) { // OPS53, doctor R5.59
 	for _, bad := range []string{"postgres", "r_x; DROP ROLE y", "crsp_o_a_owner"} {
 		if err := p.RemoveLogin(ctx, bad); !errors.Is(err, ErrRoleName) {
 			t.Errorf("%q accepted: %v", bad, err)
+		}
+	}
+}
+
+func TestEveryLoginGetsSelfGrantSetting(t *testing.T) { // OPS54, runners R5.97
+	ctx := context.Background()
+	p, f, _ := newPG(t)
+	for i := 0; i < 2; i++ { // a rerun sets the same value: idempotent
+		if _, err := p.Provision(ctx, DBSpec{Repo: "o/a", RunnerID: "r1"}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	sql := f.sql()
+	if n := strings.Count(sql, "ALTER ROLE r_r1 SET createrole_self_grant = 'set, inherit';"); n != 2 {
+		t.Errorf("setting not set on each provision (%d): %s", n, sql)
+	}
+	if strings.Contains(sql, "IN DATABASE r_r1 SET createrole_self_grant") {
+		t.Error("setting must apply to all databases")
+	}
+}
+
+func TestNewLoginCopiesSiblingNotSuperuser(t *testing.T) { // OPS54, runners R5.97
+	ctx := context.Background()
+	p, f, _ := newPG(t)
+	if _, err := p.Provision(ctx, DBSpec{Repo: "o/a", RunnerID: "r2"}); err != nil {
+		t.Fatal(err)
+	}
+	sql := f.sql()
+	for _, want := range []string{
+		"NOSUPERUSER NOREPLICATION NOBYPASSRLS", "pg_db_role_setting", "setrole = sib", "am.member = sib",
+		"u.rolname <> 'r_r2'", "o.rolname = 'crsp_o_a_owner'", "AND NOT g.rolcanlogin",
+		"WITH ADMIN %s, INHERIT %s, SET %s", "rolcreatedb", "rolcreaterole", "rolconnlimit",
+	} {
+		if !strings.Contains(sql, want) {
+			t.Errorf("missing %q in sibling copy: %s", want, sql)
+		}
+	}
+	for _, bad := range []string{"SUPERUSER ", "REPLICATION ", "BYPASSRLS "} {
+		for _, line := range strings.Split(sql, "\n") {
+			if strings.Contains(line, bad) && !strings.Contains(line, "NO"+bad) && !strings.Contains(line, "CREATE ROLE") {
+				t.Errorf("%q may be copied: %s", bad, line)
+			}
+		}
+	}
+	// a login that exists already is not overwritten by a copy
+	f.calls = nil
+	f.answers = map[string]string{"SELECT 1 FROM pg_roles WHERE rolname = 'r_r2'": "1\n"}
+	if _, err := p.Provision(ctx, DBSpec{Repo: "o/a", RunnerID: "r2"}); err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(f.sql(), "pg_db_role_setting") || !strings.Contains(f.sql(), "SET createrole_self_grant") {
+		t.Errorf("existing login copied again or setting missing: %s", f.sql())
+	}
+}
+
+func TestLeftoverDatabasesGoToSharedRole(t *testing.T) { // OPS54, runners R5.97
+	ctx := context.Background()
+	p, f, _ := newPG(t)
+	if _, err := p.Provision(ctx, DBSpec{Repo: "o/a", RunnerID: "r1"}); err != nil {
+		t.Fatal(err)
+	}
+	sql := f.sql()
+	for _, want := range []string{"JOIN pg_roles u ON u.oid = db.datdba AND u.rolcanlogin", "o.rolname = 'crsp_o_a_owner'",
+		"ALTER DATABASE %I OWNER TO %I"} {
+		if !strings.Contains(sql, want) {
+			t.Errorf("missing %q: %s", want, sql)
 		}
 	}
 }

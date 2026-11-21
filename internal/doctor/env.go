@@ -504,6 +504,13 @@ type VMSource interface {
 // role it belongs to (runners R5.97).
 type PostgresLogin struct {
 	Name, OwnerRole string
+	// SelfGrant: createrole_self_grant is 'set, inherit' on the login (OPS54).
+	SelfGrant bool
+	// Attrs is the login's role attributes as a stable text; Members the roles
+	// it is a member of, sorted. The check compares them across the logins of
+	// one owner role.
+	Attrs   string
+	Members []string
 }
 
 // PostgresSource lists the runner logins of the pool's Postgres server
