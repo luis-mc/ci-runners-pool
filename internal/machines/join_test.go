@@ -101,10 +101,14 @@ func TestRemovedMachineJoinsAgainWithNewCodeAndNewKey(t *testing.T) {
 	}
 }
 
-// Two machines with one host name get distinct names.
+// Two machines with one host name get distinct names. The first is online, so the
+// second join is not its rejoin (OPS59).
 func TestJoinMakesNamesUnique(t *testing.T) {
 	e := newEnv(t)
-	e.joined("box")
+	first, _ := e.joined("box")
+	m, _ := e.Repo.GetMachine(context.Background(), first.GetMachineId())
+	m.Online = true
+	_ = e.Repo.UpdateMachine(context.Background(), m)
 	e.joined("box")
 	vs, _ := e.Svc.List(context.Background())
 	if len(vs) != 2 || vs[0].Machine.Name == vs[1].Machine.Name {

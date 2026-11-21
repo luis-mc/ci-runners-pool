@@ -1,7 +1,8 @@
-// LOOK44: the Help page, the job path, the stepper and the ? popover.
+// LOOK44, LOOK47: the Help page (layout G, no wizard), the job path and the ? popover.
 import { cleanup, fireEvent, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 import { machine, renderApp, signedIn } from '../../testing/mock';
+import { CARDS } from './helpContent';
 
 afterEach(cleanup);
 
@@ -21,63 +22,50 @@ const withBudget = () =>
     ],
   });
 
-describe('Help (LOOK44)', () => {
-  it('opens at /help with the stepper on its first step and one primary', async () => {
+describe('Help (LOOK47)', () => {
+  it('opens at /help with the picture on top and every card visible, no wizard', async () => {
     renderApp(signedIn(), '/help');
     expect(await screen.findByRole('heading', { level: 1, name: 'Help' })).toBeTruthy();
     const nav = screen.getByRole('navigation', { name: 'Areas' });
     expect(
       within(nav).getByRole('link', { name: 'Help' }).getAttribute('aria-current'),
     ).toBe('page');
-    const steps = screen.getByRole('list', { name: 'Steps' });
-    expect(
-      within(steps)
-        .getByRole('button', { name: /On GitHub/ })
-        .getAttribute('aria-current'),
-    ).toBe('step');
-    // A later step is not pressable until the tour got there.
-    expect(
-      within(steps).getByRole<HTMLButtonElement>('button', { name: /In your pool/ })
-        .disabled,
-    ).toBe(true);
+    expect(screen.getByRole('region', { name: 'How a job gets run' })).toBeTruthy();
     expect(screen.getByRole('region', { name: 'Questions' })).toBeTruthy();
-    expect(
-      screen.getByRole('heading', { name: 'What does Run elsewhere mean?' }),
-    ).toBeTruthy();
+    for (const t of [
+      'What does shared mean?',
+      'What is a slot?',
+      'What is the Doctor?',
+      'What is the tray app?',
+      'What does Run elsewhere mean?',
+    ]) {
+      expect(screen.getByRole('heading', { name: t })).toBeTruthy();
+    }
+    expect(screen.getAllByRole('heading', { level: 3 }).length).toBe(CARDS.length);
+    expect(screen.queryByRole('list', { name: 'Steps' })).toBeNull();
+    for (const n of ['Back', 'Next', 'Start again']) {
+      expect(screen.queryByRole('button', { name: n })).toBeNull();
+    }
   });
 
-  it('walks the steps with Next and Back and starts again at the end', async () => {
+  it('presses a part of the picture and nothing is locked', async () => {
     renderApp(signedIn(), '/help');
     await screen.findByRole('heading', { level: 1, name: 'Help' });
-    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
-    expect(await screen.findByRole('heading', { name: 'What is a slot?' })).toBeTruthy();
-    expect(screen.queryByRole('heading', { name: 'What does shared mean?' })).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
-    expect(
-      await screen.findByRole('heading', { name: 'What is the Doctor?' }),
-    ).toBeTruthy();
-    expect(screen.getByRole('heading', { name: 'What is the tray app?' })).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'Back' }));
-    expect(await screen.findByRole('heading', { name: 'What is a slot?' })).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
-    fireEvent.click(await screen.findByRole('button', { name: 'Start again' }));
-    expect(
-      await screen.findByRole('heading', { name: 'What does shared mean?' }),
-    ).toBeTruthy();
+    const box = screen.getByRole<HTMLButtonElement>('button', {
+      name: /Slot\s*room for one job/,
+    });
+    expect(box.disabled).toBe(false);
+    fireEvent.click(box);
+    expect(screen.getByRole('heading', { name: 'What is a slot?' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'What does shared mean?' })).toBeTruthy();
   });
 
-  it('presses a part of the picture to go to its step', async () => {
-    renderApp(signedIn(), '/help');
-    await screen.findByRole('heading', { level: 1, name: 'Help' });
-    fireEvent.click(screen.getByRole('button', { name: /Slot\s*room for one job/ }));
-    expect(await screen.findByRole('heading', { name: 'What is a slot?' })).toBeTruthy();
-  });
-
-  it('opens the step of a card from the address', async () => {
+  it('keeps an address that ends in a card, with every card still shown', async () => {
     renderApp(signedIn(), '/help#q-budget');
     expect(
       await screen.findByRole('heading', { name: 'What is the load budget?' }),
     ).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'What is the Doctor?' })).toBeTruthy();
   });
 
   it("shows each machine's real slots and load budget, never a fixed 85% and 60%", async () => {

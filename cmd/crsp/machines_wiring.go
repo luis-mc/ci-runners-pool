@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net"
 	"net/http"
@@ -24,6 +25,7 @@ import (
 	"github.com/luis-mc/ci-runners-shared-pool/internal/packages"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/secrets"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/settings"
+	"github.com/luis-mc/ci-runners-shared-pool/internal/store"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/tlsca"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/update"
 	"github.com/luis-mc/ci-runners-shared-pool/internal/webui"
@@ -61,7 +63,7 @@ func (m *machinesRuntime) Close() { m.stop() }
 // startMachines makes the controller's CA, serves the agent link (TLS 1.3, port
 // 8461), and starts the controller's own agent, which joins without a code over
 // loopback like any other agent (machines R5.1, R5.2, decision 0004).
-func startMachines(ctx context.Context, cfg config.Config, logger *slog.Logger, idle *idleHook, rec audit.Recorder, pool func(context.Context) (machines.PoolDefaults, error)) (*machinesRuntime, error) {
+func startMachines(ctx context.Context, cfg config.Config, logger *slog.Logger, idle *idleHook, rec audit.Recorder, db *store.Store, pool func(context.Context) (machines.PoolDefaults, error)) (*machinesRuntime, error) {
 	secretsDir := filepath.Join(cfg.DataDir, "secrets", "controller")
 	store, err := agent.NewFileStore(secretsDir)
 	if err != nil {
@@ -121,8 +123,8 @@ func startMachines(ctx context.Context, cfg config.Config, logger *slog.Logger, 
 		winPackages = controllerPackages{sums: pkgSource, console: consoleURL}
 	}
 
-	// The pool is saved to a file in the data folder, so a restart keeps every machine and key (CRSP205).
-	repo, err := machines.OpenFileRepo(filepath.Join(cfg.DataDir, machines.MachinesFile))
+	// The pool lives in the database, so an update or a restart keeps every machine, setting and key (OPS59).
+	repo, err := openMachineRepo(ctx, logger, cfg.DataDir, db, rec)
 	if err != nil {
 		return nil, err
 	}
@@ -206,7 +208,6 @@ func startMachines(ctx context.Context, cfg config.Config, logger *slog.Logger, 
 		cancel()
 		_ = link.Close()
 		<-done
-		repo.Flush()
 	}}, nil
 }
 
@@ -284,4 +285,50 @@ func concreteListenHost(listen string) string {
 		return ""
 	}
 	return h
+}
+
+// openMachineRepo opens the database-backed pool and, once, imports the
+// machines.json an older controller wrote: the file is renamed to a backup and
+// never deleted (OPS59). Every machine action also goes to the console audit log.
+func openMachineRepo(ctx context.Context, logger *slog.Logger, dataDir string, db *store.Store, rec audit.Recorder) (machines.Repository, error) {
+	d, err := machines.OpenDurableRepo(ctx, db.MachinePersister())
+	if err != nil {
+		return nil, err
+	}
+	file := filepath.Join(dataDir, machines.MachinesFile)
+	snap, ok, err := machines.ReadSnapshotFile(file)
+	if err != nil {
+		return nil, err
+	}
+	if ok {
+		imported, err := d.Import(ctx, snap)
+		if err != nil {
+			return nil, err
+		}
+		if imported {
+			backup := file + ".imported-" + time.Now().UTC().Format("20060102T150405Z")
+			if err := os.Rename(file, backup); err != nil {
+				logger.Warn("machines.json was imported but could not be renamed", "err", err)
+			}
+			_ = d.Audit(ctx, "system", "machine.import", "machines.json", fmt.Sprintf("%d machines imported, file kept as a backup", len(snap.Machines)))
+			logger.Info("machines imported from machines.json into the database", "machines", len(snap.Machines))
+		}
+	}
+	return auditedRepo{DurableRepo: d, rec: rec}, nil
+}
+
+// auditedRepo writes the audit entries of the machines service to the console
+// audit log as well as to the repository's own list.
+type auditedRepo struct {
+	*machines.DurableRepo
+	rec audit.Recorder
+}
+
+func (a auditedRepo) Audit(ctx context.Context, actor, action, subject, detail string) error {
+	_ = a.DurableRepo.Audit(ctx, actor, action, subject, detail)
+	src := audit.SourceSystem
+	if actor == "agent" {
+		src = audit.SourceAgent
+	}
+	return a.rec.Record(ctx, audit.Actor{Login: actor, Source: src}, action, audit.Target{Type: "machine", ID: subject}, map[string]any{"summary": detail})
 }

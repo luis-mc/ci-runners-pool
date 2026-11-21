@@ -561,10 +561,9 @@ describe('Add runners: Linux on a Windows machine (OPS27)', () => {
     await screen.findByRole('group', { name: 'Add runners' });
     fireEvent.click(await screen.findByRole('button', { name: 'Next' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Add 1 runner' }));
-    const text = await screen.findByText(/The runners were not all added\./);
-    expect(text.textContent).toBe(
-      'The runners were not all added. registration was refused.',
-    );
+    const text = await screen.findByText(/1 failed, 0 done\./);
+    expect(text.textContent).toContain('1 failed, 0 done. registration was refused.');
+    expect(text.textContent).toContain('Open Runners, remove it');
     const strip = screen.getByRole('list', { name: 'Steps' });
     expect(
       within(strip).getByRole('button', { name: /Registering/ }).textContent,

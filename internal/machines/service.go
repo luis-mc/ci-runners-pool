@@ -120,6 +120,8 @@ type Service struct {
 	rsvcs    map[string][]RunnerService
 	lastKept map[string]time.Time
 	running  map[string][]JobRef
+	// watches is the load watch of each machine (scheduling R5.77).
+	watches map[string]*watchState
 	// onRunning sees each running-jobs report (SetRunningObserver).
 	onRunning func(machineID string, jobs []JobRef)
 	runners   map[string][]string
@@ -395,7 +397,15 @@ func (s *Service) Join(ctx context.Context, in JoinInput) (JoinResult, error) {
 			return JoinResult{}, &JoinError{Reason: LocalDuplicateMarker + " " + name + " (a separately installed agent)"}
 		}
 	}
+	// The same machine joining again keeps its record, settings and runners (OPS59).
+	prev, rejoin, err := s.rejoinTarget(ctx, in)
+	if err != nil {
+		return JoinResult{}, err
+	}
 	id := newID("m_")
+	if rejoin {
+		id = prev.ID
+	}
 	used, err := s.o.Repo.UseJoinCode(ctx, hash, id, now)
 	if err != nil {
 		return JoinResult{}, err
@@ -404,6 +414,9 @@ func (s *Service) Join(ctx context.Context, in JoinInput) (JoinResult, error) {
 		return fail("this code was already used")
 	}
 	key := randomToken("crsp_mk_", 32)
+	if rejoin {
+		return s.finishRejoin(ctx, prev, in, key)
+	}
 	m := Machine{
 		ID: id, OS: f.OS, Arch: f.Arch, Facts: f, State: StateActive, IsController: in.Local,
 		AgentVersion: in.AgentVersion, JoinedAt: now, Accepting: true,
@@ -519,4 +532,62 @@ func (s *Service) notifyMachine(id string) {
 	if s.o.Notify != nil {
 		s.o.Notify.MachineChanged(id)
 	}
+}
+
+// rejoinTarget finds the machine a join belongs to when the same machine joins
+// again (machines R5.70). The controller's own agent (the local credential) is
+// the controller machine. Any other agent matches a machine of the same host
+// name, OS and architecture that is offline: its key was refused or lost, so
+// it has no session. A removed machine never matches (R5.43).
+func (s *Service) rejoinTarget(ctx context.Context, in JoinInput) (Machine, bool, error) {
+	ms, err := s.o.Repo.ListMachines(ctx)
+	if err != nil {
+		return Machine{}, false, err
+	}
+	host := strings.TrimSpace(in.Facts.HostName)
+	var best Machine
+	found := false
+	for _, m := range ms {
+		if !m.RemovedAt.IsZero() {
+			continue
+		}
+		switch {
+		case in.Local:
+			if !m.IsController {
+				continue
+			}
+		default:
+			if m.IsController || m.Online || host == "" || !strings.EqualFold(strings.TrimSpace(m.Facts.HostName), host) ||
+				m.OS != in.Facts.OS || m.Arch != in.Facts.Arch {
+				continue
+			}
+		}
+		if !found || m.LastSeen.After(best.LastSeen) {
+			best, found = m, true
+		}
+	}
+	return best, found, nil
+}
+
+// finishRejoin gives the machine a new key and refreshes its facts; its id,
+// name, settings, policy and runners stay as they were.
+func (s *Service) finishRejoin(ctx context.Context, prev Machine, in JoinInput, key string) (JoinResult, error) {
+	if err := s.o.Repo.RevokeKeys(ctx, prev.ID); err != nil {
+		return JoinResult{}, err
+	}
+	if err := s.o.Repo.AddKey(ctx, prev.ID, hashSecret(key)); err != nil {
+		return JoinResult{}, err
+	}
+	m := prev
+	m.Facts, m.AgentVersion, m.Online, m.RejoinedAt = in.Facts, in.AgentVersion, false, s.now()
+	if err := s.o.Repo.UpdateMachine(ctx, m); err != nil {
+		return JoinResult{}, err
+	}
+	set, err := s.o.Repo.GetSettings(ctx, m.ID)
+	if err != nil {
+		return JoinResult{}, err
+	}
+	_ = s.o.Repo.Audit(ctx, "agent", "machine.rejoin", m.ID, "name "+m.Name+", kept its settings and runners")
+	s.notifyMachine(m.ID)
+	return JoinResult{MachineID: m.ID, Key: key, Fingerprint: s.o.Fingerprint, Settings: set, Machine: m}, nil
 }
