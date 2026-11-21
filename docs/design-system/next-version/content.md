@@ -1351,3 +1351,16 @@ The words of the Help page and of the ? beside a term (LOOK44, owner pick I of 2
 | More about this in Help | The link in the ? answer. |
 | Open Pool size / Open Jobs / Open the Doctor / Open Images and caches | Links on the cards. |
 | Load budget | Fact row on the machine page: `memory {n}%, CPU {m}%`. |
+
+## Run follow-up words (CIX24, owner decision D27 of 21 Nov 2026)
+
+A run can start other runs when it ends (the Installers workflow after CI). The run is not finished while they are. `{workflow}` is the workflow's name, `{state}` the word of the status (*waiting*, *running*, *success*, *failure*, *cancelled*).
+
+| Where | Words |
+|---|---|
+| Run page and run details, fact | Started next: "{workflow}, {state}"; several are joined with "; " |
+| Run page, status line, and the Result column of the lists | follow-up running (a status, glyph and colour of *running*, beside the run's own result) |
+| Run details, fact while a follow-up runs | Still running: follow-up running |
+| Done and All lists, column | Started next; "nothing" when the run started no run |
+| Timeline, row | Waited for a runner: {project} {job} |
+| Timeline, note | follow-up run |
