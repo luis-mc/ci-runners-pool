@@ -3258,10 +3258,11 @@ func (e UpdateAttemptKind) Valid() bool {
 
 // Defines values for UpdateStageFailedAt.
 const (
-	UpdateStageFailedAtDownloading    UpdateStageFailedAt = "downloading"
-	UpdateStageFailedAtInstalling     UpdateStageFailedAt = "installing"
-	UpdateStageFailedAtRestarting     UpdateStageFailedAt = "restarting"
-	UpdateStageFailedAtWaitingForJobs UpdateStageFailedAt = "waiting_for_jobs"
+	UpdateStageFailedAtDownloading      UpdateStageFailedAt = "downloading"
+	UpdateStageFailedAtInstalling       UpdateStageFailedAt = "installing"
+	UpdateStageFailedAtRestarting       UpdateStageFailedAt = "restarting"
+	UpdateStageFailedAtWaitingForJobs   UpdateStageFailedAt = "waiting_for_jobs"
+	UpdateStageFailedAtWaitingInstaller UpdateStageFailedAt = "waiting_installer"
 )
 
 // Valid indicates whether the value is a known member of the UpdateStageFailedAt enum.
@@ -3275,6 +3276,8 @@ func (e UpdateStageFailedAt) Valid() bool {
 		return true
 	case UpdateStageFailedAtWaitingForJobs:
 		return true
+	case UpdateStageFailedAtWaitingInstaller:
+		return true
 	default:
 		return false
 	}
@@ -3282,12 +3285,13 @@ func (e UpdateStageFailedAt) Valid() bool {
 
 // Defines values for UpdateStageName.
 const (
-	UpdateStageNameDone           UpdateStageName = "done"
-	UpdateStageNameDownloading    UpdateStageName = "downloading"
-	UpdateStageNameFailed         UpdateStageName = "failed"
-	UpdateStageNameInstalling     UpdateStageName = "installing"
-	UpdateStageNameRestarting     UpdateStageName = "restarting"
-	UpdateStageNameWaitingForJobs UpdateStageName = "waiting_for_jobs"
+	UpdateStageNameDone             UpdateStageName = "done"
+	UpdateStageNameDownloading      UpdateStageName = "downloading"
+	UpdateStageNameFailed           UpdateStageName = "failed"
+	UpdateStageNameInstalling       UpdateStageName = "installing"
+	UpdateStageNameRestarting       UpdateStageName = "restarting"
+	UpdateStageNameWaitingForJobs   UpdateStageName = "waiting_for_jobs"
+	UpdateStageNameWaitingInstaller UpdateStageName = "waiting_installer"
 )
 
 // Valid indicates whether the value is a known member of the UpdateStageName enum.
@@ -3304,6 +3308,8 @@ func (e UpdateStageName) Valid() bool {
 	case UpdateStageNameRestarting:
 		return true
 	case UpdateStageNameWaitingForJobs:
+		return true
+	case UpdateStageNameWaitingInstaller:
 		return true
 	default:
 		return false
@@ -7518,20 +7524,25 @@ type UpdateStage struct {
 	FailedAt *UpdateStageFailedAt `json:"failed_at,omitempty"`
 
 	// LogPath failed only, the log that has the detail.
-	LogPath *string         `json:"log_path,omitempty"`
-	Name    UpdateStageName `json:"name"`
+	LogPath *string `json:"log_path,omitempty"`
+
+	// Name waiting_installer means another installer holds Windows Installer; the update starts when it ends (TRAY11). restarting is set only once the installer has finished.
+	Name UpdateStageName `json:"name"`
 
 	// Percent Only for downloading and installing; absent when the stage has no number. Installing is a rough guess from the installer log.
 	Percent *int `json:"percent,omitempty"`
 
 	// Version The version being installed; for done, the version that runs.
 	Version *string `json:"version,omitempty"`
+
+	// WaitingFor waiting_installer only, the name of the other installer when it is known.
+	WaitingFor *string `json:"waiting_for,omitempty"`
 }
 
 // UpdateStageFailedAt failed only, the stage that failed.
 type UpdateStageFailedAt string
 
-// UpdateStageName defines model for UpdateStage.Name.
+// UpdateStageName waiting_installer means another installer holds Windows Installer; the update starts when it ends (TRAY11). restarting is set only once the installer has finished.
 type UpdateStageName string
 
 // UpdateStatus operations R5.11 to R5.18, tray R5.18.

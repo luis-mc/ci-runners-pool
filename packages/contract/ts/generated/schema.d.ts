@@ -5560,8 +5560,13 @@ export interface components {
         };
         /** @description The live stage of the last or running update (TRAY4). It is kept in a file, so it survives the service restart. */
         UpdateStage: {
-            /** @enum {string} */
-            name: "downloading" | "waiting_for_jobs" | "installing" | "restarting" | "done" | "failed";
+            /**
+             * @description waiting_installer means another installer holds Windows Installer; the update starts when it ends (TRAY11). restarting is set only once the installer has finished.
+             * @enum {string}
+             */
+            name: "downloading" | "waiting_for_jobs" | "installing" | "waiting_installer" | "restarting" | "done" | "failed";
+            /** @description waiting_installer only, the name of the other installer when it is known. */
+            waiting_for?: string;
             /** @description Only for downloading and installing; absent when the stage has no number. Installing is a rough guess from the installer log. */
             percent?: number;
             /** @description The version being installed; for done, the version that runs. */
@@ -5574,7 +5579,7 @@ export interface components {
              * @description failed only, the stage that failed.
              * @enum {string}
              */
-            failed_at?: "downloading" | "waiting_for_jobs" | "installing" | "restarting";
+            failed_at?: "downloading" | "waiting_for_jobs" | "installing" | "waiting_installer" | "restarting";
             /** Format: date-time */
             at: string;
         };
