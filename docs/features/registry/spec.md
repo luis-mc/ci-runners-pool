@@ -306,6 +306,8 @@ Built (REG9): the mirror is served only through a token `Guard` that REG1 passes
 
 **R5.80** — Today's `runners.ImageKey` keys are read as an older generation and age out. **BUILT (IMG3).** `profiles.OlderGeneration` lists the local tags the registry does not know.
 
+**R5.82** (OPS60; source: on 21 Nov, adding a Linux runner on a Windows machine built an image around the Windows `crsp.exe`, and `RUN crsp version` failed through WSL interop) — **The Linux image holds a Linux crsp of its own architecture.** The build copies a `crsp` of the image's OS and architecture (`linux/amd64` or `linux/arm64`) into `linux-base`, never the controller's own file when that is not one. On a Linux host of the same architecture it is the agent's own binary. On any other host (Windows, macOS, or Linux of the other architecture) it is the Linux release asset of the same version (`crsp-linux-<arch>_<version>.tar.gz`, the plain name for a release up to 0.1.14), fetched once from GitHub, checked against the `SHA256SUMS` of that release, and kept in `<data folder>/linux-crsp/<version>/<arch>/` with its own checksum, which is checked again before each use. Before docker starts, the file header is read: only an ELF executable of the image's machine type passes, and a Windows or macOS program, a text file or the wrong architecture stops the build with the reason (`no Linux crsp binary for the image: crsp.exe is a Windows program, not Linux amd64`). A build with no release to fetch (a development build, no network, no matching asset, a checksum that does not match) fails the same way, before the image build, naming what to do. The image key is unchanged. Built by OPS60: `internal/backend/container/linuxcrsp.go`, `stage.go`.
+
 ## 6. Non-functional requirements
 
 - **R6.1** — No registry credential in a log, the database, an error or a job (token only in memory, leases keep no value).
@@ -399,6 +401,7 @@ Rows for R5.13 to R5.20 (agent ensure-image), R5.21 and R5.22 (key), R5.59 to R5
 | R5.68 to R5.72 | `internal/registry/builds/progress_test.go`, `internal/registry/builds/tail_test.go`, `internal/registry/builds/gate_test.go` (built: parser, failure class, redacted tail, one build at a time, half the cores); `internal/backend/container/buildstream_test.go` (built: streamed steps, record, failure, concurrency, cores); `internal/store/imagebuilds_test.go` (built: record life, typical seconds, time left, list order); `internal/api/handlers_builds_test.go` (built: list, get, 404, 501); `internal/backend/sys/stream_test.go` (built: streamed lines) |
 | R5.73 to R5.76 | `internal/stackscan/scan_test.go` (built: recorded tree in internal/stackscan/testdata/tree.json); `internal/github/webhook_steps_test.go` (built: TestRESTListBlobsAt, TestRESTListBlobsAtHeldBackOnLowBudget) |
 | R5.77 to R5.80 | `internal/profiles/profiles_test.go` (built: defaults, mapping, precedence, ref, views, older generation); `internal/store/profilestore_test.go` (built: tables) |
+| R5.82 | `internal/backend/container/linuxcrsp_test.go` (built: TestCheckLinuxBinary, TestLinuxCrspFetchedOnceAndKept, TestLinuxCrspRefusals, TestLinuxCrspOwnBinaryOnSameArchLinuxHost, TestStageRefusesWindowsBinary, TestStageUsesLinuxCrspHook) |
 | R6.1 | internal/store/no_secrets_test.go (registry tables); internal/registry/core/token_test.go (no token in logs) |
 
 ## 10. Decisions

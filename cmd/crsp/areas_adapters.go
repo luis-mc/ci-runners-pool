@@ -333,6 +333,17 @@ func (f doctorFleet) Machines(ctx context.Context) ([]doctor.Machine, error) {
 	}
 	out := make([]doctor.Machine, 0, len(views))
 	allRunners, _ := f.runners.ListRunners(ctx, runners.Filter{})
+	signs, _ := f.machines.ResetSigns(ctx)
+	known := map[string]bool{}
+	for _, v := range views {
+		known[v.Machine.ID] = true
+	}
+	orphans := 0
+	for _, r := range allRunners {
+		if !known[r.MachineID] {
+			orphans++
+		}
+	}
 	for _, v := range views {
 		m := doctor.Machine{
 			ID: v.Machine.ID, Name: v.Machine.Name, OS: v.Machine.OS, Online: v.Machine.Online,
@@ -348,6 +359,10 @@ func (f doctorFleet) Machines(ctx context.Context) ([]doctor.Machine, error) {
 			m.RunningJobs = append(m.RunningJobs, strings.TrimSpace(j.Repository+" "+j.Job))
 		}
 		m.RunnerPeak, m.RunnerPeakRepo = f.runnerPeak(ctx, v.Machine.ID, allRunners)
+		m.ResetSigns = signs[v.Machine.ID]
+		if v.Machine.IsController && orphans > 0 {
+			m.ResetSigns = append(m.ResetSigns, fmt.Sprintf("%d runner records belong to a machine that is not in the pool", orphans))
+		}
 		if m.State == "" {
 			m.State = v.Machine.State
 		}

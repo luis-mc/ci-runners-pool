@@ -414,8 +414,8 @@ test('setup without a link names the tray, not a terminal', async ({ page }) => 
   await expect(page.locator('main')).not.toContainText(/crsp open|terminal/i);
 });
 
-// LOOK36, UX-69, tokens (spacing): a tab row and the page under it. At every width the page title is one page gap
-// (--ds-space-5) under the tab row, and the phone's Menu button, the first tab label of every row and the title
+// LOOK36, UX-69, tokens (spacing): a tab row and the page under it. At every width the page title is one section gap
+// (--ds-space-6) under the tab row, and the phone's Menu button, the first tab label of every row and the title
 // start on the frame's one left edge. A tab row follows component 3: it wraps onto more rows, no label is cut.
 for (const path of ['/pool', '/pool/machines', '/settings']) {
   for (const width of [1300, 393, 360]) {
@@ -436,7 +436,7 @@ for (const path of ['/pool', '/pool/machines', '/settings']) {
         };
         const probe = document.createElement('i');
         probe.style.cssText =
-          'position:absolute;visibility:hidden;padding-left:var(--ds-space-5)';
+          'position:absolute;visibility:hidden;padding-left:var(--ds-space-6)';
         document.body.appendChild(probe);
         const gapToken = parseFloat(getComputedStyle(probe).paddingLeft);
         probe.remove();

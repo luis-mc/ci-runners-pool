@@ -467,3 +467,30 @@ func (r *MemRepo) CodeHashes() []string {
 	}
 	return out
 }
+
+// keysOf lists the key hashes of a machine.
+func (r *MemRepo) keysOf(machineID string) []string {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	var out []string
+	for h, id := range r.keys {
+		if id == machineID {
+			out = append(out, h)
+		}
+	}
+	return out
+}
+
+// AddKey gives an existing machine one more live key (a rejoin, OPS59).
+func (r *MemRepo) AddKey(_ context.Context, machineID, keyHash string) error {
+	u, err := r.lockW(true)
+	if err != nil {
+		return err
+	}
+	defer u()
+	if _, ok := r.machines[machineID]; !ok {
+		return ErrNotFound
+	}
+	r.keys[keyHash] = machineID
+	return nil
+}

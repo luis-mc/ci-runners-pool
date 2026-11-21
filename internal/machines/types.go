@@ -131,6 +131,9 @@ type Machine struct {
 	LastSeen  time.Time
 	JoinedAt  time.Time
 	RemovedAt time.Time
+	// RejoinedAt is when the same machine last joined again with a new key and
+	// kept its record, settings and runners (R5.70); zero when it never did.
+	RejoinedAt time.Time
 }
 
 // Settings are the per-machine settings (R5.22, scheduling R5.1).

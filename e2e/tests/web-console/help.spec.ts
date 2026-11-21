@@ -1,5 +1,6 @@
-// LOOK44: the Help page. The stepper walks the job path, the question cards sit in their own section, a ? beside a
-// term opens a short answer that links to the same card, and Down, Up, j and k move between the controls. Layout at
+// LOOK44, LOOK47: the Help page (layout G, D58). The job path is on top, every question card is shown at once below it,
+// nothing is locked, a ? beside a term opens a short answer that links to the same card, and Down, Up, j and k move
+// between the controls. Layout at
 // 360, 393 and 1300 px is checked for every route by ux-routes.spec.ts; this file checks the behaviour.
 import { expect, test } from '@playwright/test';
 import { machine, signedIn } from './fixtures';
@@ -17,7 +18,7 @@ const real = machine({
   },
 });
 
-test('Help is the seventh item of the menu and opens the first step', async ({
+test('Help is the seventh item of the menu and shows the picture and every card', async ({
   page,
 }) => {
   await signedIn().install(page);
@@ -27,39 +28,37 @@ test('Help is the seventh item of the menu and opens the first step', async ({
   await nav.getByRole('link', { name: 'Help' }).click();
   await expect(page).toHaveURL(/\/help$/);
   await expect(page.getByRole('heading', { level: 1, name: 'Help' })).toBeVisible();
-  const steps = page.getByRole('list', { name: 'Steps' });
-  await expect(steps.getByRole('button', { name: /On GitHub/ })).toHaveAttribute(
-    'aria-current',
-    'step',
-  );
-  await expect(steps.getByRole('button', { name: /In your pool/ })).toBeDisabled();
-  // The question cards are a section of their own, outside the picture's pane.
+  // No wizard: no step bar, no Back, Next or Start again.
+  await expect(page.getByRole('list', { name: 'Steps' })).toHaveCount(0);
+  for (const name of ['Back', 'Next', 'Start again']) {
+    await expect(page.getByRole('button', { name })).toHaveCount(0);
+  }
   const picture = page.getByRole('region', { name: 'How a job gets run' });
   const questions = page.getByRole('region', { name: 'Questions' });
-  await expect(
-    questions.getByRole('heading', { name: 'What does Run elsewhere mean?' }),
-  ).toBeVisible();
+  await expect(picture).toBeVisible();
+  // The cards of all three parts are in the page together, in the grid below the picture.
+  for (const title of [
+    'What does shared mean?',
+    'What is a slot?',
+    'What is the Doctor?',
+    'What is the tray app?',
+    'What does Run elsewhere mean?',
+  ]) {
+    await expect(questions.getByRole('heading', { name: title })).toBeAttached();
+  }
   await expect(
     picture.getByRole('heading', { name: 'What does Run elsewhere mean?' }),
   ).toHaveCount(0);
+  // Nothing is locked: every box of the picture can be pressed.
+  await expect(picture.locator('button:disabled')).toHaveCount(0);
 });
 
-test('Next walks the three steps and Start again goes back to the first', async ({
-  page,
-}) => {
+test('pressing a part of the picture brings its card into view', async ({ page }) => {
   await signedIn().install(page);
+  await page.setViewportSize({ width: 1300, height: 700 });
   await page.goto('/help');
-  await page.getByRole('button', { name: 'Next' }).click();
-  await expect(page.getByRole('heading', { name: 'What is a slot?' })).toBeVisible();
-  await page.getByRole('button', { name: 'Next' }).click();
-  await expect(page.getByRole('heading', { name: 'What is the Doctor?' })).toBeVisible();
-  await expect(
-    page.getByRole('heading', { name: 'What is the tray app?' }),
-  ).toBeVisible();
-  await page.getByRole('button', { name: 'Start again' }).click();
-  await expect(
-    page.getByRole('heading', { name: 'What does shared mean?' }),
-  ).toBeVisible();
+  await page.getByRole('button', { name: /Slot\s*room for one job/ }).click();
+  await expect(page.getByRole('heading', { name: 'What is a slot?' })).toBeInViewport();
 });
 
 test('the cards show the real slots and load budget of each machine', async ({

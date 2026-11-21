@@ -71,7 +71,7 @@ export function Timeline() {
   const repository = useRepositoryFilter();
   const { result, reload } = useTimeline(Number(hours));
   return (
-    <Stack>
+    <Stack gap="section">
       <Segmented
         label="Range of the timeline"
         options={HOURS}
